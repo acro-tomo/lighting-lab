@@ -1,0 +1,15 @@
+# dependencies
+node_modules/
+
+# build / render output (generated)
+dist/
+output/
+
+# tooling scratch
+.playwright-cli/
+
+# local-only Claude Code settings (personal overrides)
+.claude/settings.local.json
+
+# OS
+.DS_Store
