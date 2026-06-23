@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "cleanupPeriodDays": 30,
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "0"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(echo \"=== tsc EXIT $? ===\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:5173/)",
+      "Bash(node scripts/check-ui.mjs)",
+      "Bash(node scripts/check-ui2.mjs)",
+      "Bash(node scripts/diag.mjs)"
+    ],
+    "deny": [
+      "Bash(rm -rf /*)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git reset --hard origin/*)"
+    ],
+    "ask": [
+      "Bash(git push*)",
+      "Bash(npm publish*)"
+    ]
+  }
+}
