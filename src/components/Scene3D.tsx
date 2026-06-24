@@ -278,6 +278,39 @@ const CameraViewSync = ({
     gl.toneMappingExposure = view.exposure;
   }, [gl, view.exposure]);
 
+  // 矢印キーで視点移動（要望: 左右でトラック、前後でドリー、Shift+上下で高さ）。
+  // カメラ位置と注視点(target)を同量だけ動かすので向きは保たれる。
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const controls = controlsRef.current;
+      if (!controls) return;
+      const target = event.target as HTMLElement | null;
+      const tag = target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
+      if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
+      event.preventDefault();
+
+      const step = event.shiftKey ? 0.25 : 0.4;
+      const forward = camera.getWorldDirection(new THREE.Vector3());
+      forward.y = 0;
+      if (forward.lengthSq() < 1e-6) forward.set(0, 0, -1);
+      forward.normalize();
+      const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
+
+      const move = new THREE.Vector3();
+      if (event.key === "ArrowLeft") move.copy(right).multiplyScalar(-step);
+      else if (event.key === "ArrowRight") move.copy(right).multiplyScalar(step);
+      else if (event.shiftKey) move.set(0, event.key === "ArrowUp" ? step : -step, 0);
+      else move.copy(forward).multiplyScalar(event.key === "ArrowUp" ? step : -step);
+
+      camera.position.add(move);
+      controls.target.add(move);
+      controls.update();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [camera, controlsRef]);
+
   return null;
 };
 

@@ -74,11 +74,15 @@ export const newStair = (project: Project, at?: { x: number; z: number }): Furni
   castsShadow: true
 });
 
-export const newWindow = (project: Project): WindowOpening => ({
+// 壁への設置先。クリック配置時は呼び出し側が壁ID＋壁上比率を渡す。
+// 省略時のみ空き壁を自動選択する（3D等クリック非対応経路のフォールバック）。
+type WallPlacement = { wallId?: string; centerRatio?: number };
+
+export const newWindow = (project: Project, on?: WallPlacement): WindowOpening => ({
   id: uid("window"),
   name: "追加窓",
-  wallId: pickFreeWall(project)?.id ?? "",
-  centerRatio: 0.5,
+  wallId: on?.wallId ?? pickFreeWall(project)?.id ?? "",
+  centerRatio: on?.centerRatio ?? 0.5,
   widthM: 1.65,
   heightM: 1.2,
   sillHeightM: 0.9,
@@ -86,11 +90,11 @@ export const newWindow = (project: Project): WindowOpening => ({
   style: "window"
 });
 
-export const newDoor = (project: Project): WindowOpening => ({
+export const newDoor = (project: Project, on?: WallPlacement): WindowOpening => ({
   id: uid("door"),
   name: "扉",
-  wallId: pickFreeWall(project)?.id ?? "",
-  centerRatio: 0.35,
+  wallId: on?.wallId ?? pickFreeWall(project)?.id ?? "",
+  centerRatio: on?.centerRatio ?? 0.35,
   widthM: 0.85,
   heightM: 2.0,
   sillHeightM: 0,

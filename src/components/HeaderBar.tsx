@@ -1,48 +1,25 @@
 import { useRef } from "react";
 import type { Project } from "../types";
-import { useProjectStore } from "../store/projectStore";
 
 type HeaderBarProps = {
   project: Project;
-  canUndo: boolean;
-  canRedo: boolean;
   onImportFloorPlan: (file: File) => void;
   onImportProject: (file: File) => void;
   onExportProject: () => void;
-  onExportPng: () => void;
-  onCaptureCompare: () => void;
-  onStopRender: () => void;
-  onOpenCompare: () => void;
-  onResetDemo: () => void;
-  isRendering: boolean;
-  focusViewport: boolean;
-  onToggleFocusViewport: () => void;
-  focusPlan: boolean;
-  onToggleFocusPlan: () => void;
+  onToggleOutput: () => void;
+  outputOpen: boolean;
 };
 
 export const HeaderBar = ({
   project,
-  canUndo,
-  canRedo,
   onImportFloorPlan,
   onImportProject,
   onExportProject,
-  onExportPng,
-  onCaptureCompare,
-  onStopRender,
-  onOpenCompare,
-  onResetDemo,
-  isRendering,
-  focusViewport,
-  onToggleFocusViewport,
-  focusPlan,
-  onToggleFocusPlan
+  onToggleOutput,
+  outputOpen
 }: HeaderBarProps) => {
   const planInputRef = useRef<HTMLInputElement | null>(null);
   const projectInputRef = useRef<HTMLInputElement | null>(null);
-  const undo = useProjectStore((state) => state.undo);
-  const redo = useProjectStore((state) => state.redo);
 
   return (
     <header className="app-header">
@@ -80,24 +57,10 @@ export const HeaderBar = ({
         <button onClick={() => planInputRef.current?.click()}>間取り図の読込</button>
         <button onClick={onExportProject}>プロジェクト保存</button>
         <button onClick={() => projectInputRef.current?.click()}>プロジェクト読込</button>
-        <button onClick={undo} disabled={!canUndo} title="Cmd+Z">
-          元に戻す
+        {/* レンダリング(パストレ)は普段使わないため出力ポップオーバーに集約（要望: PathTracer邪魔）。 */}
+        <button className={outputOpen ? "primary-action is-active" : "primary-action"} onClick={onToggleOutput}>
+          出力 / レンダリング
         </button>
-        <button onClick={redo} disabled={!canRedo} title="Cmd+Shift+Z">
-          やり直す
-        </button>
-        <button className="primary-action" onClick={isRendering ? onStopRender : onCaptureCompare}>
-          {isRendering ? "レンダリング停止" : "レンダリング開始"}
-        </button>
-        <button onClick={onExportPng}>PNG書き出し</button>
-        <button className={focusViewport ? "is-active" : undefined} onClick={onToggleFocusViewport}>
-          {focusViewport ? "パネル表示" : "3D集中表示"}
-        </button>
-        <button className={focusPlan ? "is-active" : undefined} onClick={onToggleFocusPlan}>
-          {focusPlan ? "パネル表示" : "2D集中表示"}
-        </button>
-        <button onClick={onOpenCompare}>比較画面を開く</button>
-        <button onClick={onResetDemo}>デモに戻す</button>
       </nav>
     </header>
   );

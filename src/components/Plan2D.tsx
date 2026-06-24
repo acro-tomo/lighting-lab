@@ -11,16 +11,20 @@ import type {
 } from "../types";
 import { useProjectStore } from "../store/projectStore";
 import { ScaleCalibrationModal } from "./ScaleCalibrationModal";
-
-type PlanMode = "select" | "move" | "delete" | "wall";
+import { EditToolbar, type EditMode } from "./EditToolbar";
 
 type Plan2DProps = {
   project: Project;
   selection: Selection;
   onSelect: (selection: Selection) => void;
-  mode: PlanMode;
+  mode: EditMode;
+  onModeChange: (mode: EditMode) => void;
+  onAdd: (kind: string) => void;
   pendingAdd: string | null;
   onPlaceObject: (at: { x: number; z: number }) => void;
+  onPlaceOnWall: (wallId: string, centerRatio: number) => void;
+  focusPlan: boolean;
+  onToggleFocusPlan: () => void;
 };
 
 // App側のmode(選択/移動/削除)に加え、2D固有のナビ(パン)だけをパレットに残す。
@@ -32,6 +36,7 @@ type DragState =
   | { kind: "furniture"; id: string; offset: Vec2M }
   | { kind: "light"; id: string; offset: Vec2M }
   | { kind: "void"; id: string; offset: Vec2M }
+  | { kind: "window"; id: string }
   | { kind: "pan"; clientStart: { x: number; y: number }; panStart: { x: number; y: number } }
   | null;
 
@@ -55,7 +60,40 @@ const angleSnap = (prev: Vec2M, raw: Vec2M): Vec2M => {
   return raw;
 };
 
-export const Plan2D = ({ project, selection, onSelect, mode, pendingAdd, onPlaceObject }: Plan2DProps) => {
+// 点 p を壁線分に射影した壁上比率(0..1)と垂直距離(m)を返す。窓/扉のクリック配置に使う。
+const projectOntoWall = (p: Vec2M, wall: WallSegment) => {
+  const dx = wall.end.x - wall.start.x;
+  const dz = wall.end.z - wall.start.z;
+  const len2 = dx * dx + dz * dz;
+  const t = len2 > 1e-9 ? ((p.x - wall.start.x) * dx + (p.z - wall.start.z) * dz) / len2 : 0;
+  const ratio = Math.max(0, Math.min(1, t));
+  const dist = Math.hypot(p.x - (wall.start.x + dx * ratio), p.z - (wall.start.z + dz * ratio));
+  return { ratio, dist };
+};
+
+// クリック点に最も近い壁とその壁上比率。壁が無ければ null。
+const nearestWall = (p: Vec2M, walls: WallSegment[]) => {
+  let best: { wallId: string; ratio: number; dist: number } | null = null;
+  for (const wall of walls) {
+    const { ratio, dist } = projectOntoWall(p, wall);
+    if (!best || dist < best.dist) best = { wallId: wall.id, ratio, dist };
+  }
+  return best;
+};
+
+export const Plan2D = ({
+  project,
+  selection,
+  onSelect,
+  mode,
+  onModeChange,
+  onAdd,
+  pendingAdd,
+  onPlaceObject,
+  onPlaceOnWall,
+  focusPlan,
+  onToggleFocusPlan
+}: Plan2DProps) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
   // navTool は2D固有ナビ(パン)・縮尺のみ。null のときは App の mode に従う。
   const [navTool, setNavTool] = useState<NavTool | null>(null);
@@ -71,8 +109,7 @@ export const Plan2D = ({ project, selection, onSelect, mode, pendingAdd, onPlace
   // オブジェクト操作可否は navTool が無効(=Appのmode優先)のときだけ。
   // pendingAdd 中・wall モード中は背景SVGにクリックを通す（オブジェクトは pointerEvents:none）。
   const isPanMode = navTool === "パン";
-  const canSelectObjects =
-    !navTool && !pendingAdd && (mode === "select" || mode === "move" || mode === "delete");
+  const canSelectObjects = !navTool && !pendingAdd && (mode === "select" || mode === "move");
   // 選択モードでもドラッグで動かせるほうが直感的。クリックのみなら移動は起きず選択だけ。
   const canDragObjects = !navTool && (mode === "select" || mode === "move");
 
@@ -80,7 +117,7 @@ export const Plan2D = ({ project, selection, onSelect, mode, pendingAdd, onPlace
   const updateLight = useProjectStore((state) => state.updateLight);
   const updateVoid = useProjectStore((state) => state.updateVoid);
   const setBackgroundPlan = useProjectStore((state) => state.setBackgroundPlan);
-  const deleteSelection = useProjectStore((state) => state.deleteSelection);
+  const updateWindow = useProjectStore((state) => state.updateWindow);
   const addWall = useProjectStore((state) => state.addWall);
   // 3Dビューの現在カメラ位置/注視点(ワールドm)。null のとき平面図にマーカーを描かない。
   const liveCamera = useProjectStore((state) => state.liveCamera);
@@ -119,11 +156,11 @@ export const Plan2D = ({ project, selection, onSelect, mode, pendingAdd, onPlace
     }
   }, [mode]);
 
-  // 壁モード中は Esc/Enter でトレースを終了する。
+  // 壁モード中は Enter でトレースを終了する（Escは集中表示解除等と衝突するため使わない）。
   useEffect(() => {
     if (mode !== "wall") return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" || event.key === "Enter") {
+      if (event.key === "Enter") {
         setWallDraft([]);
         setWallCursor(null);
       }
@@ -250,18 +287,9 @@ export const Plan2D = ({ project, selection, onSelect, mode, pendingAdd, onPlace
     });
   };
 
-  const handleDelete = (nextSelection: Selection) => {
-    if (!nextSelection) return;
-    const ok = window.confirm("選択したオブジェクトを削除しますか？");
-    if (ok) deleteSelection(nextSelection);
-  };
-
   const handleSelect = (nextSelection: Selection) => {
     if (isPanMode) return;
-    if (mode === "delete") {
-      handleDelete(nextSelection);
-      return;
-    }
+    // 削除モードは廃止。選択中のオブジェクトはDeleteキーで消す（App側で処理）。
     onSelect(nextSelection);
   };
 
@@ -275,7 +303,15 @@ export const Plan2D = ({ project, selection, onSelect, mode, pendingAdd, onPlace
 
     // pendingAdd 中はクリック位置にオブジェクトを配置（生成はApp側）。
     if (pendingAdd) {
-      onPlaceObject(snapPoint(svgToWorld(event.clientX, event.clientY)));
+      const world = svgToWorld(event.clientX, event.clientY);
+      // 窓/扉は最寄り壁へ吸着して設置（要望: どの壁に付けるか自分で決めたい）。
+      if (pendingAdd === "window" || pendingAdd === "door") {
+        const hit = nearestWall(world, project.walls);
+        if (hit) onPlaceOnWall(hit.wallId, hit.ratio);
+        else onPlaceObject(snapPoint(world));
+      } else {
+        onPlaceObject(snapPoint(world));
+      }
       return;
     }
 
@@ -289,7 +325,8 @@ export const Plan2D = ({ project, selection, onSelect, mode, pendingAdd, onPlace
       return;
     }
 
-    // select/move/delete は背景クリックでは何もしない（オブジェクト側で処理）。
+    // select/move で何も無い背景を掴んだら平面図をパンする（要望: 空白ドラッグでパン）。
+    setDragging({ kind: "pan", clientStart: { x: event.clientX, y: event.clientY }, panStart: pan });
   };
 
   const onPointerMove = (event: React.PointerEvent<SVGSVGElement>) => {
@@ -312,6 +349,17 @@ export const Plan2D = ({ project, selection, onSelect, mode, pendingAdd, onPlace
       return;
     }
 
+    // 窓/扉は属する壁の線上を滑らせる（壁上比率を更新）。
+    if (dragging.kind === "window") {
+      const win = project.windows.find((candidate) => candidate.id === dragging.id);
+      const wall = win && project.walls.find((candidate) => candidate.id === win.wallId);
+      if (win && wall) {
+        const world = svgToWorld(event.clientX, event.clientY);
+        updateWindow(win.id, { centerRatio: projectOntoWall(world, wall).ratio });
+      }
+      return;
+    }
+
     const next = {
       x: point.x - dragging.offset.x,
       z: point.z - dragging.offset.z
@@ -330,7 +378,7 @@ export const Plan2D = ({ project, selection, onSelect, mode, pendingAdd, onPlace
         position: { ...fixture.position, x: next.x, z: next.z },
         target: fixture.target ? { ...fixture.target, x: next.x, z: next.z } : undefined
       });
-    } else {
+    } else if (dragging.kind === "void") {
       const voidArea = project.voids.find((candidate) => candidate.id === dragging.id);
       if (!voidArea) return;
       updateVoid(voidArea.id, { center: next });
@@ -398,8 +446,22 @@ export const Plan2D = ({ project, selection, onSelect, mode, pendingAdd, onPlace
           <p className="eyebrow">2D Plan</p>
           <h2>平面配置</h2>
         </div>
-        <span className="unit-chip">{scaleLabel}</span>
+        <div className="panel-heading-actions">
+          <span className="unit-chip">{scaleLabel}</span>
+          <button
+            type="button"
+            className="focus-toggle"
+            title={focusPlan ? "通常表示に戻す" : "2Dを最大化"}
+            aria-label={focusPlan ? "通常表示に戻す" : "2Dを最大化"}
+            onClick={onToggleFocusPlan}
+          >
+            {focusPlan ? "🗗" : "⤢"}
+          </button>
+        </div>
       </div>
+
+      {/* 操作(コンボボックス)＋追加(ポップアップ)。2D集中表示でもここから追加できる（要望1）。 */}
+      <EditToolbar mode={mode} onModeChange={onModeChange} onAdd={onAdd} pendingAdd={pendingAdd} />
 
       <div className="tool-strip" role="toolbar" aria-label="2Dナビゲーション">
         {NAV_TOOLS.map((label) => (
@@ -431,11 +493,11 @@ export const Plan2D = ({ project, selection, onSelect, mode, pendingAdd, onPlace
 
       <p className="tool-help">
         {isPanMode && "ドラッグで平面図をパン。ホイールでズーム。"}
-        {!navTool && !pendingAdd && mode === "select" && "オブジェクトをクリックで選択。家具・照明・吹抜はそのままドラッグで移動できます。"}
-        {!navTool && !pendingAdd && mode === "move" && "オブジェクトをクリックで選択、ドラッグで移動できます。"}
-        {!navTool && !pendingAdd && mode === "delete" && "クリックしたオブジェクトを削除します。"}
-        {!navTool && !pendingAdd && mode === "wall" && "クリックで壁の頂点を連続配置。水平/垂直に自動スナップ。Esc/Enter/ダブルクリックで終了。"}
-        {!navTool && pendingAdd && "クリックした位置にオブジェクトを配置します。"}
+        {!navTool && (pendingAdd === "window" || pendingAdd === "door") && "設置したい壁をクリック。設置後は壁上をドラッグで位置調整。"}
+        {!navTool && pendingAdd && pendingAdd !== "window" && pendingAdd !== "door" && "クリックした位置にオブジェクトを配置します。"}
+        {!navTool && !pendingAdd && mode === "select" && "オブジェクトをクリックで選択、ドラッグで移動。何もない所のドラッグで平面図をパン。Deleteで削除。"}
+        {!navTool && !pendingAdd && mode === "move" && "オブジェクトをドラッグで移動。何もない所のドラッグで平面図をパン。"}
+        {!navTool && !pendingAdd && mode === "wall" && "クリックで壁の頂点を連続配置。水平/垂直に自動スナップ。Enter/ダブルクリックで終了。"}
       </p>
 
       <div className="plan-canvas-wrap">
@@ -505,6 +567,8 @@ export const Plan2D = ({ project, selection, onSelect, mode, pendingAdd, onPlace
                 selection={selection}
                 worldToSvg={worldToSvg}
                 onSelect={handleSelect}
+                canDrag={canDragObjects}
+                onDragStart={() => setDragging({ kind: "window", id: windowItem.id })}
               />
             ))}
             {project.voids.map((voidArea) => (
@@ -668,13 +732,17 @@ const OpeningPlanItem = ({
   walls,
   selection,
   worldToSvg,
-  onSelect
+  onSelect,
+  canDrag,
+  onDragStart
 }: {
   windowItem: WindowOpening;
   walls: WallSegment[];
   selection: Selection;
   worldToSvg: (point: Vec2M) => { x: number; y: number };
   onSelect: (selection: Selection) => void;
+  canDrag: boolean;
+  onDragStart: () => void;
 }) => {
   const wall = walls.find((item) => item.id === windowItem.wallId);
   if (!wall) return null;
@@ -692,17 +760,25 @@ const OpeningPlanItem = ({
   const selected = selection?.kind === kind && selection.id === windowItem.id;
 
   return (
-    <line
-      x1={start.x}
-      y1={start.y}
-      x2={end.x}
-      y2={end.y}
-      className={selected ? `plan-opening ${kind} is-selected` : `plan-opening ${kind}`}
+    <g
+      style={{ cursor: canDrag ? "grab" : "pointer" }}
       onPointerDown={(event) => {
         event.stopPropagation();
         onSelect({ kind, id: windowItem.id });
+        if (canDrag) onDragStart();
       }}
-    />
+    >
+      {/* 透明の太いヒット線で掴みやすくする（表示線は細いまま）。 */}
+      <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="transparent" strokeWidth={18} strokeLinecap="round" />
+      <line
+        x1={start.x}
+        y1={start.y}
+        x2={end.x}
+        y2={end.y}
+        className={selected ? `plan-opening ${kind} is-selected` : `plan-opening ${kind}`}
+        style={{ pointerEvents: "none" }}
+      />
+    </g>
   );
 };
 

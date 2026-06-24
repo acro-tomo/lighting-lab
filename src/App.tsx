@@ -14,6 +14,7 @@ import { floorPlanFileToDataUrl } from "./utils/floorplanImport";
 import { DEFAULT_DAYLIGHT } from "./utils/sun";
 import { cloneProject } from "./utils/units";
 import { newDoor, newDownlight, newFurniture, newStair, newVoid, newWallSpot, newWindow } from "./data/objectFactory";
+import { EditToolbar, type EditMode } from "./components/EditToolbar";
 
 // 小数hourをHH:MM文字列に変換する（例: 14.5 → "14:30"）。
 const formatHour = (hour: number): string => {
@@ -58,8 +59,6 @@ type RenderProgressState = {
 export const App = () => {
   const project = useProjectStore((state) => state.project);
   const selection = useProjectStore((state) => state.selection);
-  const history = useProjectStore((state) => state.history);
-  const future = useProjectStore((state) => state.future);
   const compareShots = useProjectStore((state) => state.compareShots);
   const select = useProjectStore((state) => state.select);
   const setProject = useProjectStore((state) => state.setProject);
@@ -69,7 +68,6 @@ export const App = () => {
   const addCompareShot = useProjectStore((state) => state.addCompareShot);
   const undo = useProjectStore((state) => state.undo);
   const redo = useProjectStore((state) => state.redo);
-  const resetDemo = useProjectStore((state) => state.resetDemo);
   const duplicateActiveScene = useProjectStore((state) => state.duplicateActiveScene);
   const renameActiveScene = useProjectStore((state) => state.renameActiveScene);
   const saveCameraView = useProjectStore((state) => state.saveCameraView);
@@ -85,10 +83,12 @@ export const App = () => {
   const [compareOpen, setCompareOpen] = useState(false);
   const [pathTraceMode, setPathTraceMode] = useState<PathTraceMode>("standard");
   const [viewMode, setViewMode] = useState<ViewMode>("raster");
-  const [mode, setMode] = useState<"select" | "move" | "delete" | "wall">("select");
+  const [mode, setMode] = useState<EditMode>("select");
   const [pendingAdd, setPendingAdd] = useState<string | null>(null);
   const [focusViewport, setFocusViewport] = useState(false);
   const [focusPlan, setFocusPlan] = useState(false);
+  const [outputOpen, setOutputOpen] = useState(false);
+  const [daylightOpen, setDaylightOpen] = useState(false);
   const [liveTrace, setLiveTrace] = useState<LiveTraceStatus>({ phase: "off", samples: 0 });
   const [debugMode, setDebugMode] = useState<RenderDebugMode>("beauty");
   const [lastPathTracedImage, setLastPathTracedImage] = useState<string | null>(null);
@@ -337,8 +337,12 @@ export const App = () => {
     setLiveTrace(status);
   }, []);
 
+  // 配置情報。床に置く物は at(x,z)、壁に付く物(窓/扉)は wallId+centerRatio を使う。
+  type PlaceOpts = { at?: { x: number; z: number }; wallId?: string; centerRatio?: number };
+
   const handleAddObject = useCallback(
-    (kind: string, at?: { x: number; z: number }) => {
+    (kind: string, opts: PlaceOpts = {}) => {
+      const { at, wallId, centerRatio } = opts;
       switch (kind) {
         case "downlight":
           addLight(newDownlight(project, at));
@@ -353,10 +357,10 @@ export const App = () => {
           addFurniture(newStair(project, at));
           break;
         case "window":
-          addWindow(newWindow(project), "window");
+          addWindow(newWindow(project, { wallId, centerRatio }), "window");
           break;
         case "door":
-          addWindow(newDoor(project), "opening");
+          addWindow(newDoor(project, { wallId, centerRatio }), "opening");
           break;
         case "void":
           addVoid(newVoid(at));
@@ -364,17 +368,41 @@ export const App = () => {
         default:
           return;
       }
-      setNotice("オブジェクトを追加しました。3Dまたは2Dでドラッグして配置できます。");
     },
     [addFurniture, addLight, addVoid, addWindow, project]
   );
 
+  // 「＋追加」で種別を選んだら配置待ちにする。実際の生成はクリック位置確定時。
+  const handleStartAdd = useCallback((kind: string) => {
+    setPendingAdd(kind);
+    setMode("select");
+    setNotice(
+      kind === "window" || kind === "door"
+        ? "設置したい壁を2Dでクリックしてください。"
+        : "配置したい位置を2Dでクリックしてください。"
+    );
+  }, []);
+
+  // 床に置く物の配置（クリック位置）。
   const handlePlaceObject = useCallback(
     (at: { x: number; z: number }) => {
       if (!pendingAdd) return;
-      handleAddObject(pendingAdd, at);
+      handleAddObject(pendingAdd, { at });
       setPendingAdd(null);
       setMode("move");
+      setNotice("配置しました。ドラッグで微調整できます。");
+    },
+    [pendingAdd, handleAddObject]
+  );
+
+  // 壁に付く物(窓/扉)の配置。Plan2D がクリック点を最寄り壁へ射影して渡す。
+  const handlePlaceOnWall = useCallback(
+    (wallId: string, centerRatio: number) => {
+      if (!pendingAdd) return;
+      handleAddObject(pendingAdd, { wallId, centerRatio });
+      setPendingAdd(null);
+      setMode("select");
+      setNotice("壁に設置しました。2Dで壁上をドラッグして位置を調整できます。");
     },
     [pendingAdd, handleAddObject]
   );
@@ -427,226 +455,201 @@ export const App = () => {
     <div className="app-shell">
       <HeaderBar
         project={project}
-        canUndo={history.length > 0}
-        canRedo={future.length > 0}
-        isRendering={renderProgress.status === "running"}
         onImportFloorPlan={handleImportFloorPlan}
         onImportProject={handleImportProject}
         onExportProject={exportProject}
-        onExportPng={exportPng}
-        onCaptureCompare={captureCompare}
-        onStopRender={stopRender}
-        onOpenCompare={() => setCompareOpen((current) => !current)}
-        focusViewport={focusViewport}
-        onToggleFocusViewport={() => {
-          setFocusViewport((current) => !current);
-          setFocusPlan(false);
-        }}
-        focusPlan={focusPlan}
-        onToggleFocusPlan={() => {
-          setFocusPlan((current) => !current);
-          setFocusViewport(false);
-        }}
-        onResetDemo={() => {
-          resetDemo();
-          setNotice("デモLDKに戻しました。");
-        }}
+        onToggleOutput={() => setOutputOpen((current) => !current)}
+        outputOpen={outputOpen}
       />
       <main className={focusViewport ? "workspace is-focus-3d" : focusPlan ? "workspace is-focus-2d" : "workspace"}>
-        <Plan2D project={project} selection={selection} onSelect={select} mode={mode} pendingAdd={pendingAdd} onPlaceObject={handlePlaceObject} />
+        <Plan2D
+          project={project}
+          selection={selection}
+          onSelect={select}
+          mode={mode}
+          onModeChange={(next) => {
+            setMode(next);
+            setPendingAdd(null);
+          }}
+          onAdd={handleStartAdd}
+          pendingAdd={pendingAdd}
+          onPlaceObject={handlePlaceObject}
+          onPlaceOnWall={handlePlaceOnWall}
+          focusPlan={focusPlan}
+          onToggleFocusPlan={() => {
+            setFocusPlan((current) => !current);
+            setFocusViewport(false);
+          }}
+        />
         <section className="viewport-panel" aria-label="3D表示">
           <div className="viewport-toolbar">
-            <div>
-              <p className="eyebrow">3D Preview</p>
-              <h2>{activeView?.name ?? "自由視点"} / {activeScene?.name ?? "照明シーン"}</h2>
+            <div className="viewport-title">
+              <div>
+                <p className="eyebrow">3D Preview</p>
+                <h2>{activeView?.name ?? "自由視点"} / {activeScene?.name ?? "照明シーン"}</h2>
+              </div>
+              <button
+                type="button"
+                className="focus-toggle"
+                title={focusViewport ? "通常表示に戻す" : "3Dを最大化"}
+                aria-label={focusViewport ? "通常表示に戻す" : "3Dを最大化"}
+                onClick={() => {
+                  setFocusViewport((current) => !current);
+                  setFocusPlan(false);
+                }}
+              >
+                {focusViewport ? "🗗" : "⤢"}
+              </button>
             </div>
-            <div className="render-status">
-              <label>
-                操作 / 追加
-                <select
-                  value={mode}
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    if (value.startsWith("add:")) {
-                      const kind = value.slice(4);
-                      if (kind === "window" || kind === "door") {
-                        handleAddObject(kind);
-                        setMode("move");
-                        setPendingAdd(null);
-                      } else {
-                        setPendingAdd(kind);
-                      }
-                    } else if (value === "wall") {
-                      setMode("wall");
-                      setPendingAdd(null);
-                    } else {
-                      setMode(value as "select" | "move" | "delete" | "wall");
-                      setPendingAdd(null);
-                    }
-                  }}
-                >
-                  <optgroup label="操作">
-                    <option value="select">選択</option>
-                    <option value="move">移動（ドラッグで動かす）</option>
-                    <option value="delete">削除（クリックで消す）</option>
-                    <option value="wall">壁を引く（クリックで連続）</option>
-                  </optgroup>
-                  <optgroup label="追加">
-                    <option value="add:downlight">＋ダウンライト</option>
-                    <option value="add:wallspot">＋壁付スポット</option>
-                    <option value="add:window">＋窓</option>
-                    <option value="add:door">＋扉</option>
-                    <option value="add:furniture">＋家具</option>
-                    <option value="add:stair">＋階段</option>
-                    <option value="add:void">＋吹き抜け</option>
-                  </optgroup>
-                </select>
-              </label>
-              <span className="toolbar-hint">
-                {pendingAdd
+
+            <EditToolbar
+              mode={mode}
+              onModeChange={(next) => {
+                setMode(next);
+                setPendingAdd(null);
+              }}
+              onAdd={handleStartAdd}
+              pendingAdd={pendingAdd}
+            />
+            <span className="toolbar-hint">
+              {pendingAdd === "window" || pendingAdd === "door"
+                ? "壁をクリックして設置"
+                : pendingAdd
                   ? "クリックした位置に配置"
                   : mode === "wall"
-                    ? "クリックで壁の頂点、Escで終了"
+                    ? "クリックで壁の頂点、Enter/ダブルクリックで終了"
                     : mode === "move"
                       ? "ドラッグで移動"
-                      : mode === "delete"
-                        ? "クリックで削除"
-                        : "クリックで選択"}
-              </span>
-            </div>
+                      : "クリックで選択・ドラッグで移動"}
+            </span>
+
             <div className="render-status">
               <label>
                 表示モード
-                <select
-                  value={viewMode}
-                  onChange={(event) => setViewMode(event.target.value as ViewMode)}
-                >
+                <select value={viewMode} onChange={(event) => setViewMode(event.target.value as ViewMode)}>
                   <option value="raster">編集（高速ラスター）</option>
                   <option value="realistic">リアル（常駐パストレ）</option>
                 </select>
               </label>
               {viewMode === "realistic" ? (
                 <strong>
-                  {liveTrace.phase === "building"
-                    ? "BVH生成中…"
-                    : `間接光リアル描画 / ${liveTrace.samples} samples 収束中`}
+                  {liveTrace.phase === "building" ? "BVH生成中…" : `間接光リアル描画 / ${liveTrace.samples} samples 収束中`}
                 </strong>
               ) : (
                 <strong>編集プレビュー / 露出 {activeView?.exposure.toFixed(2)}</strong>
               )}
             </div>
-            <div className="render-status render-status-wide">
-              <label>
-                Path trace
-                <select
-                  value={pathTraceMode}
-                  disabled={renderProgress.status === "running"}
-                  onChange={(event) => setPathTraceMode(event.target.value as PathTraceMode)}
-                >
-                  <option value="standard">標準 256 samples</option>
-                  <option value="high">高品質 512 samples</option>
-                  <option value="ultra">最高 1024 samples</option>
-                </select>
-              </label>
-              <label>
-                診断
-                <select
-                  value={debugMode}
-                  disabled={renderProgress.status === "running"}
-                  onChange={(event) => setDebugMode(event.target.value as RenderDebugMode)}
-                >
-                  <option value="beauty">通常</option>
-                  <option value="material">マテリアル</option>
-                  <option value="normals">法線</option>
-                  <option value="frontback">表裏</option>
-                </select>
-              </label>
-              <strong>{renderProgress.samples}/{renderProgress.targetSamples} samples</strong>
-              <span className="render-message">{renderProgress.message}</span>
-              <span>{elapsedSeconds}s</span>
-              <span>残り {estimatedRemainingSeconds}s</span>
-              <progress value={renderPercent} max={100} />
-            </div>
+
             {(() => {
               const dl = project.daylight ?? DEFAULT_DAYLIGHT;
               return (
-                <div className="render-status daylight-controls">
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={dl.enabled}
-                      onChange={(event) => setDaylight({ enabled: event.target.checked })}
-                    />
-                    日光
-                  </label>
-                  <label>
-                    月
-                    <input
-                      type="number"
-                      min={1}
-                      max={12}
-                      value={dl.month}
-                      disabled={!dl.enabled}
-                      onChange={(event) => setDaylight({ month: Number(event.target.value) })}
-                      style={{ width: 44 }}
-                    />
-                  </label>
-                  <label>
-                    日
-                    <input
-                      type="number"
-                      min={1}
-                      max={31}
-                      value={dl.day}
-                      disabled={!dl.enabled}
-                      onChange={(event) => setDaylight({ day: Number(event.target.value) })}
-                      style={{ width: 44 }}
-                    />
-                  </label>
-                  <label style={{ gap: 4 }}>
-                    時刻
-                    <input
-                      type="range"
-                      min={0}
-                      max={24}
-                      step={0.25}
-                      value={dl.hour}
-                      disabled={!dl.enabled}
-                      onChange={(event) => setDaylight({ hour: Number(event.target.value) })}
-                      style={{ width: 80 }}
-                    />
-                    <strong>{formatHour(dl.hour)}</strong>
-                  </label>
-                  <label>
-                    北方位
-                    <input
-                      type="number"
-                      min={-180}
-                      max={180}
-                      value={dl.northOffsetDeg}
-                      disabled={!dl.enabled}
-                      onChange={(event) => setDaylight({ northOffsetDeg: Number(event.target.value) })}
-                      style={{ width: 52 }}
-                    />
-                    °
-                  </label>
-                  <label>
-                    緯度
-                    <input
-                      type="number"
-                      min={-60}
-                      max={60}
-                      value={dl.latitudeDeg}
-                      disabled={!dl.enabled}
-                      onChange={(event) => setDaylight({ latitudeDeg: Number(event.target.value) })}
-                      style={{ width: 52 }}
-                    />
-                    °
-                  </label>
+                <div className="daylight-wrap">
+                  <button
+                    type="button"
+                    className={daylightOpen ? "daylight-toggle is-active" : "daylight-toggle"}
+                    onClick={() => setDaylightOpen((open) => !open)}
+                  >
+                    ☀ 日光{dl.enabled ? `（${formatHour(dl.hour)}）` : "（OFF）"}
+                  </button>
+                  {daylightOpen && (
+                    <div className="daylight-popover">
+                      <label className="daylight-row">
+                        <input
+                          type="checkbox"
+                          checked={dl.enabled}
+                          onChange={(event) => setDaylight({ enabled: event.target.checked })}
+                        />
+                        日光を有効にする
+                      </label>
+                      <label className="daylight-row">
+                        時刻
+                        <input
+                          type="range"
+                          min={0}
+                          max={24}
+                          step={0.25}
+                          value={dl.hour}
+                          disabled={!dl.enabled}
+                          onChange={(event) => setDaylight({ hour: Number(event.target.value) })}
+                        />
+                        <strong>{formatHour(dl.hour)}</strong>
+                      </label>
+                      <div className="daylight-grid">
+                        <label>
+                          月
+                          <input type="number" min={1} max={12} value={dl.month} disabled={!dl.enabled}
+                            onChange={(event) => setDaylight({ month: Number(event.target.value) })} />
+                        </label>
+                        <label>
+                          日
+                          <input type="number" min={1} max={31} value={dl.day} disabled={!dl.enabled}
+                            onChange={(event) => setDaylight({ day: Number(event.target.value) })} />
+                        </label>
+                        <label>
+                          北方位°
+                          <input type="number" min={-180} max={180} value={dl.northOffsetDeg} disabled={!dl.enabled}
+                            onChange={(event) => setDaylight({ northOffsetDeg: Number(event.target.value) })} />
+                        </label>
+                        <label>
+                          緯度°
+                          <input type="number" min={-60} max={60} value={dl.latitudeDeg} disabled={!dl.enabled}
+                            onChange={(event) => setDaylight({ latitudeDeg: Number(event.target.value) })} />
+                        </label>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })()}
           </div>
+
+          {outputOpen && (
+            <div className="output-popover" aria-label="出力 / レンダリング">
+              <div className="output-row">
+                <label>
+                  品質
+                  <select
+                    value={pathTraceMode}
+                    disabled={renderProgress.status === "running"}
+                    onChange={(event) => setPathTraceMode(event.target.value as PathTraceMode)}
+                  >
+                    <option value="standard">標準 256 samples</option>
+                    <option value="high">高品質 512 samples</option>
+                    <option value="ultra">最高 1024 samples</option>
+                  </select>
+                </label>
+                <label>
+                  診断
+                  <select
+                    value={debugMode}
+                    disabled={renderProgress.status === "running"}
+                    onChange={(event) => setDebugMode(event.target.value as RenderDebugMode)}
+                  >
+                    <option value="beauty">通常</option>
+                    <option value="material">マテリアル</option>
+                    <option value="normals">法線</option>
+                    <option value="frontback">表裏</option>
+                  </select>
+                </label>
+              </div>
+              <div className="output-row">
+                <button
+                  className="primary-action"
+                  onClick={renderProgress.status === "running" ? stopRender : captureCompare}
+                >
+                  {renderProgress.status === "running" ? "レンダリング停止" : "レンダリング開始"}
+                </button>
+                <button onClick={exportPng}>PNG書き出し</button>
+              </div>
+              <div className="output-progress">
+                <strong>{renderProgress.samples}/{renderProgress.targetSamples} samples</strong>
+                <span className="render-message">{renderProgress.message}</span>
+                <span>{elapsedSeconds}s / 残り {estimatedRemainingSeconds}s</span>
+                <progress value={renderPercent} max={100} />
+              </div>
+            </div>
+          )}
+
           <div className="scene-stage">
             <Scene3D
               project={project}

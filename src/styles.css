@@ -153,7 +153,8 @@ h2 {
 
 .workspace {
   display: grid;
-  grid-template-columns: 330px minmax(520px, 1fr) 370px;
+  /* 右(インスペクタ)を狭め、中央の3Dを最優先で広げる（要望: 右は1列分でいい・3Dを大きく）。 */
+  grid-template-columns: 300px minmax(560px, 1fr) 288px;
   min-height: 0;
 }
 
@@ -221,7 +222,9 @@ h2 {
 .viewport-panel {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  overflow: hidden;
+  /* ツールバーのポップオーバー(日光など)が下のシーンへはみ出せるよう visible にし、
+     キャンバスのはみ出しは scene-stage 側で clip する。 */
+  overflow: visible;
   background: #080807;
 }
 
@@ -272,43 +275,6 @@ h2 {
   accent-color: #f5c64d;
 }
 
-.render-status-wide {
-  min-width: 430px;
-  flex-wrap: wrap;
-  row-gap: 6px;
-}
-
-.daylight-controls {
-  flex-wrap: wrap;
-  row-gap: 6px;
-}
-
-.daylight-controls label {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.daylight-controls input[type="number"] {
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 6px;
-  padding: 4px 5px;
-  color: #f3efe7;
-  background: rgba(0, 0, 0, 0.35);
-}
-
-.daylight-controls input[type="number"]:disabled {
-  opacity: 0.4;
-}
-
-.daylight-controls input[type="range"] {
-  accent-color: #f5c64d;
-}
-
-.daylight-controls input[type="range"]:disabled {
-  opacity: 0.4;
-}
-
 .render-status strong {
   color: #fff6d9;
 }
@@ -326,6 +292,7 @@ h2 {
 .scene-stage {
   position: relative;
   min-height: 0;
+  overflow: hidden;
 }
 
 .scene-stage canvas {
@@ -1033,11 +1000,266 @@ h2 {
 
 @media (max-width: 1280px) {
   .workspace {
-    grid-template-columns: 300px minmax(500px, 1fr) 340px;
+    grid-template-columns: 280px minmax(460px, 1fr) 268px;
   }
 
   .header-actions button {
     padding: 7px 9px;
     font-size: 12px;
   }
+}
+
+/* === Phase 1 UX: 操作/追加ツールバー・集中表示アイコン・ポップオーバー === */
+.viewport-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.panel-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.focus-toggle {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 7px;
+  padding: 3px 9px;
+  font-size: 15px;
+  line-height: 1.4;
+  color: #f3efe7;
+  background: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+}
+
+.focus-toggle:hover {
+  background: rgba(255, 255, 255, 0.13);
+}
+
+.edit-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.edit-toolbar-mode {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: #cfc7b8;
+}
+
+.edit-toolbar select {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 5px 7px;
+  color: #f3efe7;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.add-button {
+  border: 1px solid rgba(245, 198, 77, 0.5);
+  border-radius: 7px;
+  padding: 6px 13px;
+  font-weight: 700;
+  color: #1a1605;
+  background: #f5c64d;
+  cursor: pointer;
+}
+
+.add-button.is-active {
+  box-shadow: 0 0 0 2px rgba(245, 198, 77, 0.4);
+}
+
+/* 追加ポップアップ（中央モーダル）。パネルの overflow に左右されない。 */
+.add-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.add-modal {
+  width: min(420px, 90vw);
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  background: #1b1b19;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+}
+
+.add-modal-title {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #cfc7b8;
+}
+
+.add-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.add-modal-grid button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 11px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9px;
+  color: #f3efe7;
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  text-align: left;
+}
+
+.add-modal-grid button:hover {
+  border-color: rgba(245, 198, 77, 0.6);
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.add-modal-grid em {
+  color: #8f8779;
+  font-size: 11px;
+  font-style: normal;
+}
+
+/* 日光ポップオーバー */
+.daylight-wrap {
+  position: relative;
+}
+
+.daylight-toggle {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 7px;
+  padding: 6px 11px;
+  font-size: 12px;
+  color: #f3efe7;
+  background: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+}
+
+.daylight-toggle.is-active {
+  border-color: rgba(245, 198, 77, 0.6);
+}
+
+.daylight-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  width: 260px;
+  padding: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 11px;
+  background: #1b1b19;
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.55);
+}
+
+.daylight-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #cfc7b8;
+}
+
+.daylight-row input[type="range"] {
+  flex: 1;
+  accent-color: #f5c64d;
+}
+
+.daylight-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.daylight-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: #cfc7b8;
+}
+
+.daylight-grid input,
+.daylight-row input[type="number"] {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 5px 6px;
+  color: #f3efe7;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.daylight-grid input:disabled,
+.daylight-row input:disabled {
+  opacity: 0.4;
+}
+
+/* 出力 / レンダリング ポップオーバー（ヘッダー下に固定表示） */
+.output-popover {
+  position: fixed;
+  top: 80px;
+  right: 18px;
+  z-index: 55;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  width: 330px;
+  padding: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 13px;
+  background: #1b1b19;
+  box-shadow: 0 22px 50px rgba(0, 0, 0, 0.6);
+}
+
+.output-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.output-row label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #cfc7b8;
+}
+
+.output-row select,
+.output-row button {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 7px;
+  padding: 6px 10px;
+  color: #f3efe7;
+  background: rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+}
+
+.output-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: #cfc7b8;
+}
+
+.output-progress progress {
+  width: 100%;
+  accent-color: #f5c64d;
 }
