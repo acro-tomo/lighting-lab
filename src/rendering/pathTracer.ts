@@ -3,14 +3,48 @@ import { WebGLPathTracer } from "three-gpu-pathtracer";
 import { GenerateMeshBVHWorker } from "three-mesh-bvh/src/workers/index.js";
 import type { FurnitureItem, LightingScene, MaterialPreset, Project } from "../types";
 import { colorTemperatureToHex, lumensToPhysicalPower } from "../utils/lighting";
+import { DEFAULT_DAYLIGHT, sunVector } from "../utils/sun";
+import {
+  buildSkyEnvironment,
+  SKY_ENVIRONMENT_INTENSITY,
+  SUN_INTENSITY_FACTOR,
+  type SkyEnvironment
+} from "./skyEnvironment";
 import type { RenderContext } from "./renderContext";
 
-export type PathTraceMode = "fast" | "final";
+// 太陽高度から太陽光色を補間する。Scene3D の挙動に合わせる。
+const sunColorForAltitude = (altitudeDeg: number): THREE.Color => {
+  const warm = new THREE.Color("#ffd9a8");
+  const white = new THREE.Color("#fff4e6");
+  return warm.lerp(white, Math.min(1, Math.max(0, altitudeDeg / 35)));
+};
+
+export type PathTraceMode = "standard" | "high" | "ultra";
 export type RenderDebugMode = "beauty" | "material" | "normals" | "frontback";
 
 export const sampleCountByMode: Record<PathTraceMode, number> = {
-  fast: 16,
-  final: 128
+  standard: 256,
+  high: 512,
+  ultra: 1024
+};
+
+// モード別の品質パラメータ。重い ultra のみタイル分割(2x2)でGPU負荷を分散。
+const renderScaleByMode: Record<PathTraceMode, number> = {
+  standard: 0.7,
+  high: 0.9,
+  ultra: 1.0
+};
+
+const bouncesByMode: Record<PathTraceMode, number> = {
+  standard: 5,
+  high: 8,
+  ultra: 10
+};
+
+const transmissiveBouncesByMode: Record<PathTraceMode, number> = {
+  standard: 3,
+  high: 4,
+  ultra: 5
 };
 
 export type PathTraceProgress = {
@@ -115,6 +149,38 @@ const addPanel = (
   return mesh;
 };
 
+// 壁を開口でくり抜いた残りを矩形パネル群で返す（壁内座標0..length・高さ基準）。
+type WallHole = { cx: number; w: number; bottom: number; top: number };
+const wallPanelRects = (length: number, height: number, holes: WallHole[]) => {
+  if (holes.length === 0) {
+    return [{ cx: length / 2, cy: height / 2, w: length, h: height }];
+  }
+  const spans = holes
+    .map((hole) => ({
+      x0: Math.max(0, hole.cx - hole.w / 2),
+      x1: Math.min(length, hole.cx + hole.w / 2),
+      bottom: Math.max(0, hole.bottom),
+      top: Math.min(height, hole.top)
+    }))
+    .filter((span) => span.x1 - span.x0 > 0.001 && span.top - span.bottom > 0.001)
+    .sort((a, b) => a.x0 - b.x0);
+
+  const rects: { cx: number; cy: number; w: number; h: number }[] = [];
+  const push = (left: number, right: number, bottom: number, top: number) => {
+    if (right - left <= 0.001 || top - bottom <= 0.001) return;
+    rects.push({ cx: (left + right) / 2, cy: (bottom + top) / 2, w: right - left, h: top - bottom });
+  };
+  let cursor = 0;
+  spans.forEach((span) => {
+    push(cursor, span.x0, 0, height);
+    push(span.x0, span.x1, 0, span.bottom);
+    push(span.x0, span.x1, span.top, height);
+    cursor = Math.max(cursor, span.x1);
+  });
+  push(cursor, length, 0, height);
+  return rects;
+};
+
 const addInteriorWallPanel = (
   scene: THREE.Scene,
   wallStart: { x: number; z: number },
@@ -122,6 +188,7 @@ const addInteriorWallPanel = (
   height: number,
   material: THREE.Material,
   debugMode: RenderDebugMode,
+  holes: WallHole[] = [],
   roomCenter = new THREE.Vector3(0, 0, 0)
 ) => {
   const dx = wallEnd.x - wallStart.x;
@@ -134,7 +201,18 @@ const addInteriorWallPanel = (
   const normalB = normalA.clone().multiplyScalar(-1);
   const toCenter = roomCenter.clone().sub(midpoint);
   const normal = normalA.dot(toCenter) >= normalB.dot(toCenter) ? normalA : normalB;
-  return addPanel(scene, length, height, midpoint, normal, material, "wall", debugMode);
+  const rotationY = Math.atan2(normal.x, normal.z);
+  const localXAxis = new THREE.Vector3(Math.cos(rotationY), 0, -Math.sin(rotationY));
+
+  // 開口でくり抜いた残りパネルを、壁中心からローカルX/Yオフセットで配置する。
+  wallPanelRects(length, height, holes).forEach((rect) => {
+    const localX = rect.cx - length / 2;
+    const localY = rect.cy - height / 2;
+    const pos = midpoint.clone().add(localXAxis.clone().multiplyScalar(localX));
+    pos.y = midpoint.y + localY;
+    addPanel(scene, rect.w, rect.h, pos, normal, material, "wall", debugMode);
+  });
+  return null;
 };
 
 const addHorizontalPanel = (
@@ -226,21 +304,34 @@ const addFurniture = (
   }
 
   if (item.type === "stair") {
+    // スケルトン階段: 段板＋両側ストリンガー（蹴込み板なし）。
     const steps = Math.max(3, Math.min(24, Math.round(item.size.y / 0.18)));
     const tread = item.size.z / steps;
     const riser = item.size.y / steps;
     for (let index = 0; index < steps; index += 1) {
-      const topY = (index + 1) * riser;
       addBox(
         scene,
-        [item.size.x, topY, tread],
-        [item.position.x, topY / 2, item.position.z - item.size.z / 2 + index * tread + tread / 2],
+        [item.size.x, 0.052, tread * 0.82],
+        [item.position.x, (index + 1) * riser - 0.026, item.position.z - item.size.z / 2 + index * tread + tread / 2],
         material,
         rotation,
         "furniture",
         debugMode
       );
     }
+    const stringerLength = Math.hypot(item.size.y, item.size.z);
+    const stringerAngle = Math.atan2(item.size.z, item.size.y);
+    [-1, 1].forEach((side) => {
+      const stringer = new THREE.Mesh(
+        new THREE.BoxGeometry(0.06, stringerLength, 0.16),
+        new THREE.MeshStandardMaterial({ color: "#1c1c1a", roughness: 0.5, metalness: 0.6 })
+      );
+      stringer.position.set(item.position.x + side * (item.size.x / 2 - 0.04), item.size.y / 2, item.position.z);
+      stringer.rotation.x = stringerAngle;
+      stringer.castShadow = true;
+      stringer.receiveShadow = true;
+      scene.add(stringer);
+    });
     return;
   }
 
@@ -271,10 +362,79 @@ const ceilingPieces = (project: Project) => {
   ].filter((piece) => piece.width > 0.04 && piece.depth > 0.04);
 };
 
-const buildPathTraceScene = (project: Project, activeScene: LightingScene | undefined, debugMode: RenderDebugMode) => {
+const buildPathTraceScene = (
+  renderer: THREE.WebGLRenderer,
+  project: Project,
+  activeScene: LightingScene | undefined,
+  debugMode: RenderDebugMode
+): { scene: THREE.Scene; skyEnv: SkyEnvironment | null } => {
   const scene = new THREE.Scene();
   const materials = materialMap(project.materials);
-  scene.background = new THREE.Color("#050504");
+
+  // 日光・空（編集シーン=常駐パストレと同一の Sky 環境・露出・太陽式。WYSIWYG厳守）。
+  const daylight = project.daylight ?? DEFAULT_DAYLIGHT;
+  const sun = sunVector(daylight);
+  const sunUp = daylight.enabled && sun.altitudeDeg > 0;
+  // WebGLPathTracer は scene.background 単色を「見える背景」としてしか扱わず、
+  // 環境光にはしない（環境光は scene.environment + environmentIntensity が必要）。
+  // 物理ベースの空(Sky→PMREM)を environment に入れ、直射の当たらない壁を持ち上げる。
+  let skyEnv: SkyEnvironment | null = null;
+  if (sunUp) {
+    skyEnv = buildSkyEnvironment(renderer, sun.dir);
+    scene.environment = skyEnv.texture;
+    scene.background = skyEnv.texture;
+    scene.environmentIntensity = SKY_ENVIRONMENT_INTENSITY;
+  } else {
+    scene.background = new THREE.Color("#050504");
+    scene.environmentIntensity = 1;
+  }
+
+  if (sunUp) {
+    const sunLight = new THREE.DirectionalLight(
+      sunColorForAltitude(sun.altitudeDeg),
+      Math.max(0, sun.dir.y) * SUN_INTENSITY_FACTOR
+    );
+    const pos = sun.dir.clone().multiplyScalar(30);
+    sunLight.position.set(pos.x, pos.y, pos.z);
+    sunLight.target.position.set(0, 0, 0);
+    sunLight.target.updateMatrixWorld(true);
+    scene.add(sunLight);
+    scene.add(sunLight.target);
+  }
+
+  // 外景: 窓の外に「外らしい景色」(地面+遠景の建物/木立)を作る。Scene3D の Outdoors と整合。
+  addHorizontalPanel(scene, 120, 120, -0.02, 1, makeMaterial(undefined, "#6f7560"), "floor", debugMode);
+  if (debugMode === "beauty") {
+    const farBuildings = [
+      { x: -14, z: -20, w: 6, h: 5.5, color: "#3a4250" },
+      { x: -7, z: -22, w: 4.5, h: 8, color: "#454f5e" },
+      { x: 0, z: -24, w: 7, h: 6, color: "#333b48" },
+      { x: 8, z: -21, w: 5, h: 9.5, color: "#404a59" },
+      { x: 15, z: -19, w: 5.5, h: 4.5, color: "#3d4654" },
+      { x: 19, z: 6, w: 5, h: 7, color: "#3a4250" },
+      { x: 20, z: 14, w: 6, h: 5, color: "#454f5e" },
+      { x: -19, z: 8, w: 5.5, h: 6.5, color: "#3a4250" },
+      { x: -20, z: -4, w: 5, h: 8, color: "#404a59" }
+    ];
+    farBuildings.forEach((b) => {
+      addBox(scene, [b.w, b.h, b.w * 0.8], [b.x, b.h / 2, b.z], makeMaterial(undefined, b.color), 0, "wall", debugMode);
+    });
+    const farTrees = [
+      { x: -11, z: -16, h: 3.2 },
+      { x: 4, z: -17, h: 3.8 },
+      { x: 12, z: -15, h: 2.8 },
+      { x: 16, z: 2, h: 3.4 },
+      { x: -16, z: 2, h: 3.0 }
+    ];
+    farTrees.forEach((t) => {
+      const crown = new THREE.Mesh(
+        new THREE.ConeGeometry(t.h * 0.34, t.h * 0.85, 8),
+        makeMaterial(undefined, "#2f4232")
+      );
+      crown.position.set(t.x, t.h * 0.62, t.z);
+      scene.add(crown);
+    });
+  }
 
   const floorMaterial = makeMaterial(materials.get("cal-floor-oak") ?? materials.get("floor-oak"), "#9d754a");
   addHorizontalPanel(scene, project.room.widthM, project.room.depthM, 0, 1, floorMaterial, "floor", debugMode);
@@ -313,7 +473,19 @@ const buildPathTraceScene = (project: Project, activeScene: LightingScene | unde
   });
 
   project.walls.forEach((wall) => {
-    addInteriorWallPanel(scene, wall.start, wall.end, wall.heightM, makeMaterial(materials.get(wall.materialId), "#e2ddd2"), debugMode);
+    const dx = wall.end.x - wall.start.x;
+    const dz = wall.end.z - wall.start.z;
+    const length = Math.hypot(dx, dz);
+    // この壁の開口を壁内座標(0..length)へ。centerRatio は start→end 比なので length 倍。
+    const holes = project.windows
+      .filter((windowItem) => windowItem.wallId === wall.id)
+      .map((windowItem) => ({
+        cx: windowItem.centerRatio * length,
+        w: windowItem.widthM,
+        bottom: windowItem.sillHeightM,
+        top: windowItem.sillHeightM + windowItem.heightM
+      }));
+    addInteriorWallPanel(scene, wall.start, wall.end, wall.heightM, makeMaterial(materials.get(wall.materialId), "#e2ddd2"), debugMode, holes);
   });
 
   project.windows.forEach((windowItem) => {
@@ -323,17 +495,24 @@ const buildPathTraceScene = (project: Project, activeScene: LightingScene | unde
     const z = wall.start.z + (wall.end.z - wall.start.z) * windowItem.centerRatio;
     const angle = Math.atan2(wall.end.z - wall.start.z, wall.end.x - wall.start.x);
     const y = windowItem.sillHeightM + windowItem.heightM / 2;
-    const material = windowItem.hasGlass
-      ? new THREE.MeshPhysicalMaterial({
-          color: "#9fbaca",
-          roughness: 0.04,
-          metalness: 0,
-          transmission: 0.25,
-          transparent: true,
-          opacity: 0.35
-        })
-      : makeMaterial(undefined, "#050504");
-    addBox(scene, [windowItem.widthM, windowItem.heightM, 0.018], [x, y, z - 0.014], material, -angle, windowItem.hasGlass ? "glass" : "backface", debugMode);
+    const style = windowItem.style ?? (windowItem.hasGlass ? "window" : "opening");
+    if (style === "door") {
+      addBox(scene, [windowItem.widthM, windowItem.heightM, 0.04], [x, y, z - 0.02], makeMaterial(undefined, "#9d8b73"), -angle, "furniture", debugMode);
+      return;
+    }
+    const material =
+      style === "window"
+        ? new THREE.MeshPhysicalMaterial({
+            color: "#bcd4e0",
+            roughness: 0.03,
+            metalness: 0,
+            transmission: 0.95,
+            transparent: true,
+            opacity: 1.0,
+            ior: 1.5
+          })
+        : makeMaterial(undefined, "#0a0908");
+    addBox(scene, [windowItem.widthM, windowItem.heightM, 0.018], [x, y, z - 0.014], material, -angle, style === "window" ? "glass" : "backface", debugMode);
   });
 
   project.furniture.forEach((item) => addFurniture(scene, item, materials, debugMode));
@@ -384,11 +563,26 @@ const buildPathTraceScene = (project: Project, activeScene: LightingScene | unde
       emitter.position.set(fixture.position.x, fixture.position.y - 0.08, fixture.position.z);
       scene.add(emitter);
 
-      const light = new THREE.PointLight(color, 1, 0, 2);
+      // シェード上面の不透明キャップ。上方への光漏れ(天井照り)を遮る。
+      addBox(
+        scene,
+        [0.16, 0.012, 0.16],
+        [fixture.position.x, fixture.position.y + 0.03, fixture.position.z],
+        makeMaterial(undefined, "#15140f"),
+        0,
+        "fixture",
+        debugMode
+      );
+
+      // 下方配光のスポット(≈140°)。全方向 pointLight だと天井まで照るのを防ぐ。
+      const light = new THREE.SpotLight(color, 1, 0, THREE.MathUtils.degToRad(70), 0.5, 2);
       light.power = power;
       light.position.set(fixture.position.x, fixture.position.y - 0.08, fixture.position.z);
       light.castShadow = fixture.castsShadow;
+      light.target.position.set(fixture.position.x, 0.1, fixture.position.z);
+      light.target.updateMatrixWorld(true);
       scene.add(light);
+      scene.add(light.target);
       return;
     }
 
@@ -421,7 +615,7 @@ const buildPathTraceScene = (project: Project, activeScene: LightingScene | unde
     })),
     note: "Path tracer uses inward-facing room panels, MeshStandard/Physical materials, physical light.power in lm, and no AmbientLight/HemisphereLight."
   });
-  return scene;
+  return { scene, skyEnv };
 };
 
 const applyPathTracerSceneUpdate = async ({
@@ -505,20 +699,21 @@ export const renderPathTracedImage = async ({
   }
   camera.updateMatrixWorld(true);
 
-  const scene = buildPathTraceScene(project, activeScene, debugMode);
+  const { scene, skyEnv } = buildPathTraceScene(renderer, project, activeScene, debugMode);
   const pathTracer = new WebGLPathTracer(renderer);
   const bvhWorker = new GenerateMeshBVHWorker();
   pathTracer.renderDelay = 0;
   pathTracer.fadeDuration = 0;
   pathTracer.minSamples = 1;
-  pathTracer.renderScale = mode === "fast" ? 0.35 : 0.85;
-  pathTracer.dynamicLowRes = mode === "fast";
+  pathTracer.renderScale = renderScaleByMode[mode];
+  pathTracer.dynamicLowRes = false;
   pathTracer.lowResScale = 0.25;
   pathTracer.multipleImportanceSampling = true;
-  pathTracer.bounces = mode === "fast" ? 3 : 8;
-  pathTracer.transmissiveBounces = mode === "fast" ? 2 : 4;
+  pathTracer.bounces = bouncesByMode[mode];
+  pathTracer.transmissiveBounces = transmissiveBouncesByMode[mode];
   pathTracer.rasterizeScene = false;
-  pathTracer.tiles.set(mode === "final" ? 2 : 1, mode === "final" ? 2 : 1);
+  const tileCount = mode === "ultra" ? 2 : 1;
+  pathTracer.tiles.set(tileCount, tileCount);
   pathTracer.setBVHWorker(bvhWorker);
 
   try {
@@ -579,6 +774,7 @@ export const renderPathTracedImage = async ({
     pathTracer.dispose();
     bvhWorker.dispose();
     disposeScene(scene);
+    skyEnv?.dispose();
     renderer.dispose();
   }
 };

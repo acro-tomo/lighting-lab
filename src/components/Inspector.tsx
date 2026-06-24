@@ -1,6 +1,7 @@
 import type { ChangeEvent } from "react";
-import type { FurnitureItem, LightFixture, Project, Selection, VoidArea, WallSegment, WindowOpening } from "../types";
+import type { FurnitureItem, LightFixture, MaterialPreset, Project, Selection, VoidArea, WallSegment, WindowOpening } from "../types";
 import { useProjectStore } from "../store/projectStore";
+import { applyFixtureModel, fixtureCatalog, getFixtureModel } from "../data/fixtureCatalog";
 import { getSceneLightState } from "../utils/lighting";
 import { clamp, mToMm, mmToM } from "../utils/units";
 
@@ -46,6 +47,7 @@ export const Inspector = ({ project, selection }: InspectorProps) => {
   const updateWall = useProjectStore((state) => state.updateWall);
   const updateWindow = useProjectStore((state) => state.updateWindow);
   const updateVoid = useProjectStore((state) => state.updateVoid);
+  const updateMaterial = useProjectStore((state) => state.updateMaterial);
   const setAllColorTemperature = useProjectStore((state) => state.setAllColorTemperature);
   const select = useProjectStore((state) => state.select);
   const activeScene = project.lightingScenes.find((scene) => scene.id === project.activeSceneId);
@@ -110,9 +112,9 @@ export const Inspector = ({ project, selection }: InspectorProps) => {
         )}
         {selectedFurniture && <FurnitureInspector item={selectedFurniture} updateFurniture={updateFurniture} />}
         {selectedWall && (
-          <WallInspector wall={selectedWall} project={project} updateWall={updateWall} />
+          <WallInspector wall={selectedWall} project={project} updateWall={updateWall} updateMaterial={updateMaterial} />
         )}
-        {selectedWindow && <WindowInspector windowItem={selectedWindow} updateWindow={updateWindow} />}
+        {selectedWindow && <WindowInspector windowItem={selectedWindow} project={project} updateWindow={updateWindow} />}
         {selectedVoid && <VoidInspector voidArea={selectedVoid} updateVoid={updateVoid} />}
       </section>
 
@@ -166,27 +168,47 @@ const LightInspector = ({
     lightId: string,
     patch: { enabled?: boolean; dimmer?: number }
   ) => void;
-}) => (
+}) => {
+  const currentModel = getFixtureModel(light);
+  const aim = light.target ?? { x: light.position.x, y: 0, z: light.position.z };
+  return (
   <div className="form-grid">
     <TextField label="名前" value={light.name} onChange={(name) => updateLight(light.id, { name })} />
     <label className="field">
-      <span>器具タイプ</span>
+      <span>器具（配光は器具ごとに固定）</span>
       <select
-        value={light.type}
-        onChange={(event) => updateLight(light.id, { type: event.target.value as LightFixture["type"] })}
+        value={currentModel.id}
+        onChange={(event) => {
+          const model = fixtureCatalog.find((item) => item.id === event.target.value);
+          if (!model) return;
+          const patch = applyFixtureModel(model);
+          // 首振り器具にしたとき照射先が無ければ真下に初期化する。
+          if (model.aimable && !light.target) {
+            patch.target = { x: light.position.x, y: 0, z: light.position.z };
+          }
+          updateLight(light.id, patch);
+        }}
       >
-        <option value="downlight">ダウンライト</option>
-        <option value="spotlight">スポットライト</option>
-        <option value="pendant">ペンダント</option>
-        <option value="bracket">ブラケット</option>
-        <option value="tape">テープライト</option>
+        {fixtureCatalog.map((model) => (
+          <option key={model.id} value={model.id}>
+            {model.label}（{model.beamAngleDeg}°{model.glareless ? " / グレアレス" : ""}）
+          </option>
+        ))}
       </select>
     </label>
+    <p className="field-hint">{currentModel.description}</p>
     <div className="field-row">
       <NumberField label="X" unit="mm" value={mToMm(light.position.x)} onChange={(value) => updateLight(light.id, { position: { ...light.position, x: mmToM(value) } })} />
       <NumberField label="Y" unit="mm" value={mToMm(light.position.y)} onChange={(value) => updateLight(light.id, { position: { ...light.position, y: mmToM(value) }, mountHeightM: mmToM(value) })} />
       <NumberField label="Z" unit="mm" value={mToMm(light.position.z)} onChange={(value) => updateLight(light.id, { position: { ...light.position, z: mmToM(value) } })} />
     </div>
+    {currentModel.aimable && (
+      <div className="field-row">
+        <NumberField label="照射先X" unit="mm" value={mToMm(aim.x)} onChange={(value) => updateLight(light.id, { target: { ...aim, x: mmToM(value) } })} />
+        <NumberField label="照射先Y" unit="mm" value={mToMm(aim.y)} onChange={(value) => updateLight(light.id, { target: { ...aim, y: mmToM(value) } })} />
+        <NumberField label="照射先Z" unit="mm" value={mToMm(aim.z)} onChange={(value) => updateLight(light.id, { target: { ...aim, z: mmToM(value) } })} />
+      </div>
+    )}
     <div className="field-row">
       <NumberField label="光束" unit="lm" value={light.lumens} min={0} onChange={(lumens) => updateLight(light.id, { lumens })} />
       <NumberField label="色温度" unit="K" value={light.colorTemperatureK} min={1800} max={6500} step={50} onChange={(colorTemperatureK) => updateLight(light.id, { colorTemperatureK })} />
@@ -198,10 +220,6 @@ const LightInspector = ({
         onSelect={(colorTemperatureK) => updateLight(light.id, { colorTemperatureK })}
       />
     </label>
-    <div className="field-row">
-      <NumberField label="ビーム角" unit="deg" value={light.beamAngleDeg} min={8} max={180} onChange={(beamAngleDeg) => updateLight(light.id, { beamAngleDeg })} />
-      <NumberField label="半影" unit="" value={Math.round(light.penumbra * 100)} min={0} max={100} onChange={(value) => updateLight(light.id, { penumbra: clamp(value / 100, 0, 1) })} />
-    </div>
     <div className="scene-control">
       <label>
         <input
@@ -225,7 +243,8 @@ const LightInspector = ({
       <textarea value={light.note} onChange={(event) => updateLight(light.id, { note: event.target.value })} />
     </label>
   </div>
-);
+  );
+};
 
 const FurnitureInspector = ({
   item,
@@ -278,15 +297,28 @@ const FurnitureInspector = ({
   </div>
 );
 
+const readImageAsDataUrl = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+
 const WallInspector = ({
   wall,
   project,
-  updateWall
+  updateWall,
+  updateMaterial
 }: {
   wall: WallSegment;
   project: Project;
   updateWall: (id: string, patch: Partial<WallSegment>) => void;
-}) => (
+  updateMaterial: (id: string, patch: Partial<MaterialPreset>) => void;
+}) => {
+  const material = project.materials.find((item) => item.id === wall.materialId);
+  const tile = material?.textureSizeM ?? { w: 0.92, h: 0.92 };
+  return (
   <div className="form-grid">
     <TextField label="名前" value={wall.name} onChange={(name) => updateWall(wall.id, { name })} />
     <div className="field-row">
@@ -307,41 +339,103 @@ const WallInspector = ({
         value={wall.materialId}
         onChange={(event) => updateWall(wall.id, { materialId: event.target.value })}
       >
-        {project.materials.map((material) => (
-          <option key={material.id} value={material.id}>
-            {material.name}
+        {project.materials.map((item) => (
+          <option key={item.id} value={item.id}>
+            {item.name}
           </option>
         ))}
       </select>
     </label>
+
+    {material && (
+      <section className="wallpaper-block">
+        <p className="field-hint">壁紙はこの素材「{material.name}」を使う全ての壁に反映されます。</p>
+        <label className="field">
+          <span>壁紙画像</span>
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            onChange={async (event) => {
+              const file = event.target.files?.[0];
+              event.currentTarget.value = "";
+              if (!file) return;
+              const dataUrl = await readImageAsDataUrl(file);
+              updateMaterial(material.id, {
+                textureDataUrl: dataUrl,
+                textureSizeM: material.textureSizeM ?? { w: 0.92, h: 0.92 }
+              });
+            }}
+          />
+        </label>
+        {material.textureDataUrl && (
+          <>
+            <div className="wallpaper-preview">
+              <img src={material.textureDataUrl} alt="壁紙プレビュー" />
+            </div>
+            <div className="field-row">
+              <NumberField label="柄の幅" unit="mm" value={mToMm(tile.w)} min={50} onChange={(value) => updateMaterial(material.id, { textureSizeM: { w: mmToM(value), h: tile.h } })} />
+              <NumberField label="柄の高さ" unit="mm" value={mToMm(tile.h)} min={50} onChange={(value) => updateMaterial(material.id, { textureSizeM: { w: tile.w, h: mmToM(value) } })} />
+            </div>
+            <button className="ghost-button" onClick={() => updateMaterial(material.id, { textureDataUrl: undefined })}>
+              壁紙を外す
+            </button>
+          </>
+        )}
+      </section>
+    )}
   </div>
-);
+  );
+};
 
 const WindowInspector = ({
   windowItem,
+  project,
   updateWindow
 }: {
   windowItem: WindowOpening;
+  project: Project;
   updateWindow: (id: string, patch: Partial<WindowOpening>) => void;
-}) => (
+}) => {
+  const style = windowItem.style ?? (windowItem.hasGlass ? "window" : "opening");
+  return (
   <div className="form-grid">
     <TextField label="名前" value={windowItem.name} onChange={(name) => updateWindow(windowItem.id, { name })} />
+    <label className="field">
+      <span>種類</span>
+      <select
+        value={style}
+        onChange={(event) => {
+          const next = event.target.value as "window" | "opening" | "door";
+          updateWindow(windowItem.id, { style: next, hasGlass: next === "window" });
+        }}
+      >
+        <option value="window">窓（ガラス）</option>
+        <option value="door">扉</option>
+        <option value="opening">開口</option>
+      </select>
+    </label>
+    <label className="field">
+      <span>設置する壁</span>
+      <select
+        value={windowItem.wallId}
+        onChange={(event) => updateWindow(windowItem.id, { wallId: event.target.value })}
+      >
+        {project.walls.map((wall) => (
+          <option key={wall.id} value={wall.id}>
+            {wall.name}
+          </option>
+        ))}
+      </select>
+    </label>
     <div className="field-row">
       <NumberField label="幅" unit="mm" value={mToMm(windowItem.widthM)} min={100} onChange={(value) => updateWindow(windowItem.id, { widthM: mmToM(value) })} />
       <NumberField label="高さ" unit="mm" value={mToMm(windowItem.heightM)} min={100} onChange={(value) => updateWindow(windowItem.id, { heightM: mmToM(value) })} />
       <NumberField label="床から" unit="mm" value={mToMm(windowItem.sillHeightM)} min={0} onChange={(value) => updateWindow(windowItem.id, { sillHeightM: mmToM(value) })} />
     </div>
     <NumberField label="壁上の位置" unit="%" value={Math.round(windowItem.centerRatio * 100)} min={0} max={100} onChange={(value) => updateWindow(windowItem.id, { centerRatio: clamp(value / 100, 0, 1) })} />
-    <label className="scene-control">
-      <input
-        type="checkbox"
-        checked={windowItem.hasGlass}
-        onChange={(event) => updateWindow(windowItem.id, { hasGlass: event.target.checked })}
-      />
-      ガラスあり
-    </label>
   </div>
-);
+  );
+};
 
 const VoidInspector = ({
   voidArea,

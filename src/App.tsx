@@ -4,7 +4,6 @@ import { Inspector } from "./components/Inspector";
 import { Plan2D } from "./components/Plan2D";
 import { Scene3D, type LiveTraceStatus, type ViewMode } from "./components/Scene3D";
 import { SceneStrip } from "./components/SceneStrip";
-import { calibrationProject } from "./data/calibrationProject";
 import { renderPathTracedImage, sampleCountByMode, type PathTraceMode, type RenderDebugMode } from "./rendering/pathTracer";
 import type { RenderContext } from "./rendering/renderContext";
 import { projectSchema } from "./schema/projectSchema";
@@ -12,7 +11,16 @@ import { loadProjectFromIndexedDb, saveProjectToIndexedDb } from "./storage/proj
 import { useProjectStore } from "./store/projectStore";
 import type { CompareShot, Project } from "./types";
 import { floorPlanFileToDataUrl } from "./utils/floorplanImport";
+import { DEFAULT_DAYLIGHT } from "./utils/sun";
 import { cloneProject } from "./utils/units";
+import { newDoor, newDownlight, newFurniture, newStair, newVoid, newWallSpot, newWindow } from "./data/objectFactory";
+
+// 小数hourをHH:MM文字列に変換する（例: 14.5 → "14:30"）。
+const formatHour = (hour: number): string => {
+  const h = Math.floor(hour);
+  const m = Math.round((hour - h) * 60);
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+};
 
 const readTextFile = (file: File) =>
   new Promise<string>((resolve, reject) => {
@@ -57,6 +65,7 @@ export const App = () => {
   const setProject = useProjectStore((state) => state.setProject);
   const setCompareShots = useProjectStore((state) => state.setCompareShots);
   const setBackgroundPlan = useProjectStore((state) => state.setBackgroundPlan);
+  const clearGeometry = useProjectStore((state) => state.clearGeometry);
   const addCompareShot = useProjectStore((state) => state.addCompareShot);
   const undo = useProjectStore((state) => state.undo);
   const redo = useProjectStore((state) => state.redo);
@@ -64,20 +73,29 @@ export const App = () => {
   const duplicateActiveScene = useProjectStore((state) => state.duplicateActiveScene);
   const renameActiveScene = useProjectStore((state) => state.renameActiveScene);
   const saveCameraView = useProjectStore((state) => state.saveCameraView);
+  const addLight = useProjectStore((state) => state.addLight);
+  const addFurniture = useProjectStore((state) => state.addFurniture);
+  const addWindow = useProjectStore((state) => state.addWindow);
+  const addVoid = useProjectStore((state) => state.addVoid);
+  const deleteSelection = useProjectStore((state) => state.deleteSelection);
+  const setDaylight = useProjectStore((state) => state.setDaylight);
   const [canvasElement, setCanvasElement] = useState<HTMLCanvasElement | null>(null);
   const [renderContext, setRenderContext] = useState<RenderContext | null>(null);
   const [notice, setNotice] = useState("IndexedDBに自動保存します。");
   const [compareOpen, setCompareOpen] = useState(false);
-  const [pathTraceMode, setPathTraceMode] = useState<PathTraceMode>("fast");
+  const [pathTraceMode, setPathTraceMode] = useState<PathTraceMode>("standard");
   const [viewMode, setViewMode] = useState<ViewMode>("raster");
+  const [mode, setMode] = useState<"select" | "move" | "delete" | "wall">("select");
+  const [pendingAdd, setPendingAdd] = useState<string | null>(null);
   const [focusViewport, setFocusViewport] = useState(false);
+  const [focusPlan, setFocusPlan] = useState(false);
   const [liveTrace, setLiveTrace] = useState<LiveTraceStatus>({ phase: "off", samples: 0 });
   const [debugMode, setDebugMode] = useState<RenderDebugMode>("beauty");
   const [lastPathTracedImage, setLastPathTracedImage] = useState<string | null>(null);
   const [renderProgress, setRenderProgress] = useState<RenderProgressState>({
     status: "idle",
     samples: 0,
-    targetSamples: sampleCountByMode.fast,
+    targetSamples: sampleCountByMode.standard,
     elapsedMs: 0,
     message: "待機中"
   });
@@ -122,7 +140,7 @@ export const App = () => {
   useEffect(() => {
     const handle = window.setTimeout(() => window.dispatchEvent(new Event("resize")), 80);
     return () => window.clearTimeout(handle);
-  }, [focusViewport]);
+  }, [focusViewport, focusPlan]);
 
   useEffect(() => {
     if (!renderingRef.current) return;
@@ -146,11 +164,21 @@ export const App = () => {
         undo();
       } else if (event.key === "Escape") {
         select(null);
+      } else if (event.key === "Delete" || event.key === "Backspace") {
+        const target = event.target as HTMLElement | null;
+        const tag = target?.tagName;
+        // 入力欄の編集中は削除キーを通常動作に任せる。
+        if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
+        const current = useProjectStore.getState().selection;
+        if (current) {
+          event.preventDefault();
+          deleteSelection(current);
+        }
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [redo, select, undo]);
+  }, [deleteSelection, redo, select, undo]);
 
   const activeScene = project.lightingScenes.find((scene) => scene.id === project.activeSceneId);
   const activeView = project.cameraViews.find((view) => view.id === project.activeCameraViewId);
@@ -163,7 +191,17 @@ export const App = () => {
         kind: result.kind,
         fileName: file.name
       });
-      setNotice(`${file.name} を平面図背景として読み込みました。縮尺合わせはPhase 2で拡張します。`);
+      // 間取り図に沿って一から壁を引けるよう、既存ジオメトリの一括削除を促す。
+      // キャンセル時は背景だけ読み込み、既存オブジェクトは残す（誤消し防止）。
+      const cleared = window.confirm(
+        "間取り図を読み込みました。既存の壁・窓・家具・照明・吹き抜けを削除して、まっさらな状態にしますか？\n（キャンセルすると既存のまま背景だけ読み込みます。Cmd+Zで元に戻せます）"
+      );
+      if (cleared) clearGeometry();
+      setNotice(
+        cleared
+          ? `${file.name} を背景に読み込み、既存オブジェクトを削除しました。縮尺合わせ後に壁を引けます。`
+          : `${file.name} を平面図背景として読み込みました。`
+      );
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "間取り図を読み込めませんでした。");
     }
@@ -226,10 +264,7 @@ export const App = () => {
       activeScene,
       mode: pathTraceMode,
       debugMode,
-      maxWidth:
-        pathTraceMode === "fast"
-          ? 220
-          : activeView.resolutionWidth,
+      maxWidth: activeView.resolutionWidth,
       signal: abortController.signal,
       onProgress: (progress) => {
         const buildPercent =
@@ -302,6 +337,48 @@ export const App = () => {
     setLiveTrace(status);
   }, []);
 
+  const handleAddObject = useCallback(
+    (kind: string, at?: { x: number; z: number }) => {
+      switch (kind) {
+        case "downlight":
+          addLight(newDownlight(project, at));
+          break;
+        case "wallspot":
+          addLight(newWallSpot(project, at));
+          break;
+        case "furniture":
+          addFurniture(newFurniture(at));
+          break;
+        case "stair":
+          addFurniture(newStair(project, at));
+          break;
+        case "window":
+          addWindow(newWindow(project), "window");
+          break;
+        case "door":
+          addWindow(newDoor(project), "opening");
+          break;
+        case "void":
+          addVoid(newVoid(at));
+          break;
+        default:
+          return;
+      }
+      setNotice("オブジェクトを追加しました。3Dまたは2Dでドラッグして配置できます。");
+    },
+    [addFurniture, addLight, addVoid, addWindow, project]
+  );
+
+  const handlePlaceObject = useCallback(
+    (at: { x: number; z: number }) => {
+      if (!pendingAdd) return;
+      handleAddObject(pendingAdd, at);
+      setPendingAdd(null);
+      setMode("move");
+    },
+    [pendingAdd, handleAddObject]
+  );
+
   const saveCurrentCamera = useCallback(() => {
     if (!renderContext || !activeView) {
       setNotice("保存する3Dカメラがまだ準備できていません。");
@@ -332,16 +409,6 @@ export const App = () => {
     renameActiveScene(name.trim());
   }, [activeScene?.name, renameActiveScene]);
 
-  const openCalibrationRoom = useCallback(() => {
-    renderAbortRef.current?.abort();
-    setProject(cloneProject(calibrationProject));
-    setCompareShots([]);
-    setLastPathTracedImage(null);
-    setDebugMode("beauty");
-    setPathTraceMode("fast");
-    setNotice("Lighting Calibration Roomを読み込みました。白い室内面と物理light.powerで確認してください。");
-  }, [setCompareShots, setProject]);
-
   const elapsedSeconds = (renderProgress.elapsedMs / 1000).toFixed(1);
   const renderPercent = renderProgress.targetSamples
     ? Math.min(100, Math.round((renderProgress.samples / renderProgress.targetSamples) * 100))
@@ -370,21 +437,82 @@ export const App = () => {
         onCaptureCompare={captureCompare}
         onStopRender={stopRender}
         onOpenCompare={() => setCompareOpen((current) => !current)}
-        onOpenCalibrationRoom={openCalibrationRoom}
         focusViewport={focusViewport}
-        onToggleFocusViewport={() => setFocusViewport((current) => !current)}
+        onToggleFocusViewport={() => {
+          setFocusViewport((current) => !current);
+          setFocusPlan(false);
+        }}
+        focusPlan={focusPlan}
+        onToggleFocusPlan={() => {
+          setFocusPlan((current) => !current);
+          setFocusViewport(false);
+        }}
         onResetDemo={() => {
           resetDemo();
           setNotice("デモLDKに戻しました。");
         }}
       />
-      <main className={focusViewport ? "workspace is-focus-3d" : "workspace"}>
-        <Plan2D project={project} selection={selection} onSelect={select} />
+      <main className={focusViewport ? "workspace is-focus-3d" : focusPlan ? "workspace is-focus-2d" : "workspace"}>
+        <Plan2D project={project} selection={selection} onSelect={select} mode={mode} pendingAdd={pendingAdd} onPlaceObject={handlePlaceObject} />
         <section className="viewport-panel" aria-label="3D表示">
           <div className="viewport-toolbar">
             <div>
               <p className="eyebrow">3D Preview</p>
               <h2>{activeView?.name ?? "自由視点"} / {activeScene?.name ?? "照明シーン"}</h2>
+            </div>
+            <div className="render-status">
+              <label>
+                操作 / 追加
+                <select
+                  value={mode}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    if (value.startsWith("add:")) {
+                      const kind = value.slice(4);
+                      if (kind === "window" || kind === "door") {
+                        handleAddObject(kind);
+                        setMode("move");
+                        setPendingAdd(null);
+                      } else {
+                        setPendingAdd(kind);
+                      }
+                    } else if (value === "wall") {
+                      setMode("wall");
+                      setPendingAdd(null);
+                    } else {
+                      setMode(value as "select" | "move" | "delete" | "wall");
+                      setPendingAdd(null);
+                    }
+                  }}
+                >
+                  <optgroup label="操作">
+                    <option value="select">選択</option>
+                    <option value="move">移動（ドラッグで動かす）</option>
+                    <option value="delete">削除（クリックで消す）</option>
+                    <option value="wall">壁を引く（クリックで連続）</option>
+                  </optgroup>
+                  <optgroup label="追加">
+                    <option value="add:downlight">＋ダウンライト</option>
+                    <option value="add:wallspot">＋壁付スポット</option>
+                    <option value="add:window">＋窓</option>
+                    <option value="add:door">＋扉</option>
+                    <option value="add:furniture">＋家具</option>
+                    <option value="add:stair">＋階段</option>
+                    <option value="add:void">＋吹き抜け</option>
+                  </optgroup>
+                </select>
+              </label>
+              <span className="toolbar-hint">
+                {pendingAdd
+                  ? "クリックした位置に配置"
+                  : mode === "wall"
+                    ? "クリックで壁の頂点、Escで終了"
+                    : mode === "move"
+                      ? "ドラッグで移動"
+                      : mode === "delete"
+                        ? "クリックで削除"
+                        : "クリックで選択"}
+              </span>
             </div>
             <div className="render-status">
               <label>
@@ -415,8 +543,9 @@ export const App = () => {
                   disabled={renderProgress.status === "running"}
                   onChange={(event) => setPathTraceMode(event.target.value as PathTraceMode)}
                 >
-                  <option value="fast">高速確認 16 samples</option>
-                  <option value="final">最終確認 128 samples</option>
+                  <option value="standard">標準 256 samples</option>
+                  <option value="high">高品質 512 samples</option>
+                  <option value="ultra">最高 1024 samples</option>
                 </select>
               </label>
               <label>
@@ -438,6 +567,85 @@ export const App = () => {
               <span>残り {estimatedRemainingSeconds}s</span>
               <progress value={renderPercent} max={100} />
             </div>
+            {(() => {
+              const dl = project.daylight ?? DEFAULT_DAYLIGHT;
+              return (
+                <div className="render-status daylight-controls">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={dl.enabled}
+                      onChange={(event) => setDaylight({ enabled: event.target.checked })}
+                    />
+                    日光
+                  </label>
+                  <label>
+                    月
+                    <input
+                      type="number"
+                      min={1}
+                      max={12}
+                      value={dl.month}
+                      disabled={!dl.enabled}
+                      onChange={(event) => setDaylight({ month: Number(event.target.value) })}
+                      style={{ width: 44 }}
+                    />
+                  </label>
+                  <label>
+                    日
+                    <input
+                      type="number"
+                      min={1}
+                      max={31}
+                      value={dl.day}
+                      disabled={!dl.enabled}
+                      onChange={(event) => setDaylight({ day: Number(event.target.value) })}
+                      style={{ width: 44 }}
+                    />
+                  </label>
+                  <label style={{ gap: 4 }}>
+                    時刻
+                    <input
+                      type="range"
+                      min={0}
+                      max={24}
+                      step={0.25}
+                      value={dl.hour}
+                      disabled={!dl.enabled}
+                      onChange={(event) => setDaylight({ hour: Number(event.target.value) })}
+                      style={{ width: 80 }}
+                    />
+                    <strong>{formatHour(dl.hour)}</strong>
+                  </label>
+                  <label>
+                    北方位
+                    <input
+                      type="number"
+                      min={-180}
+                      max={180}
+                      value={dl.northOffsetDeg}
+                      disabled={!dl.enabled}
+                      onChange={(event) => setDaylight({ northOffsetDeg: Number(event.target.value) })}
+                      style={{ width: 52 }}
+                    />
+                    °
+                  </label>
+                  <label>
+                    緯度
+                    <input
+                      type="number"
+                      min={-60}
+                      max={60}
+                      value={dl.latitudeDeg}
+                      disabled={!dl.enabled}
+                      onChange={(event) => setDaylight({ latitudeDeg: Number(event.target.value) })}
+                      style={{ width: 52 }}
+                    />
+                    °
+                  </label>
+                </div>
+              );
+            })()}
           </div>
           <div className="scene-stage">
             <Scene3D
@@ -448,11 +656,12 @@ export const App = () => {
               onRenderContextReady={setRenderContext}
               debugMode={debugMode}
               viewMode={viewMode}
+              mode={mode === "wall" ? "select" : mode}
               onLiveTraceStatus={handleLiveTraceStatus}
             />
             {lastPathTracedImage && (
               <div className="pathtrace-result" aria-label="Path traced result">
-                <div>Path traced result / {pathTraceMode === "fast" ? "fast check" : "final check"}</div>
+                <div>Path traced result / {pathTraceMode} samples</div>
                 <img src={lastPathTracedImage} alt="Path traced render result" />
               </div>
             )}

@@ -37,6 +37,10 @@ export type MaterialPreset = {
   metalness: number;
   emissiveColor: string;
   emissiveIntensity: number;
+  /** 壁紙等のテクスチャ画像（dataURL）。 */
+  textureDataUrl?: string;
+  /** 画像1枚が実空間で覆うサイズ(m)。リピート数は面の寸法から自動計算する。 */
+  textureSizeM?: { w: number; h: number };
 };
 
 export type WallSegment = {
@@ -58,6 +62,8 @@ export type WindowOpening = {
   heightM: number;
   sillHeightM: number;
   hasGlass: boolean;
+  /** "window"=窓(枠+ガラス) / "opening"=開口 / "door"=扉(ドア板)。未指定はhasGlassから判定。 */
+  style?: "window" | "opening" | "door";
 };
 
 export type VoidArea = {
@@ -106,6 +112,8 @@ export type LightFixture = {
   id: string;
   name: string;
   type: LightType;
+  /** 器具カタログのモデルID（配光・ビーム角・グレア処理を固定する）。 */
+  model?: string;
   position: Vec3M;
   mountHeightM: number;
   rotationDeg: RotationDeg;
@@ -152,6 +160,19 @@ export type FloorPlanBackground = {
     pixels: number;
     millimeters: number;
   };
+  /**
+   * 背景画像をワールド座標(m)へ正しい縮尺で重ねるための配置情報。
+   * 縮尺ツールで実距離を確定したときに設定される。未設定の旧JSONは
+   * 従来どおりキャンバスにフィット表示する（後方互換）。
+   */
+  placement?: {
+    /** 画像ピクセル(0,0)が対応するワールド座標 X(m) */
+    originXM: number;
+    /** 画像ピクセル(0,0)が対応するワールド座標 Z(m) */
+    originZM: number;
+    /** 画像1ピクセルあたりのワールド距離(m) */
+    metersPerPixel: number;
+  };
 };
 
 export type CompareShot = {
@@ -167,6 +188,15 @@ export type CompareShot = {
     width: number;
     height: number;
   };
+};
+
+export type Daylight = {
+  enabled: boolean;        // 日光ON/OFF
+  month: number;           // 1-12
+  day: number;             // 1-31
+  hour: number;            // 0-23.99（小数で分も表現。ローカル太陽時として扱う）
+  northOffsetDeg: number;  // 建物の向き。真北が -Z 方向(=北/TV壁側)からY軸まわり時計回りに何度ずれているか
+  latitudeDeg: number;     // 緯度。既定 35（東京付近）
 };
 
 export type Project = {
@@ -188,4 +218,5 @@ export type Project = {
   activeSceneId: string;
   activeCameraViewId: string;
   backgroundPlan?: FloorPlanBackground;
+  daylight?: Daylight;
 };

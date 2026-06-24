@@ -13,11 +13,12 @@ type HeaderBarProps = {
   onCaptureCompare: () => void;
   onStopRender: () => void;
   onOpenCompare: () => void;
-  onOpenCalibrationRoom: () => void;
   onResetDemo: () => void;
   isRendering: boolean;
   focusViewport: boolean;
   onToggleFocusViewport: () => void;
+  focusPlan: boolean;
+  onToggleFocusPlan: () => void;
 };
 
 export const HeaderBar = ({
@@ -31,11 +32,12 @@ export const HeaderBar = ({
   onCaptureCompare,
   onStopRender,
   onOpenCompare,
-  onOpenCalibrationRoom,
   onResetDemo,
   isRendering,
   focusViewport,
-  onToggleFocusViewport
+  onToggleFocusViewport,
+  focusPlan,
+  onToggleFocusPlan
 }: HeaderBarProps) => {
   const planInputRef = useRef<HTMLInputElement | null>(null);
   const projectInputRef = useRef<HTMLInputElement | null>(null);
@@ -91,8 +93,10 @@ export const HeaderBar = ({
         <button className={focusViewport ? "is-active" : undefined} onClick={onToggleFocusViewport}>
           {focusViewport ? "パネル表示" : "3D集中表示"}
         </button>
+        <button className={focusPlan ? "is-active" : undefined} onClick={onToggleFocusPlan}>
+          {focusPlan ? "パネル表示" : "2D集中表示"}
+        </button>
         <button onClick={onOpenCompare}>比較画面を開く</button>
-        <button onClick={onOpenCalibrationRoom}>照明校正室</button>
         <button onClick={onResetDemo}>デモに戻す</button>
       </nav>
     </header>

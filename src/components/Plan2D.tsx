@@ -1,5 +1,6 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type {
+  FloorPlanBackground,
   FurnitureItem,
   LightFixture,
   Project,
@@ -9,24 +10,23 @@ import type {
   WindowOpening
 } from "../types";
 import { useProjectStore } from "../store/projectStore";
+import { ScaleCalibrationModal } from "./ScaleCalibrationModal";
+
+type PlanMode = "select" | "move" | "delete" | "wall";
 
 type Plan2DProps = {
   project: Project;
   selection: Selection;
   onSelect: (selection: Selection) => void;
+  mode: PlanMode;
+  pendingAdd: string | null;
+  onPlaceObject: (at: { x: number; z: number }) => void;
 };
 
-type ToolLabel =
-  | "選択"
-  | "パン"
-  | "縮尺"
-  | "壁"
-  | "窓"
-  | "開口"
-  | "家具"
-  | "照明"
-  | "吹抜"
-  | "削除";
+// App側のmode(選択/移動/削除)に加え、2D固有のナビ(パン)だけをパレットに残す。
+// 縮尺合わせは専用ボタン→モーダルで行う。追加系ツール(壁/窓/開口/家具/照明/吹抜)は
+// Appのコンボボックスに一本化済み。
+type NavTool = "パン";
 
 type DragState =
   | { kind: "furniture"; id: string; offset: Vec2M }
@@ -35,15 +35,7 @@ type DragState =
   | { kind: "pan"; clientStart: { x: number; y: number }; panStart: { x: number; y: number } }
   | null;
 
-type DrawingState =
-  | { kind: "wall"; start: Vec2M }
-  | { kind: "void"; start: Vec2M }
-  | { kind: "scale"; startWorld: Vec2M; startSvg: { x: number; y: number } }
-  | null;
-
-const TOOL_LABELS: ToolLabel[] = ["選択", "パン", "縮尺", "壁", "窓", "開口", "家具", "照明", "吹抜", "削除"];
-
-const id = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+const NAV_TOOLS: NavTool[] = ["パン"];
 
 const distance = (a: Vec2M, b: Vec2M) => Math.hypot(a.x - b.x, a.z - b.z);
 
@@ -51,56 +43,108 @@ const snap = (value: number, grid = 0.1) => Math.round(value / grid) * grid;
 
 const snapPoint = (point: Vec2M): Vec2M => ({ x: snap(point.x), z: snap(point.z) });
 
-const snapWallEnd = (start: Vec2M, point: Vec2M, angleSnap: boolean): Vec2M => {
-  const snapped = snapPoint(point);
-  const dx = snapped.x - start.x;
-  const dz = snapped.z - start.z;
-  if (Math.abs(dx) < 0.16) return { x: start.x, z: snapped.z };
-  if (Math.abs(dz) < 0.16) return { x: snapped.x, z: start.z };
-  if (!angleSnap) return snapped;
+const uid = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
-  const length = Math.hypot(dx, dz);
-  const step = Math.PI / 12;
-  const angle = Math.round(Math.atan2(dz, dx) / step) * step;
-  return {
-    x: snap(start.x + Math.cos(angle) * length),
-    z: snap(start.z + Math.sin(angle) * length)
-  };
+// 前頂点 prev から見て生の点 raw が水平/垂直に近ければ直角に吸着する。
+const angleSnap = (prev: Vec2M, raw: Vec2M): Vec2M => {
+  const dx = raw.x - prev.x;
+  const dz = raw.z - prev.z;
+  const a = Math.atan2(Math.abs(dz), Math.abs(dx)); // 0=水平, π/2=垂直
+  if (a < (15 * Math.PI) / 180) return { x: raw.x, z: prev.z }; // 水平
+  if (a > (75 * Math.PI) / 180) return { x: prev.x, z: raw.z }; // 垂直
+  return raw;
 };
 
-const projectedWallRatio = (wall: WallSegment, point: Vec2M) => {
-  const ax = wall.start.x;
-  const az = wall.start.z;
-  const bx = wall.end.x;
-  const bz = wall.end.z;
-  const dx = bx - ax;
-  const dz = bz - az;
-  const lengthSq = dx * dx + dz * dz;
-  if (lengthSq === 0) return { ratio: 0, distanceM: Infinity };
-  const ratio = Math.max(0, Math.min(1, ((point.x - ax) * dx + (point.z - az) * dz) / lengthSq));
-  const projected = { x: ax + dx * ratio, z: az + dz * ratio };
-  return { ratio, distanceM: distance(projected, point) };
-};
-
-export const Plan2D = ({ project, selection, onSelect }: Plan2DProps) => {
+export const Plan2D = ({ project, selection, onSelect, mode, pendingAdd, onPlaceObject }: Plan2DProps) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
-  const [tool, setTool] = useState<ToolLabel>("選択");
+  // navTool は2D固有ナビ(パン)・縮尺のみ。null のときは App の mode に従う。
+  const [navTool, setNavTool] = useState<NavTool | null>(null);
   const [dragging, setDragging] = useState<DragState>(null);
-  const [drawing, setDrawing] = useState<DrawingState>(null);
-  const [cursorPoint, setCursorPoint] = useState<Vec2M | null>(null);
+  const [scaleModalOpen, setScaleModalOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [bgNaturalSize, setBgNaturalSize] = useState<{ width: number; height: number } | null>(null);
+  // 壁トレース: 確定済み頂点列とプレビュー用カーソル位置。
+  const [wallDraft, setWallDraft] = useState<Vec2M[]>([]);
+  const [wallCursor, setWallCursor] = useState<Vec2M | null>(null);
+
+  // オブジェクト操作可否は navTool が無効(=Appのmode優先)のときだけ。
+  // pendingAdd 中・wall モード中は背景SVGにクリックを通す（オブジェクトは pointerEvents:none）。
+  const isPanMode = navTool === "パン";
+  const canSelectObjects =
+    !navTool && !pendingAdd && (mode === "select" || mode === "move" || mode === "delete");
+  // 選択モードでもドラッグで動かせるほうが直感的。クリックのみなら移動は起きず選択だけ。
+  const canDragObjects = !navTool && (mode === "select" || mode === "move");
 
   const updateFurniture = useProjectStore((state) => state.updateFurniture);
   const updateLight = useProjectStore((state) => state.updateLight);
   const updateVoid = useProjectStore((state) => state.updateVoid);
-  const addWall = useProjectStore((state) => state.addWall);
-  const addWindow = useProjectStore((state) => state.addWindow);
-  const addFurniture = useProjectStore((state) => state.addFurniture);
-  const addLight = useProjectStore((state) => state.addLight);
-  const addVoid = useProjectStore((state) => state.addVoid);
-  const setBackgroundScale = useProjectStore((state) => state.setBackgroundScale);
+  const setBackgroundPlan = useProjectStore((state) => state.setBackgroundPlan);
   const deleteSelection = useProjectStore((state) => state.deleteSelection);
+  const addWall = useProjectStore((state) => state.addWall);
+  // 3Dビューの現在カメラ位置/注視点(ワールドm)。null のとき平面図にマーカーを描かない。
+  const liveCamera = useProjectStore((state) => state.liveCamera);
+
+  const backgroundUrl = project.backgroundPlan?.dataUrl;
+  useEffect(() => {
+    if (!backgroundUrl) {
+      setBgNaturalSize(null);
+      return;
+    }
+    let cancelled = false;
+    const image = new Image();
+    image.onload = () => {
+      if (!cancelled) setBgNaturalSize({ width: image.naturalWidth, height: image.naturalHeight });
+    };
+    image.src = backgroundUrl;
+    return () => {
+      cancelled = true;
+    };
+  }, [backgroundUrl]);
+
+  // 間取り図が新たに読み込まれ、まだ縮尺(scale/placement)が未設定なら
+  // 自動的に縮尺合わせモーダルを開いて誘導する（要望10）。
+  const hasScale = Boolean(project.backgroundPlan?.scale);
+  useEffect(() => {
+    if (backgroundUrl && !hasScale) {
+      setScaleModalOpen(true);
+    }
+  }, [backgroundUrl, hasScale]);
+
+  // 壁モードを抜けたら下書きをクリア。
+  useEffect(() => {
+    if (mode !== "wall") {
+      setWallDraft([]);
+      setWallCursor(null);
+    }
+  }, [mode]);
+
+  // 壁モード中は Esc/Enter でトレースを終了する。
+  useEffect(() => {
+    if (mode !== "wall") return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" || event.key === "Enter") {
+        setWallDraft([]);
+        setWallCursor(null);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [mode]);
+
+  // 壁の既定値: 高さは天井高、厚みは既存壁を踏襲(無ければ0.12)、材質も既存壁を踏襲。
+  const commitWallSegment = (start: Vec2M, end: Vec2M) => {
+    const reference = project.walls[project.walls.length - 1];
+    addWall({
+      id: uid("wall"),
+      name: "追加壁",
+      start,
+      end,
+      thicknessM: reference?.thicknessM ?? 0.12,
+      heightM: project.room.ceilingHeightM,
+      materialId: reference?.materialId ?? "wall-white"
+    });
+  };
 
   const planSize = useMemo(() => {
     const width = 920;
@@ -109,11 +153,15 @@ export const Plan2D = ({ project, selection, onSelect }: Plan2DProps) => {
     return { width, height, pxPerM };
   }, [project.room.depthM, project.room.widthM]);
 
+  // 外周(部屋の端)に来る太い壁ストロークがクリップされないよう、viewBoxを
+  // 表示用の余白ぶん広げる。座標系は getScreenCTM 逆行列で扱うため
+  // worldToSvg/svgPointToWorld は変更不要（padは表示余白のみ）。
+  const VIEW_PAD = 60;
   const viewBox = {
-    x: pan.x,
-    y: pan.y,
-    width: planSize.width / zoom,
-    height: planSize.height / zoom
+    x: pan.x - VIEW_PAD,
+    y: pan.y - VIEW_PAD,
+    width: planSize.width / zoom + VIEW_PAD * 2,
+    height: planSize.height / zoom + VIEW_PAD * 2
   };
 
   const worldToSvg = (point: Vec2M) => ({
@@ -126,23 +174,80 @@ export const Plan2D = ({ project, selection, onSelect }: Plan2DProps) => {
     z: point.y / planSize.pxPerM - project.room.depthM / 2
   });
 
+  // SVGのgetScreenCTMで画面座標→viewBoxユーザー座標へ変換する。
+  // viewBox/preserveAspectRatio(レターボックス)・pan/zoomを正しく扱うため、
+  // 比例計算ではなくCTM逆行列を使う（要素のアスペクト不一致でもズレない）。
   const clientToSvgPoint = (clientX: number, clientY: number) => {
-    const rect = svgRef.current?.getBoundingClientRect();
-    if (!rect) return { x: 0, y: 0 };
-    return {
-      x: viewBox.x + ((clientX - rect.left) / rect.width) * viewBox.width,
-      y: viewBox.y + ((clientY - rect.top) / rect.height) * viewBox.height
-    };
+    const svg = svgRef.current;
+    const ctm = svg?.getScreenCTM();
+    if (!svg || !ctm) return { x: 0, y: 0 };
+    const point = svg.createSVGPoint();
+    point.x = clientX;
+    point.y = clientY;
+    const mapped = point.matrixTransform(ctm.inverse());
+    return { x: mapped.x, y: mapped.y };
   };
 
   const svgToWorld = (clientX: number, clientY: number): Vec2M =>
     svgPointToWorld(clientToSvgPoint(clientX, clientY));
 
-  const nearestWall = (point: Vec2M) => {
-    const candidates = project.walls
-      .map((wall) => ({ wall, ...projectedWallRatio(wall, point) }))
-      .sort((a, b) => a.distanceM - b.distanceM);
-    return candidates[0];
+  // 縮尺未設定の背景は従来どおりキャンバスに meet フィットさせる。
+  // その配置をワールド座標(m)の placement として表現し、縮尺ツールの
+  // 計算と描画の両方で同じ式を使えるようにする。
+  const defaultPlacement = useMemo(() => {
+    if (!bgNaturalSize || bgNaturalSize.width === 0 || bgNaturalSize.height === 0) return null;
+    const scalePx = Math.min(
+      planSize.width / bgNaturalSize.width,
+      planSize.height / bgNaturalSize.height
+    );
+    const offsetX = (planSize.width - bgNaturalSize.width * scalePx) / 2;
+    const offsetY = (planSize.height - bgNaturalSize.height * scalePx) / 2;
+    const origin = svgPointToWorld({ x: offsetX, y: offsetY });
+    return {
+      originXM: origin.x,
+      originZM: origin.z,
+      metersPerPixel: scalePx / planSize.pxPerM
+    } satisfies NonNullable<FloorPlanBackground["placement"]>;
+  }, [bgNaturalSize, planSize.width, planSize.height, planSize.pxPerM]);
+
+  const placement = project.backgroundPlan?.placement ?? defaultPlacement;
+
+  // 画像ピクセル座標 → ワールド座標(m)
+  const imagePixelToWorld = (ipx: number, ipy: number): Vec2M | null => {
+    if (!placement) return null;
+    return {
+      x: placement.originXM + ipx * placement.metersPerPixel,
+      z: placement.originZM + ipy * placement.metersPerPixel
+    };
+  };
+
+  // モーダルで選んだ画像ピクセル2点と実距離(mm)を placement(原点・m/px)へ変換して
+  // 保存する。2点の中点は現 placement のワールド位置に固定し、縮尺変更で図面が
+  // 大きくずれないようにする（旧world版と同じ思想）。
+  const calibrateFromImagePixels = (
+    pix1: { x: number; y: number },
+    pix2: { x: number; y: number },
+    millimeters: number
+  ) => {
+    const background = project.backgroundPlan;
+    if (!background) return;
+    const pixels = Math.hypot(pix2.x - pix1.x, pix2.y - pix1.y);
+    if (pixels <= 1 || !(millimeters > 0)) return;
+
+    const metersPerPixel = millimeters / 1000 / pixels;
+    const midPix = { x: (pix1.x + pix2.x) / 2, y: (pix1.y + pix2.y) / 2 };
+    const midWorld = imagePixelToWorld(midPix.x, midPix.y);
+    if (!midWorld) return;
+
+    setBackgroundPlan({
+      ...background,
+      scale: { pixels, millimeters },
+      placement: {
+        originXM: midWorld.x - midPix.x * metersPerPixel,
+        originZM: midWorld.z - midPix.y * metersPerPixel,
+        metersPerPixel
+      }
+    });
   };
 
   const handleDelete = (nextSelection: Selection) => {
@@ -152,7 +257,8 @@ export const Plan2D = ({ project, selection, onSelect }: Plan2DProps) => {
   };
 
   const handleSelect = (nextSelection: Selection) => {
-    if (tool === "削除") {
+    if (isPanMode) return;
+    if (mode === "delete") {
       handleDelete(nextSelection);
       return;
     }
@@ -160,132 +266,42 @@ export const Plan2D = ({ project, selection, onSelect }: Plan2DProps) => {
   };
 
   const handleCanvasPointerDown = (event: React.PointerEvent<SVGSVGElement>) => {
-    const world = snapPoint(svgToWorld(event.clientX, event.clientY));
-    const svg = clientToSvgPoint(event.clientX, event.clientY);
-
-    if (tool === "パン" || event.button === 1) {
+    if (isPanMode || event.button === 1) {
       setDragging({ kind: "pan", clientStart: { x: event.clientX, y: event.clientY }, panStart: pan });
       return;
     }
 
-    if (tool === "選択" || tool === "削除") {
-      if (tool === "削除" && selection) handleDelete(selection);
+    if (event.button !== 0) return;
+
+    // pendingAdd 中はクリック位置にオブジェクトを配置（生成はApp側）。
+    if (pendingAdd) {
+      onPlaceObject(snapPoint(svgToWorld(event.clientX, event.clientY)));
       return;
     }
 
-    if (tool === "縮尺") {
-      if (drawing?.kind !== "scale") {
-        setDrawing({ kind: "scale", startWorld: world, startSvg: svg });
-        return;
-      }
-      const pixels = Math.hypot(svg.x - drawing.startSvg.x, svg.y - drawing.startSvg.y);
-      const answer = window.prompt("クリックした2点間の実距離をmmで入力", "3640");
-      const millimeters = Number(answer);
-      if (pixels > 1 && Number.isFinite(millimeters) && millimeters > 0) {
-        setBackgroundScale(pixels, millimeters);
-      }
-      setDrawing(null);
+    // 壁モード: クリックで頂点を連続配置。前頂点があれば線分を即コミット。
+    if (mode === "wall") {
+      const raw = svgToWorld(event.clientX, event.clientY);
+      const prev = wallDraft[wallDraft.length - 1];
+      const v = prev ? snapPoint(angleSnap(prev, raw)) : snapPoint(raw);
+      if (prev) commitWallSegment(prev, v);
+      setWallDraft([...wallDraft, v]);
       return;
     }
 
-    if (tool === "壁") {
-      if (drawing?.kind !== "wall") {
-        setDrawing({ kind: "wall", start: world });
-        return;
-      }
-      const end = snapWallEnd(drawing.start, world, event.shiftKey);
-      if (distance(drawing.start, end) > 0.25) {
-        addWall({
-          id: id("wall"),
-          name: "追加壁",
-          start: drawing.start,
-          end,
-          thicknessM: 0.12,
-          heightM: project.room.ceilingHeightM,
-          materialId: "wall-white"
-        });
-      }
-      setDrawing(null);
-      return;
-    }
-
-    if (tool === "窓" || tool === "開口") {
-      const candidate = nearestWall(world);
-      if (!candidate?.wall) return;
-      const opening: WindowOpening = {
-        id: id(tool === "窓" ? "window" : "opening"),
-        name: tool === "窓" ? "追加窓" : "追加開口",
-        wallId: candidate.wall.id,
-        centerRatio: candidate.ratio,
-        widthM: tool === "窓" ? 1.65 : 0.9,
-        heightM: tool === "窓" ? 1.1 : 2.05,
-        sillHeightM: tool === "窓" ? 0.85 : 0,
-        hasGlass: tool === "窓"
-      };
-      addWindow(opening, tool === "窓" ? "window" : "opening");
-      return;
-    }
-
-    if (tool === "家具") {
-      const item: FurnitureItem = {
-        id: id("furniture"),
-        name: "汎用ボックス",
-        type: "box",
-        position: { x: world.x, y: 0.3, z: world.z },
-        size: { x: 0.9, y: 0.6, z: 0.45 },
-        rotationYDeg: 0,
-        materialId: "fabric-warm-gray",
-        castsShadow: true
-      };
-      addFurniture(item);
-      return;
-    }
-
-    if (tool === "照明") {
-      const light: LightFixture = {
-        id: id("light"),
-        name: "追加ダウンライト",
-        type: "downlight",
-        position: { x: world.x, y: project.room.ceilingHeightM - 0.04, z: world.z },
-        mountHeightM: project.room.ceilingHeightM,
-        rotationDeg: { x: -90, y: 0, z: 0 },
-        target: { x: world.x, y: 0.72, z: world.z },
-        lumens: 620,
-        colorTemperatureK: 2700,
-        dimmer: 80,
-        enabled: true,
-        beamAngleDeg: 55,
-        penumbra: 0.45,
-        castsShadow: true,
-        note: "2Dで追加"
-      };
-      addLight(light);
-      return;
-    }
-
-    if (tool === "吹抜") {
-      if (drawing?.kind !== "void") {
-        setDrawing({ kind: "void", start: world });
-        return;
-      }
-      const center = {
-        x: (drawing.start.x + world.x) / 2,
-        z: (drawing.start.z + world.z) / 2
-      };
-      const size = {
-        x: Math.max(0.4, Math.abs(world.x - drawing.start.x)),
-        z: Math.max(0.4, Math.abs(world.z - drawing.start.z))
-      };
-      addVoid({ id: id("void"), name: "追加吹き抜け", center, size });
-      setDrawing(null);
-    }
+    // select/move/delete は背景クリックでは何もしない（オブジェクト側で処理）。
   };
 
   const onPointerMove = (event: React.PointerEvent<SVGSVGElement>) => {
-    const point = snapPoint(svgToWorld(event.clientX, event.clientY));
-    setCursorPoint(point);
+    // 壁モードはドラッグでなくてもカーソル追従でラバーバンドを更新する。
+    if (mode === "wall" && wallDraft.length > 0) {
+      const prev = wallDraft[wallDraft.length - 1];
+      setWallCursor(snapPoint(angleSnap(prev, svgToWorld(event.clientX, event.clientY))));
+    }
 
     if (!dragging) return;
+
+    const point = snapPoint(svgToWorld(event.clientX, event.clientY));
 
     if (dragging.kind === "pan") {
       const rect = svgRef.current?.getBoundingClientRect();
@@ -321,69 +337,59 @@ export const Plan2D = ({ project, selection, onSelect }: Plan2DProps) => {
     }
   };
 
+  // ズーム時にアンカー点(ユーザー空間座標 u)が画面上の同じ位置に留まるよう pan を補正する。
+  // viewBox.x = pan - VIEW_PAD, viewBox.width = planSize/zoom + VIEW_PAD*2 の関係から、
+  // u = viewBox.x + frac*viewBox.width（frac=アンカーの viewBox 内相対位置）を不変に保つ。
+  // → 新 viewBox.x = u - frac*newWidth、新 pan = viewBox.x + VIEW_PAD。
+  const zoomAtUserPoint = (nextZoom: number, anchorX: number, anchorY: number) => {
+    const clamped = Math.min(8, Math.max(0.65, nextZoom));
+    if (clamped === zoom) return;
+    const newWidth = planSize.width / clamped + VIEW_PAD * 2;
+    const newHeight = planSize.height / clamped + VIEW_PAD * 2;
+    const fracX = (anchorX - viewBox.x) / viewBox.width;
+    const fracY = (anchorY - viewBox.y) / viewBox.height;
+    setPan({
+      x: anchorX - fracX * newWidth + VIEW_PAD,
+      y: anchorY - fracY * newHeight + VIEW_PAD
+    });
+    setZoom(clamped);
+  };
+
   const handleWheel = (event: React.WheelEvent<SVGSVGElement>) => {
     event.preventDefault();
-    const nextZoom = Math.min(4, Math.max(0.65, zoom * (event.deltaY > 0 ? 0.9 : 1.1)));
-    setZoom(nextZoom);
+    // clientToSvgPoint は viewBox 変換込みのユーザー空間座標を返す（=固定したいアンカー点）。
+    const anchor = clientToSvgPoint(event.clientX, event.clientY);
+    zoomAtUserPoint(zoom * (event.deltaY > 0 ? 0.9 : 1.1), anchor.x, anchor.y);
   };
 
-  // クリック配置を待たずに、部屋中心へワンタップで追加する。
-  const quickAddLight = () => {
-    addLight({
-      id: id("light"),
-      name: "追加ダウンライト",
-      type: "downlight",
-      position: { x: 0, y: project.room.ceilingHeightM - 0.04, z: 0 },
-      mountHeightM: project.room.ceilingHeightM,
-      rotationDeg: { x: -90, y: 0, z: 0 },
-      target: { x: 0, y: 0.72, z: 0 },
-      lumens: 620,
-      colorTemperatureK: 2700,
-      dimmer: 80,
-      enabled: true,
-      beamAngleDeg: 55,
-      penumbra: 0.45,
-      castsShadow: true,
-      note: "クイック追加"
-    });
+  // ＋/－ボタンはカーソルが無いため平面図の中心をアンカーにズームする。
+  const zoomAtCenter = (factor: number) => {
+    zoomAtUserPoint(zoom * factor, planSize.width / 2, planSize.height / 2);
   };
 
-  const quickAddFurniture = () => {
-    addFurniture({
-      id: id("furniture"),
-      name: "汎用ボックス",
-      type: "box",
-      position: { x: 0, y: 0.3, z: 0 },
-      size: { x: 0.9, y: 0.6, z: 0.45 },
-      rotationYDeg: 0,
-      materialId: "fabric-warm-gray",
-      castsShadow: true
-    });
-  };
-
-  const quickAddStair = () => {
-    addFurniture({
-      id: id("furniture"),
-      name: "階段",
-      type: "stair",
-      position: { x: project.room.widthM / 2 - 1.2, y: 0, z: 0 },
-      size: { x: 1.0, y: project.room.ceilingHeightM, z: 2.8 },
-      rotationYDeg: 0,
-      materialId: "wall-white",
-      color: "#cfc8bb",
-      roughness: 0.8,
-      metalness: 0,
-      castsShadow: true
-    });
-  };
-
-  const quickAddVoid = () => {
-    addVoid({ id: id("void"), name: "追加吹き抜け", center: { x: 0, z: 0 }, size: { x: 2.0, z: 2.4 } });
-  };
+  // 背景画像を placement に従って SVG ユーザー空間へ配置する transform。
+  // 画像ピクセル(0,0)の SVG 位置へ平行移動し、m/px × pxPerM で等倍拡大する。
+  const bgRender = useMemo(() => {
+    if (!bgNaturalSize || !placement) return null;
+    const topLeftWorld = imagePixelToWorld(0, 0);
+    if (!topLeftWorld) return null;
+    const topLeftSvg = worldToSvg(topLeftWorld);
+    return {
+      width: bgNaturalSize.width,
+      height: bgNaturalSize.height,
+      tx: topLeftSvg.x,
+      ty: topLeftSvg.y,
+      scale: placement.metersPerPixel * planSize.pxPerM
+    };
+    // imagePixelToWorld/worldToSvg は placement・room から導出されるため依存に含める
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bgNaturalSize, placement, planSize.pxPerM, project.room.widthM, project.room.depthM]);
 
   const scaleLabel = project.backgroundPlan?.scale
-    ? `${Math.round(project.backgroundPlan.scale.millimeters).toLocaleString("ja-JP")}mm / ${Math.round(project.backgroundPlan.scale.pixels)}px`
-    : "縮尺未設定";
+    ? `実寸合わせ済み（${Math.round(project.backgroundPlan.scale.millimeters).toLocaleString("ja-JP")}mm基準）`
+    : project.backgroundPlan
+    ? "縮尺未設定（フィット表示）"
+    : "背景なし";
 
   return (
     <section className="plan-panel" aria-label="2D平面図エディタ">
@@ -395,56 +401,57 @@ export const Plan2D = ({ project, selection, onSelect }: Plan2DProps) => {
         <span className="unit-chip">{scaleLabel}</span>
       </div>
 
-      <div className="tool-strip" role="toolbar" aria-label="2D編集ツール">
-        {TOOL_LABELS.map((label) => (
+      <div className="tool-strip" role="toolbar" aria-label="2Dナビゲーション">
+        {NAV_TOOLS.map((label) => (
           <button
             key={label}
-            className={tool === label ? "tool is-active" : "tool"}
+            className={navTool === label ? "tool is-active" : "tool"}
             onClick={() => {
-              setTool(label);
-              setDrawing(null);
+              // トグル: 同じナビを再押下で解除し App の mode に戻す。
+              setNavTool((current) => (current === label ? null : label));
             }}
           >
             {label}
           </button>
         ))}
-      </div>
-
-      <div className="quick-add" role="group" aria-label="クイック追加">
-        <span>クイック追加</span>
-        <button onClick={quickAddLight}>＋照明</button>
-        <button onClick={quickAddFurniture}>＋家具</button>
-        <button onClick={quickAddStair}>＋階段</button>
-        <button onClick={quickAddVoid}>＋吹抜</button>
+        {/* 縮尺合わせは専用モーダルで実施。背景画像があるときだけ押せる。 */}
+        {project.backgroundPlan && (
+          <button className="tool" onClick={() => setScaleModalOpen(true)}>
+            縮尺
+          </button>
+        )}
       </div>
 
       <div className="plan-meta">
         <span>ズーム {Math.round(zoom * 100)}%</span>
-        <button onClick={() => setZoom((current) => Math.min(4, current * 1.2))}>+</button>
-        <button onClick={() => setZoom((current) => Math.max(0.65, current / 1.2))}>-</button>
+        <button onClick={() => zoomAtCenter(1.2)}>+</button>
+        <button onClick={() => zoomAtCenter(1 / 1.2)}>-</button>
         <button onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }}>全体</button>
       </div>
 
       <p className="tool-help">
-        {tool === "壁" && "壁は始点と終点をクリック。Shiftで15度角度スナップ。"}
-        {tool === "縮尺" && "背景図面上の既知距離の2点をクリックし、実距離mmを入力。"}
-        {tool === "吹抜" && "吹き抜け範囲は矩形の対角2点をクリック。"}
-        {tool === "選択" && "家具・照明・吹き抜けはドラッグ移動できます。"}
-        {tool === "パン" && "ドラッグで平面図をパン。ホイールでズーム。"}
-        {(tool === "窓" || tool === "開口") && "クリック位置に最も近い壁へ配置します。"}
-        {(tool === "家具" || tool === "照明") && "平面図をクリックして追加します。"}
-        {tool === "削除" && "対象をクリック、または選択中の対象を削除します。"}
+        {isPanMode && "ドラッグで平面図をパン。ホイールでズーム。"}
+        {!navTool && !pendingAdd && mode === "select" && "オブジェクトをクリックで選択。家具・照明・吹抜はそのままドラッグで移動できます。"}
+        {!navTool && !pendingAdd && mode === "move" && "オブジェクトをクリックで選択、ドラッグで移動できます。"}
+        {!navTool && !pendingAdd && mode === "delete" && "クリックしたオブジェクトを削除します。"}
+        {!navTool && !pendingAdd && mode === "wall" && "クリックで壁の頂点を連続配置。水平/垂直に自動スナップ。Esc/Enter/ダブルクリックで終了。"}
+        {!navTool && pendingAdd && "クリックした位置にオブジェクトを配置します。"}
       </p>
 
       <div className="plan-canvas-wrap">
         <svg
           ref={svgRef}
           className="plan-canvas"
+          style={{ cursor: mode === "wall" || pendingAdd ? "crosshair" : undefined }}
           viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
           onPointerDown={handleCanvasPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={() => setDragging(null)}
           onPointerLeave={() => setDragging(null)}
+          onDoubleClick={() => {
+            setWallDraft([]);
+            setWallCursor(null);
+          }}
           onWheel={handleWheel}
         >
           <defs>
@@ -456,96 +463,152 @@ export const Plan2D = ({ project, selection, onSelect }: Plan2DProps) => {
               <path d={`M ${planSize.pxPerM} 0 L 0 0 0 ${planSize.pxPerM}`} fill="none" stroke="rgba(255,255,255,.16)" strokeWidth="1.4" />
             </pattern>
           </defs>
-          <rect width={planSize.width} height={planSize.height} fill="#141414" />
-          {project.backgroundPlan && (
+          <rect
+            x={-VIEW_PAD}
+            y={-VIEW_PAD}
+            width={planSize.width + VIEW_PAD * 2}
+            height={planSize.height + VIEW_PAD * 2}
+            fill="#141414"
+          />
+          {project.backgroundPlan && bgRender && (
             <image
               href={project.backgroundPlan.dataUrl}
               x="0"
               y="0"
-              width={planSize.width}
-              height={planSize.height}
-              preserveAspectRatio="xMidYMid meet"
+              width={bgRender.width}
+              height={bgRender.height}
+              transform={`translate(${bgRender.tx} ${bgRender.ty}) scale(${bgRender.scale})`}
               opacity="0.42"
             />
           )}
-          <rect width={planSize.width} height={planSize.height} fill="url(#meterGrid)" />
-          <RoomOutline
-            project={project}
-            selection={selection}
-            worldToSvg={worldToSvg}
-            onSelect={handleSelect}
+          <rect
+            x={-VIEW_PAD}
+            y={-VIEW_PAD}
+            width={planSize.width + VIEW_PAD * 2}
+            height={planSize.height + VIEW_PAD * 2}
+            fill="url(#meterGrid)"
           />
-          {project.windows.map((windowItem) => (
-            <OpeningPlanItem
-              key={windowItem.id}
-              windowItem={windowItem}
-              walls={project.walls}
+          {/* パン/縮尺中はオブジェクトがクリックを奪わないよう pointerEvents を切り、
+              背景の handleCanvasPointerDown に素通りさせる。select/move/delete のみ受け取る。 */}
+          <g style={{ pointerEvents: canSelectObjects ? "auto" : "none" }}>
+            <RoomOutline
+              project={project}
               selection={selection}
               worldToSvg={worldToSvg}
               onSelect={handleSelect}
             />
-          ))}
-          {project.voids.map((voidArea) => (
-            <VoidPlanItem
-              key={voidArea.id}
-              voidArea={voidArea}
-              planSize={planSize}
-              worldToSvg={worldToSvg}
-              selected={selection?.kind === "void" && selection.id === voidArea.id}
-              onSelect={handleSelect}
-              onDragStart={(offset) => setDragging({ kind: "void", id: voidArea.id, offset })}
-              svgToWorld={svgToWorld}
-              canDrag={tool === "選択"}
-            />
-          ))}
-          {project.furniture.map((item) => (
-            <FurniturePlanItem
-              key={item.id}
-              item={item}
-              planSize={planSize}
-              worldToSvg={worldToSvg}
-              selected={selection?.kind === "furniture" && selection.id === item.id}
-              onSelect={handleSelect}
-              onDragStart={(offset) => setDragging({ kind: "furniture", id: item.id, offset })}
-              svgToWorld={svgToWorld}
-              canDrag={tool === "選択"}
-            />
-          ))}
-          {project.lights.map((fixture) => (
-            <LightPlanItem
-              key={fixture.id}
-              fixture={fixture}
-              worldToSvg={worldToSvg}
-              selected={selection?.kind === "light" && selection.id === fixture.id}
-              onSelect={handleSelect}
-              onDragStart={(offset) => setDragging({ kind: "light", id: fixture.id, offset })}
-              svgToWorld={svgToWorld}
-              canDrag={tool === "選択"}
-            />
-          ))}
-          {drawing?.kind === "wall" && cursorPoint && (
-            <line
-              x1={worldToSvg(drawing.start).x}
-              y1={worldToSvg(drawing.start).y}
-              x2={worldToSvg(cursorPoint).x}
-              y2={worldToSvg(cursorPoint).y}
-              className="plan-preview-line"
-            />
+            {project.windows.map((windowItem) => (
+              <OpeningPlanItem
+                key={windowItem.id}
+                windowItem={windowItem}
+                walls={project.walls}
+                selection={selection}
+                worldToSvg={worldToSvg}
+                onSelect={handleSelect}
+              />
+            ))}
+            {project.voids.map((voidArea) => (
+              <VoidPlanItem
+                key={voidArea.id}
+                voidArea={voidArea}
+                planSize={planSize}
+                worldToSvg={worldToSvg}
+                selected={selection?.kind === "void" && selection.id === voidArea.id}
+                onSelect={handleSelect}
+                onDragStart={(offset) => setDragging({ kind: "void", id: voidArea.id, offset })}
+                svgToWorld={svgToWorld}
+                canDrag={canDragObjects}
+              />
+            ))}
+            {project.furniture.map((item) => (
+              <FurniturePlanItem
+                key={item.id}
+                item={item}
+                planSize={planSize}
+                worldToSvg={worldToSvg}
+                selected={selection?.kind === "furniture" && selection.id === item.id}
+                onSelect={handleSelect}
+                onDragStart={(offset) => setDragging({ kind: "furniture", id: item.id, offset })}
+                svgToWorld={svgToWorld}
+                canDrag={canDragObjects}
+              />
+            ))}
+            {project.lights.map((fixture) => (
+              <LightPlanItem
+                key={fixture.id}
+                fixture={fixture}
+                worldToSvg={worldToSvg}
+                selected={selection?.kind === "light" && selection.id === fixture.id}
+                onSelect={handleSelect}
+                onDragStart={(offset) => setDragging({ kind: "light", id: fixture.id, offset })}
+                svgToWorld={svgToWorld}
+                canDrag={canDragObjects}
+              />
+            ))}
+          </g>
+
+          {/* 壁トレースのプレビュー（頂点マーカー＋カーソルへのラバーバンド）。最前面・クリック非対象。 */}
+          {mode === "wall" && (wallDraft.length > 0 || wallCursor) && (
+            <g style={{ pointerEvents: "none" }}>
+              {wallDraft.map((vertex, index) => {
+                const p = worldToSvg(vertex);
+                return <circle key={index} cx={p.x} cy={p.y} r={5} fill="#7fd1ff" stroke="#0b3a52" strokeWidth={1.5} />;
+              })}
+              {wallDraft.length > 0 && wallCursor && (
+                <line
+                  x1={worldToSvg(wallDraft[wallDraft.length - 1]).x}
+                  y1={worldToSvg(wallDraft[wallDraft.length - 1]).y}
+                  x2={worldToSvg(wallCursor).x}
+                  y2={worldToSvg(wallCursor).y}
+                  stroke="#7fd1ff"
+                  strokeWidth={2}
+                  strokeDasharray="8 6"
+                />
+              )}
+            </g>
           )}
-          {drawing?.kind === "void" && cursorPoint && (
-            <PreviewRect start={drawing.start} end={cursorPoint} worldToSvg={worldToSvg} />
-          )}
-          {drawing?.kind === "scale" && cursorPoint && (
-            <line
-              x1={worldToSvg(drawing.startWorld).x}
-              y1={worldToSvg(drawing.startWorld).y}
-              x2={worldToSvg(cursorPoint).x}
-              y2={worldToSvg(cursorPoint).y}
-              className="plan-scale-line"
-            />
-          )}
+
+          {/* カメラ現在地マーカー: 円=位置、三角=視線方向。最前面・クリック非対象。
+              方向は worldToSvg(pos)→worldToSvg(target) の差分から算出（軸向きの取り違え回避）。 */}
+          {liveCamera && (() => {
+            const cp = worldToSvg({ x: liveCamera.x, z: liveCamera.z });
+            const ct = worldToSvg({ x: liveCamera.tx, z: liveCamera.tz });
+            const dx = ct.x - cp.x;
+            const dy = ct.y - cp.y;
+            const len = Math.hypot(dx, dy);
+            const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+            // 三角形は +X 方向を向く形で定義し、視線方向へ回転させる。
+            const reach = 26;
+            const halfW = 13;
+            return (
+              <g className="plan-camera" style={{ pointerEvents: "none" }}>
+                {len > 0.001 && (
+                  <polygon
+                    points={`0,${-halfW} ${reach},0 0,${halfW}`}
+                    transform={`translate(${cp.x} ${cp.y}) rotate(${angle})`}
+                    fill="rgba(56,224,255,0.28)"
+                    stroke="#38e0ff"
+                    strokeWidth={1.5}
+                  />
+                )}
+                <circle cx={cp.x} cy={cp.y} r={7} fill="#38e0ff" stroke="#063946" strokeWidth={2} />
+              </g>
+            );
+          })()}
         </svg>
       </div>
+
+      {scaleModalOpen && project.backgroundPlan?.dataUrl && bgNaturalSize && (
+        <ScaleCalibrationModal
+          imageUrl={project.backgroundPlan.dataUrl}
+          naturalSize={bgNaturalSize}
+          onCancel={() => setScaleModalOpen(false)}
+          onConfirm={(p1, p2, mm) => {
+            calibrateFromImagePixels(p1, p2, mm);
+            setScaleModalOpen(false);
+          }}
+        />
+      )}
     </section>
   );
 };
@@ -566,20 +629,35 @@ const RoomOutline = ({
       const start = worldToSvg(wall.start);
       const end = worldToSvg(wall.end);
       const selected = selection?.kind === "wall" && selection.id === wall.id;
+      const displayWidth = Math.max(8, wall.thicknessM * 100);
       return (
-        <line
-          key={wall.id}
-          x1={start.x}
-          y1={start.y}
-          x2={end.x}
-          y2={end.y}
-          className={selected ? "plan-wall is-selected" : "plan-wall"}
-          strokeWidth={Math.max(8, wall.thicknessM * 100)}
-          onPointerDown={(event) => {
-            event.stopPropagation();
-            onSelect({ kind: "wall", id: wall.id });
-          }}
-        />
+        <g key={wall.id}>
+          {/* 表示用の線とは別に透明で太いヒット線を重ね、壁を選択しやすくする（要望9）。
+              表示の太さは displayWidth のまま変えない。 */}
+          <line
+            x1={start.x}
+            y1={start.y}
+            x2={end.x}
+            y2={end.y}
+            stroke="transparent"
+            strokeWidth={Math.max(24, displayWidth + 16)}
+            strokeLinecap="round"
+            style={{ cursor: "pointer" }}
+            onPointerDown={(event) => {
+              event.stopPropagation();
+              onSelect({ kind: "wall", id: wall.id });
+            }}
+          />
+          <line
+            x1={start.x}
+            y1={start.y}
+            x2={end.x}
+            y2={end.y}
+            className={selected ? "plan-wall is-selected" : "plan-wall"}
+            strokeWidth={displayWidth}
+            style={{ pointerEvents: "none" }}
+          />
+        </g>
       );
     })}
   </>
@@ -769,27 +847,5 @@ const LightPlanItem = ({
         {fixture.name}
       </text>
     </g>
-  );
-};
-
-const PreviewRect = ({
-  start,
-  end,
-  worldToSvg
-}: {
-  start: Vec2M;
-  end: Vec2M;
-  worldToSvg: (point: Vec2M) => { x: number; y: number };
-}) => {
-  const a = worldToSvg(start);
-  const b = worldToSvg(end);
-  return (
-    <rect
-      x={Math.min(a.x, b.x)}
-      y={Math.min(a.y, b.y)}
-      width={Math.abs(a.x - b.x)}
-      height={Math.abs(a.y - b.y)}
-      className="plan-preview-rect"
-    />
   );
 };

@@ -3,10 +3,12 @@ import { demoProject } from "../data/demoProject";
 import type {
   CompareShot,
   CameraView,
+  Daylight,
   FloorPlanBackground,
   FurnitureItem,
   LightFixture,
   LightingScene,
+  MaterialPreset,
   Project,
   Selection,
   VoidArea,
@@ -15,14 +17,29 @@ import type {
 } from "../types";
 import { cloneProject } from "../utils/units";
 
+// sun.ts は別エージェントが用意予定。未作成時の型エラーを避けるためローカルにフォールバックを持つ。
+const DEFAULT_DAYLIGHT: Daylight = {
+  enabled: true,
+  month: 10,
+  day: 15,
+  hour: 14,
+  northOffsetDeg: 0,
+  latitudeDeg: 35
+};
+
 type ProjectStore = {
   project: Project;
   selection: Selection;
   compareShots: CompareShot[];
   history: Project[];
   future: Project[];
+  // 一時状態（非永続）: 3Dカメラの現在地を2D平面図にリアルタイム表示するための土台。
+  // x,z=カメラのワールド座標(m, XZ平面)、tx,tz=注視点のワールド座標(m, XZ平面)。
+  liveCamera: { x: number; z: number; tx: number; tz: number } | null;
+  setLiveCamera: (pose: { x: number; z: number; tx: number; tz: number } | null) => void;
   setProject: (project: Project) => void;
   resetDemo: () => void;
+  clearGeometry: () => void;
   undo: () => void;
   redo: () => void;
   select: (selection: Selection) => void;
@@ -35,6 +52,7 @@ type ProjectStore = {
   addVoid: (voidArea: VoidArea) => void;
   updateLight: (id: string, patch: Partial<LightFixture>) => void;
   setAllColorTemperature: (colorTemperatureK: number) => void;
+  updateMaterial: (id: string, patch: Partial<MaterialPreset>) => void;
   updateSceneLightState: (
     sceneId: string,
     lightId: string,
@@ -50,6 +68,7 @@ type ProjectStore = {
   renameActiveScene: (name: string) => void;
   saveCameraView: (view: CameraView) => void;
   setBackgroundPlan: (backgroundPlan: FloorPlanBackground) => void;
+  setDaylight: (patch: Partial<Daylight>) => void;
   addCompareShot: (shot: CompareShot) => void;
   setCompareShots: (shots: CompareShot[]) => void;
   removeCompareShot: (id: string) => void;
@@ -70,6 +89,8 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   compareShots: [],
   history: [],
   future: [],
+  liveCamera: null,
+  setLiveCamera: (pose) => set({ liveCamera: pose }),
   setProject: (project) =>
     set({
       project,
@@ -84,6 +105,22 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       history: [],
       future: [],
       compareShots: []
+    }),
+  // 間取り図トレース用に、部屋枠以外のジオメトリを一括削除してまっさらにする。
+  // 照明を消すので各シーンの lightStates 参照も空にし、孤立参照を残さない。
+  clearGeometry: () =>
+    set((state) => {
+      const nextProject = cloneProject(state.project);
+      nextProject.walls = [];
+      nextProject.windows = [];
+      nextProject.voids = [];
+      nextProject.furniture = [];
+      nextProject.lights = [];
+      nextProject.lightingScenes = nextProject.lightingScenes.map((scene) => ({
+        ...scene,
+        lightStates: {}
+      }));
+      return { ...withHistory(state, nextProject), selection: null };
     }),
   undo: () => {
     const { history, project } = get();
@@ -184,6 +221,14 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     set((state) => {
       const nextProject = cloneProject(state.project);
       nextProject.lights = nextProject.lights.map((light) => ({ ...light, colorTemperatureK }));
+      return withHistory(state, nextProject);
+    }),
+  updateMaterial: (id, patch) =>
+    set((state) => {
+      const nextProject = cloneProject(state.project);
+      nextProject.materials = nextProject.materials.map((material) =>
+        material.id === id ? { ...material, ...patch } : material
+      );
       return withHistory(state, nextProject);
     }),
   updateSceneLightState: (sceneId, lightId, patch) =>
@@ -309,6 +354,16 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     set((state) => {
       const nextProject = cloneProject(state.project);
       nextProject.backgroundPlan = backgroundPlan;
+      return withHistory(state, nextProject);
+    }),
+  setDaylight: (patch) =>
+    set((state) => {
+      const nextProject = cloneProject(state.project);
+      nextProject.daylight = {
+        ...DEFAULT_DAYLIGHT,
+        ...nextProject.daylight,
+        ...patch
+      };
       return withHistory(state, nextProject);
     }),
   addCompareShot: (shot) =>
