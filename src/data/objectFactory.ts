@@ -1,4 +1,5 @@
-import type { FurnitureItem, LightFixture, Project, VoidArea, WindowOpening } from "../types";
+import type { CeilingZone, FurnitureItem, LightFixture, Project, VoidArea, WindowOpening } from "../types";
+import type { FurniturePreset } from "./furnitureCatalog";
 
 const uid = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -60,6 +61,21 @@ export const newFurniture = (at?: { x: number; z: number }): FurnitureItem => ({
   castsShadow: true
 });
 
+// カタログのプリセットから家具を生成する。床に接地するよう y=高さ/2 に置く（既存規約）。
+export const newFurnitureFromPreset = (preset: FurniturePreset, at?: { x: number; z: number }): FurnitureItem => ({
+  id: uid("furniture"),
+  name: preset.name,
+  type: preset.type,
+  position: { x: at?.x ?? 0, y: preset.size.y / 2, z: at?.z ?? 0 },
+  size: { ...preset.size },
+  rotationYDeg: 0,
+  materialId: "fabric-warm-gray",
+  color: preset.color,
+  roughness: preset.roughness,
+  metalness: preset.metalness,
+  castsShadow: preset.castsShadow ?? true
+});
+
 export const newStair = (project: Project, at?: { x: number; z: number }): FurnitureItem => ({
   id: uid("furniture"),
   name: "階段",
@@ -107,4 +123,12 @@ export const newVoid = (at?: { x: number; z: number }): VoidArea => ({
   name: "追加吹き抜け",
   center: { x: at?.x ?? 0, z: at?.z ?? 0 },
   size: { x: 2.0, z: 2.4 }
+});
+
+export const newCeilingZone = (at?: { x: number; z: number }): CeilingZone => ({
+  id: uid("ceil"),
+  name: "下げ天井",
+  center: { x: at?.x ?? 0, z: at?.z ?? 0 },
+  size: { x: 2.4, z: 2.0 },
+  dropM: 0.3
 });

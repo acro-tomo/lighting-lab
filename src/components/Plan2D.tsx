@@ -36,9 +36,17 @@ type DragState =
   | { kind: "furniture"; id: string; offset: Vec2M }
   | { kind: "light"; id: string; offset: Vec2M }
   | { kind: "void"; id: string; offset: Vec2M }
+  | { kind: "ceilingZone"; id: string; offset: Vec2M }
   | { kind: "window"; id: string }
   | { kind: "pan"; clientStart: { x: number; y: number }; panStart: { x: number; y: number } }
   | null;
+
+// パワポ風の辺ドラッグリサイズ対象。矩形フットプリント(幅x・奥行z)を持つ物のみ。
+type ResizeKind = "furniture" | "void" | "ceilingZone";
+type ResizeEdge = "left" | "right" | "top" | "bottom";
+type ResizeState = { kind: ResizeKind; id: string; edge: ResizeEdge } | null;
+
+const MIN_SIZE_M = 0.2;
 
 const NAV_TOOLS: NavTool[] = ["パン"];
 
@@ -81,6 +89,55 @@ const nearestWall = (p: Vec2M, walls: WallSegment[]) => {
   return best;
 };
 
+// 矩形(中心center/幅x・奥行z/回転deg)の1辺をカーソルまで動かしてリサイズする。
+// 反対側の辺は固定（パワポの図形リサイズと同じ挙動）。回転していてもローカル軸で処理する。
+const resizeRect = (
+  center: Vec2M,
+  size: { x: number; z: number },
+  rotationDeg: number,
+  edge: ResizeEdge,
+  cursor: Vec2M
+): { center: Vec2M; size: { x: number; z: number } } => {
+  const th = (rotationDeg * Math.PI) / 180;
+  const cos = Math.cos(th);
+  const sin = Math.sin(th);
+  const dx = cursor.x - center.x;
+  const dz = cursor.z - center.z;
+  const lx = dx * cos + dz * sin; // ローカルx（幅方向）
+  const lz = -dx * sin + dz * cos; // ローカルz（奥行方向）
+  let halfX = size.x / 2;
+  let halfZ = size.z / 2;
+  let cLocalX = 0;
+  let cLocalZ = 0;
+  if (edge === "right") {
+    const left = -halfX;
+    const right = Math.max(lx, left + MIN_SIZE_M);
+    halfX = (right - left) / 2;
+    cLocalX = (right + left) / 2;
+  } else if (edge === "left") {
+    const right = halfX;
+    const left = Math.min(lx, right - MIN_SIZE_M);
+    halfX = (right - left) / 2;
+    cLocalX = (right + left) / 2;
+  } else if (edge === "bottom") {
+    const top = -halfZ;
+    const bottom = Math.max(lz, top + MIN_SIZE_M);
+    halfZ = (bottom - top) / 2;
+    cLocalZ = (bottom + top) / 2;
+  } else {
+    const bottom = halfZ;
+    const top = Math.min(lz, bottom - MIN_SIZE_M);
+    halfZ = (bottom - top) / 2;
+    cLocalZ = (bottom + top) / 2;
+  }
+  const wx = cLocalX * cos - cLocalZ * sin;
+  const wz = cLocalX * sin + cLocalZ * cos;
+  return {
+    center: { x: center.x + wx, z: center.z + wz },
+    size: { x: halfX * 2, z: halfZ * 2 }
+  };
+};
+
 export const Plan2D = ({
   project,
   selection,
@@ -98,6 +155,10 @@ export const Plan2D = ({
   // navTool は2D固有ナビ(パン)・縮尺のみ。null のときは App の mode に従う。
   const [navTool, setNavTool] = useState<NavTool | null>(null);
   const [dragging, setDragging] = useState<DragState>(null);
+  // ダブルクリックで開始する辺ドラッグリサイズ。
+  // resizeTarget=ハンドル表示中のオブジェクト、resizing=ドラッグ中の辺。
+  const [resizeTarget, setResizeTarget] = useState<{ kind: ResizeKind; id: string } | null>(null);
+  const [resizing, setResizing] = useState<ResizeState>(null);
   const [scaleModalOpen, setScaleModalOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -118,6 +179,7 @@ export const Plan2D = ({
   const updateVoid = useProjectStore((state) => state.updateVoid);
   const setBackgroundPlan = useProjectStore((state) => state.setBackgroundPlan);
   const updateWindow = useProjectStore((state) => state.updateWindow);
+  const updateCeilingZone = useProjectStore((state) => state.updateCeilingZone);
   const addWall = useProjectStore((state) => state.addWall);
   // 3Dビューの現在カメラ位置/注視点(ワールドm)。null のとき平面図にマーカーを描かない。
   const liveCamera = useProjectStore((state) => state.liveCamera);
@@ -289,8 +351,16 @@ export const Plan2D = ({
 
   const handleSelect = (nextSelection: Selection) => {
     if (isPanMode) return;
+    // 別オブジェクトを選んだらリサイズハンドルを閉じる。
+    if (!nextSelection || resizeTarget?.id !== nextSelection.id) setResizeTarget(null);
     // 削除モードは廃止。選択中のオブジェクトはDeleteキーで消す（App側で処理）。
     onSelect(nextSelection);
+  };
+
+  // ダブルクリックでリサイズハンドルを表示する（矩形フットプリント物のみ）。
+  const startResize = (kind: ResizeKind, id: string) => {
+    onSelect({ kind: kind === "furniture" ? "furniture" : kind === "void" ? "void" : "ceilingZone", id });
+    setResizeTarget({ kind, id });
   };
 
   const handleCanvasPointerDown = (event: React.PointerEvent<SVGSVGElement>) => {
@@ -334,6 +404,31 @@ export const Plan2D = ({
     if (mode === "wall" && wallDraft.length > 0) {
       const prev = wallDraft[wallDraft.length - 1];
       setWallCursor(snapPoint(angleSnap(prev, svgToWorld(event.clientX, event.clientY))));
+    }
+
+    // 辺ドラッグによるリサイズ（3Dへ即連動）。
+    if (resizing) {
+      const cursor = svgToWorld(event.clientX, event.clientY);
+      if (resizing.kind === "furniture") {
+        const item = project.furniture.find((candidate) => candidate.id === resizing.id);
+        if (!item) return;
+        const r = resizeRect({ x: item.position.x, z: item.position.z }, { x: item.size.x, z: item.size.z }, item.rotationYDeg, resizing.edge, cursor);
+        updateFurniture(item.id, {
+          position: { ...item.position, x: r.center.x, z: r.center.z },
+          size: { ...item.size, x: r.size.x, z: r.size.z }
+        });
+      } else if (resizing.kind === "void") {
+        const voidArea = project.voids.find((candidate) => candidate.id === resizing.id);
+        if (!voidArea) return;
+        const r = resizeRect(voidArea.center, voidArea.size, 0, resizing.edge, cursor);
+        updateVoid(voidArea.id, { center: r.center, size: r.size });
+      } else {
+        const zone = (project.ceilingZones ?? []).find((candidate) => candidate.id === resizing.id);
+        if (!zone) return;
+        const r = resizeRect(zone.center, zone.size, 0, resizing.edge, cursor);
+        updateCeilingZone(zone.id, { center: r.center, size: r.size });
+      }
+      return;
     }
 
     if (!dragging) return;
@@ -508,8 +603,14 @@ export const Plan2D = ({
           viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
           onPointerDown={handleCanvasPointerDown}
           onPointerMove={onPointerMove}
-          onPointerUp={() => setDragging(null)}
-          onPointerLeave={() => setDragging(null)}
+          onPointerUp={() => {
+            setDragging(null);
+            setResizing(null);
+          }}
+          onPointerLeave={() => {
+            setDragging(null);
+            setResizing(null);
+          }}
           onDoubleClick={() => {
             setWallDraft([]);
             setWallCursor(null);
@@ -580,6 +681,21 @@ export const Plan2D = ({
                 selected={selection?.kind === "void" && selection.id === voidArea.id}
                 onSelect={handleSelect}
                 onDragStart={(offset) => setDragging({ kind: "void", id: voidArea.id, offset })}
+                onResize={() => startResize("void", voidArea.id)}
+                svgToWorld={svgToWorld}
+                canDrag={canDragObjects}
+              />
+            ))}
+            {(project.ceilingZones ?? []).map((zone) => (
+              <CeilingZonePlanItem
+                key={zone.id}
+                zone={zone}
+                planSize={planSize}
+                worldToSvg={worldToSvg}
+                selected={selection?.kind === "ceilingZone" && selection.id === zone.id}
+                onSelect={handleSelect}
+                onDragStart={(offset) => setDragging({ kind: "ceilingZone", id: zone.id, offset })}
+                onResize={() => startResize("ceilingZone", zone.id)}
                 svgToWorld={svgToWorld}
                 canDrag={canDragObjects}
               />
@@ -593,6 +709,7 @@ export const Plan2D = ({
                 selected={selection?.kind === "furniture" && selection.id === item.id}
                 onSelect={handleSelect}
                 onDragStart={(offset) => setDragging({ kind: "furniture", id: item.id, offset })}
+                onResize={() => startResize("furniture", item.id)}
                 svgToWorld={svgToWorld}
                 canDrag={canDragObjects}
               />
@@ -610,6 +727,16 @@ export const Plan2D = ({
               />
             ))}
           </g>
+
+          {/* ダブルクリックで開いた矩形オブジェクトの辺リサイズハンドル（最前面）。 */}
+          {resizeTarget && !pendingAdd && (
+            <ResizeHandles
+              target={resizeTarget}
+              project={project}
+              worldToSvg={worldToSvg}
+              onEdgePointerDown={(edge) => setResizing({ kind: resizeTarget.kind, id: resizeTarget.id, edge })}
+            />
+          )}
 
           {/* 壁トレースのプレビュー（頂点マーカー＋カーソルへのラバーバンド）。最前面・クリック非対象。 */}
           {mode === "wall" && (wallDraft.length > 0 || wallCursor) && (
@@ -789,6 +916,7 @@ const VoidPlanItem = ({
   selected,
   onSelect,
   onDragStart,
+  onResize,
   svgToWorld,
   canDrag
 }: {
@@ -798,6 +926,7 @@ const VoidPlanItem = ({
   selected: boolean;
   onSelect: (selection: Selection) => void;
   onDragStart: (offset: Vec2M) => void;
+  onResize: () => void;
   svgToWorld: (clientX: number, clientY: number) => Vec2M;
   canDrag: boolean;
 }) => {
@@ -818,7 +947,7 @@ const VoidPlanItem = ({
   };
 
   return (
-    <g onPointerDown={handlePointerDown}>
+    <g onPointerDown={handlePointerDown} onDoubleClick={(event) => { event.stopPropagation(); onResize(); }}>
       <rect
         x={topLeft.x}
         y={topLeft.y}
@@ -833,6 +962,56 @@ const VoidPlanItem = ({
   );
 };
 
+const CeilingZonePlanItem = ({
+  zone,
+  planSize,
+  worldToSvg,
+  selected,
+  onSelect,
+  onDragStart,
+  onResize,
+  svgToWorld,
+  canDrag
+}: {
+  zone: NonNullable<Project["ceilingZones"]>[number];
+  planSize: { pxPerM: number };
+  worldToSvg: (point: Vec2M) => { x: number; y: number };
+  selected: boolean;
+  onSelect: (selection: Selection) => void;
+  onDragStart: (offset: Vec2M) => void;
+  onResize: () => void;
+  svgToWorld: (clientX: number, clientY: number) => Vec2M;
+  canDrag: boolean;
+}) => {
+  const topLeft = worldToSvg({
+    x: zone.center.x - zone.size.x / 2,
+    z: zone.center.z - zone.size.z / 2
+  });
+
+  const handlePointerDown = (event: React.PointerEvent<SVGGElement>) => {
+    event.stopPropagation();
+    onSelect({ kind: "ceilingZone", id: zone.id });
+    if (!canDrag) return;
+    const point = svgToWorld(event.clientX, event.clientY);
+    onDragStart({ x: point.x - zone.center.x, z: point.z - zone.center.z });
+  };
+
+  return (
+    <g onPointerDown={handlePointerDown} onDoubleClick={(event) => { event.stopPropagation(); onResize(); }}>
+      <rect
+        x={topLeft.x}
+        y={topLeft.y}
+        width={zone.size.x * planSize.pxPerM}
+        height={zone.size.z * planSize.pxPerM}
+        className={selected ? "plan-ceiling is-selected" : "plan-ceiling"}
+      />
+      <text x={topLeft.x + 12} y={topLeft.y + 24} className="plan-label">
+        {zone.name}（▼{Math.round(zone.dropM * 1000)}）
+      </text>
+    </g>
+  );
+};
+
 const FurniturePlanItem = ({
   item,
   planSize,
@@ -840,6 +1019,7 @@ const FurniturePlanItem = ({
   selected,
   onSelect,
   onDragStart,
+  onResize,
   svgToWorld,
   canDrag
 }: {
@@ -849,6 +1029,7 @@ const FurniturePlanItem = ({
   selected: boolean;
   onSelect: (selection: Selection) => void;
   onDragStart: (offset: Vec2M) => void;
+  onResize: () => void;
   svgToWorld: (clientX: number, clientY: number) => Vec2M;
   canDrag: boolean;
 }) => {
@@ -871,6 +1052,7 @@ const FurniturePlanItem = ({
     <g
       transform={`translate(${center.x} ${center.y}) rotate(${item.rotationYDeg})`}
       onPointerDown={handlePointerDown}
+      onDoubleClick={(event) => { event.stopPropagation(); onResize(); }}
       className={selected ? "plan-furniture is-selected" : "plan-furniture"}
     >
       {item.type === "roundTable" ? (
@@ -922,6 +1104,74 @@ const LightPlanItem = ({
       <text x={center.x + 14} y={center.y - 12} className="plan-label">
         {fixture.name}
       </text>
+    </g>
+  );
+};
+
+// 辺リサイズハンドル。対象矩形の4辺中点に丸ハンドルを置き、ドラッグでその辺を動かす。
+const ResizeHandles = ({
+  target,
+  project,
+  worldToSvg,
+  onEdgePointerDown
+}: {
+  target: { kind: ResizeKind; id: string };
+  project: Project;
+  worldToSvg: (point: Vec2M) => { x: number; y: number };
+  onEdgePointerDown: (edge: ResizeEdge) => void;
+}) => {
+  let center: Vec2M;
+  let size: { x: number; z: number };
+  let rotationDeg = 0;
+  if (target.kind === "furniture") {
+    const item = project.furniture.find((candidate) => candidate.id === target.id);
+    if (!item) return null;
+    center = { x: item.position.x, z: item.position.z };
+    size = { x: item.size.x, z: item.size.z };
+    rotationDeg = item.rotationYDeg;
+  } else if (target.kind === "void") {
+    const voidArea = project.voids.find((candidate) => candidate.id === target.id);
+    if (!voidArea) return null;
+    center = voidArea.center;
+    size = voidArea.size;
+  } else {
+    const zone = (project.ceilingZones ?? []).find((candidate) => candidate.id === target.id);
+    if (!zone) return null;
+    center = zone.center;
+    size = zone.size;
+  }
+
+  const th = (rotationDeg * Math.PI) / 180;
+  const cos = Math.cos(th);
+  const sin = Math.sin(th);
+  const halfX = size.x / 2;
+  const halfZ = size.z / 2;
+  const toSvg = (lx: number, lz: number) =>
+    worldToSvg({ x: center.x + lx * cos - lz * sin, z: center.z + lx * sin + lz * cos });
+
+  const handles: { edge: ResizeEdge; p: { x: number; y: number }; cursor: string }[] = [
+    { edge: "right", p: toSvg(halfX, 0), cursor: "ew-resize" },
+    { edge: "left", p: toSvg(-halfX, 0), cursor: "ew-resize" },
+    { edge: "bottom", p: toSvg(0, halfZ), cursor: "ns-resize" },
+    { edge: "top", p: toSvg(0, -halfZ), cursor: "ns-resize" }
+  ];
+
+  return (
+    <g style={{ pointerEvents: "auto" }}>
+      {handles.map((handle) => (
+        <circle
+          key={handle.edge}
+          cx={handle.p.x}
+          cy={handle.p.y}
+          r={7}
+          className="plan-resize-handle"
+          style={{ cursor: handle.cursor }}
+          onPointerDown={(event) => {
+            event.stopPropagation();
+            onEdgePointerDown(handle.edge);
+          }}
+        />
+      ))}
     </g>
   );
 };

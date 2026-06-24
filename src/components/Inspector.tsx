@@ -1,5 +1,5 @@
 import type { ChangeEvent } from "react";
-import type { FurnitureItem, LightFixture, MaterialPreset, Project, Selection, VoidArea, WallSegment, WindowOpening } from "../types";
+import type { CeilingZone, FurnitureItem, LightFixture, MaterialPreset, Project, Selection, VoidArea, WallSegment, WindowOpening } from "../types";
 import { useProjectStore } from "../store/projectStore";
 import { applyFixtureModel, fixtureCatalog, getFixtureModel } from "../data/fixtureCatalog";
 import { getSceneLightState } from "../utils/lighting";
@@ -47,6 +47,7 @@ export const Inspector = ({ project, selection }: InspectorProps) => {
   const updateWall = useProjectStore((state) => state.updateWall);
   const updateWindow = useProjectStore((state) => state.updateWindow);
   const updateVoid = useProjectStore((state) => state.updateVoid);
+  const updateCeilingZone = useProjectStore((state) => state.updateCeilingZone);
   const updateMaterial = useProjectStore((state) => state.updateMaterial);
   const setAllColorTemperature = useProjectStore((state) => state.setAllColorTemperature);
   const select = useProjectStore((state) => state.select);
@@ -66,6 +67,10 @@ export const Inspector = ({ project, selection }: InspectorProps) => {
       : undefined;
   const selectedVoid =
     selection?.kind === "void" ? project.voids.find((voidArea) => voidArea.id === selection.id) : undefined;
+  const selectedCeilingZone =
+    selection?.kind === "ceilingZone"
+      ? (project.ceilingZones ?? []).find((zone) => zone.id === selection.id)
+      : undefined;
 
   const totalActiveLumens = project.lights.reduce((sum, light) => {
     const state = getSceneLightState(light, activeScene);
@@ -116,6 +121,7 @@ export const Inspector = ({ project, selection }: InspectorProps) => {
         )}
         {selectedWindow && <WindowInspector windowItem={selectedWindow} project={project} updateWindow={updateWindow} />}
         {selectedVoid && <VoidInspector voidArea={selectedVoid} updateVoid={updateVoid} />}
+        {selectedCeilingZone && <CeilingZoneInspector zone={selectedCeilingZone} updateCeilingZone={updateCeilingZone} />}
       </section>
 
       <section className="panel-block">
@@ -266,10 +272,12 @@ const FurnitureInspector = ({
         <option value="rectTable">角テーブル</option>
         <option value="chair">椅子</option>
         <option value="sofa">ソファ</option>
+        <option value="bed">ベッド</option>
         <option value="kitchen">キッチン</option>
-        <option value="cupboard">収納</option>
+        <option value="cupboard">カップボード</option>
+        <option value="fridge">冷蔵庫</option>
         <option value="tv">TV</option>
-        <option value="shelf">棚</option>
+        <option value="shelf">可動棚</option>
         <option value="counter">カウンター</option>
         <option value="rug">ラグ</option>
         <option value="stair">階段</option>
@@ -454,6 +462,27 @@ const VoidInspector = ({
       <NumberField label="幅" unit="mm" value={mToMm(voidArea.size.x)} min={100} onChange={(value) => updateVoid(voidArea.id, { size: { ...voidArea.size, x: mmToM(value) } })} />
       <NumberField label="奥行" unit="mm" value={mToMm(voidArea.size.z)} min={100} onChange={(value) => updateVoid(voidArea.id, { size: { ...voidArea.size, z: mmToM(value) } })} />
     </div>
+  </div>
+);
+
+const CeilingZoneInspector = ({
+  zone,
+  updateCeilingZone
+}: {
+  zone: CeilingZone;
+  updateCeilingZone: (id: string, patch: Partial<CeilingZone>) => void;
+}) => (
+  <div className="form-grid">
+    <TextField label="名前" value={zone.name} onChange={(name) => updateCeilingZone(zone.id, { name })} />
+    <div className="field-row">
+      <NumberField label="X" unit="mm" value={mToMm(zone.center.x)} onChange={(value) => updateCeilingZone(zone.id, { center: { ...zone.center, x: mmToM(value) } })} />
+      <NumberField label="Z" unit="mm" value={mToMm(zone.center.z)} onChange={(value) => updateCeilingZone(zone.id, { center: { ...zone.center, z: mmToM(value) } })} />
+    </div>
+    <div className="field-row">
+      <NumberField label="幅" unit="mm" value={mToMm(zone.size.x)} min={100} onChange={(value) => updateCeilingZone(zone.id, { size: { ...zone.size, x: mmToM(value) } })} />
+      <NumberField label="奥行" unit="mm" value={mToMm(zone.size.z)} min={100} onChange={(value) => updateCeilingZone(zone.id, { size: { ...zone.size, z: mmToM(value) } })} />
+    </div>
+    <NumberField label="下がり" unit="mm" value={mToMm(zone.dropM)} min={20} max={1000} onChange={(value) => updateCeilingZone(zone.id, { dropM: mmToM(value) })} />
   </div>
 );
 

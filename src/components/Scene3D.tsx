@@ -16,6 +16,7 @@ import type { RenderDebugMode } from "../rendering/pathTracer";
 import type { RenderContext } from "../rendering/renderContext";
 import type {
   CameraView,
+  CeilingZone,
   FurnitureItem,
   LightFixture,
   LightingScene,
@@ -757,6 +758,16 @@ const RoomShell = ({
         />
       ))}
       <Ceiling project={project} material={ceilingMaterial} debugMode={debugMode} />
+      {(project.ceilingZones ?? []).map((zone) => (
+        <CeilingZoneMesh
+          key={zone.id}
+          zone={zone}
+          ceilingHeightM={project.room.ceilingHeightM}
+          material={ceilingMaterial}
+          selected={selection?.kind === "ceilingZone" && selection.id === zone.id}
+          debugMode={debugMode}
+        />
+      ))}
       {project.voids.map((voidArea) => (
         <VoidWell
           key={`well-${voidArea.id}`}
@@ -837,6 +848,42 @@ const Ceiling = ({ project, material, debugMode }: { project: Project; material:
         </mesh>
       ))}
     </>
+  );
+};
+
+// 下げ天井: 天井から dropM 分だけ垂れ下がる軒（ソフィット）の箱として描く。
+const CeilingZoneMesh = ({
+  zone,
+  ceilingHeightM,
+  material,
+  selected,
+  debugMode
+}: {
+  zone: CeilingZone;
+  ceilingHeightM: number;
+  material: MaterialPreset;
+  selected: boolean;
+  debugMode: RenderDebugMode;
+}) => {
+  const pathTraced = usePathTraced();
+  const drop = Math.max(0.02, zone.dropM);
+  return (
+    <group position={[zone.center.x, ceilingHeightM - drop / 2, zone.center.z]}>
+      <mesh receiveShadow castShadow>
+        <boxGeometry args={[zone.size.x, drop, zone.size.z]} />
+        <meshStandardMaterial
+          color={debugColorForRole("ceiling", debugMode, material.baseColor)}
+          roughness={material.roughness}
+          metalness={material.metalness}
+        />
+      </mesh>
+      {selected && !pathTraced && (
+        <mesh>
+          <boxGeometry args={[zone.size.x + 0.04, drop + 0.04, zone.size.z + 0.04]} />
+          <meshBasicMaterial color="#f5c64d" wireframe transparent opacity={0.8} />
+        </mesh>
+      )}
+    </group>
   );
 };
 
@@ -1396,6 +1443,84 @@ const FurniturePrimitive = ({
         <boxGeometry args={[item.size.x, item.size.y, item.size.z]} />
         <meshStandardMaterial color="#030303" roughness={0.18} metalness={0.02} emissive="#050914" emissiveIntensity={0.22} />
       </mesh>
+    );
+  }
+
+  if (item.type === "bed") {
+    const { x: w, y: h, z: d } = item.size;
+    return (
+      <>
+        {/* フレーム */}
+        <mesh castShadow receiveShadow position={[0, -h / 2 + h * 0.22, 0]}>
+          <boxGeometry args={[w, h * 0.44, d]} />
+          <meshStandardMaterial color="#6b5b45" roughness={0.7} />
+        </mesh>
+        {/* マットレス＋掛け布団 */}
+        <mesh castShadow receiveShadow position={[0, -h / 2 + h * 0.62, d * 0.04]}>
+          <boxGeometry args={[w * 0.96, h * 0.36, d * 0.92]} />
+          <meshStandardMaterial color={color} roughness={roughness} metalness={metalness} />
+        </mesh>
+        {/* 枕 */}
+        <mesh castShadow position={[0, -h / 2 + h * 0.86, -d / 2 + d * 0.13]}>
+          <boxGeometry args={[w * 0.82, h * 0.16, d * 0.16]} />
+          <meshStandardMaterial color="#f0ece2" roughness={0.88} />
+        </mesh>
+        {/* ヘッドボード */}
+        <mesh castShadow receiveShadow position={[0, 0, -d / 2 + 0.04]}>
+          <boxGeometry args={[w, h, 0.08]} />
+          <meshStandardMaterial color="#5c4d3a" roughness={0.72} />
+        </mesh>
+      </>
+    );
+  }
+
+  if (item.type === "fridge") {
+    const { x: w, y: h, z: d } = item.size;
+    return (
+      <>
+        <mesh castShadow receiveShadow>
+          <boxGeometry args={[w, h, d]} />
+          <meshStandardMaterial color={color} roughness={roughness} metalness={metalness} />
+        </mesh>
+        {/* 上下ドアの分割溝（正面=+z） */}
+        <mesh position={[0, h * 0.08, d / 2 + 0.002]}>
+          <boxGeometry args={[w * 0.98, 0.014, 0.012]} />
+          <meshStandardMaterial color="#9a9a9c" roughness={0.5} metalness={0.3} />
+        </mesh>
+        {/* 縦ハンドル2本 */}
+        {[h * 0.3, -h * 0.16].map((y) => (
+          <mesh key={y} position={[-w / 2 + 0.07, y, d / 2 + 0.022]}>
+            <boxGeometry args={[0.03, h * 0.22, 0.03]} />
+            <meshStandardMaterial color="#b8b8ba" roughness={0.3} metalness={0.55} />
+          </mesh>
+        ))}
+      </>
+    );
+  }
+
+  if (item.type === "shelf") {
+    // 可動棚（オープンシェルフ）: 側板＋背板＋複数の棚板。奥行=z, 背面=-z を壁付け想定。
+    const { x: w, y: h, z: d } = item.size;
+    const bays = Math.max(2, Math.round(h / 0.4));
+    return (
+      <>
+        {[-1, 1].map((side) => (
+          <mesh key={side} castShadow receiveShadow position={[side * (w / 2 - 0.02), 0, 0]}>
+            <boxGeometry args={[0.04, h, d]} />
+            <meshStandardMaterial color={color} roughness={roughness} metalness={metalness} />
+          </mesh>
+        ))}
+        <mesh receiveShadow position={[0, 0, -d / 2 + 0.015]}>
+          <boxGeometry args={[w, h, 0.03]} />
+          <meshStandardMaterial color={color} roughness={roughness} />
+        </mesh>
+        {Array.from({ length: bays + 1 }).map((_, index) => (
+          <mesh key={index} castShadow receiveShadow position={[0, -h / 2 + (h / bays) * index, 0]}>
+            <boxGeometry args={[w - 0.04, 0.03, d - 0.02]} />
+            <meshStandardMaterial color={color} roughness={roughness} metalness={metalness} />
+          </mesh>
+        ))}
+      </>
     );
   }
 

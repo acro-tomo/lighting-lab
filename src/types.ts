@@ -5,6 +5,7 @@ export type ObjectKind =
   | "furniture"
   | "light"
   | "void"
+  | "ceilingZone"
   | "material";
 
 export type Vec2M = {
@@ -73,13 +74,25 @@ export type VoidArea = {
   size: Vec2M;
 };
 
+// 下げ天井: 指定した矩形領域だけ天井を dropM 分だけ下げる（折り上げの逆）。
+export type CeilingZone = {
+  id: string;
+  name: string;
+  center: Vec2M;
+  size: Vec2M;
+  /** 天井からの下がり量(m)。0.2〜0.4 が一般的。 */
+  dropM: number;
+};
+
 export type FurnitureType =
   | "roundTable"
   | "rectTable"
   | "chair"
   | "sofa"
+  | "bed"
   | "kitchen"
   | "cupboard"
+  | "fridge"
   | "tv"
   | "shelf"
   | "counter"
@@ -211,6 +224,7 @@ export type Project = {
   walls: WallSegment[];
   windows: WindowOpening[];
   voids: VoidArea[];
+  ceilingZones?: CeilingZone[];
   furniture: FurnitureItem[];
   lights: LightFixture[];
   lightingScenes: LightingScene[];

@@ -511,6 +511,24 @@ h2 {
   stroke: #f5c64d;
 }
 
+.plan-ceiling {
+  fill: rgba(150, 120, 90, 0.22);
+  stroke: rgba(220, 190, 150, 0.85);
+  stroke-dasharray: 4 5;
+  stroke-width: 2;
+}
+
+.plan-ceiling.is-selected {
+  stroke: #f5c64d;
+}
+
+/* パワポ風リサイズハンドル */
+.plan-resize-handle {
+  fill: #f5c64d;
+  stroke: #1a1605;
+  stroke-width: 2;
+}
+
 .plan-furniture rect,
 .plan-furniture circle {
   fill: rgba(210, 203, 188, 0.38);

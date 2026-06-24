@@ -1,18 +1,36 @@
 import { useEffect, useState } from "react";
+import { furnitureCatalog } from "../data/furnitureCatalog";
 
 // 操作モードはコンボボックスのまま（要望: 操作はコンボボックス）。
 // 追加は「＋追加」ボタン→ポップアップで種別選択（要望: 追加はポップアップ）。
 export type EditMode = "select" | "move" | "wall";
 
-// 追加できるオブジェクト種別。kind は App.handleAddObject と一致させる。
-const ADD_ITEMS: { kind: string; label: string; hint?: string }[] = [
-  { kind: "downlight", label: "ダウンライト" },
-  { kind: "wallspot", label: "壁付スポット" },
-  { kind: "window", label: "窓", hint: "壁をクリックして設置" },
-  { kind: "door", label: "扉", hint: "壁をクリックして設置" },
-  { kind: "furniture", label: "家具" },
-  { kind: "stair", label: "階段" },
-  { kind: "void", label: "吹き抜け" }
+type AddItem = { kind: string; label: string; hint?: string };
+
+// 追加ポップアップのグループ。kind は App.handleAddObject と一致させる。
+// 家具はカタログから生成し、kind を "furniture:<presetId>" とする。
+const ADD_GROUPS: { title: string; items: AddItem[] }[] = [
+  {
+    title: "照明",
+    items: [
+      { kind: "downlight", label: "ダウンライト" },
+      { kind: "wallspot", label: "壁付スポット" }
+    ]
+  },
+  {
+    title: "開口・構造",
+    items: [
+      { kind: "window", label: "窓", hint: "壁をクリック" },
+      { kind: "door", label: "扉", hint: "壁をクリック" },
+      { kind: "void", label: "吹き抜け" },
+      { kind: "ceilingZone", label: "下げ天井" },
+      { kind: "stair", label: "階段" }
+    ]
+  },
+  {
+    title: "家具",
+    items: furnitureCatalog.map((preset) => ({ kind: `furniture:${preset.id}`, label: preset.label }))
+  }
 ];
 
 type EditToolbarProps = {
@@ -58,22 +76,27 @@ export const EditToolbar = ({ mode, onModeChange, onAdd, pendingAdd }: EditToolb
         <div className="add-modal-backdrop" onPointerDown={() => setMenuOpen(false)}>
           <div className="add-modal" role="menu" onPointerDown={(event) => event.stopPropagation()}>
             <p className="add-modal-title">追加するもの</p>
-            <div className="add-modal-grid">
-              {ADD_ITEMS.map((item) => (
-                <button
-                  key={item.kind}
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    onAdd(item.kind);
-                    setMenuOpen(false);
-                  }}
-                >
-                  <span>{item.label}</span>
-                  {item.hint && <em>{item.hint}</em>}
-                </button>
-              ))}
-            </div>
+            {ADD_GROUPS.map((group) => (
+              <div key={group.title} className="add-modal-group">
+                <p className="add-modal-group-title">{group.title}</p>
+                <div className="add-modal-grid">
+                  {group.items.map((item) => (
+                    <button
+                      key={item.kind}
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        onAdd(item.kind);
+                        setMenuOpen(false);
+                      }}
+                    >
+                      <span>{item.label}</span>
+                      {item.hint && <em>{item.hint}</em>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

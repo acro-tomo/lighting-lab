@@ -13,7 +13,8 @@ import type { CompareShot, Project } from "./types";
 import { floorPlanFileToDataUrl } from "./utils/floorplanImport";
 import { DEFAULT_DAYLIGHT } from "./utils/sun";
 import { cloneProject } from "./utils/units";
-import { newDoor, newDownlight, newFurniture, newStair, newVoid, newWallSpot, newWindow } from "./data/objectFactory";
+import { newCeilingZone, newDoor, newDownlight, newFurnitureFromPreset, newStair, newVoid, newWallSpot, newWindow } from "./data/objectFactory";
+import { getFurniturePreset } from "./data/furnitureCatalog";
 import { EditToolbar, type EditMode } from "./components/EditToolbar";
 
 // 小数hourをHH:MM文字列に変換する（例: 14.5 → "14:30"）。
@@ -75,6 +76,7 @@ export const App = () => {
   const addFurniture = useProjectStore((state) => state.addFurniture);
   const addWindow = useProjectStore((state) => state.addWindow);
   const addVoid = useProjectStore((state) => state.addVoid);
+  const addCeilingZone = useProjectStore((state) => state.addCeilingZone);
   const deleteSelection = useProjectStore((state) => state.deleteSelection);
   const setDaylight = useProjectStore((state) => state.setDaylight);
   const [canvasElement, setCanvasElement] = useState<HTMLCanvasElement | null>(null);
@@ -343,15 +345,18 @@ export const App = () => {
   const handleAddObject = useCallback(
     (kind: string, opts: PlaceOpts = {}) => {
       const { at, wallId, centerRatio } = opts;
+      // 家具カタログ: kind = "furniture:<presetId>"。
+      if (kind.startsWith("furniture:")) {
+        const preset = getFurniturePreset(kind.slice("furniture:".length));
+        if (preset) addFurniture(newFurnitureFromPreset(preset, at));
+        return;
+      }
       switch (kind) {
         case "downlight":
           addLight(newDownlight(project, at));
           break;
         case "wallspot":
           addLight(newWallSpot(project, at));
-          break;
-        case "furniture":
-          addFurniture(newFurniture(at));
           break;
         case "stair":
           addFurniture(newStair(project, at));
@@ -365,11 +370,14 @@ export const App = () => {
         case "void":
           addVoid(newVoid(at));
           break;
+        case "ceilingZone":
+          addCeilingZone(newCeilingZone(at));
+          break;
         default:
           return;
       }
     },
-    [addFurniture, addLight, addVoid, addWindow, project]
+    [addCeilingZone, addFurniture, addLight, addVoid, addWindow, project]
   );
 
   // 「＋追加」で種別を選んだら配置待ちにする。実際の生成はクリック位置確定時。
