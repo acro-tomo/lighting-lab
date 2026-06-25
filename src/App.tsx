@@ -125,13 +125,24 @@ export const App = () => {
   }, [setCompareShots, setProject]);
 
   useEffect(() => {
-    const handle = window.setTimeout(() => {
+    const flush = () =>
       saveProjectToIndexedDb(project).catch(() => {
         setNotice("IndexedDBへの自動保存に失敗しました。JSON保存を使ってください。");
       });
-    }, 500);
+    const handle = window.setTimeout(flush, 500);
+    // 配置直後にすぐリロード/タブを閉じてもデバウンス前の変更を失わないよう、
+    // 離脱(非表示/pagehide)時は即時に最新プロジェクト全体を保存する。
+    const onHide = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    document.addEventListener("visibilitychange", onHide);
+    window.addEventListener("pagehide", flush);
 
-    return () => window.clearTimeout(handle);
+    return () => {
+      window.clearTimeout(handle);
+      document.removeEventListener("visibilitychange", onHide);
+      window.removeEventListener("pagehide", flush);
+    };
   }, [project]);
 
   useEffect(() => {
