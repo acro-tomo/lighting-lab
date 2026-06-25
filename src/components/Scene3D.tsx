@@ -356,83 +356,48 @@ const CameraViewSync = ({
     gl.toneMappingExposure = view.exposure;
   }, [gl, view.exposure]);
 
-  // 矢印キーの挙動: 何か選択中なら選択オブジェクトを操作、未選択ならカメラ移動（従来）。
-  // 微調整用ナッジ量（選択オブジェクト操作時）。
-  const NUDGE_ROT_DEG = 15; // 左右キー1回の回転量
-  const NUDGE_Y_M = 0.05; // Shift+上下キー1回の昇降量
-  const NUDGE_Z_M = 0.1; // 上下キー1回の奥行き移動量
-  const NUDGE_RATIO = 0.02; // 窓の壁沿い移動量（centerRatio）
+  // 矢印キーは常に視点(カメラ)操作。
+  //   矢印      : 視点の前後左右移動（注視点も同量動かし向きは保つ）
+  //   Shift+上下: 向きはそのままで上下に移動
+  //   Shift+左右: 位置はそのままで視線方向だけ旋回（その場で向きを変える）
+  // オブジェクトの移動/回転は3Dドラッグ・Inspector側に集約する。
+  const MOVE_M = 0.4; // 矢印1回の移動量(m)
+  const TURN_DEG = 5; // Shift+左右1回の旋回角(度)
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const controls = controlsRef.current;
       if (!controls) return;
-      const target = event.target as HTMLElement | null;
-      const tag = target?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
+      const el = event.target as HTMLElement | null;
+      const tag = el?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || el?.isContentEditable) return;
       if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
+      event.preventDefault();
 
-      const store = useProjectStore.getState();
-      const selection = store.selection;
-      if (selection) {
-        event.preventDefault();
-        const project = store.project;
-        const left = event.key === "ArrowLeft";
-        const right = event.key === "ArrowRight";
-        const up = event.key === "ArrowUp";
-        const down = event.key === "ArrowDown";
-        if (selection.kind === "furniture") {
-          const item = project.furniture.find((f) => f.id === selection.id);
-          if (item) {
-            if (left || right) {
-              store.updateFurniture(item.id, { rotationYDeg: item.rotationYDeg + (right ? NUDGE_ROT_DEG : -NUDGE_ROT_DEG) });
-            } else if (event.shiftKey) {
-              store.updateFurniture(item.id, { position: { ...item.position, y: item.position.y + (up ? NUDGE_Y_M : -NUDGE_Y_M) } });
-            } else {
-              store.updateFurniture(item.id, { position: { ...item.position, z: item.position.z + (up ? NUDGE_Z_M : -NUDGE_Z_M) } });
-            }
-          }
-        } else if (selection.kind === "light") {
-          const fixture = project.lights.find((l) => l.id === selection.id);
-          if (fixture) {
-            if (left || right) {
-              store.updateLight(fixture.id, { rotationDeg: { ...fixture.rotationDeg, y: fixture.rotationDeg.y + (right ? NUDGE_ROT_DEG : -NUDGE_ROT_DEG) } });
-            } else if (event.shiftKey) {
-              store.updateLight(fixture.id, { position: { ...fixture.position, y: fixture.position.y + (up ? NUDGE_Y_M : -NUDGE_Y_M) } });
-            } else {
-              store.updateLight(fixture.id, { position: { ...fixture.position, z: fixture.position.z + (up ? NUDGE_Z_M : -NUDGE_Z_M) } });
-            }
-          }
-        } else if (selection.kind === "window" || selection.kind === "opening") {
-          const windowItem = project.windows.find((w) => w.id === selection.id);
-          if (windowItem) {
-            if (left || right) {
-              const next = Math.max(0, Math.min(1, windowItem.centerRatio + (right ? NUDGE_RATIO : -NUDGE_RATIO)));
-              store.updateWindow(windowItem.id, { centerRatio: next });
-            } else {
-              // 窓に回転は無いので上下は窓台高さ(sill)の調整に充てる。
-              const next = Math.max(0, windowItem.sillHeightM + (up ? NUDGE_Y_M : -NUDGE_Y_M));
-              store.updateWindow(windowItem.id, { sillHeightM: next });
-            }
-          }
-        }
+      const left = event.key === "ArrowLeft";
+      const right = event.key === "ArrowRight";
+      const up = event.key === "ArrowUp";
+
+      // Shift+左右: 位置固定で注視点をカメラ位置まわりにY軸回転＝視線方向だけ変える。
+      if (event.shiftKey && (left || right)) {
+        const angle = THREE.MathUtils.degToRad(left ? TURN_DEG : -TURN_DEG);
+        const dir = controls.target.clone().sub(camera.position);
+        dir.applyAxisAngle(new THREE.Vector3(0, 1, 0), angle);
+        controls.target.copy(camera.position).add(dir);
+        controls.update();
         return;
       }
 
-      // 未選択: 従来のカメラ移動（左右でトラック、前後でドリー、Shift+上下で高さ）。
-      // カメラ位置と注視点(target)を同量だけ動かすので向きは保たれる。
-      event.preventDefault();
-      const step = event.shiftKey ? 0.25 : 0.4;
       const forward = camera.getWorldDirection(new THREE.Vector3());
       forward.y = 0;
       if (forward.lengthSq() < 1e-6) forward.set(0, 0, -1);
       forward.normalize();
-      const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
+      const rightVec = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
 
       const move = new THREE.Vector3();
-      if (event.key === "ArrowLeft") move.copy(right).multiplyScalar(-step);
-      else if (event.key === "ArrowRight") move.copy(right).multiplyScalar(step);
-      else if (event.shiftKey) move.set(0, event.key === "ArrowUp" ? step : -step, 0);
-      else move.copy(forward).multiplyScalar(event.key === "ArrowUp" ? step : -step);
+      if (event.shiftKey) move.set(0, up ? MOVE_M : -MOVE_M, 0); // Shift+上下: 向き固定で上下移動
+      else if (left) move.copy(rightVec).multiplyScalar(-MOVE_M);
+      else if (right) move.copy(rightVec).multiplyScalar(MOVE_M);
+      else move.copy(forward).multiplyScalar(up ? MOVE_M : -MOVE_M); // 前後
 
       camera.position.add(move);
       controls.target.add(move);
