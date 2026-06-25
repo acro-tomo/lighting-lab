@@ -374,11 +374,12 @@ export const Plan2D = ({
     // pendingAdd 中はクリック位置にオブジェクトを配置（生成はApp側）。
     if (pendingAdd) {
       const world = svgToWorld(event.clientX, event.clientY);
-      // 窓/扉は最寄り壁へ吸着して設置（要望: どの壁に付けるか自分で決めたい）。
+      // 窓/扉は「クリックした壁」に付ける。壁の近く(0.7m以内)を押したときだけ設置し、
+      // 室内の何もない所では設置しない（遠い壁へ勝手に付くのを防ぐ＝要望: 壁を自分で選ぶ）。
       if (pendingAdd === "window" || pendingAdd === "door") {
         const hit = nearestWall(world, project.walls);
-        if (hit) onPlaceOnWall(hit.wallId, hit.ratio);
-        else onPlaceObject(snapPoint(world));
+        if (hit && hit.dist <= 0.7) onPlaceOnWall(hit.wallId, hit.ratio);
+        // 壁から離れていれば pendingAdd を維持し、もう一度壁の上をクリックさせる。
       } else {
         onPlaceObject(snapPoint(world));
       }

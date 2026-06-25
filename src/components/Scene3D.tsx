@@ -168,6 +168,65 @@ const useFloorDrag = (
   };
 };
 
+// 3Dビュー上で平面ヒットを取りながらドラッグするための汎用ハンドラ（リサイズハンドル用）。
+const useHandleDrag = (getPlane: () => THREE.Plane, onHit: (point: THREE.Vector3) => void) => {
+  const controls = useThree((state) => state.controls) as { enabled: boolean } | null;
+  const dragging = useRef(false);
+  const hit = useMemo(() => new THREE.Vector3(), []);
+  return {
+    onPointerDown: (event: ThreeEvent<PointerEvent>) => {
+      if (event.button !== 0) return;
+      event.stopPropagation();
+      dragging.current = true;
+      (event.target as Element | null)?.setPointerCapture?.(event.pointerId);
+      if (controls) controls.enabled = false;
+    },
+    onPointerMove: (event: ThreeEvent<PointerEvent>) => {
+      if (!dragging.current) return;
+      if (event.ray.intersectPlane(getPlane(), hit)) onHit(hit);
+    },
+    onPointerUp: (event: ThreeEvent<PointerEvent>) => {
+      if (!dragging.current) return;
+      dragging.current = false;
+      (event.target as Element | null)?.releasePointerCapture?.(event.pointerId);
+      if (controls) controls.enabled = true;
+    }
+  };
+};
+
+// 箱の1面をヒット点まで動かしてリサイズ（反対面を固定, Y回転考慮）。y軸は下面=床を固定。
+const resizeBox3D = (
+  center: { x: number; y: number; z: number },
+  size: { x: number; y: number; z: number },
+  rotationYDeg: number,
+  axis: "x" | "z" | "y",
+  sign: 1 | -1,
+  hit: { x: number; y: number; z: number }
+): { center: { x: number; y: number; z: number }; size: { x: number; y: number; z: number } } => {
+  const MIN = 0.2;
+  if (axis === "y") {
+    const bottom = center.y - size.y / 2;
+    const newSizeY = Math.max(MIN, hit.y - bottom);
+    return { center: { ...center, y: bottom + newSizeY / 2 }, size: { ...size, y: newSizeY } };
+  }
+  const th = (rotationYDeg * Math.PI) / 180;
+  const c = Math.cos(th);
+  const s = Math.sin(th);
+  const dx = hit.x - center.x;
+  const dz = hit.z - center.z;
+  const local = axis === "x" ? dx * c - dz * s : dx * s + dz * c; // world→local
+  const half = axis === "x" ? size.x / 2 : size.z / 2;
+  const oppositeLocal = -sign * half;
+  const newSize = Math.max(MIN, sign * (local - oppositeLocal));
+  const newCenterLocal = oppositeLocal + sign * (newSize / 2);
+  const offLx = axis === "x" ? newCenterLocal : 0;
+  const offLz = axis === "z" ? newCenterLocal : 0;
+  return {
+    center: { x: center.x + offLx * c + offLz * s, y: center.y, z: center.z - offLx * s + offLz * c },
+    size: axis === "x" ? { ...size, x: newSize } : { ...size, z: newSize }
+  };
+};
+
 const materialById = (materials: MaterialPreset[]) =>
   new Map(materials.map((material) => [material.id, material]));
 
@@ -1295,6 +1354,57 @@ const VoidMarker = ({
   );
 };
 
+// 3Dの面ハンドル（球）1つ。平面ヒットで掴んだ点を resize に渡す。
+const ResizeHandle3D = ({
+  position,
+  color,
+  getPlane,
+  onHit
+}: {
+  position: [number, number, number];
+  color: string;
+  getPlane: () => THREE.Plane;
+  onHit: (point: THREE.Vector3) => void;
+}) => {
+  const drag = useHandleDrag(getPlane, onHit);
+  return (
+    <mesh position={position} onPointerDown={drag.onPointerDown} onPointerMove={drag.onPointerMove} onPointerUp={drag.onPointerUp}>
+      <sphereGeometry args={[0.085, 16, 12]} />
+      <meshBasicMaterial color={color} depthTest={false} transparent opacity={0.95} />
+    </mesh>
+  );
+};
+
+// 選択中の家具に幅(±x)・奥行(±z)・高さ(+y)のリサイズハンドルを表示する（3Dでの大きさ変更）。
+const FurnitureResizeHandles = ({ item }: { item: FurnitureItem }) => {
+  const updateFurniture = useProjectStore((state) => state.updateFurniture);
+  const camera = useThree((state) => state.camera);
+  const apply = (axis: "x" | "z" | "y", sign: 1 | -1) => (hit: THREE.Vector3) => {
+    const r = resizeBox3D(item.position, item.size, item.rotationYDeg, axis, sign, { x: hit.x, y: hit.y, z: hit.z });
+    updateFurniture(item.id, { position: r.center, size: r.size });
+  };
+  // x/z は家具の中心高さの水平面、y はカメラ方向を向いた鉛直面でヒットを取る。
+  const horizPlane = () => new THREE.Plane(new THREE.Vector3(0, 1, 0), -item.position.y);
+  const vertPlane = () => {
+    const n = new THREE.Vector3(camera.position.x - item.position.x, 0, camera.position.z - item.position.z);
+    if (n.lengthSq() < 1e-6) n.set(0, 0, 1);
+    n.normalize();
+    return new THREE.Plane(n, -n.dot(new THREE.Vector3(item.position.x, item.position.y, item.position.z)));
+  };
+  const hx = item.size.x / 2;
+  const hy = item.size.y / 2;
+  const hz = item.size.z / 2;
+  return (
+    <>
+      <ResizeHandle3D position={[hx, 0, 0]} color="#ff5d8f" getPlane={horizPlane} onHit={apply("x", 1)} />
+      <ResizeHandle3D position={[-hx, 0, 0]} color="#ff5d8f" getPlane={horizPlane} onHit={apply("x", -1)} />
+      <ResizeHandle3D position={[0, 0, hz]} color="#5dd0ff" getPlane={horizPlane} onHit={apply("z", 1)} />
+      <ResizeHandle3D position={[0, 0, -hz]} color="#5dd0ff" getPlane={horizPlane} onHit={apply("z", -1)} />
+      <ResizeHandle3D position={[0, hy, 0]} color="#ffd95d" getPlane={vertPlane} onHit={apply("y", 1)} />
+    </>
+  );
+};
+
 const FurnitureMesh = ({
   item,
   materialMap,
@@ -1345,10 +1455,13 @@ const FurnitureMesh = ({
         metalness={debugMode === "beauty" ? metalness : 0}
       />
       {selected && !pathTraced && (
-        <mesh>
-          <boxGeometry args={[item.size.x + 0.08, item.size.y + 0.08, item.size.z + 0.08]} />
-          <meshBasicMaterial color="#f5c64d" wireframe transparent opacity={0.9} />
-        </mesh>
+        <>
+          <mesh>
+            <boxGeometry args={[item.size.x + 0.08, item.size.y + 0.08, item.size.z + 0.08]} />
+            <meshBasicMaterial color="#f5c64d" wireframe transparent opacity={0.9} />
+          </mesh>
+          <FurnitureResizeHandles item={item} />
+        </>
       )}
     </group>
   );
