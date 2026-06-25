@@ -53,6 +53,11 @@ export type WallSegment = {
   thicknessM: number;
   heightM: number;
   materialId: string;
+  /**
+   * start→end へ歩いたとき室内側が左/右のどちらか。壁の厚みをその側へ寄せ、
+   * 内側の面を芯線に合わせる指定。undefined は従来の中心振り分け(対称)扱い。
+   */
+  innerSide?: "left" | "right";
 };
 
 export type WindowOpening = {
@@ -236,6 +241,12 @@ export type Project = {
     widthM: number;
     depthM: number;
     ceilingHeightM: number;
+    /**
+     * 室内の仕上げ床面が地面(Y=0)から何m上がっているか。
+     * 下げ床/土間(FloorZone)はこの floorLevelM から dropM 下げる。
+     * undefined/未設定は 0(従来通り)。
+     */
+    floorLevelM?: number;
   };
   materials: MaterialPreset[];
   walls: WallSegment[];
@@ -251,4 +262,6 @@ export type Project = {
   activeCameraViewId: string;
   backgroundPlan?: FloorPlanBackground;
   daylight?: Daylight;
+  /** 天井の表示ON/OFF。undefined は true 扱い(既定で天井表示)。 */
+  showCeiling?: boolean;
 };

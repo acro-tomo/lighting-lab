@@ -75,6 +75,8 @@ type ProjectStore = {
   saveCameraView: (view: CameraView) => void;
   setBackgroundPlan: (backgroundPlan: FloorPlanBackground) => void;
   setDaylight: (patch: Partial<Daylight>) => void;
+  setShowCeiling: (value: boolean) => void;
+  setFloorLevel: (value: number) => void;
   addCompareShot: (shot: CompareShot) => void;
   setCompareShots: (shots: CompareShot[]) => void;
   removeCompareShot: (id: string) => void;
@@ -410,6 +412,19 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
         ...nextProject.daylight,
         ...patch
       };
+      return withHistory(state, nextProject);
+    }),
+  setShowCeiling: (value) =>
+    set((state) =>
+      withHistory(state, {
+        ...cloneProject(state.project),
+        showCeiling: value
+      })
+    ),
+  setFloorLevel: (value) =>
+    set((state) => {
+      const nextProject = cloneProject(state.project);
+      nextProject.room = { ...nextProject.room, floorLevelM: Math.max(0, value) };
       return withHistory(state, nextProject);
     }),
   addCompareShot: (shot) =>

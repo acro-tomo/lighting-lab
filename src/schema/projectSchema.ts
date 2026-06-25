@@ -29,13 +29,25 @@ export const projectSchema = z
   .object({
     id: z.string(),
     name: z.string(),
-    room: z.object({
-      widthM: z.number().positive(),
-      depthM: z.number().positive(),
-      ceilingHeightM: z.number().positive()
-    }),
+    room: z
+      .object({
+        widthM: z.number().positive(),
+        depthM: z.number().positive(),
+        ceilingHeightM: z.number().positive(),
+        floorLevelM: z.number().min(0).optional()
+      })
+      .passthrough(),
     materials: z.array(z.object({ id: z.string(), name: z.string() }).passthrough()).min(1),
-    walls: z.array(z.object({ id: z.string(), start: vec2Schema, end: vec2Schema }).passthrough()),
+    walls: z.array(
+      z
+        .object({
+          id: z.string(),
+          start: vec2Schema,
+          end: vec2Schema,
+          innerSide: z.enum(["left", "right"]).optional()
+        })
+        .passthrough()
+    ),
     furniture: z.array(z.object({ id: z.string(), position: vec3Schema, size: vec3Schema }).passthrough()),
     lights: z.array(z.object({ id: z.string(), position: vec3Schema, lumens: z.number() }).passthrough()),
     lightingScenes: z.array(z.object({ id: z.string(), name: z.string() }).passthrough()).min(1),
@@ -43,6 +55,7 @@ export const projectSchema = z
     ceilingZones: z.array(ceilingZoneSchema).optional(),
     floorZones: z.array(floorZoneSchema).optional(),
     activeSceneId: z.string(),
-    activeCameraViewId: z.string()
+    activeCameraViewId: z.string(),
+    showCeiling: z.boolean().optional()
   })
   .passthrough();
