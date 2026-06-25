@@ -43,10 +43,24 @@ type DragState =
 
 // パワポ風の辺ドラッグリサイズ対象。矩形フットプリント(幅x・奥行z)を持つ物のみ。
 type ResizeKind = "furniture" | "void" | "ceilingZone";
-type ResizeEdge = "left" | "right" | "top" | "bottom";
+type ResizeEdge =
+  | "left"
+  | "right"
+  | "top"
+  | "bottom"
+  | "topLeft"
+  | "topRight"
+  | "bottomLeft"
+  | "bottomRight";
 type ResizeState = { kind: ResizeKind; id: string; edge: ResizeEdge } | null;
 
 const MIN_SIZE_M = 0.2;
+// 窓/扉をクリックで壁に設置するときの許容距離(m)。これ以内の最寄り壁に付く。
+const WALL_SNAP_M = 1.2;
+
+// 壁に付く追加物（窓カタログ "window:<id>" / 扉 "door"）の判定。
+const isWallOpening = (kind: string | null): boolean =>
+  !!kind && (kind === "door" || kind.startsWith("window"));
 
 const NAV_TOOLS: NavTool[] = ["パン"];
 
@@ -105,11 +119,29 @@ const resizeRect = (
   const dz = cursor.z - center.z;
   const lx = dx * cos + dz * sin; // ローカルx（幅方向）
   const lz = -dx * sin + dz * cos; // ローカルz（奥行方向）
-  let halfX = size.x / 2;
-  let halfZ = size.z / 2;
+  const halfX0 = size.x / 2;
+  const halfZ0 = size.z / 2;
+  let halfX = halfX0;
+  let halfZ = halfZ0;
   let cLocalX = 0;
   let cLocalZ = 0;
-  if (edge === "right") {
+  // 角ハンドルはアスペクト比を保ったまま等倍リサイズ。対角の角を固定点にする。
+  if (edge === "topLeft" || edge === "topRight" || edge === "bottomLeft" || edge === "bottomRight") {
+    const sx = edge === "topRight" || edge === "bottomRight" ? 1 : -1; // 掴んだ角のローカルx符号
+    const sz = edge === "bottomLeft" || edge === "bottomRight" ? 1 : -1; // ローカルz符号(下が正)
+    const anchorX = -sx * halfX0; // 対角(固定)の角
+    const anchorZ = -sz * halfZ0;
+    const rawW = Math.abs(lx - anchorX);
+    const rawD = Math.abs(lz - anchorZ);
+    let s = Math.max(rawW / size.x, rawD / size.z);
+    s = Math.max(s, MIN_SIZE_M / size.x, MIN_SIZE_M / size.z);
+    const finalW = size.x * s;
+    const finalD = size.z * s;
+    halfX = finalW / 2;
+    halfZ = finalD / 2;
+    cLocalX = anchorX + (sx * finalW) / 2;
+    cLocalZ = anchorZ + (sz * finalD) / 2;
+  } else if (edge === "right") {
     const left = -halfX;
     const right = Math.max(lx, left + MIN_SIZE_M);
     halfX = (right - left) / 2;
@@ -166,6 +198,9 @@ export const Plan2D = ({
   // 壁トレース: 確定済み頂点列とプレビュー用カーソル位置。
   const [wallDraft, setWallDraft] = useState<Vec2M[]>([]);
   const [wallCursor, setWallCursor] = useState<Vec2M | null>(null);
+  // 窓/扉の追加待ち中、カーソル直下で設置先になる壁。クリック前に青くハイライトして
+  // 「どの壁に付くか」を示し、無反応に見える問題を防ぐ。
+  const [wallTarget, setWallTarget] = useState<{ wallId: string; ratio: number } | null>(null);
 
   // オブジェクト操作可否は navTool が無効(=Appのmode優先)のときだけ。
   // pendingAdd 中・wall モード中は背景SVGにクリックを通す（オブジェクトは pointerEvents:none）。
@@ -217,6 +252,11 @@ export const Plan2D = ({
       setWallCursor(null);
     }
   }, [mode]);
+
+  // 窓/扉の追加待ちを抜けたら設置先ハイライトを消す。
+  useEffect(() => {
+    if (!isWallOpening(pendingAdd)) setWallTarget(null);
+  }, [pendingAdd]);
 
   // 壁モード中は Enter でトレースを終了する（Escは集中表示解除等と衝突するため使わない）。
   useEffect(() => {
@@ -376,10 +416,14 @@ export const Plan2D = ({
       const world = svgToWorld(event.clientX, event.clientY);
       // 窓/扉は「クリックした壁」に付ける。壁の近く(0.7m以内)を押したときだけ設置し、
       // 室内の何もない所では設置しない（遠い壁へ勝手に付くのを防ぐ＝要望: 壁を自分で選ぶ）。
-      if (pendingAdd === "window" || pendingAdd === "door") {
+      if (isWallOpening(pendingAdd)) {
         const hit = nearestWall(world, project.walls);
-        if (hit && hit.dist <= 0.7) onPlaceOnWall(hit.wallId, hit.ratio);
-        // 壁から離れていれば pendingAdd を維持し、もう一度壁の上をクリックさせる。
+        // 1.2m まで許容して取りこぼしを減らす。クリック前に対象壁を青くハイライト
+        // しているので、どこに付くかは見て分かる。離れすぎなら維持して再クリックさせる。
+        if (hit && hit.dist <= WALL_SNAP_M) {
+          setWallTarget(null);
+          onPlaceOnWall(hit.wallId, hit.ratio);
+        }
       } else {
         onPlaceObject(snapPoint(world));
       }
@@ -405,6 +449,12 @@ export const Plan2D = ({
     if (mode === "wall" && wallDraft.length > 0) {
       const prev = wallDraft[wallDraft.length - 1];
       setWallCursor(snapPoint(angleSnap(prev, svgToWorld(event.clientX, event.clientY))));
+    }
+
+    // 窓/扉の追加待ち中: カーソル直下の最寄り壁を設置先候補としてハイライト。
+    if (isWallOpening(pendingAdd)) {
+      const hit = nearestWall(svgToWorld(event.clientX, event.clientY), project.walls);
+      setWallTarget(hit && hit.dist <= WALL_SNAP_M ? { wallId: hit.wallId, ratio: hit.ratio } : null);
     }
 
     // 辺ドラッグによるリサイズ（3Dへ即連動）。
@@ -589,8 +639,8 @@ export const Plan2D = ({
 
       <p className="tool-help">
         {isPanMode && "ドラッグで平面図をパン。ホイールでズーム。"}
-        {!navTool && (pendingAdd === "window" || pendingAdd === "door") && "設置したい壁をクリック。設置後は壁上をドラッグで位置調整。"}
-        {!navTool && pendingAdd && pendingAdd !== "window" && pendingAdd !== "door" && "クリックした位置にオブジェクトを配置します。"}
+        {!navTool && isWallOpening(pendingAdd) && "壁に近づけると青くハイライト。その壁をクリックで設置。設置後は壁上をドラッグで位置調整。"}
+        {!navTool && pendingAdd && !isWallOpening(pendingAdd) && "クリックした位置にオブジェクトを配置します。"}
         {!navTool && !pendingAdd && mode === "select" && "オブジェクトをクリックで選択、ドラッグで移動。何もない所のドラッグで平面図をパン。Deleteで削除。"}
         {!navTool && !pendingAdd && mode === "move" && "オブジェクトをドラッグで移動。何もない所のドラッグで平面図をパン。"}
         {!navTool && !pendingAdd && mode === "wall" && "クリックで壁の頂点を連続配置。水平/垂直に自動スナップ。Enter/ダブルクリックで終了。"}
@@ -738,6 +788,27 @@ export const Plan2D = ({
               onEdgePointerDown={(edge) => setResizing({ kind: resizeTarget.kind, id: resizeTarget.id, edge })}
             />
           )}
+
+          {/* 窓/扉の設置先になる壁のハイライト（最前面・クリック非対象）。 */}
+          {isWallOpening(pendingAdd) && wallTarget && (() => {
+            const wall = project.walls.find((candidate) => candidate.id === wallTarget.wallId);
+            if (!wall) return null;
+            const s = worldToSvg(wall.start);
+            const e = worldToSvg(wall.end);
+            return (
+              <line
+                x1={s.x}
+                y1={s.y}
+                x2={e.x}
+                y2={e.y}
+                stroke="#7fd1ff"
+                strokeWidth={Math.max(10, wall.thicknessM * 100 + 6)}
+                strokeOpacity={0.5}
+                strokeLinecap="round"
+                style={{ pointerEvents: "none" }}
+              />
+            );
+          })()}
 
           {/* 壁トレースのプレビュー（頂点マーカー＋カーソルへのラバーバンド）。最前面・クリック非対象。 */}
           {mode === "wall" && (wallDraft.length > 0 || wallCursor) && (
@@ -1037,6 +1108,10 @@ const FurniturePlanItem = ({
   const center = worldToSvg({ x: item.position.x, z: item.position.z });
   const width = item.size.x * planSize.pxPerM;
   const depth = item.size.z * planSize.pxPerM;
+  // テレビ等の薄い家具(奥行数cm)は表示が細く、隣接する壁の太いヒット線にクリックを
+  // 奪われて選べない。最低限の透明ヒット領域を敷いて確実に掴めるようにする。
+  const hitW = Math.max(width, 18);
+  const hitD = Math.max(depth, 18);
 
   const handlePointerDown = (event: React.PointerEvent<SVGGElement>) => {
     event.stopPropagation();
@@ -1056,6 +1131,7 @@ const FurniturePlanItem = ({
       onDoubleClick={(event) => { event.stopPropagation(); onResize(); }}
       className={selected ? "plan-furniture is-selected" : "plan-furniture"}
     >
+      <rect x={-hitW / 2} y={-hitD / 2} width={hitW} height={hitD} fill="transparent" stroke="none" />
       {item.type === "roundTable" ? (
         <circle r={width / 2} />
       ) : (
@@ -1154,7 +1230,12 @@ const ResizeHandles = ({
     { edge: "right", p: toSvg(halfX, 0), cursor: "ew-resize" },
     { edge: "left", p: toSvg(-halfX, 0), cursor: "ew-resize" },
     { edge: "bottom", p: toSvg(0, halfZ), cursor: "ns-resize" },
-    { edge: "top", p: toSvg(0, -halfZ), cursor: "ns-resize" }
+    { edge: "top", p: toSvg(0, -halfZ), cursor: "ns-resize" },
+    // 角ハンドル: ドラッグでアスペクト比を保ったまま等倍リサイズ。
+    { edge: "topLeft", p: toSvg(-halfX, -halfZ), cursor: "nwse-resize" },
+    { edge: "topRight", p: toSvg(halfX, -halfZ), cursor: "nesw-resize" },
+    { edge: "bottomLeft", p: toSvg(-halfX, halfZ), cursor: "nesw-resize" },
+    { edge: "bottomRight", p: toSvg(halfX, halfZ), cursor: "nwse-resize" }
   ];
 
   return (

@@ -13,8 +13,9 @@ import type { CompareShot, Project } from "./types";
 import { floorPlanFileToDataUrl } from "./utils/floorplanImport";
 import { DEFAULT_DAYLIGHT } from "./utils/sun";
 import { cloneProject } from "./utils/units";
-import { newCeilingZone, newDoor, newDownlight, newFurnitureFromPreset, newStair, newVoid, newWallSpot, newWindow } from "./data/objectFactory";
+import { newCeilingZone, newDoor, newDownlight, newFurnitureFromPreset, newStair, newVoid, newWallSpot, newWindow, newWindowFromPreset } from "./data/objectFactory";
 import { getFurniturePreset } from "./data/furnitureCatalog";
+import { getWindowPreset } from "./data/windowCatalog";
 import { EditToolbar, type EditMode } from "./components/EditToolbar";
 
 // 小数hourをHH:MM文字列に変換する（例: 14.5 → "14:30"）。
@@ -351,6 +352,17 @@ export const App = () => {
         if (preset) addFurniture(newFurnitureFromPreset(preset, at));
         return;
       }
+      // 窓カタログ: kind = "window:<presetId>"。クリックした壁に設置。
+      if (kind.startsWith("window:")) {
+        const preset = getWindowPreset(kind.slice("window:".length));
+        if (preset) {
+          addWindow(
+            newWindowFromPreset(preset, project, { wallId, centerRatio }),
+            preset.hasGlass ? "window" : "opening"
+          );
+        }
+        return;
+      }
       switch (kind) {
         case "downlight":
           addLight(newDownlight(project, at));
@@ -385,7 +397,7 @@ export const App = () => {
     setPendingAdd(kind);
     setMode("select");
     setNotice(
-      kind === "window" || kind === "door"
+      kind === "door" || kind.startsWith("window")
         ? "設置したい壁を2Dでクリックしてください。"
         : "配置したい位置を2Dでクリックしてください。"
     );
@@ -520,7 +532,7 @@ export const App = () => {
               pendingAdd={pendingAdd}
             />
             <span className="toolbar-hint">
-              {pendingAdd === "window" || pendingAdd === "door"
+              {pendingAdd === "door" || pendingAdd?.startsWith("window")
                 ? "壁をクリックして設置"
                 : pendingAdd
                   ? "クリックした位置に配置"
@@ -669,6 +681,9 @@ export const App = () => {
               viewMode={viewMode}
               mode={mode === "wall" ? "select" : mode}
               onLiveTraceStatus={handleLiveTraceStatus}
+              pendingAdd={pendingAdd}
+              onPlaceObject={handlePlaceObject}
+              onPlaceOnWall={handlePlaceOnWall}
             />
             {lastPathTracedImage && (
               <div className="pathtrace-result" aria-label="Path traced result">

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { furnitureCatalog } from "../data/furnitureCatalog";
+import { windowCatalog } from "../data/windowCatalog";
 
 // 操作モードはコンボボックスのまま（要望: 操作はコンボボックス）。
 // 追加は「＋追加」ボタン→ポップアップで種別選択（要望: 追加はポップアップ）。
@@ -18,9 +19,13 @@ const ADD_GROUPS: { title: string; items: AddItem[] }[] = [
     ]
   },
   {
+    // 窓はカタログから選ぶ（kind = "window:<presetId>"）。掃き出し/腰窓/高窓など。
+    title: "窓",
+    items: windowCatalog.map((preset) => ({ kind: `window:${preset.id}`, label: preset.label, hint: "壁をクリック" }))
+  },
+  {
     title: "開口・構造",
     items: [
-      { kind: "window", label: "窓", hint: "壁をクリック" },
       { kind: "door", label: "扉", hint: "壁をクリック" },
       { kind: "void", label: "吹き抜け" },
       { kind: "ceilingZone", label: "下げ天井" },
