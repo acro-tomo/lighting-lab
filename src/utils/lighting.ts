@@ -62,6 +62,22 @@ export const lumensToThreeIntensity = (
   return dimmedLumens * typeFactor;
 };
 
+// ブラケット(壁付)の点光源を取付壁から室内側へ離す水平オフセット。
+// 壁に密着した点光源は decay=2 の逆二乗で至近の壁を白飛びさせるため、
+// target（照射方向＝室内向き）へ offM だけずらす。target 無指定なら 0。
+// 編集ラスターと常駐パストレで同じ式を使い WYSIWYG を保つ。
+export const bracketRoomwardOffset = (
+  fixture: LightFixture,
+  offM: number
+): { x: number; z: number } => {
+  if (!fixture.target) return { x: 0, z: 0 };
+  const dx = fixture.target.x - fixture.position.x;
+  const dz = fixture.target.z - fixture.position.z;
+  const len = Math.hypot(dx, dz);
+  if (len < 1e-6) return { x: 0, z: 0 };
+  return { x: (dx / len) * offM, z: (dz / len) * offM };
+};
+
 export const lumensToPhysicalPower = (
   fixture: LightFixture,
   activeScene?: LightingScene

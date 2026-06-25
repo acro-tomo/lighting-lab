@@ -27,7 +27,9 @@ import type {
   WallSegment,
   WindowOpening
 } from "../types";
-import { colorTemperatureToHex, getSceneLightState, lumensToPhysicalPower } from "../utils/lighting";
+import { bracketRoomwardOffset, colorTemperatureToHex, getSceneLightState, lumensToPhysicalPower } from "../utils/lighting";
+import { getFurniturePreset } from "../data/furnitureCatalog";
+import { getWindowPreset } from "../data/windowCatalog";
 import { useProjectStore } from "../store/projectStore";
 import { degToRad } from "../utils/units";
 import { DEFAULT_DAYLIGHT, sunVector } from "../utils/sun";
@@ -49,6 +51,10 @@ type Scene3DProps = {
   viewMode: ViewMode;
   mode: EditMode;
   onLiveTraceStatus?: (status: LiveTraceStatus) => void;
+  // 3Dビューポートでの追加配置（ゴーストプレビュー）。pendingAdd がある間だけ有効。
+  pendingAdd?: string | null;
+  onPlaceObject?: (at: { x: number; z: number }) => void;
+  onPlaceOnWall?: (wallId: string, centerRatio: number) => void;
 };
 
 export type EditMode = "select" | "move" | "delete";
@@ -60,6 +66,17 @@ const useEditMode = () => useContext(EditModeContext);
 // これにより編集用シーンをそのまま物理ベースで描画でき、見たまま=最終結果になる。
 const PathTracedContext = createContext(false);
 const usePathTraced = () => useContext(PathTracedContext);
+
+// 追加配置中かどうかを編集メッシュへ配る。配置中は子メッシュのクリックを
+// 「選択」ではなく「配置」に振り替える/素通りさせる（パストレ常駐時は null=無効）。
+type PlacementCtx = {
+  pendingAdd: string | null;
+  onPlaceOnWall?: (wallId: string, centerRatio: number) => void;
+};
+const PlacementContext = createContext<PlacementCtx>({ pendingAdd: null });
+const usePlacement = () => useContext(PlacementContext);
+const isWallPending = (pendingAdd: string | null) =>
+  pendingAdd === "door" || (pendingAdd?.startsWith("window") ?? false);
 
 // 太陽高度から空色を補間する。昼=明るい空青、日の出/日没=橙、夜=暗い紺。
 // scene.background に色を入れると常駐パストレが GradientEquirect 環境光として拾う。
@@ -484,7 +501,10 @@ const SceneRoot = ({
   debugMode,
   viewMode,
   mode,
-  onLiveTraceStatus
+  onLiveTraceStatus,
+  pendingAdd = null,
+  onPlaceObject,
+  onPlaceOnWall
 }: Scene3DProps) => {
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const materialMap = useMemo(() => materialById(project.materials), [project.materials]);
@@ -529,6 +549,7 @@ const SceneRoot = ({
   return (
     <EditModeContext.Provider value={mode}>
     <PathTracedContext.Provider value={pathTraced}>
+    <PlacementContext.Provider value={{ pendingAdd: pathTraced ? null : pendingAdd, onPlaceOnWall }}>
       <CameraViewSync view={activeView} controlsRef={controlsRef} />
       <color attach="background" args={[backgroundColor]} />
       <Outdoors />
@@ -545,13 +566,16 @@ const SceneRoot = ({
           <fog attach="fog" args={["#060504", 8, 16]} />
           <hemisphereLight args={["#1f2530", "#0a0805", 0.22]} />
           <directionalLight position={[-2, 4, 3]} intensity={0.14} color="#c9d6ff" />
-          {/* 照明量に連動した暖色バウンスフィル（疑似間接光）。床=暖色寄りの下方フィル。 */}
+          {/* 照明量に連動した暖色バウンスフィル（疑似間接光）。skyColor=上向き面(床)に当たり、
+              groundColor=下向き面(天井裏)に当たる。ダウンライト等は天井をほぼ照らさないのが実物
+              なので、天井側(groundColor)はほぼ黒にし、暖色フィルは床・家具上面だけ持ち上げる。 */}
           {bounceFill.intensity > 0.001 && (
-            <hemisphereLight args={[bounceFill.warm, "#2a1c10", bounceFill.intensity]} />
+            <hemisphereLight args={[bounceFill.warm, "#060402", bounceFill.intensity]} />
           )}
         </>
       )}
-      <group onPointerMissed={() => onSelect(null)}>
+      {/* 配置モード中はクリックが選択解除に化けないよう抑止する（誤操作防止）。 */}
+      <group onPointerMissed={() => { if (!pendingAdd) onSelect(null); }}>
         <RoomShell
           project={project}
           materialMap={materialMap}
@@ -584,6 +608,15 @@ const SceneRoot = ({
         ))}
         {debugMode === "normals" && <NormalDebugHelpers project={project} />}
       </group>
+      {/* 追加配置のゴーストプレビュー。非物理の編集補助なので常駐パストレ時は出さない。 */}
+      {!pathTraced && pendingAdd && (
+        <PlacementLayer
+          pendingAdd={pendingAdd}
+          project={project}
+          onPlaceObject={onPlaceObject}
+          onPlaceOnWall={onPlaceOnWall}
+        />
+      )}
       {!pathTraced && (
         <ContactShadows
           position={[0, 0.012, 0]}
@@ -612,6 +645,7 @@ const SceneRoot = ({
         />
       )}
       <CanvasReady onReady={onCanvasReady} onRenderContextReady={onRenderContextReady} />
+    </PlacementContext.Provider>
     </PathTracedContext.Provider>
     </EditModeContext.Provider>
   );
@@ -893,45 +927,50 @@ const RoomShell = ({
 };
 
 const Ceiling = ({ project, material, debugMode }: { project: Project; material: MaterialPreset; debugMode: RenderDebugMode }) => {
-  const pieces = useMemo(() => {
-    const voidArea = project.voids[0];
+  // 部屋矩形を1枚の Shape にし、全 void を hole(THREE.Path) として抜く。
+  // 任意個数の吹き抜けに対応でき、旧4分割方式の破綻も無い。
+  const geometry = useMemo(() => {
     const halfW = project.room.widthM / 2;
     const halfD = project.room.depthM / 2;
-    if (!voidArea) {
-      return [{ x: 0, z: 0, width: project.room.widthM, depth: project.room.depthM }];
+    // Shape は XY 平面で作る。ローカル(u,v) = (x, z) とし、後で回転して水平面に置く。
+    const shape = new THREE.Shape();
+    shape.moveTo(-halfW, -halfD);
+    shape.lineTo(halfW, -halfD);
+    shape.lineTo(halfW, halfD);
+    shape.lineTo(-halfW, halfD);
+    shape.closePath();
+    for (const voidArea of project.voids) {
+      const minX = voidArea.center.x - voidArea.size.x / 2;
+      const maxX = voidArea.center.x + voidArea.size.x / 2;
+      const minZ = voidArea.center.z - voidArea.size.z / 2;
+      const maxZ = voidArea.center.z + voidArea.size.z / 2;
+      if (maxX - minX < 0.02 || maxZ - minZ < 0.02) continue;
+      const hole = new THREE.Path();
+      hole.moveTo(minX, minZ);
+      hole.lineTo(maxX, minZ);
+      hole.lineTo(maxX, maxZ);
+      hole.lineTo(minX, maxZ);
+      hole.closePath();
+      shape.holes.push(hole);
     }
-
-    const minX = voidArea.center.x - voidArea.size.x / 2;
-    const maxX = voidArea.center.x + voidArea.size.x / 2;
-    const minZ = voidArea.center.z - voidArea.size.z / 2;
-    const maxZ = voidArea.center.z + voidArea.size.z / 2;
-    return [
-      { x: (-halfW + minX) / 2, z: 0, width: minX + halfW, depth: project.room.depthM },
-      { x: (maxX + halfW) / 2, z: 0, width: halfW - maxX, depth: project.room.depthM },
-      { x: voidArea.center.x, z: (-halfD + minZ) / 2, width: voidArea.size.x, depth: minZ + halfD },
-      { x: voidArea.center.x, z: (maxZ + halfD) / 2, width: voidArea.size.x, depth: halfD - maxZ }
-    ].filter((piece) => piece.width > 0.04 && piece.depth > 0.04);
+    const geo = new THREE.ShapeGeometry(shape);
+    // XY平面(法線+Z)生成。+90°回転で水平に倒すと法線は -Y（下向き）になり、
+    // 室内（下）から見える＝旧単一void実装と同じ向き。
+    geo.rotateX(Math.PI / 2);
+    return geo;
   }, [project.room.depthM, project.room.widthM, project.voids]);
 
+  useEffect(() => () => geometry.dispose(), [geometry]);
+
   return (
-    <>
-      {pieces.map((piece) => (
-        <mesh
-          key={`${piece.x}-${piece.z}-${piece.width}-${piece.depth}`}
-          receiveShadow
-          position={[piece.x, project.room.ceilingHeightM, piece.z]}
-          rotation-x={Math.PI / 2}
-        >
-          <planeGeometry args={[piece.width, piece.depth]} />
-          <meshStandardMaterial
-            color={debugColorForRole("ceiling", debugMode, material.baseColor)}
-            roughness={material.roughness}
-            metalness={material.metalness}
-            side={THREE.FrontSide}
-          />
-        </mesh>
-      ))}
-    </>
+    <mesh receiveShadow position={[0, project.room.ceilingHeightM, 0]} geometry={geometry}>
+      <meshStandardMaterial
+        color={debugColorForRole("ceiling", debugMode, material.baseColor)}
+        roughness={material.roughness}
+        metalness={material.metalness}
+        side={THREE.FrontSide}
+      />
+    </mesh>
   );
 };
 
@@ -1148,6 +1187,7 @@ const WallMesh = ({
   const inwardNormal = normalA.dot(toCenter) >= normalB.dot(toCenter) ? normalA : normalB;
   const rotationY = Math.atan2(inwardNormal.x, inwardNormal.z);
   const pathTraced = usePathTraced();
+  const placement = usePlacement();
   const tile = material.textureSizeM ?? { w: 0.92, h: 0.92 };
 
   // この壁に属する開口を、壁ローカルX(-length/2..length/2)・高さに変換してくり抜く。
@@ -1178,8 +1218,18 @@ const WallMesh = ({
     <group
       position={[midpointVector.x, midpointVector.y, midpointVector.z]}
       rotation={[0, rotationY, 0]}
-      onClick={(event: ThreeEvent<MouseEvent>) => {
+      // 選択は onPointerDown で確定する。手前の家具/照明は同じ pointerdown で
+      // stopPropagation するため、onClick だと手前を選んでも click が壁へ伝播して
+      // 選択が壁に転写される再発バグになる。pointer 系で統一して伝播を断つ。
+      onPointerDown={(event: ThreeEvent<PointerEvent>) => {
         event.stopPropagation();
+        // 壁物（窓・扉）の配置中は、選択ではなくクリックした壁自身へ設置する。
+        // クリック点(x,z)をこの壁に射影して比率を求める（最寄り壁＝クリック壁）。
+        if (isWallPending(placement.pendingAdd)) {
+          const { ratio } = projectPointOntoWall(event.point.x, event.point.z, wall);
+          placement.onPlaceOnWall?.(wall.id, ratio);
+          return;
+        }
         onSelect({ kind: "wall", id: wall.id });
       }}
     >
@@ -1251,6 +1301,7 @@ const WindowMesh = ({
   const style = windowItem.style ?? (windowItem.hasGlass ? "window" : "opening");
   const kind = windowItem.hasGlass ? "window" : "opening";
   const pathTraced = usePathTraced();
+  const placement = usePlacement();
   const w = windowItem.widthM;
   const h = windowItem.heightM;
   const f = 0.06; // 枠の見付け幅
@@ -1263,7 +1314,10 @@ const WindowMesh = ({
     <group
       position={[x, y, z - 0.012]}
       rotation={[0, -angle, 0]}
-      onClick={(event: ThreeEvent<MouseEvent>) => {
+      // 選択は pointerdown で確定（onClick だと手前→背後へ click が伝播して選択転写が起きる）。
+      onPointerDown={(event: ThreeEvent<PointerEvent>) => {
+        // 配置中は既存の窓/扉の上に重ねて置けるよう、壁メッシュへ素通りさせる。
+        if (placement.pendingAdd) return;
         event.stopPropagation();
         onSelect({ kind, id: windowItem.id });
       }}
@@ -1356,11 +1410,15 @@ const VoidMarker = ({
   onSelect: (selection: Selection) => void;
 }) => {
   const pathTraced = usePathTraced();
+  const placement = usePlacement();
   if (pathTraced) return null;
   return (
   <group
     position={[voidArea.center.x, heightM + 0.36, voidArea.center.z]}
-    onClick={(event: ThreeEvent<MouseEvent>) => {
+    // 選択は pointerdown で確定（onClick だと手前→背後へ click が伝播して選択転写が起きる）。
+    onPointerDown={(event: ThreeEvent<PointerEvent>) => {
+      // 配置中はクリックを床キャッチャーへ素通りさせる（選択も伝播停止もしない）。
+      if (placement.pendingAdd) return;
       event.stopPropagation();
       onSelect({ kind: "void", id: voidArea.id });
     }}
@@ -1449,6 +1507,7 @@ const FurnitureMesh = ({
   const metalness = item.metalness ?? material?.metalness ?? 0;
   const pathTraced = usePathTraced();
   const editMode = useEditMode();
+  const placement = usePlacement();
   const updateFurniture = useProjectStore((state) => state.updateFurniture);
   const deleteSelection = useProjectStore((state) => state.deleteSelection);
   const drag = useFloorDrag(
@@ -1462,6 +1521,8 @@ const FurnitureMesh = ({
       position={[item.position.x, item.position.y, item.position.z]}
       rotation={[0, degToRad(item.rotationYDeg), 0]}
       onPointerDown={(event: ThreeEvent<PointerEvent>) => {
+        // 配置中は家具の上に重ねて置けるよう、床キャッチャーへ素通りさせる。
+        if (placement.pendingAdd) return;
         // 手前の家具をクリックしたら確定（背後の壁へ選択が伝播するのを止める）。
         event.stopPropagation();
         if (editMode === "delete") {
@@ -1740,6 +1801,7 @@ const FixtureMesh = ({
   const lightColor = colorTemperatureToHex(fixture.colorTemperatureK);
   const pathTraced = usePathTraced();
   const editMode = useEditMode();
+  const placement = usePlacement();
   const updateLight = useProjectStore((store) => store.updateLight);
   const deleteSelection = useProjectStore((store) => store.deleteSelection);
   const drag = useFloorDrag(
@@ -1759,6 +1821,8 @@ const FixtureMesh = ({
     <group
       position={[fixture.position.x, fixture.position.y, fixture.position.z]}
       onPointerDown={(event: ThreeEvent<PointerEvent>) => {
+        // 配置中は照明の上に重ねて置けるよう、床キャッチャーへ素通りさせる。
+        if (placement.pendingAdd) return;
         // 手前の照明をクリックしたら確定（背後の壁へ選択が伝播するのを止める）。
         event.stopPropagation();
         if (editMode === "delete") {
@@ -1971,12 +2035,17 @@ const PhysicalLight = ({
   }
 
   if (fixture.type === "bracket") {
+    // 光源を取付面（壁）から室内側へ離す。壁に密着した点光源は decay=2 の
+    // 逆二乗で至近距離の壁を焼き白飛びさせる。target（照射方向＝室内向き）へ
+    // 水平に ~0.16m 出して至近の壁の白飛びを防ぐ。
+    const off = bracketRoomwardOffset(fixture, 0.16);
     return (
       <pointLight
         color={color}
         power={power}
         distance={0}
         decay={2}
+        position={[off.x, 0, off.z]}
         castShadow={fixture.castsShadow}
         shadow-mapSize={[512, 512]}
       />
@@ -2085,6 +2154,149 @@ const NormalDebugHelpers = ({ project }: { project: Project }) => {
       <DebugLine from={[0, project.room.ceilingHeightM - 0.03, 0]} to={[0, project.room.ceilingHeightM - 0.48, 0]} color="#74a8ff" />
       {wallLines}
     </>
+  );
+};
+
+// 点をワールド床(x,z)で壁線分に射影し、壁上比率(0..1)と距離を返す（Plan2D と同等）。
+const projectPointOntoWall = (x: number, z: number, wall: WallSegment) => {
+  const dx = wall.end.x - wall.start.x;
+  const dz = wall.end.z - wall.start.z;
+  const len2 = dx * dx + dz * dz;
+  const t = len2 > 1e-9 ? ((x - wall.start.x) * dx + (z - wall.start.z) * dz) / len2 : 0;
+  const ratio = Math.max(0, Math.min(1, t));
+  const dist = Math.hypot(x - (wall.start.x + dx * ratio), z - (wall.start.z + dz * ratio));
+  return { ratio, dist };
+};
+
+const nearestWallAt = (x: number, z: number, walls: WallSegment[]) => {
+  let best: { wall: WallSegment; ratio: number; dist: number } | null = null;
+  for (const wall of walls) {
+    const { ratio, dist } = projectPointOntoWall(x, z, wall);
+    if (!best || dist < best.dist) best = { wall, ratio, dist };
+  }
+  return best;
+};
+
+// 追加配置のゴーストプレビューとクリック設置。床全面を覆う不可視キャッチャーで
+// カーソルのワールド座標を拾い、種別に応じて床ゴースト or 壁スナップゴーストを出す。
+const PlacementLayer = ({
+  pendingAdd,
+  project,
+  onPlaceObject,
+  onPlaceOnWall
+}: {
+  pendingAdd: string;
+  project: Project;
+  onPlaceObject?: (at: { x: number; z: number }) => void;
+  onPlaceOnWall?: (wallId: string, centerRatio: number) => void;
+}) => {
+  const [cursor, setCursor] = useState<{ x: number; z: number } | null>(null);
+  const isWallItem = pendingAdd === "door" || pendingAdd.startsWith("window");
+
+  // ゴーストの寸法・形状を種別から決める。
+  const ghostColor = "#7fe9ff";
+  const ghostMaterial = (
+    <meshBasicMaterial color={ghostColor} transparent opacity={0.45} depthWrite={false} />
+  );
+
+  // 床に置く物（家具・照明・吹き抜け・下げ天井・階段）のゴースト。
+  const floorGhost = (() => {
+    if (!cursor || isWallItem) return null;
+    if (pendingAdd.startsWith("furniture:")) {
+      const preset = getFurniturePreset(pendingAdd.slice("furniture:".length));
+      const s = preset?.size ?? { x: 0.6, y: 0.6, z: 0.6 };
+      return (
+        <mesh position={[cursor.x, s.y / 2, cursor.z]}>
+          <boxGeometry args={[s.x, s.y, s.z]} />
+          {ghostMaterial}
+        </mesh>
+      );
+    }
+    if (pendingAdd === "downlight" || pendingAdd === "wallspot") {
+      // 照明はカーソル位置に小マーカー＋天井までの目印。
+      const ceil = project.room.ceilingHeightM;
+      return (
+        <group position={[cursor.x, 0, cursor.z]}>
+          <mesh position={[0, ceil - 0.05, 0]}>
+            <sphereGeometry args={[0.1, 16, 12]} />
+            {ghostMaterial}
+          </mesh>
+          <mesh position={[0, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[0.18, 0.24, 24]} />
+            {ghostMaterial}
+          </mesh>
+        </group>
+      );
+    }
+    // void / ceilingZone / stair は床上の薄い箱で十分。
+    return (
+      <mesh position={[cursor.x, 0.05, cursor.z]}>
+        <boxGeometry args={[1.2, 0.1, 1.2]} />
+        {ghostMaterial}
+      </mesh>
+    );
+  })();
+
+  // 壁物（窓・扉）のゴースト。最寄り壁にスナップし、壁面上に板を出す。
+  const wall = isWallItem && cursor ? nearestWallAt(cursor.x, cursor.z, project.walls) : null;
+  const wallGhost = (() => {
+    if (!wall) return null;
+    let w = 0.85;
+    let h = 2.0;
+    let sill = 0;
+    if (pendingAdd.startsWith("window")) {
+      const preset = getWindowPreset(pendingAdd.slice("window:".length));
+      if (preset) {
+        w = preset.widthM;
+        h = preset.heightM;
+        sill = preset.sillHeightM;
+      }
+    }
+    const { wall: seg, ratio } = wall;
+    const x = seg.start.x + (seg.end.x - seg.start.x) * ratio;
+    const z = seg.start.z + (seg.end.z - seg.start.z) * ratio;
+    const angle = Math.atan2(seg.end.z - seg.start.z, seg.end.x - seg.start.x);
+    const y = sill + h / 2;
+    return (
+      <group position={[x, y, z]} rotation={[0, -angle, 0]}>
+        <mesh>
+          <boxGeometry args={[w, h, 0.06]} />
+          {ghostMaterial}
+        </mesh>
+      </group>
+    );
+  })();
+
+  const place = (event: ThreeEvent<MouseEvent>) => {
+    event.stopPropagation();
+    const x = event.point.x;
+    const z = event.point.z;
+    if (isWallItem) {
+      const hit = nearestWallAt(x, z, project.walls);
+      if (hit) onPlaceOnWall?.(hit.wall.id, hit.ratio);
+    } else {
+      onPlaceObject?.({ x, z });
+    }
+  };
+
+  return (
+    <group>
+      {/* 部屋外でもカーソルを拾えるよう広い不可視キャッチャー。床 y=0 のわずか上。 */}
+      <mesh
+        position={[0, 0.001, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        onPointerMove={(event: ThreeEvent<PointerEvent>) => {
+          event.stopPropagation();
+          setCursor({ x: event.point.x, z: event.point.z });
+        }}
+        onClick={place}
+      >
+        <planeGeometry args={[100, 100]} />
+        <meshBasicMaterial visible={false} transparent opacity={0} depthWrite={false} />
+      </mesh>
+      {floorGhost}
+      {wallGhost}
+    </group>
   );
 };
 

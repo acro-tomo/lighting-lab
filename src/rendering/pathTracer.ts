@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { WebGLPathTracer } from "three-gpu-pathtracer";
 import { GenerateMeshBVHWorker } from "three-mesh-bvh/src/workers/index.js";
 import type { FurnitureItem, LightingScene, MaterialPreset, Project } from "../types";
-import { colorTemperatureToHex, lumensToPhysicalPower } from "../utils/lighting";
+import { bracketRoomwardOffset, colorTemperatureToHex, lumensToPhysicalPower } from "../utils/lighting";
 import { DEFAULT_DAYLIGHT, sunVector } from "../utils/sun";
 import {
   buildSkyEnvironment,
@@ -539,9 +539,16 @@ const buildPathTraceScene = (
     }
 
     if (fixture.type === "bracket") {
+      // 壁に密着した点光源は逆二乗で至近の壁を白飛びさせるため、照射方向(室内側)へ
+      // ~0.16m 離す（編集ラスターと同じ式で WYSIWYG を保つ）。
+      const off = bracketRoomwardOffset(fixture, 0.16);
       const light = new THREE.PointLight(color, 1, 0, 2);
       light.power = power;
-      light.position.set(fixture.position.x, fixture.position.y, fixture.position.z);
+      light.position.set(
+        fixture.position.x + off.x,
+        fixture.position.y,
+        fixture.position.z + off.z
+      );
       scene.add(light);
       return;
     }
