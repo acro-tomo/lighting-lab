@@ -506,6 +506,26 @@ const SceneRoot = ({
   );
   const roomSpan = Math.max(project.room.widthM, project.room.depthM);
 
+  // 高速ラスター用の擬似間接光（バウンスフィル）。点いている照明の総光束と平均色温度に
+  // 連動した暖色フィルで、直接ビームの外にある壁・天井もぼんやり持ち上がる＝反射の近似。
+  // 物理ではないのでパストレ常駐時は使わない（本物のGIに置き換わる）。
+  const bounceFill = useMemo(() => {
+    let lumens = 0;
+    let kWeighted = 0;
+    for (const light of project.lights) {
+      const state = getSceneLightState(light, activeScene);
+      if (!state.enabled) continue;
+      const lm = light.lumens * state.dimmer * 0.01;
+      lumens += lm;
+      kWeighted += light.colorTemperatureK * lm;
+    }
+    const kelvin = lumens > 0 ? kWeighted / lumens : 2700;
+    const warm = colorTemperatureToHex(kelvin).getStyle();
+    // 総光束→フィル強度。おおよそ 0〜26000lm を 0〜0.5 に飽和させる。
+    const intensity = Math.min(0.5, lumens / 26000);
+    return { warm, intensity };
+  }, [project.lights, activeScene]);
+
   return (
     <EditModeContext.Provider value={mode}>
     <PathTracedContext.Provider value={pathTraced}>
@@ -523,8 +543,12 @@ const SceneRoot = ({
       {!pathTraced && (
         <>
           <fog attach="fog" args={["#060504", 8, 16]} />
-          <hemisphereLight args={["#1f2530", "#0a0805", 0.34]} />
-          <directionalLight position={[-2, 4, 3]} intensity={0.16} color="#c9d6ff" />
+          <hemisphereLight args={["#1f2530", "#0a0805", 0.22]} />
+          <directionalLight position={[-2, 4, 3]} intensity={0.14} color="#c9d6ff" />
+          {/* 照明量に連動した暖色バウンスフィル（疑似間接光）。床=暖色寄りの下方フィル。 */}
+          {bounceFill.intensity > 0.001 && (
+            <hemisphereLight args={[bounceFill.warm, "#2a1c10", bounceFill.intensity]} />
+          )}
         </>
       )}
       <group onPointerMissed={() => onSelect(null)}>
