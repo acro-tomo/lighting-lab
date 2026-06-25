@@ -357,12 +357,13 @@ const CameraViewSync = ({
   }, [gl, view.exposure]);
 
   // 矢印キーは常に視点(カメラ)操作。
-  //   矢印      : 視点の前後左右移動（注視点も同量動かし向きは保つ）
-  //   Shift+上下: 向きはそのままで上下に移動
-  //   Shift+左右: 位置はそのままで視線方向だけ旋回（その場で向きを変える）
+  //   矢印        : 視点の前後左右移動（注視点も同量動かし向きは保つ）
+  //   Shift+左右  : 位置はそのままで視線方向を左右に旋回（首振り）
+  //   Shift+上下  : 位置はそのままで見上げ/見下ろし（ピッチ）
+  //   Option+上下 : 向きはそのままで上下に移動（昇降）
   // オブジェクトの移動/回転は3Dドラッグ・Inspector側に集約する。
   const MOVE_M = 0.4; // 矢印1回の移動量(m)
-  const TURN_DEG = 5; // Shift+左右1回の旋回角(度)
+  const TURN_DEG = 5; // Shift+左右/上下1回の旋回・ピッチ角(度)
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const controls = controlsRef.current;
@@ -377,13 +378,24 @@ const CameraViewSync = ({
       const right = event.key === "ArrowRight";
       const up = event.key === "ArrowUp";
 
-      // Shift+左右: 位置固定で注視点をカメラ位置まわりにY軸回転＝視線方向だけ変える。
+      // Shift+左右: 位置固定で注視点をカメラ位置まわりにY軸回転＝視線方向を左右に振る。
       if (event.shiftKey && (left || right)) {
         const angle = THREE.MathUtils.degToRad(left ? TURN_DEG : -TURN_DEG);
         const dir = controls.target.clone().sub(camera.position);
         dir.applyAxisAngle(new THREE.Vector3(0, 1, 0), angle);
         controls.target.copy(camera.position).add(dir);
         controls.update();
+        return;
+      }
+
+      // Shift+上下: 位置固定で見上げ/見下ろし（ピッチ）。水平方位と距離は保ち、
+      // 真上/真下を越えて反転しないよう±80°にクランプする。
+      if (event.shiftKey && up) {
+        pitchView(THREE.MathUtils.degToRad(TURN_DEG));
+        return;
+      }
+      if (event.shiftKey) {
+        pitchView(THREE.MathUtils.degToRad(-TURN_DEG)); // ArrowDown
         return;
       }
 
@@ -394,13 +406,33 @@ const CameraViewSync = ({
       const rightVec = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
 
       const move = new THREE.Vector3();
-      if (event.shiftKey) move.set(0, up ? MOVE_M : -MOVE_M, 0); // Shift+上下: 向き固定で上下移動
+      if (event.altKey && (up || event.key === "ArrowDown")) move.set(0, up ? MOVE_M : -MOVE_M, 0); // Option+上下: 昇降
       else if (left) move.copy(rightVec).multiplyScalar(-MOVE_M);
       else if (right) move.copy(rightVec).multiplyScalar(MOVE_M);
       else move.copy(forward).multiplyScalar(up ? MOVE_M : -MOVE_M); // 前後
 
       camera.position.add(move);
       controls.target.add(move);
+      controls.update();
+    };
+    // ピッチ: target をカメラ位置まわりに上下回転。方位(水平向き)と距離を保ち±80°でクランプ。
+    const pitchView = (delta: number) => {
+      const controls = controlsRef.current;
+      if (!controls) return;
+      const dir = controls.target.clone().sub(camera.position);
+      const len = dir.length();
+      if (len < 1e-6) return;
+      const horiz = Math.hypot(dir.x, dir.z);
+      const MAX_PITCH = THREE.MathUtils.degToRad(80);
+      const pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, Math.atan2(dir.y, horiz) + delta));
+      const hx = horiz > 1e-6 ? dir.x / horiz : 0;
+      const hz = horiz > 1e-6 ? dir.z / horiz : -1;
+      const cos = Math.cos(pitch) * len;
+      controls.target.set(
+        camera.position.x + hx * cos,
+        camera.position.y + Math.sin(pitch) * len,
+        camera.position.z + hz * cos
+      );
       controls.update();
     };
     window.addEventListener("keydown", onKey);
