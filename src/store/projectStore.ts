@@ -34,6 +34,8 @@ const DEFAULT_DAYLIGHT: Daylight = {
 type ProjectStore = {
   project: Project;
   selection: Selection;
+  // 一時状態（非永続・undo対象外）: Shift+クリックによるライトの複数選択。
+  selectedLightIds: string[];
   clipboard: Clipboard;
   compareShots: CompareShot[];
   history: Project[];
@@ -48,6 +50,9 @@ type ProjectStore = {
   undo: () => void;
   redo: () => void;
   select: (selection: Selection) => void;
+  toggleLightSelection: (id: string) => void;
+  clearLightSelection: () => void;
+  updateLights: (ids: string[], patch: Partial<LightFixture>) => void;
   setCamera: (patch: Partial<Project["camera"]>) => void;
   addWall: (wall: WallSegment) => void;
   addWindow: (windowOpening: WindowOpening, selectionKind: "window" | "opening") => void;
@@ -91,6 +96,7 @@ const withHistory = (
 export const useProjectStore = create<ProjectStore>((set, get) => ({
   project: cloneProject(demoProject),
   selection: null,
+  selectedLightIds: [],
   clipboard: null,
   compareShots: [],
   history: [],
@@ -101,6 +107,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     set({
       project,
       selection: null,
+      selectedLightIds: [],
       history: [],
       future: []
     }),
@@ -108,6 +115,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     set({
       project: cloneProject(demoProject),
       selection: null,
+      selectedLightIds: [],
       history: [],
       future: [],
       compareShots: []
@@ -123,7 +131,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       nextProject.floorZones = [];
       nextProject.furniture = [];
       nextProject.lights = [];
-      return { ...withHistory(state, nextProject), selection: null };
+      return { ...withHistory(state, nextProject), selection: null, selectedLightIds: [] };
     }),
   undo: () => {
     const { history, project } = get();
@@ -145,7 +153,25 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       future: future.slice(1)
     });
   },
-  select: (selection) => set({ selection }),
+  // 通常の単一選択。Shift+クリックの複数選択は toggleLightSelection 側で行うため、
+  // ここでは複数選択をリセットする（普通のクリックで複数選択を解除）。
+  select: (selection) => set({ selection, selectedLightIds: [] }),
+  toggleLightSelection: (id) =>
+    set((state) =>
+      state.selectedLightIds.includes(id)
+        ? { selectedLightIds: state.selectedLightIds.filter((lightId) => lightId !== id) }
+        : { selectedLightIds: [...state.selectedLightIds, id] }
+    ),
+  clearLightSelection: () => set({ selectedLightIds: [] }),
+  updateLights: (ids, patch) =>
+    set((state) => {
+      const idSet = new Set(ids);
+      const nextProject = cloneProject(state.project);
+      nextProject.lights = nextProject.lights.map((light) =>
+        idSet.has(light.id) ? { ...light, ...patch } : light
+      );
+      return withHistory(state, nextProject);
+    }),
   setCamera: (patch) =>
     set((state) => {
       const nextProject = cloneProject(state.project);
@@ -310,6 +336,10 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     set((state) => {
       if (!selection) return {};
       const nextProject = cloneProject(state.project);
+      const nextSelectedLightIds =
+        selection.kind === "light"
+          ? state.selectedLightIds.filter((id) => id !== selection.id)
+          : state.selectedLightIds;
 
       if (selection.kind === "wall") {
         nextProject.walls = nextProject.walls.filter((wall) => wall.id !== selection.id);
@@ -330,7 +360,8 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
 
       return {
         ...withHistory(state, nextProject),
-        selection: null
+        selection: null,
+        selectedLightIds: nextSelectedLightIds
       };
     }),
   setBackgroundPlan: (backgroundPlan) =>

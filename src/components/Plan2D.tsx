@@ -58,6 +58,8 @@ type ResizeState = { kind: ResizeKind; id: string; edge: ResizeEdge } | null;
 const MIN_SIZE_M = 0.2;
 // 窓/扉をクリックで壁に設置するときの許容距離(m)。これ以内の最寄り壁に付く。
 const WALL_SNAP_M = 1.2;
+// ライトをドラッグ移動するとき、他ライトの x/z にこの距離(m)以内なら整列スナップする。
+const SNAP_M = 0.12;
 
 // 壁に付く追加物（窓カタログ "window:<id>" / 扉 "door" / 壁付スポット "wallspot"）の判定。
 const isWallOpening = (kind: string | null): boolean =>
@@ -213,6 +215,9 @@ export const Plan2D = ({
   // navTool は2D固有ナビ(パン)・縮尺のみ。null のときは App の mode に従う。
   const [navTool, setNavTool] = useState<NavTool | null>(null);
   const [dragging, setDragging] = useState<DragState>(null);
+  // ライトのドラッグ整列スナップが効いた軸のワールド座標。x/z それぞれ吸着先(m)。
+  // null のとき非表示。worldToSvg を通してガイド線を描く。
+  const [snapGuides, setSnapGuides] = useState<{ x: number | null; z: number | null }>({ x: null, z: null });
   // ダブルクリックで開始する辺ドラッグリサイズ。
   // resizeTarget=ハンドル表示中のオブジェクト、resizing=ドラッグ中の辺。
   const [resizeTarget, setResizeTarget] = useState<{ kind: ResizeKind; id: string } | null>(null);
@@ -240,6 +245,9 @@ export const Plan2D = ({
 
   const updateFurniture = useProjectStore((state) => state.updateFurniture);
   const updateLight = useProjectStore((state) => state.updateLight);
+  const selectedLightIds = useProjectStore((state) => state.selectedLightIds);
+  const toggleLightSelection = useProjectStore((state) => state.toggleLightSelection);
+  const clearLightSelection = useProjectStore((state) => state.clearLightSelection);
   const updateVoid = useProjectStore((state) => state.updateVoid);
   const setBackgroundPlan = useProjectStore((state) => state.setBackgroundPlan);
   const updateWindow = useProjectStore((state) => state.updateWindow);
@@ -517,6 +525,17 @@ export const Plan2D = ({
     onSelect(nextSelection);
   };
 
+  // ライトのクリック選択。Shift+クリックは複数選択トグル、通常は単一選択。
+  const selectLight = (id: string, shiftKey: boolean) => {
+    if (isPanMode) return;
+    if (shiftKey) {
+      toggleLightSelection(id);
+      return;
+    }
+    clearLightSelection();
+    handleSelect({ kind: "light", id });
+  };
+
   // ダブルクリックでリサイズハンドルを表示する（矩形フットプリント物のみ）。
   const startResize = (kind: ResizeKind, id: string) => {
     onSelect({ kind, id });
@@ -650,9 +669,30 @@ export const Plan2D = ({
     } else if (dragging.kind === "light") {
       const fixture = project.lights.find((candidate) => candidate.id === dragging.id);
       if (!fixture) return;
+      // パワポ風の整列スナップ: 他ライトの x/z に SNAP_M 以内なら吸着し、ガイド線を出す。
+      let snapX: number | null = null;
+      let snapZ: number | null = null;
+      let bestX = SNAP_M;
+      let bestZ = SNAP_M;
+      for (const other of project.lights) {
+        if (other.id === fixture.id) continue;
+        const dx = Math.abs(other.position.x - next.x);
+        if (dx < bestX) {
+          bestX = dx;
+          snapX = other.position.x;
+        }
+        const dz = Math.abs(other.position.z - next.z);
+        if (dz < bestZ) {
+          bestZ = dz;
+          snapZ = other.position.z;
+        }
+      }
+      const snappedX = snapX ?? next.x;
+      const snappedZ = snapZ ?? next.z;
+      setSnapGuides({ x: snapX, z: snapZ });
       updateLight(fixture.id, {
-        position: { ...fixture.position, x: next.x, z: next.z },
-        target: fixture.target ? { ...fixture.target, x: next.x, z: next.z } : undefined
+        position: { ...fixture.position, x: snappedX, z: snappedZ },
+        target: fixture.target ? { ...fixture.target, x: snappedX, z: snappedZ } : undefined
       });
     } else if (dragging.kind === "void") {
       const voidArea = project.voids.find((candidate) => candidate.id === dragging.id);
@@ -814,10 +854,12 @@ export const Plan2D = ({
           onPointerUp={() => {
             setDragging(null);
             setResizing(null);
+            setSnapGuides({ x: null, z: null });
           }}
           onPointerLeave={() => {
             setDragging(null);
             setResizing(null);
+            setSnapGuides({ x: null, z: null });
           }}
           onDoubleClick={() => {
             setWallDraft([]);
@@ -942,14 +984,43 @@ export const Plan2D = ({
                 key={fixture.id}
                 fixture={fixture}
                 worldToSvg={worldToSvg}
-                selected={selection?.kind === "light" && selection.id === fixture.id}
-                onSelect={handleSelect}
+                selected={
+                  (selection?.kind === "light" && selection.id === fixture.id) ||
+                  selectedLightIds.includes(fixture.id)
+                }
+                onSelectLight={selectLight}
                 onDragStart={(offset) => setDragging({ kind: "light", id: fixture.id, offset })}
                 svgToWorld={svgToWorld}
                 canDrag={canDragObjects}
               />
             ))}
           </g>
+
+          {/* ライトのドラッグ整列スナップが効いている軸のガイド線（一時表示）。 */}
+          {snapGuides.x !== null && (
+            <line
+              stroke="#7fd4ff"
+              strokeWidth={1}
+              strokeDasharray="6 4"
+              pointerEvents="none"
+              x1={worldToSvg({ x: snapGuides.x, z: contentBox.minX }).x}
+              y1={viewBox.y}
+              x2={worldToSvg({ x: snapGuides.x, z: contentBox.minX }).x}
+              y2={viewBox.y + viewBox.height}
+            />
+          )}
+          {snapGuides.z !== null && (
+            <line
+              stroke="#7fd4ff"
+              strokeWidth={1}
+              strokeDasharray="6 4"
+              pointerEvents="none"
+              x1={viewBox.x}
+              y1={worldToSvg({ x: contentBox.minX, z: snapGuides.z }).y}
+              x2={viewBox.x + viewBox.width}
+              y2={worldToSvg({ x: contentBox.minX, z: snapGuides.z }).y}
+            />
+          )}
 
           {/* ダブルクリックで開いた矩形オブジェクトの辺リサイズハンドル（最前面）。 */}
           {resizeTarget && !pendingAdd && (
@@ -1424,7 +1495,7 @@ const LightPlanItem = ({
   fixture,
   worldToSvg,
   selected,
-  onSelect,
+  onSelectLight,
   onDragStart,
   svgToWorld,
   canDrag
@@ -1432,7 +1503,7 @@ const LightPlanItem = ({
   fixture: LightFixture;
   worldToSvg: (point: Vec2M) => { x: number; y: number };
   selected: boolean;
-  onSelect: (selection: Selection) => void;
+  onSelectLight: (id: string, shiftKey: boolean) => void;
   onDragStart: (offset: Vec2M) => void;
   svgToWorld: (clientX: number, clientY: number) => Vec2M;
   canDrag: boolean;
@@ -1441,8 +1512,9 @@ const LightPlanItem = ({
   const target = fixture.target ? worldToSvg({ x: fixture.target.x, z: fixture.target.z }) : null;
   const handlePointerDown = (event: React.PointerEvent<SVGGElement>) => {
     event.stopPropagation();
-    onSelect({ kind: "light", id: fixture.id });
-    if (!canDrag) return;
+    onSelectLight(fixture.id, event.shiftKey);
+    // Shift+クリックは複数選択トグルのみ。ドラッグは開始しない。
+    if (event.shiftKey || !canDrag) return;
     const point = svgToWorld(event.clientX, event.clientY);
     onDragStart({
       x: point.x - fixture.position.x,

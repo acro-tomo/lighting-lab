@@ -1,5 +1,5 @@
 import { useState, type ChangeEvent } from "react";
-import type { CeilingZone, FloorZone, FurnitureItem, LightFixture, MaterialPreset, Project, Selection, VoidArea, WallSegment, WindowOpening } from "../types";
+import type { CeilingZone, FloorZone, FurnitureItem, LightFixture, LightType, MaterialPreset, Project, Selection, VoidArea, WallSegment, WindowOpening } from "../types";
 import { useProjectStore } from "../store/projectStore";
 import { applyFixtureModel, fixtureCatalog, getFixtureModel } from "../data/fixtureCatalog";
 import { clamp, mToMm, mmToM } from "../utils/units";
@@ -41,6 +41,8 @@ const ColorTempPresets = ({
 
 export const Inspector = ({ project, selection }: InspectorProps) => {
   const updateLight = useProjectStore((state) => state.updateLight);
+  const updateLights = useProjectStore((state) => state.updateLights);
+  const selectedLightIds = useProjectStore((state) => state.selectedLightIds);
   const updateFurniture = useProjectStore((state) => state.updateFurniture);
   const updateWall = useProjectStore((state) => state.updateWall);
   const updateWindow = useProjectStore((state) => state.updateWindow);
@@ -127,8 +129,14 @@ export const Inspector = ({ project, selection }: InspectorProps) => {
             <h2>プロパティ</h2>
           </div>
         </div>
-        {!selection && <p className="muted">2Dまたは3Dで家具・照明・壁を選択してください。</p>}
-        {selectedLight && (
+        {!selection && selectedLightIds.length === 0 && <p className="muted">2Dまたは3Dで家具・照明・壁を選択してください。</p>}
+        {selectedLightIds.length >= 2 && (
+          <BulkLightInspector
+            lights={project.lights.filter((l) => selectedLightIds.includes(l.id))}
+            updateLights={(patch) => updateLights(selectedLightIds, patch)}
+          />
+        )}
+        {selectedLightIds.length < 2 && selectedLight && (
           <LightInspector
             light={selectedLight}
             updateLight={updateLight}
@@ -279,11 +287,85 @@ const LightInspector = ({
         onSelect={(colorTemperatureK) => updateLight(light.id, { colorTemperatureK })}
       />
     </label>
+    <NumberField
+      label="照射角度（器具プリセットを上書き）"
+      unit="°"
+      value={light.beamAngleDeg}
+      min={5}
+      max={180}
+      onChange={(beamAngleDeg) => updateLight(light.id, { beamAngleDeg })}
+    />
     <label className="field">
       <span>メモ</span>
       <textarea value={light.note} onChange={(event) => updateLight(light.id, { note: event.target.value })} />
     </label>
   </div>
+  );
+};
+
+const BulkLightInspector = ({
+  lights,
+  updateLights
+}: {
+  lights: LightFixture[];
+  updateLights: (patch: Partial<LightFixture>) => void;
+}) => {
+  // 先頭ライトを代表値とする。全一致の場合はその値、不一致の場合も先頭値を初期表示する。
+  const rep = lights[0];
+  return (
+    <div className="form-grid">
+      <p className="field-hint"><strong>{lights.length}個のライトを選択中</strong> — 変更は全選択ライトに適用されます。</p>
+      <div className="scene-control">
+        <label className="light-onoff-label">
+          <input
+            type="checkbox"
+            checked={rep.enabled !== false}
+            onChange={(event) => updateLights({ enabled: event.target.checked })}
+          />
+          <strong>{rep.enabled !== false ? "ON" : "OFF"}</strong>
+        </label>
+        <NumberField
+          label="調光"
+          unit="%"
+          value={Math.round(rep.dimmer ?? 100)}
+          min={0}
+          max={100}
+          onChange={(dimmer) => updateLights({ dimmer: clamp(dimmer, 0, 100) })}
+        />
+      </div>
+      <label className="field">
+        <span>種類</span>
+        <select
+          value={rep.type}
+          onChange={(event) => updateLights({ type: event.target.value as LightType })}
+        >
+          <option value="downlight">ダウンライト</option>
+          <option value="spotlight">スポットライト</option>
+          <option value="pendant">ペンダント</option>
+          <option value="bracket">ブラケット</option>
+          <option value="tape">テープ</option>
+        </select>
+      </label>
+      <div className="field-row">
+        <NumberField label="光束" unit="lm" value={rep.lumens} min={0} onChange={(lumens) => updateLights({ lumens })} />
+        <NumberField label="色温度" unit="K" value={rep.colorTemperatureK} min={1800} max={6500} step={50} onChange={(colorTemperatureK) => updateLights({ colorTemperatureK })} />
+      </div>
+      <label className="field">
+        <span>色温度プリセット</span>
+        <ColorTempPresets
+          value={rep.colorTemperatureK}
+          onSelect={(colorTemperatureK) => updateLights({ colorTemperatureK })}
+        />
+      </label>
+      <NumberField
+        label="照射角度"
+        unit="°"
+        value={rep.beamAngleDeg}
+        min={5}
+        max={180}
+        onChange={(beamAngleDeg) => updateLights({ beamAngleDeg })}
+      />
+    </div>
   );
 };
 

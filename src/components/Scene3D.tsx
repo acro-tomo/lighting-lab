@@ -2417,6 +2417,35 @@ const DuctRail = () => (
   </mesh>
 );
 
+// ドラッグ移動中、他ライトのX/Z軸への吸着（パワポ風の整列スナップ）。自分自身は除外し、
+// x/z 独立で最寄り候補に吸い付く。snapX/snapZ は効いている軸のガイド線座標（null=非吸着）。
+const DRAG_SNAP_M = 0.12;
+const snapDragToLightAxes = (
+  x: number,
+  z: number,
+  lights: LightFixture[],
+  selfId: string
+): { x: number; z: number; snapX: number | null; snapZ: number | null } => {
+  let snapX: number | null = null;
+  let snapZ: number | null = null;
+  let bestX = DRAG_SNAP_M;
+  let bestZ = DRAG_SNAP_M;
+  for (const light of lights) {
+    if (light.id === selfId) continue;
+    const dx = Math.abs(light.position.x - x);
+    if (dx < bestX) {
+      bestX = dx;
+      snapX = light.position.x;
+    }
+    const dz = Math.abs(light.position.z - z);
+    if (dz < bestZ) {
+      bestZ = dz;
+      snapZ = light.position.z;
+    }
+  }
+  return { x: snapX ?? x, z: snapZ ?? z, snapX, snapZ };
+};
+
 const FixtureMesh = ({
   fixture,
   selected,
@@ -2435,11 +2464,21 @@ const FixtureMesh = ({
   const updateLight = useProjectStore((store) => store.updateLight);
   const deleteSelection = useProjectStore((store) => store.deleteSelection);
   const floorLevelM = useProjectStore((store) => store.project.room.floorLevelM ?? 0);
+  const lights = useProjectStore((store) => store.project.lights);
+  const toggleLightSelection = useProjectStore((store) => store.toggleLightSelection);
+  const multiSelected = useProjectStore((store) => store.selectedLightIds.includes(fixture.id));
+  // ドラッグ中に効いている整列軸のガイド位置（編集時のみ描画）。
+  const [dragSnap, setDragSnap] = useState<{ snapX: number | null; snapZ: number | null } | null>(null);
   const drag = useFloorDrag(
     { x: fixture.position.x, z: fixture.position.z },
     // 照明も floorLevelM 群に乗るのでドラッグ平面も同量持ち上げる（floorLevelM=0で従来同一）。
     floorLevelM + fixture.position.y,
-    (x, z) => {
+    (rawX, rawZ) => {
+      // 生の(x,z)を他ライト軸へ吸着してから反映（掴み相対オフセットは useFloorDrag が保持済み）。
+      const snap = snapDragToLightAxes(rawX, rawZ, lights, fixture.id);
+      setDragSnap(snap.snapX !== null || snap.snapZ !== null ? { snapX: snap.snapX, snapZ: snap.snapZ } : null);
+      const x = snap.x;
+      const z = snap.z;
       const dx = x - fixture.position.x;
       const dz = z - fixture.position.z;
       updateLight(fixture.id, {
@@ -2448,6 +2487,11 @@ const FixtureMesh = ({
       });
     }
   );
+
+  const showOutline = (selected || multiSelected) && !pathTraced;
+  // ガイド線は非物理の編集補助なので常駐パストレ時は出さない（WYSIWYG不変条件）。
+  const guideY = floorLevelM + fixture.position.y;
+  const guideSpan = 40;
 
   return (
     <group
@@ -2461,19 +2505,54 @@ const FixtureMesh = ({
           deleteSelection({ kind: "light", id: fixture.id });
           return;
         }
+        // Shift+クリックは複数選択トグル。通常クリックは従来どおり単一選択。
+        if (event.shiftKey) {
+          toggleLightSelection(fixture.id);
+          return;
+        }
         onSelect({ kind: "light", id: fixture.id });
         if (editMode === "move") drag.onPointerDown(event);
       }}
       onPointerMove={editMode === "move" ? drag.onPointerMove : undefined}
-      onPointerUp={editMode === "move" ? drag.onPointerUp : undefined}
+      onPointerUp={
+        editMode === "move"
+          ? (event: ThreeEvent<PointerEvent>) => {
+              drag.onPointerUp(event);
+              setDragSnap(null);
+            }
+          : undefined
+      }
     >
       <FixtureBody fixture={fixture} color={lightColor} active={fixture.enabled && fixture.dimmer > 0} debugMode={debugMode} />
       <PhysicalLight fixture={fixture} debugMode={debugMode} />
-      {selected && !pathTraced && (
+      {showOutline && (
         <mesh>
           <sphereGeometry args={[0.18, 24, 16]} />
           <meshBasicMaterial color="#f5c64d" wireframe transparent opacity={0.95} />
         </mesh>
+      )}
+      {!pathTraced && dragSnap?.snapX != null && (
+        // group はライト中心に乗っているのでローカル座標へ戻して水平方向に描く。
+        <line>
+          <bufferGeometry>
+            <bufferAttribute
+              attach="attributes-position"
+              args={[new Float32Array([0, guideY - fixture.position.y, -guideSpan, 0, guideY - fixture.position.y, guideSpan]), 3]}
+            />
+          </bufferGeometry>
+          <lineBasicMaterial color="#ffd24a" transparent opacity={0.8} />
+        </line>
+      )}
+      {!pathTraced && dragSnap?.snapZ != null && (
+        <line>
+          <bufferGeometry>
+            <bufferAttribute
+              attach="attributes-position"
+              args={[new Float32Array([-guideSpan, guideY - fixture.position.y, 0, guideSpan, guideY - fixture.position.y, 0]), 3]}
+            />
+          </bufferGeometry>
+          <lineBasicMaterial color="#ffd24a" transparent opacity={0.8} />
+        </line>
       )}
       {debugMode !== "beauty" && fixture.target && (
         <LightDirectionLine fixture={fixture} />
