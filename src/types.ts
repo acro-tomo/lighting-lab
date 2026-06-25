@@ -31,6 +31,13 @@ export type Selection = {
   id: string;
 } | null;
 
+// コピー＆ペースト用クリップボード（非永続・undo対象外）。
+// data は対象オブジェクトのディープコピー。kind ごとに具体型は異なるため unknown 保持。
+export type Clipboard = {
+  kind: ObjectKind;
+  data: unknown;
+} | null;
+
 export type MaterialPreset = {
   id: string;
   name: string;

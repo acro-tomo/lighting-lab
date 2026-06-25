@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { demoProject } from "../data/demoProject";
 import type {
   CeilingZone,
+  Clipboard,
   CompareShot,
   Daylight,
   FloorPlanBackground,
@@ -17,6 +18,9 @@ import type {
 } from "../types";
 import { cloneProject } from "../utils/units";
 
+// store/Plan2D/objectFactory と同じ採番方式に合わせる。
+const uid = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
 // sun.ts は別エージェントが用意予定。未作成時の型エラーを避けるためローカルにフォールバックを持つ。
 const DEFAULT_DAYLIGHT: Daylight = {
   enabled: true,
@@ -30,6 +34,7 @@ const DEFAULT_DAYLIGHT: Daylight = {
 type ProjectStore = {
   project: Project;
   selection: Selection;
+  clipboard: Clipboard;
   compareShots: CompareShot[];
   history: Project[];
   future: Project[];
@@ -56,6 +61,9 @@ type ProjectStore = {
   updateLight: (id: string, patch: Partial<LightFixture>) => void;
   setAllColorTemperature: (colorTemperatureK: number) => void;
   updateMaterial: (id: string, patch: Partial<MaterialPreset>) => void;
+  setAllWallsMaterial: (materialId: string) => void;
+  copySelection: () => void;
+  pasteSelection: () => void;
   updateFurniture: (id: string, patch: Partial<FurnitureItem>) => void;
   updateWall: (id: string, patch: Partial<WallSegment>) => void;
   updateWindow: (id: string, patch: Partial<WindowOpening>) => void;
@@ -83,6 +91,7 @@ const withHistory = (
 export const useProjectStore = create<ProjectStore>((set, get) => ({
   project: cloneProject(demoProject),
   selection: null,
+  clipboard: null,
   compareShots: [],
   history: [],
   future: [],
@@ -244,6 +253,15 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       );
       return withHistory(state, nextProject);
     }),
+  // 全壁のメインクロス(materialId)を一括差し替え。存在しないIDは無視。
+  setAllWallsMaterial: (materialId) =>
+    set((state) => {
+      const exists = state.project.materials.some((material) => material.id === materialId);
+      if (!exists) return {};
+      const nextProject = cloneProject(state.project);
+      nextProject.walls = nextProject.walls.map((wall) => ({ ...wall, materialId }));
+      return withHistory(state, nextProject);
+    }),
   updateFurniture: (id, patch) =>
     set((state) => {
       const nextProject = cloneProject(state.project);
@@ -344,6 +362,127 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       nextProject.room = { ...nextProject.room, floorLevelM: Math.max(0, value) };
       return withHistory(state, nextProject);
     }),
+  // 選択中オブジェクトのディープコピーを clipboard へ。material/null は対象外。
+  copySelection: () =>
+    set((state) => {
+      const { selection, project } = state;
+      if (!selection || selection.kind === "material") return {};
+      const find = <T extends { id: string }>(list: T[]): T | undefined =>
+        list.find((entry) => entry.id === selection.id);
+      let source: unknown;
+      switch (selection.kind) {
+        case "wall":
+          source = find(project.walls);
+          break;
+        case "window":
+        case "opening":
+          source = find(project.windows);
+          break;
+        case "furniture":
+          source = find(project.furniture);
+          break;
+        case "light":
+          source = find(project.lights);
+          break;
+        case "void":
+          source = find(project.voids);
+          break;
+        case "ceilingZone":
+          source = find(project.ceilingZones ?? []);
+          break;
+        case "floorZone":
+          source = find(project.floorZones ?? []);
+          break;
+      }
+      if (!source) return {};
+      return {
+        clipboard: { kind: selection.kind, data: structuredClone(source) }
+      };
+    }),
+  // clipboard の内容を新IDで複製し、少しずらして追加。新オブジェクトを選択する(undo対象)。
+  pasteSelection: () => {
+    const { clipboard } = get();
+    if (!clipboard) return;
+    const data = structuredClone(clipboard.data);
+    const copyName = (name: string) => `${name} のコピー`;
+    switch (clipboard.kind) {
+      case "wall": {
+        const wall = data as WallSegment;
+        get().addWall({
+          ...wall,
+          id: uid("wall"),
+          name: copyName(wall.name),
+          start: { x: wall.start.x + 0.3, z: wall.start.z + 0.3 },
+          end: { x: wall.end.x + 0.3, z: wall.end.z + 0.3 }
+        });
+        break;
+      }
+      case "window":
+      case "opening": {
+        const win = data as WindowOpening;
+        get().addWindow(
+          {
+            ...win,
+            id: uid("window"),
+            name: copyName(win.name),
+            centerRatio: Math.min(0.95, win.centerRatio + 0.1)
+          },
+          clipboard.kind
+        );
+        break;
+      }
+      case "furniture": {
+        const item = data as FurnitureItem;
+        get().addFurniture({
+          ...item,
+          id: uid("furniture"),
+          name: copyName(item.name),
+          position: { ...item.position, x: item.position.x + 0.3, z: item.position.z + 0.3 }
+        });
+        break;
+      }
+      case "light": {
+        const light = data as LightFixture;
+        get().addLight({
+          ...light,
+          id: uid("light"),
+          name: copyName(light.name),
+          position: { ...light.position, x: light.position.x + 0.3, z: light.position.z + 0.3 }
+        });
+        break;
+      }
+      case "void": {
+        const voidArea = data as VoidArea;
+        get().addVoid({
+          ...voidArea,
+          id: uid("void"),
+          name: copyName(voidArea.name),
+          center: { x: voidArea.center.x + 0.3, z: voidArea.center.z + 0.3 }
+        });
+        break;
+      }
+      case "ceilingZone": {
+        const zone = data as CeilingZone;
+        get().addCeilingZone({
+          ...zone,
+          id: uid("ceil"),
+          name: copyName(zone.name),
+          center: { x: zone.center.x + 0.3, z: zone.center.z + 0.3 }
+        });
+        break;
+      }
+      case "floorZone": {
+        const zone = data as FloorZone;
+        get().addFloorZone({
+          ...zone,
+          id: uid("floor"),
+          name: copyName(zone.name),
+          center: { x: zone.center.x + 0.3, z: zone.center.z + 0.3 }
+        });
+        break;
+      }
+    }
+  },
   addCompareShot: (shot) =>
     set((state) => ({
       compareShots: [shot, ...state.compareShots].slice(0, 6)

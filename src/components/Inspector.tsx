@@ -1,4 +1,4 @@
-import type { ChangeEvent } from "react";
+import { useState, type ChangeEvent } from "react";
 import type { CeilingZone, FloorZone, FurnitureItem, LightFixture, MaterialPreset, Project, Selection, VoidArea, WallSegment, WindowOpening } from "../types";
 import { useProjectStore } from "../store/projectStore";
 import { applyFixtureModel, fixtureCatalog, getFixtureModel } from "../data/fixtureCatalog";
@@ -49,9 +49,10 @@ export const Inspector = ({ project, selection }: InspectorProps) => {
   const updateFloorZone = useProjectStore((state) => state.updateFloorZone);
   const updateMaterial = useProjectStore((state) => state.updateMaterial);
   const setAllColorTemperature = useProjectStore((state) => state.setAllColorTemperature);
+  const setAllWallsMaterial = useProjectStore((state) => state.setAllWallsMaterial);
   const select = useProjectStore((state) => state.select);
-  const setShowCeiling = useProjectStore((state) => state.setShowCeiling);
   const setFloorLevel = useProjectStore((state) => state.setFloorLevel);
+  const [disclaimerOpen, setDisclaimerOpen] = useState(false);
 
   const selectedLight =
     selection?.kind === "light" ? project.lights.find((light) => light.id === selection.id) : undefined;
@@ -82,10 +83,6 @@ export const Inspector = ({ project, selection }: InspectorProps) => {
 
   return (
     <aside className="inspector-panel" aria-label="プロパティインスペクター">
-      <section className="disclaimer">
-        これは照明配置・雰囲気比較用の視覚シミュレーションです。実際の照度、配光、色、施工後の見え方を保証するものではありません。
-      </section>
-
       <section className="summary-strip">
         <div>
           <span>照明</span>
@@ -103,30 +100,24 @@ export const Inspector = ({ project, selection }: InspectorProps) => {
 
       <section className="panel-block">
         <div className="panel-heading compact">
-          <h2>室内設定</h2>
+          <h2>メインクロス（壁全体）</h2>
         </div>
-        <div className="form-grid">
-          <label className="field">
-            <span>天井を表示</span>
-            <label className="scene-control">
-              <input
-                type="checkbox"
-                checked={project.showCeiling ?? true}
-                onChange={(event) => setShowCeiling(event.target.checked)}
-              />
-              表示する
-            </label>
-            <p className="field-hint">非矩形の間取りで天井が室外にはみ出す場合はOFF</p>
-          </label>
-          <NumberField
-            label="室内床レベル"
-            unit="mm"
-            value={mToMm(project.room.floorLevelM ?? 0)}
-            min={0}
-            onChange={(value) => setFloorLevel(mmToM(value))}
-          />
-          <p className="field-hint">土間/下げ床がマイナスに潜らないよう室内床を持ち上げる。土間の下がり量をこの値に合わせると土間が地面(0)になる</p>
-        </div>
+        <label className="field">
+          <span>全壁の素材を一括変更</span>
+          <select
+            defaultValue=""
+            onChange={(event) => {
+              const value = event.target.value;
+              if (value) setAllWallsMaterial(value);
+              event.currentTarget.value = "";
+            }}
+          >
+            <option value="" disabled>— 素材を選んで適用 —</option>
+            {project.materials.map((mat) => (
+              <option key={mat.id} value={mat.id}>{mat.name}</option>
+            ))}
+          </select>
+        </label>
       </section>
 
       <section className="panel-block">
@@ -150,7 +141,14 @@ export const Inspector = ({ project, selection }: InspectorProps) => {
         {selectedWindow && <WindowInspector windowItem={selectedWindow} project={project} updateWindow={updateWindow} />}
         {selectedVoid && <VoidInspector voidArea={selectedVoid} updateVoid={updateVoid} />}
         {selectedCeilingZone && <CeilingZoneInspector zone={selectedCeilingZone} updateCeilingZone={updateCeilingZone} />}
-        {selectedFloorZone && <FloorZoneInspector zone={selectedFloorZone} updateFloorZone={updateFloorZone} />}
+        {selectedFloorZone && (
+          <FloorZoneInspector
+            zone={selectedFloorZone}
+            updateFloorZone={updateFloorZone}
+            floorLevelM={project.room.floorLevelM ?? 0}
+            setFloorLevel={setFloorLevel}
+          />
+        )}
       </section>
 
       <section className="panel-block">
@@ -179,6 +177,22 @@ export const Inspector = ({ project, selection }: InspectorProps) => {
           </select>
         </label>
       </section>
+
+      <footer className="inspector-footer">
+        <button
+          type="button"
+          className="disclaimer-toggle"
+          onClick={() => setDisclaimerOpen((open) => !open)}
+          aria-expanded={disclaimerOpen}
+        >
+          ℹ 免責
+        </button>
+        {disclaimerOpen && (
+          <p className="disclaimer-text">
+            これは照明配置・雰囲気比較用の視覚シミュレーションです。実際の照度、配光、色、施工後の見え方を保証するものではありません。
+          </p>
+        )}
+      </footer>
     </aside>
   );
 };
@@ -194,6 +208,24 @@ const LightInspector = ({
   const aim = light.target ?? { x: light.position.x, y: 0, z: light.position.z };
   return (
   <div className="form-grid">
+    <div className="scene-control">
+      <label className="light-onoff-label">
+        <input
+          type="checkbox"
+          checked={light.enabled !== false}
+          onChange={(event) => updateLight(light.id, { enabled: event.target.checked })}
+        />
+        <strong>{light.enabled !== false ? "ON" : "OFF"}</strong>
+      </label>
+      <NumberField
+        label="調光"
+        unit="%"
+        value={Math.round(light.dimmer ?? 100)}
+        min={0}
+        max={100}
+        onChange={(dimmer) => updateLight(light.id, { dimmer: clamp(dimmer, 0, 100) })}
+      />
+    </div>
     <TextField label="名前" value={light.name} onChange={(name) => updateLight(light.id, { name })} />
     <label className="field">
       <span>器具（配光は器具ごとに固定）</span>
@@ -247,24 +279,6 @@ const LightInspector = ({
         onSelect={(colorTemperatureK) => updateLight(light.id, { colorTemperatureK })}
       />
     </label>
-    <div className="scene-control">
-      <label>
-        <input
-          type="checkbox"
-          checked={light.enabled !== false}
-          onChange={(event) => updateLight(light.id, { enabled: event.target.checked })}
-        />
-        ON
-      </label>
-      <NumberField
-        label="調光"
-        unit="%"
-        value={Math.round(light.dimmer ?? 100)}
-        min={0}
-        max={100}
-        onChange={(dimmer) => updateLight(light.id, { dimmer: clamp(dimmer, 0, 100) })}
-      />
-    </div>
     <label className="field">
       <span>メモ</span>
       <textarea value={light.note} onChange={(event) => updateLight(light.id, { note: event.target.value })} />
@@ -524,10 +538,14 @@ const CeilingZoneInspector = ({
 
 const FloorZoneInspector = ({
   zone,
-  updateFloorZone
+  updateFloorZone,
+  floorLevelM,
+  setFloorLevel
 }: {
   zone: FloorZone;
   updateFloorZone: (id: string, patch: Partial<FloorZone>) => void;
+  floorLevelM: number;
+  setFloorLevel: (v: number) => void;
 }) => (
   <div className="form-grid">
     <TextField label="名前" value={zone.name} onChange={(name) => updateFloorZone(zone.id, { name })} />
@@ -540,6 +558,14 @@ const FloorZoneInspector = ({
       <NumberField label="奥行" unit="mm" value={mToMm(zone.size.z)} min={100} onChange={(value) => updateFloorZone(zone.id, { size: { ...zone.size, z: mmToM(value) } })} />
     </div>
     <NumberField label="下げ量" unit="mm" value={mToMm(zone.dropM)} min={20} max={500} onChange={(value) => updateFloorZone(zone.id, { dropM: mmToM(value) })} />
+    <NumberField
+      label="室内床レベル"
+      unit="mm"
+      value={mToMm(floorLevelM)}
+      min={0}
+      onChange={(value) => setFloorLevel(mmToM(value))}
+    />
+    <p className="field-hint">土間の下がり量をこの値に合わせると土間が地面(0)になる</p>
   </div>
 );
 

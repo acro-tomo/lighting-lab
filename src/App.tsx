@@ -76,6 +76,8 @@ export const App = () => {
   const addCeilingZone = useProjectStore((state) => state.addCeilingZone);
   const addFloorZone = useProjectStore((state) => state.addFloorZone);
   const deleteSelection = useProjectStore((state) => state.deleteSelection);
+  const copySelection = useProjectStore((state) => state.copySelection);
+  const pasteSelection = useProjectStore((state) => state.pasteSelection);
   const setDaylight = useProjectStore((state) => state.setDaylight);
   const [canvasElement, setCanvasElement] = useState<HTMLCanvasElement | null>(null);
   const [renderContext, setRenderContext] = useState<RenderContext | null>(null);
@@ -162,6 +164,19 @@ export const App = () => {
       } else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z") {
         event.preventDefault();
         undo();
+      } else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "c") {
+        const target = event.target as HTMLElement | null;
+        const tag = target?.tagName;
+        // 入力欄の編集中はブラウザのテキストコピーに任せる。
+        if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
+        event.preventDefault();
+        copySelection();
+      } else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "v") {
+        const target = event.target as HTMLElement | null;
+        const tag = target?.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
+        event.preventDefault();
+        pasteSelection();
       } else if (event.key === "Escape") {
         select(null);
       } else if (event.key === "Delete" || event.key === "Backspace") {
@@ -178,7 +193,7 @@ export const App = () => {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [deleteSelection, redo, select, undo]);
+  }, [copySelection, deleteSelection, pasteSelection, redo, select, undo]);
 
   const handleImportFloorPlan = async (file: File) => {
     try {
@@ -452,6 +467,8 @@ export const App = () => {
         onExportProject={exportProject}
         onToggleOutput={() => setOutputOpen((current) => !current)}
         outputOpen={outputOpen}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
       />
       <main className={focusViewport ? "workspace is-focus-3d" : focusPlan ? "workspace is-focus-2d" : "workspace"}>
         <Plan2D
@@ -516,13 +533,6 @@ export const App = () => {
             </span>
 
             <div className="render-status">
-              <label>
-                表示モード
-                <select value={viewMode} onChange={(event) => setViewMode(event.target.value as ViewMode)}>
-                  <option value="raster">編集（高速ラスター）</option>
-                  <option value="realistic">リアル（常駐パストレ）</option>
-                </select>
-              </label>
               {viewMode === "realistic" ? (
                 <strong>
                   {liveTrace.phase === "building" ? "BVH生成中…" : `間接光リアル描画 / ${liveTrace.samples} samples 収束中`}

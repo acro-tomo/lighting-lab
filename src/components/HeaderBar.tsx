@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import type { Project } from "../types";
+import type { ViewMode } from "./Scene3D";
 
 type HeaderBarProps = {
   project: Project;
@@ -8,6 +9,8 @@ type HeaderBarProps = {
   onExportProject: () => void;
   onToggleOutput: () => void;
   outputOpen: boolean;
+  viewMode: ViewMode;
+  onViewModeChange: (mode: ViewMode) => void;
 };
 
 export const HeaderBar = ({
@@ -16,7 +19,9 @@ export const HeaderBar = ({
   onImportProject,
   onExportProject,
   onToggleOutput,
-  outputOpen
+  outputOpen,
+  viewMode,
+  onViewModeChange
 }: HeaderBarProps) => {
   const planInputRef = useRef<HTMLInputElement | null>(null);
   const projectInputRef = useRef<HTMLInputElement | null>(null);
@@ -57,6 +62,22 @@ export const HeaderBar = ({
         <button onClick={() => planInputRef.current?.click()}>間取り図の読込</button>
         <button onClick={onExportProject}>プロジェクト保存</button>
         <button onClick={() => projectInputRef.current?.click()}>プロジェクト読込</button>
+        <div className="view-mode-toggle" role="group" aria-label="表示モード">
+          <button
+            className={viewMode === "raster" ? "view-mode-btn is-active" : "view-mode-btn"}
+            onClick={() => onViewModeChange("raster")}
+            title="編集（高速ラスター）"
+          >
+            編集
+          </button>
+          <button
+            className={viewMode === "realistic" ? "view-mode-btn is-active" : "view-mode-btn"}
+            onClick={() => onViewModeChange("realistic")}
+            title="リアル（常駐パストレ）"
+          >
+            リアル
+          </button>
+        </div>
         {/* レンダリング(パストレ)は普段使わないため出力ポップオーバーに集約（要望: PathTracer邪魔）。 */}
         <button className={outputOpen ? "primary-action is-active" : "primary-action"} onClick={onToggleOutput}>
           出力 / レンダリング

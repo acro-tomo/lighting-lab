@@ -1330,6 +1330,84 @@ h2 {
   opacity: 0.4;
 }
 
+/* 編集/リアル 切替トグル（ヘッダーに常時表示） */
+.view-mode-toggle {
+  display: flex;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.view-mode-btn {
+  min-height: 34px;
+  border: 0;
+  border-radius: 0;
+  padding: 8px 11px;
+  color: #e8e2d7;
+  background: rgba(255, 255, 255, 0.055);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.view-mode-btn + .view-mode-btn {
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.view-mode-btn:hover {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.view-mode-btn.is-active {
+  color: #1b1608;
+  background: #f5c64d;
+  font-weight: 760;
+}
+
+/* インスペクターフッター：免責をさりげなく */
+.inspector-footer {
+  margin-top: auto;
+  padding: 8px 4px 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.disclaimer-toggle {
+  align-self: flex-start;
+  border: 0;
+  padding: 0;
+  color: #6b6459;
+  background: transparent;
+  font-size: 11px;
+  cursor: pointer;
+  text-decoration: underline dotted;
+}
+
+.disclaimer-toggle:hover {
+  color: #a9a194;
+}
+
+.disclaimer-text {
+  color: #7a7268;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+/* ライトON/OFFチェックボックスを見やすくする */
+.light-onoff-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+}
+
+.light-onoff-label strong {
+  font-size: 13px;
+  color: #fff6d9;
+  min-width: 28px;
+}
+
 /* 出力 / レンダリング ポップオーバー（ヘッダー下に固定表示） */
 .output-popover {
   position: fixed;
