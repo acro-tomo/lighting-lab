@@ -356,8 +356,12 @@ const CameraViewSync = ({
     gl.toneMappingExposure = view.exposure;
   }, [gl, view.exposure]);
 
-  // 矢印キーで視点移動（要望: 左右でトラック、前後でドリー、Shift+上下で高さ）。
-  // カメラ位置と注視点(target)を同量だけ動かすので向きは保たれる。
+  // 矢印キーの挙動: 何か選択中なら選択オブジェクトを操作、未選択ならカメラ移動（従来）。
+  // 微調整用ナッジ量（選択オブジェクト操作時）。
+  const NUDGE_ROT_DEG = 15; // 左右キー1回の回転量
+  const NUDGE_Y_M = 0.05; // Shift+上下キー1回の昇降量
+  const NUDGE_Z_M = 0.1; // 上下キー1回の奥行き移動量
+  const NUDGE_RATIO = 0.02; // 窓の壁沿い移動量（centerRatio）
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const controls = controlsRef.current;
@@ -366,8 +370,57 @@ const CameraViewSync = ({
       const tag = target?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
       if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
-      event.preventDefault();
 
+      const store = useProjectStore.getState();
+      const selection = store.selection;
+      if (selection) {
+        event.preventDefault();
+        const project = store.project;
+        const left = event.key === "ArrowLeft";
+        const right = event.key === "ArrowRight";
+        const up = event.key === "ArrowUp";
+        const down = event.key === "ArrowDown";
+        if (selection.kind === "furniture") {
+          const item = project.furniture.find((f) => f.id === selection.id);
+          if (item) {
+            if (left || right) {
+              store.updateFurniture(item.id, { rotationYDeg: item.rotationYDeg + (right ? NUDGE_ROT_DEG : -NUDGE_ROT_DEG) });
+            } else if (event.shiftKey) {
+              store.updateFurniture(item.id, { position: { ...item.position, y: item.position.y + (up ? NUDGE_Y_M : -NUDGE_Y_M) } });
+            } else {
+              store.updateFurniture(item.id, { position: { ...item.position, z: item.position.z + (up ? NUDGE_Z_M : -NUDGE_Z_M) } });
+            }
+          }
+        } else if (selection.kind === "light") {
+          const fixture = project.lights.find((l) => l.id === selection.id);
+          if (fixture) {
+            if (left || right) {
+              store.updateLight(fixture.id, { rotationDeg: { ...fixture.rotationDeg, y: fixture.rotationDeg.y + (right ? NUDGE_ROT_DEG : -NUDGE_ROT_DEG) } });
+            } else if (event.shiftKey) {
+              store.updateLight(fixture.id, { position: { ...fixture.position, y: fixture.position.y + (up ? NUDGE_Y_M : -NUDGE_Y_M) } });
+            } else {
+              store.updateLight(fixture.id, { position: { ...fixture.position, z: fixture.position.z + (up ? NUDGE_Z_M : -NUDGE_Z_M) } });
+            }
+          }
+        } else if (selection.kind === "window" || selection.kind === "opening") {
+          const windowItem = project.windows.find((w) => w.id === selection.id);
+          if (windowItem) {
+            if (left || right) {
+              const next = Math.max(0, Math.min(1, windowItem.centerRatio + (right ? NUDGE_RATIO : -NUDGE_RATIO)));
+              store.updateWindow(windowItem.id, { centerRatio: next });
+            } else {
+              // 窓に回転は無いので上下は窓台高さ(sill)の調整に充てる。
+              const next = Math.max(0, windowItem.sillHeightM + (up ? NUDGE_Y_M : -NUDGE_Y_M));
+              store.updateWindow(windowItem.id, { sillHeightM: next });
+            }
+          }
+        }
+        return;
+      }
+
+      // 未選択: 従来のカメラ移動（左右でトラック、前後でドリー、Shift+上下で高さ）。
+      // カメラ位置と注視点(target)を同量だけ動かすので向きは保たれる。
+      event.preventDefault();
       const step = event.shiftKey ? 0.25 : 0.4;
       const forward = camera.getWorldDirection(new THREE.Vector3());
       forward.y = 0;
@@ -516,6 +569,8 @@ const SceneRoot = ({
   const floorTexture = useMemo(createWoodTexture, []);
   const floorMaterial = materialMap.get("floor-oak") ?? project.materials[0];
   const pathTraced = viewMode === "realistic";
+  // 室内仕上げ床のレベル。室内オブジェクト(家具/照明)も床と同じだけ持ち上げる。未設定(=0)で従来同一。
+  const floorLevelM = project.room.floorLevelM ?? 0;
 
   const daylight = project.daylight ?? DEFAULT_DAYLIGHT;
   const sun = useMemo(() => sunVector(daylight), [daylight]);
@@ -591,28 +646,31 @@ const SceneRoot = ({
           onSelect={onSelect}
           debugMode={debugMode}
         />
-        {project.furniture.map((item) => (
-          <FurnitureMesh
-            key={item.id}
-            item={item}
-            materialMap={materialMap}
-            selected={selection?.kind === "furniture" && selection.id === item.id}
-            onSelect={onSelect}
-            debugMode={debugMode}
-          />
-        ))}
-        <DuctRail />
-        {project.lights.map((fixture) => (
-          <FixtureMesh
-            key={fixture.id}
-            fixture={fixture}
-            activeScene={activeScene}
-            selected={selection?.kind === "light" && selection.id === fixture.id}
-            onSelect={onSelect}
-            debugMode={debugMode}
-          />
-        ))}
-        {debugMode === "normals" && <NormalDebugHelpers project={project} />}
+        {/* 室内オブジェクトも室内床レベルに合わせて持ち上げる（floorLevelM=0で従来同一）。 */}
+        <group position={[0, floorLevelM, 0]}>
+          {project.furniture.map((item) => (
+            <FurnitureMesh
+              key={item.id}
+              item={item}
+              materialMap={materialMap}
+              selected={selection?.kind === "furniture" && selection.id === item.id}
+              onSelect={onSelect}
+              debugMode={debugMode}
+            />
+          ))}
+          <DuctRail />
+          {project.lights.map((fixture) => (
+            <FixtureMesh
+              key={fixture.id}
+              fixture={fixture}
+              activeScene={activeScene}
+              selected={selection?.kind === "light" && selection.id === fixture.id}
+              onSelect={onSelect}
+              debugMode={debugMode}
+            />
+          ))}
+          {debugMode === "normals" && <NormalDebugHelpers project={project} />}
+        </group>
       </group>
       {/* 追加配置のゴーストプレビュー。非物理の編集補助なので常駐パストレ時は出さない。 */}
       {!pathTraced && pendingAdd && (
@@ -907,9 +965,13 @@ const RoomShell = ({
   const upperCeilingHeight =
     wallMaxHeight > project.room.ceilingHeightM + 0.05 ? wallMaxHeight : project.room.ceilingHeightM + 1.4;
   const floorBounds = computeFloorBounds(project);
+  // 室内仕上げ床のレベル。土間(FloorZone)が地面(Y=0)より下に潜らないよう室内全体を持ち上げる。
+  // 未設定(=0)なら translate ゼロで従来とピクセル等価。
+  const floorLevelM = project.room.floorLevelM ?? 0;
+  const showCeiling = project.showCeiling ?? true;
 
   return (
-    <>
+    <group position={[0, floorLevelM, 0]}>
       <Floor
         project={project}
         floorTexture={floorTexture}
@@ -936,17 +998,20 @@ const RoomShell = ({
           onSelect={onSelect}
         />
       ))}
-      <Ceiling project={project} material={ceilingMaterial} debugMode={debugMode} />
-      {(project.ceilingZones ?? []).map((zone) => (
-        <CeilingZoneMesh
-          key={zone.id}
-          zone={zone}
-          ceilingHeightM={project.room.ceilingHeightM}
-          material={ceilingMaterial}
-          selected={selection?.kind === "ceilingZone" && selection.id === zone.id}
-          debugMode={debugMode}
-        />
-      ))}
+      {/* 天井ON/OFF: 非矩形間取りでバウンディングボックス天井が室外にかかる場合に手動で消せる。
+          void の上蓋(VoidWell)は吹き抜けの黒抜け防止のため天井OFFでも残す。 */}
+      {showCeiling && <Ceiling project={project} material={ceilingMaterial} debugMode={debugMode} />}
+      {showCeiling &&
+        (project.ceilingZones ?? []).map((zone) => (
+          <CeilingZoneMesh
+            key={zone.id}
+            zone={zone}
+            ceilingHeightM={project.room.ceilingHeightM}
+            material={ceilingMaterial}
+            selected={selection?.kind === "ceilingZone" && selection.id === zone.id}
+            debugMode={debugMode}
+          />
+        ))}
       {project.voids.map((voidArea) => (
         <VoidWell
           key={`well-${voidArea.id}`}
@@ -984,7 +1049,7 @@ const RoomShell = ({
         );
       })}
       <BaseBoards project={project} />
-    </>
+    </group>
   );
 };
 
@@ -1542,16 +1607,33 @@ const WindowMesh = ({
   debugMode: RenderDebugMode;
 }) => {
   const wall = walls.find((item) => item.id === windowItem.wallId);
+  const pathTraced = usePathTraced();
+  const placement = usePlacement();
+  const editMode = useEditMode();
+  const updateWindow = useProjectStore((store) => store.updateWindow);
+  const floorLevelM = useProjectStore((store) => store.project.room.floorLevelM ?? 0);
+  // 窓の現在のワールド中心(x,z)。掴み位置の相対オフセットを保つため useFloorDrag の current に渡す。
+  const centerX = wall ? wall.start.x + (wall.end.x - wall.start.x) * windowItem.centerRatio : 0;
+  const centerZ = wall ? wall.start.z + (wall.end.z - wall.start.z) * windowItem.centerRatio : 0;
+  // 窓は壁に拘束されるので、床平面ヒット(x,z)を所属壁へ射影し centerRatio を再計算する。
+  // x,z は平面のY高さに依存しないため、平面Yは floorLevelM(室内床)に揃えれば十分。
+  const drag = useFloorDrag(
+    { x: centerX, z: centerZ },
+    floorLevelM,
+    (x, z) => {
+      if (!wall) return;
+      const { ratio } = projectPointOntoWall(x, z, wall);
+      updateWindow(windowItem.id, { centerRatio: Math.max(0, Math.min(1, ratio)) });
+    }
+  );
   if (!wall) return null;
 
-  const x = wall.start.x + (wall.end.x - wall.start.x) * windowItem.centerRatio;
-  const z = wall.start.z + (wall.end.z - wall.start.z) * windowItem.centerRatio;
+  const x = centerX;
+  const z = centerZ;
   const angle = Math.atan2(wall.end.z - wall.start.z, wall.end.x - wall.start.x);
   const y = windowItem.sillHeightM + windowItem.heightM / 2;
   const style = windowItem.style ?? (windowItem.hasGlass ? "window" : "opening");
   const kind = windowItem.hasGlass ? "window" : "opening";
-  const pathTraced = usePathTraced();
-  const placement = usePlacement();
   const w = windowItem.widthM;
   const h = windowItem.heightM;
   const f = 0.06; // 枠の見付け幅
@@ -1570,7 +1652,11 @@ const WindowMesh = ({
         if (placement.pendingAdd) return;
         event.stopPropagation();
         onSelect({ kind, id: windowItem.id });
+        // move モードでは壁沿いの水平移動ドラッグを開始（高さ変更は矢印キーに任せる）。
+        if (editMode === "move") drag.onPointerDown(event);
       }}
+      onPointerMove={editMode === "move" ? drag.onPointerMove : undefined}
+      onPointerUp={editMode === "move" ? drag.onPointerUp : undefined}
     >
       {/* 枠（窓・扉とも周囲に回す） */}
       {style !== "opening" && (
@@ -1760,9 +1846,11 @@ const FurnitureMesh = ({
   const placement = usePlacement();
   const updateFurniture = useProjectStore((state) => state.updateFurniture);
   const deleteSelection = useProjectStore((state) => state.deleteSelection);
+  const floorLevelM = useProjectStore((state) => state.project.room.floorLevelM ?? 0);
   const drag = useFloorDrag(
     { x: item.position.x, z: item.position.z },
-    item.position.y,
+    // 家具は floorLevelM 群に乗るのでドラッグ平面も同量持ち上げる（floorLevelM=0で従来同一）。
+    floorLevelM + item.position.y,
     (x, z) => updateFurniture(item.id, { position: { ...item.position, x, z } })
   );
 
@@ -2189,9 +2277,11 @@ const FixtureMesh = ({
   const placement = usePlacement();
   const updateLight = useProjectStore((store) => store.updateLight);
   const deleteSelection = useProjectStore((store) => store.deleteSelection);
+  const floorLevelM = useProjectStore((store) => store.project.room.floorLevelM ?? 0);
   const drag = useFloorDrag(
     { x: fixture.position.x, z: fixture.position.z },
-    fixture.position.y,
+    // 照明も floorLevelM 群に乗るのでドラッグ平面も同量持ち上げる（floorLevelM=0で従来同一）。
+    floorLevelM + fixture.position.y,
     (x, z) => {
       const dx = x - fixture.position.x;
       const dz = z - fixture.position.z;
