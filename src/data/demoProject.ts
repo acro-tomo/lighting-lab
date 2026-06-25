@@ -270,7 +270,7 @@ export const demoProject: Project = {
       target: vec3(0.1, 0, -2.92),
       lumens: 520,
       colorTemperatureK: 2700,
-      dimmer: 85,
+      dimmer: 28,
       enabled: true,
       beamAngleDeg: 60,
       penumbra: 0.5,
@@ -288,7 +288,7 @@ export const demoProject: Project = {
       target: vec3(1.1, 0, -2.92),
       lumens: 520,
       colorTemperatureK: 2700,
-      dimmer: 85,
+      dimmer: 28,
       enabled: true,
       beamAngleDeg: 60,
       penumbra: 0.5,
@@ -306,7 +306,7 @@ export const demoProject: Project = {
       target: vec3(2.1, 0, -2.92),
       lumens: 520,
       colorTemperatureK: 2700,
-      dimmer: 85,
+      dimmer: 28,
       enabled: true,
       beamAngleDeg: 60,
       penumbra: 0.5,
@@ -397,7 +397,7 @@ export const demoProject: Project = {
       target: vec3(3.4, 1.25, 1.35),
       lumens: 360,
       colorTemperatureK: 2700,
-      dimmer: 55,
+      dimmer: 35,
       enabled: true,
       beamAngleDeg: 120,
       penumbra: 0.8,
@@ -415,8 +415,8 @@ export const demoProject: Project = {
       target: vec3(1.1, 1.52, -3.2),
       lumens: 420,
       colorTemperatureK: 2400,
-      dimmer: 30,
-      enabled: true,
+      dimmer: 0,
+      enabled: false,
       beamAngleDeg: 160,
       penumbra: 0.9,
       castsShadow: false,
@@ -424,104 +424,12 @@ export const demoProject: Project = {
       lengthM: 1.65
     }
   ],
-  lightingScenes: [
-    {
-      id: "scene-dining",
-      name: "食事",
-      description: "テーブルとキッチンを中心に、TV壁は控えめ。",
-      lightStates: {
-        "light-dining-pendant": { enabled: true, dimmer: 92 },
-        "light-rail-spot-1": { enabled: true, dimmer: 82 },
-        "light-rail-spot-2": { enabled: true, dimmer: 82 },
-        "light-rail-spot-3": { enabled: true, dimmer: 82 },
-        "light-tv-wall-1": { enabled: true, dimmer: 28 },
-        "light-tv-wall-2": { enabled: true, dimmer: 28 },
-        "light-tv-wall-3": { enabled: true, dimmer: 28 },
-        "light-stair-bracket": { enabled: true, dimmer: 35 },
-        "light-tv-tape": { enabled: false, dimmer: 0 }
-      }
-    },
-    {
-      id: "scene-relax",
-      name: "くつろぎ",
-      description: "ペンダントを落としてTV壁と間接照明を強める。",
-      lightStates: {
-        "light-dining-pendant": { enabled: true, dimmer: 18 },
-        "light-rail-spot-1": { enabled: true, dimmer: 28 },
-        "light-rail-spot-2": { enabled: true, dimmer: 28 },
-        "light-rail-spot-3": { enabled: true, dimmer: 28 },
-        "light-tv-wall-1": { enabled: true, dimmer: 62 },
-        "light-tv-wall-2": { enabled: true, dimmer: 62 },
-        "light-tv-wall-3": { enabled: true, dimmer: 62 },
-        "light-stair-bracket": { enabled: true, dimmer: 45 },
-        "light-tv-tape": { enabled: true, dimmer: 52 }
-      }
-    },
-    {
-      id: "scene-night",
-      name: "夜間移動",
-      description: "最低限の足元・階段視認だけを残す。",
-      lightStates: {
-        "light-dining-pendant": { enabled: false, dimmer: 0 },
-        "light-rail-spot-1": { enabled: true, dimmer: 8 },
-        "light-rail-spot-2": { enabled: false, dimmer: 0 },
-        "light-rail-spot-3": { enabled: false, dimmer: 0 },
-        "light-tv-wall-1": { enabled: false, dimmer: 0 },
-        "light-tv-wall-2": { enabled: true, dimmer: 10 },
-        "light-tv-wall-3": { enabled: false, dimmer: 0 },
-        "light-stair-bracket": { enabled: true, dimmer: 38 },
-        "light-tv-tape": { enabled: true, dimmer: 14 }
-      }
-    }
-  ],
-  cameraViews: [
-    {
-      id: "view-dining",
-      name: "ダイニング着席",
-      position: vec3(-2.55, 1.18, 3.15),
-      target: vec3(-1.15, 0.95, -0.15),
-      fov: 64,
-      exposure: 1.12,
-      resolutionWidth: 1600
-    },
-    {
-      id: "view-sofa",
-      name: "ソファ着席",
-      position: vec3(1.55, 1.08, 2.65),
-      target: vec3(1.05, 1.05, -2.72),
-      fov: 62,
-      exposure: 1.08,
-      resolutionWidth: 1600
-    },
-    {
-      id: "view-kitchen",
-      name: "キッチン作業",
-      position: vec3(-3.1, 1.45, 0.4),
-      target: vec3(-2.65, 0.95, -1.25),
-      fov: 58,
-      exposure: 1.12,
-      resolutionWidth: 1600
-    },
-    {
-      id: "view-stair",
-      name: "階段下",
-      position: vec3(3.7, 1.25, 2.65),
-      target: vec3(2.45, 1.18, 0.05),
-      fov: 58,
-      exposure: 1.05,
-      resolutionWidth: 1600
-    },
-    {
-      id: "view-free",
-      name: "自由視点",
-      position: vec3(1.8, 2.35, 3.05),
-      target: vec3(-0.35, 0.72, -0.35),
-      fov: 64,
-      exposure: 1.22,
-      resolutionWidth: 1600
-    }
-  ],
-  activeSceneId: "scene-dining",
-  activeCameraViewId: "view-free",
+  camera: {
+    position: vec3(1.8, 2.35, 3.05),
+    target: vec3(-0.35, 0.72, -0.35),
+    fov: 64,
+    exposure: 1.22,
+    resolutionWidth: 1600
+  },
   daylight: { enabled: true, month: 10, day: 15, hour: 14, northOffsetDeg: 0, latitudeDeg: 35 }
 };

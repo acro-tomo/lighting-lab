@@ -165,25 +165,14 @@ export type LightFixture = {
   cordLengthM?: number;
 };
 
-export type SceneLightState = {
-  enabled: boolean;
-  dimmer: number;
-};
-
-export type LightingScene = {
-  id: string;
-  name: string;
-  description: string;
-  lightStates: Record<string, SceneLightState>;
-};
-
-export type CameraView = {
-  id: string;
-  name: string;
+// 唯一のカメラ＝編集視点かつ最終レンダーPNGの既定視点。
+// 旧 CameraView から id/name を除いた形。
+export type ProjectCamera = {
   position: Vec3M;
   target: Vec3M;
   fov: number;
   exposure: number;
+  /** 最終レンダーPNGの横解像度(px)。 */
   resolutionWidth: number;
 };
 
@@ -256,10 +245,8 @@ export type Project = {
   floorZones?: FloorZone[];
   furniture: FurnitureItem[];
   lights: LightFixture[];
-  lightingScenes: LightingScene[];
-  cameraViews: CameraView[];
-  activeSceneId: string;
-  activeCameraViewId: string;
+  /** 編集視点かつ最終レンダーの既定視点。 */
+  camera: ProjectCamera;
   backgroundPlan?: FloorPlanBackground;
   daylight?: Daylight;
   /** 天井の表示ON/OFF。undefined は true 扱い(既定で天井表示)。 */

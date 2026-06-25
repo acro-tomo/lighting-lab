@@ -193,55 +193,11 @@ export const calibrationProject: Project = {
       note: "正面白壁のグラデーション確認用"
     }
   ],
-  lightingScenes: [
-    {
-      id: "cal-scene-pendant-and-spot",
-      name: "校正: ペンダント+壁スポット",
-      description: "白い室内面の反射と壁面照射の確認。",
-      lightStates: {
-        "cal-pendant": { enabled: true, dimmer: 100 },
-        "cal-wall-spot": { enabled: true, dimmer: 100 }
-      }
-    },
-    {
-      id: "cal-scene-pendant-only",
-      name: "校正: ペンダントのみ",
-      description: "1000lmペンダント1灯で室内の位置関係を確認。",
-      lightStates: {
-        "cal-pendant": { enabled: true, dimmer: 100 },
-        "cal-wall-spot": { enabled: false, dimmer: 0 }
-      }
-    },
-    {
-      id: "cal-scene-pendant-500",
-      name: "校正: ペンダント500lm相当",
-      description: "同じ器具を50%調光し、明るさ差を確認。",
-      lightStates: {
-        "cal-pendant": { enabled: true, dimmer: 50 },
-        "cal-wall-spot": { enabled: false, dimmer: 0 }
-      }
-    }
-  ],
-  cameraViews: [
-    {
-      id: "cal-view-room",
-      name: "校正室 全体",
-      position: vec3(0, 1.34, 1.92),
-      target: vec3(0, 1.05, -0.65),
-      fov: 56,
-      exposure: 1.12,
-      resolutionWidth: 1200
-    },
-    {
-      id: "cal-view-wall",
-      name: "壁面照射",
-      position: vec3(0.65, 1.3, 1.78),
-      target: vec3(-0.75, 1.18, -2.25),
-      fov: 50,
-      exposure: 1.1,
-      resolutionWidth: 1200
-    }
-  ],
-  activeSceneId: "cal-scene-pendant-and-spot",
-  activeCameraViewId: "cal-view-room"
+  camera: {
+    position: vec3(0, 1.34, 1.92),
+    target: vec3(0, 1.05, -0.65),
+    fov: 56,
+    exposure: 1.12,
+    resolutionWidth: 1200
+  }
 };

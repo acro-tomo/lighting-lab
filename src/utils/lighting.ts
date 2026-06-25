@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import type { LightFixture, LightingScene, SceneLightState } from "../types";
+import type { LightFixture } from "../types";
 import { clamp } from "./units";
 
 export const colorTemperatureToHex = (kelvin: number) => {
@@ -28,25 +28,10 @@ export const colorTemperatureToHex = (kelvin: number) => {
   );
 };
 
-export const getSceneLightState = (
-  fixture: LightFixture,
-  activeScene?: LightingScene
-): SceneLightState => {
-  const sceneState = activeScene?.lightStates[fixture.id];
-  return {
-    enabled: sceneState?.enabled ?? fixture.enabled,
-    dimmer: sceneState?.dimmer ?? fixture.dimmer
-  };
-};
+export const lumensToThreeIntensity = (fixture: LightFixture): number => {
+  if (!fixture.enabled) return 0;
 
-export const lumensToThreeIntensity = (
-  fixture: LightFixture,
-  activeScene?: LightingScene
-) => {
-  const state = getSceneLightState(fixture, activeScene);
-  if (!state.enabled) return 0;
-
-  const dimmedLumens = fixture.lumens * clamp(state.dimmer, 0, 100) * 0.01;
+  const dimmedLumens = fixture.lumens * clamp(fixture.dimmer, 0, 100) * 0.01;
 
   // Three.jsの物理ライト単位は器具形状や露出設定で見え方が変わる。
   // v1では視覚比較の一貫性を優先し、lmを一定係数で表示用強度に変換する。
@@ -78,11 +63,7 @@ export const bracketRoomwardOffset = (
   return { x: (dx / len) * offM, z: (dz / len) * offM };
 };
 
-export const lumensToPhysicalPower = (
-  fixture: LightFixture,
-  activeScene?: LightingScene
-) => {
-  const state = getSceneLightState(fixture, activeScene);
-  if (!state.enabled) return 0;
-  return fixture.lumens * clamp(state.dimmer, 0, 100) * 0.01;
+export const lumensToPhysicalPower = (fixture: LightFixture): number => {
+  if (!fixture.enabled) return 0;
+  return fixture.lumens * clamp(fixture.dimmer, 0, 100) * 0.01;
 };

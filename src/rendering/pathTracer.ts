@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { WebGLPathTracer } from "three-gpu-pathtracer";
 import { GenerateMeshBVHWorker } from "three-mesh-bvh/src/workers/index.js";
-import type { FurnitureItem, LightingScene, MaterialPreset, Project } from "../types";
+import type { FurnitureItem, MaterialPreset, Project } from "../types";
 import { bracketRoomwardOffset, colorTemperatureToHex, lumensToPhysicalPower } from "../utils/lighting";
 import { DEFAULT_DAYLIGHT, sunVector } from "../utils/sun";
 import {
@@ -66,7 +66,6 @@ export type PathTraceResult = {
 type RenderPathTracedImageOptions = {
   context: RenderContext;
   project: Project;
-  activeScene?: LightingScene;
   mode: PathTraceMode;
   debugMode: RenderDebugMode;
   maxWidth?: number;
@@ -365,7 +364,6 @@ const ceilingPieces = (project: Project) => {
 const buildPathTraceScene = (
   renderer: THREE.WebGLRenderer,
   project: Project,
-  activeScene: LightingScene | undefined,
   debugMode: RenderDebugMode
 ): { scene: THREE.Scene; skyEnv: SkyEnvironment | null } => {
   const scene = new THREE.Scene();
@@ -518,7 +516,7 @@ const buildPathTraceScene = (
   project.furniture.forEach((item) => addFurniture(scene, item, materials, debugMode));
 
   project.lights.forEach((fixture) => {
-    const power = lumensToPhysicalPower(fixture, activeScene);
+    const power = lumensToPhysicalPower(fixture);
     if (power <= 0) return;
     const color = colorTemperatureToHex(fixture.colorTemperatureK);
     const targetPosition = fixture.target ?? { x: fixture.position.x, y: 0.7, z: fixture.position.z };
@@ -658,7 +656,6 @@ const applyPathTracerSceneUpdate = async ({
 export const renderPathTracedImage = async ({
   context,
   project,
-  activeScene,
   mode,
   debugMode,
   maxWidth = 1600,
@@ -706,7 +703,7 @@ export const renderPathTracedImage = async ({
   }
   camera.updateMatrixWorld(true);
 
-  const { scene, skyEnv } = buildPathTraceScene(renderer, project, activeScene, debugMode);
+  const { scene, skyEnv } = buildPathTraceScene(renderer, project, debugMode);
   const pathTracer = new WebGLPathTracer(renderer);
   const bvhWorker = new GenerateMeshBVHWorker();
   pathTracer.renderDelay = 0;

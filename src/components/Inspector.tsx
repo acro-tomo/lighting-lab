@@ -2,7 +2,6 @@ import type { ChangeEvent } from "react";
 import type { CeilingZone, FloorZone, FurnitureItem, LightFixture, MaterialPreset, Project, Selection, VoidArea, WallSegment, WindowOpening } from "../types";
 import { useProjectStore } from "../store/projectStore";
 import { applyFixtureModel, fixtureCatalog, getFixtureModel } from "../data/fixtureCatalog";
-import { getSceneLightState } from "../utils/lighting";
 import { clamp, mToMm, mmToM } from "../utils/units";
 
 type InspectorProps = {
@@ -42,7 +41,6 @@ const ColorTempPresets = ({
 
 export const Inspector = ({ project, selection }: InspectorProps) => {
   const updateLight = useProjectStore((state) => state.updateLight);
-  const updateSceneLightState = useProjectStore((state) => state.updateSceneLightState);
   const updateFurniture = useProjectStore((state) => state.updateFurniture);
   const updateWall = useProjectStore((state) => state.updateWall);
   const updateWindow = useProjectStore((state) => state.updateWindow);
@@ -54,7 +52,6 @@ export const Inspector = ({ project, selection }: InspectorProps) => {
   const select = useProjectStore((state) => state.select);
   const setShowCeiling = useProjectStore((state) => state.setShowCeiling);
   const setFloorLevel = useProjectStore((state) => state.setFloorLevel);
-  const activeScene = project.lightingScenes.find((scene) => scene.id === project.activeSceneId);
 
   const selectedLight =
     selection?.kind === "light" ? project.lights.find((light) => light.id === selection.id) : undefined;
@@ -80,8 +77,7 @@ export const Inspector = ({ project, selection }: InspectorProps) => {
       : undefined;
 
   const totalActiveLumens = project.lights.reduce((sum, light) => {
-    const state = getSceneLightState(light, activeScene);
-    return sum + (state.enabled ? light.lumens * state.dimmer * 0.01 : 0);
+    return sum + ((light.enabled !== false) ? light.lumens * (light.dimmer ?? 100) * 0.01 : 0);
   }, 0);
 
   return (
@@ -141,13 +137,10 @@ export const Inspector = ({ project, selection }: InspectorProps) => {
           </div>
         </div>
         {!selection && <p className="muted">2Dまたは3Dで家具・照明・壁を選択してください。</p>}
-        {selectedLight && activeScene && (
+        {selectedLight && (
           <LightInspector
             light={selectedLight}
-            sceneId={activeScene.id}
-            sceneState={getSceneLightState(selectedLight, activeScene)}
             updateLight={updateLight}
-            updateSceneLightState={updateSceneLightState}
           />
         )}
         {selectedFurniture && <FurnitureInspector item={selectedFurniture} updateFurniture={updateFurniture} />}
@@ -163,7 +156,6 @@ export const Inspector = ({ project, selection }: InspectorProps) => {
       <section className="panel-block">
         <div className="panel-heading compact">
           <h2>照明一覧</h2>
-          <span>{activeScene?.name}</span>
         </div>
         <label className="field">
           <span>全照明の色温度を一括変更</span>
@@ -179,14 +171,11 @@ export const Inspector = ({ project, selection }: InspectorProps) => {
             }}
           >
             <option value="">— 照明を選択 —</option>
-            {project.lights.map((light) => {
-              const state = getSceneLightState(light, activeScene);
-              return (
-                <option key={light.id} value={light.id}>
-                  {light.name}（{state.enabled ? `${Math.round(state.dimmer)}%` : "OFF"}）
-                </option>
-              );
-            })}
+            {project.lights.map((light) => (
+              <option key={light.id} value={light.id}>
+                {light.name}（{light.enabled !== false ? `${Math.round(light.dimmer ?? 100)}%` : "OFF"}）
+              </option>
+            ))}
           </select>
         </label>
       </section>
@@ -196,20 +185,10 @@ export const Inspector = ({ project, selection }: InspectorProps) => {
 
 const LightInspector = ({
   light,
-  sceneId,
-  sceneState,
-  updateLight,
-  updateSceneLightState
+  updateLight
 }: {
   light: LightFixture;
-  sceneId: string;
-  sceneState: { enabled: boolean; dimmer: number };
   updateLight: (id: string, patch: Partial<LightFixture>) => void;
-  updateSceneLightState: (
-    sceneId: string,
-    lightId: string,
-    patch: { enabled?: boolean; dimmer?: number }
-  ) => void;
 }) => {
   const currentModel = getFixtureModel(light);
   const aim = light.target ?? { x: light.position.x, y: 0, z: light.position.z };
@@ -272,18 +251,18 @@ const LightInspector = ({
       <label>
         <input
           type="checkbox"
-          checked={sceneState.enabled}
-          onChange={(event) => updateSceneLightState(sceneId, light.id, { enabled: event.target.checked })}
+          checked={light.enabled !== false}
+          onChange={(event) => updateLight(light.id, { enabled: event.target.checked })}
         />
-        現在の照明シーンでON
+        ON
       </label>
       <NumberField
         label="調光"
         unit="%"
-        value={Math.round(sceneState.dimmer)}
+        value={Math.round(light.dimmer ?? 100)}
         min={0}
         max={100}
-        onChange={(dimmer) => updateSceneLightState(sceneId, light.id, { dimmer: clamp(dimmer, 0, 100) })}
+        onChange={(dimmer) => updateLight(light.id, { dimmer: clamp(dimmer, 0, 100) })}
       />
     </div>
     <label className="field">

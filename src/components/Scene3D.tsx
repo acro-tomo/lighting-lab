@@ -15,20 +15,19 @@ import {
 import type { RenderDebugMode } from "../rendering/pathTracer";
 import type { RenderContext } from "../rendering/renderContext";
 import type {
-  CameraView,
   CeilingZone,
   FloorZone,
   FurnitureItem,
   LightFixture,
-  LightingScene,
   MaterialPreset,
   Project,
+  ProjectCamera,
   Selection,
   VoidArea,
   WallSegment,
   WindowOpening
 } from "../types";
-import { bracketRoomwardOffset, colorTemperatureToHex, getSceneLightState, lumensToPhysicalPower } from "../utils/lighting";
+import { bracketRoomwardOffset, colorTemperatureToHex, lumensToPhysicalPower } from "../utils/lighting";
 import { getFurniturePreset } from "../data/furnitureCatalog";
 import { getWindowPreset } from "../data/windowCatalog";
 import { useProjectStore } from "../store/projectStore";
@@ -304,7 +303,7 @@ const CameraViewSync = ({
   view,
   controlsRef
 }: {
-  view: CameraView;
+  view: ProjectCamera;
   controlsRef: MutableRefObject<OrbitControlsImpl | null>;
 }) => {
   const { camera, gl } = useThree();
@@ -338,9 +337,9 @@ const CameraViewSync = ({
     useProjectStore.getState().setLiveCamera({ x: camera.position.x, z: camera.position.z, tx, tz });
   });
 
-  // ビューの「切替」時だけカメラを適用する。view.id をキーにすることで、
-  // 家具移動などでプロジェクトがcloneされ view オブジェクト参照が変わっても
-  // （＝同じビューのまま）カメラがリセットされない。露出は毎回反映する。
+  // project.camera を初期視点として適用する。家具移動などでプロジェクトが clone され
+  // camera オブジェクト参照が変わっても、座標値が同じなら依存配列が変化せず（＝視点は
+  // ユーザーのOrbit操作のまま）リセットされない。カメラ値が実際に変わった時だけ適用する。
   useEffect(() => {
     camera.position.set(view.position.x, view.position.y, view.position.z);
     if (camera instanceof THREE.PerspectiveCamera) {
@@ -350,7 +349,17 @@ const CameraViewSync = ({
     controlsRef.current?.target.set(view.target.x, view.target.y, view.target.z);
     controlsRef.current?.update();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [camera, controlsRef, view.id]);
+  }, [
+    camera,
+    controlsRef,
+    view.position.x,
+    view.position.y,
+    view.position.z,
+    view.target.x,
+    view.target.y,
+    view.target.z,
+    view.fov
+  ]);
 
   useEffect(() => {
     gl.toneMappingExposure = view.exposure;
@@ -559,10 +568,6 @@ const SceneRoot = ({
 }: Scene3DProps) => {
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const materialMap = useMemo(() => materialById(project.materials), [project.materials]);
-  const activeScene = project.lightingScenes.find((scene) => scene.id === project.activeSceneId);
-  const activeView =
-    project.cameraViews.find((view) => view.id === project.activeCameraViewId) ??
-    project.cameraViews[0];
   const floorTexture = useMemo(createWoodTexture, []);
   const floorMaterial = materialMap.get("floor-oak") ?? project.materials[0];
   const pathTraced = viewMode === "realistic";
@@ -586,9 +591,8 @@ const SceneRoot = ({
     let lumens = 0;
     let kWeighted = 0;
     for (const light of project.lights) {
-      const state = getSceneLightState(light, activeScene);
-      if (!state.enabled) continue;
-      const lm = light.lumens * state.dimmer * 0.01;
+      if (!light.enabled) continue;
+      const lm = light.lumens * light.dimmer * 0.01;
       lumens += lm;
       kWeighted += light.colorTemperatureK * lm;
     }
@@ -601,13 +605,13 @@ const SceneRoot = ({
     // 総光束→フィル強度。おおよそ 0〜26000lm を 0〜0.5 に飽和させる。
     const intensity = Math.min(0.5, lumens / 26000);
     return { warm, warmCeiling, intensity };
-  }, [project.lights, activeScene]);
+  }, [project.lights]);
 
   return (
     <EditModeContext.Provider value={mode}>
     <PathTracedContext.Provider value={pathTraced}>
     <PlacementContext.Provider value={{ pendingAdd: pathTraced ? null : pendingAdd, onPlaceOnWall }}>
-      <CameraViewSync view={activeView} controlsRef={controlsRef} />
+      <CameraViewSync view={project.camera} controlsRef={controlsRef} />
       <color attach="background" args={[backgroundColor]} />
       <Outdoors />
       {sunUp && <SunLight dir={sun.dir} altitudeDeg={sun.altitudeDeg} roomSpan={roomSpan} />}
@@ -660,7 +664,6 @@ const SceneRoot = ({
             <FixtureMesh
               key={fixture.id}
               fixture={fixture}
-              activeScene={activeScene}
               selected={selection?.kind === "light" && selection.id === fixture.id}
               onSelect={onSelect}
               debugMode={debugMode}
@@ -700,7 +703,6 @@ const SceneRoot = ({
       {pathTraced && (
         <PathTracerController
           project={project}
-          activeScene={activeScene}
           debugMode={debugMode}
           onStatus={onLiveTraceStatus}
         />
@@ -719,12 +721,10 @@ const SceneRoot = ({
 // - mount/unmount で R3F の自動描画を奪う/返す（useFrame priority 1）。
 const PathTracerController = ({
   project,
-  activeScene,
   debugMode,
   onStatus
 }: {
   project: Project;
-  activeScene?: LightingScene;
   debugMode: RenderDebugMode;
   onStatus?: (status: LiveTraceStatus) => void;
 }) => {
@@ -857,7 +857,7 @@ const PathTracerController = ({
         .catch(() => undefined);
     }, 250);
     return () => window.clearTimeout(handle);
-  }, [project, activeScene, debugMode, camera, scene, onStatus]);
+  }, [project, debugMode, camera, scene, onStatus]);
 
   useFrame(() => {
     const tracer = tracerRef.current;
@@ -2256,18 +2256,15 @@ const DuctRail = () => (
 
 const FixtureMesh = ({
   fixture,
-  activeScene,
   selected,
   onSelect,
   debugMode
 }: {
   fixture: LightFixture;
-  activeScene?: LightingScene;
   selected: boolean;
   onSelect: (selection: Selection) => void;
   debugMode: RenderDebugMode;
 }) => {
-  const state = getSceneLightState(fixture, activeScene);
   const lightColor = colorTemperatureToHex(fixture.colorTemperatureK);
   const pathTraced = usePathTraced();
   const editMode = useEditMode();
@@ -2307,8 +2304,8 @@ const FixtureMesh = ({
       onPointerMove={editMode === "move" ? drag.onPointerMove : undefined}
       onPointerUp={editMode === "move" ? drag.onPointerUp : undefined}
     >
-      <FixtureBody fixture={fixture} color={lightColor} active={state.enabled && state.dimmer > 0} debugMode={debugMode} />
-      <PhysicalLight fixture={fixture} activeScene={activeScene} debugMode={debugMode} />
+      <FixtureBody fixture={fixture} color={lightColor} active={fixture.enabled && fixture.dimmer > 0} debugMode={debugMode} />
+      <PhysicalLight fixture={fixture} debugMode={debugMode} />
       {selected && !pathTraced && (
         <mesh>
           <sphereGeometry args={[0.18, 24, 16]} />
@@ -2473,16 +2470,14 @@ const FixtureBody = ({
 
 const PhysicalLight = ({
   fixture,
-  activeScene,
   debugMode
 }: {
   fixture: LightFixture;
-  activeScene?: LightingScene;
   debugMode: RenderDebugMode;
 }) => {
   const scene = useThree((state) => state.scene);
   const target = useMemo(() => new THREE.Object3D(), []);
-  const power = lumensToPhysicalPower(fixture, activeScene);
+  const power = lumensToPhysicalPower(fixture);
   const color = colorTemperatureToHex(fixture.colorTemperatureK);
   const targetPosition = fixture.target ?? { x: fixture.position.x, y: 0.1, z: fixture.position.z };
 

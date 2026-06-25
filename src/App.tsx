@@ -3,7 +3,6 @@ import { HeaderBar } from "./components/HeaderBar";
 import { Inspector } from "./components/Inspector";
 import { Plan2D } from "./components/Plan2D";
 import { Scene3D, type LiveTraceStatus, type ViewMode } from "./components/Scene3D";
-import { SceneStrip } from "./components/SceneStrip";
 import { renderPathTracedImage, sampleCountByMode, type PathTraceMode, type RenderDebugMode } from "./rendering/pathTracer";
 import type { RenderContext } from "./rendering/renderContext";
 import { projectSchema } from "./schema/projectSchema";
@@ -70,9 +69,6 @@ export const App = () => {
   const addCompareShot = useProjectStore((state) => state.addCompareShot);
   const undo = useProjectStore((state) => state.undo);
   const redo = useProjectStore((state) => state.redo);
-  const duplicateActiveScene = useProjectStore((state) => state.duplicateActiveScene);
-  const renameActiveScene = useProjectStore((state) => state.renameActiveScene);
-  const saveCameraView = useProjectStore((state) => state.saveCameraView);
   const addLight = useProjectStore((state) => state.addLight);
   const addFurniture = useProjectStore((state) => state.addFurniture);
   const addWindow = useProjectStore((state) => state.addWindow);
@@ -184,9 +180,6 @@ export const App = () => {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [deleteSelection, redo, select, undo]);
 
-  const activeScene = project.lightingScenes.find((scene) => scene.id === project.activeSceneId);
-  const activeView = project.cameraViews.find((view) => view.id === project.activeCameraViewId);
-
   const handleImportFloorPlan = async (file: File) => {
     try {
       const result = await floorPlanFileToDataUrl(file);
@@ -244,7 +237,7 @@ export const App = () => {
 
   const captureCompare = useCallback(() => {
     if (renderingRef.current) return;
-    if (!renderContext || !activeScene || !activeView) {
+    if (!renderContext) {
       setNotice("レンダリングを開始できませんでした。3D表示を確認してください。");
       return;
     }
@@ -265,10 +258,9 @@ export const App = () => {
     void renderPathTracedImage({
       context: renderContext,
       project,
-      activeScene,
       mode: pathTraceMode,
       debugMode,
-      maxWidth: activeView.resolutionWidth,
+      maxWidth: project.camera.resolutionWidth,
       signal: abortController.signal,
       onProgress: (progress) => {
         const buildPercent =
@@ -298,8 +290,8 @@ export const App = () => {
           name: `案 ${compareShots.length + 1}`,
           dataUrl: result.dataUrl,
           createdAt: new Date().toISOString(),
-          cameraViewName: activeView.name,
-          lightingSceneName: activeScene.name,
+          cameraViewName: "視点",
+          lightingSceneName: "",
           renderer: "pathtraced",
           samples: result.samples,
           resolution: { width: result.width, height: result.height }
@@ -331,7 +323,7 @@ export const App = () => {
         renderAbortRef.current = null;
         renderingRef.current = false;
       });
-  }, [activeScene, activeView, addCompareShot, compareShots.length, debugMode, pathTraceMode, project, renderContext]);
+  }, [addCompareShot, compareShots.length, debugMode, pathTraceMode, project, renderContext]);
 
   const stopRender = useCallback(() => {
     renderAbortRef.current?.abort();
@@ -437,36 +429,6 @@ export const App = () => {
     [pendingAdd, handleAddObject]
   );
 
-  const saveCurrentCamera = useCallback(() => {
-    if (!renderContext || !activeView) {
-      setNotice("保存する3Dカメラがまだ準備できていません。");
-      return;
-    }
-    const name = window.prompt("カメラビュー名", `保存ビュー ${project.cameraViews.length + 1}`);
-    if (!name?.trim()) return;
-    const camera = renderContext.camera as typeof renderContext.camera & { fov?: number };
-    saveCameraView({
-      id: `view-${Date.now()}`,
-      name: name.trim(),
-      position: {
-        x: camera.position.x,
-        y: camera.position.y,
-        z: camera.position.z
-      },
-      target: activeView.target,
-      fov: camera.fov ?? activeView.fov,
-      exposure: activeView.exposure,
-      resolutionWidth: activeView.resolutionWidth
-    });
-    setNotice(`${name.trim()} をカメラビューとして保存しました。`);
-  }, [activeView, project.cameraViews.length, renderContext, saveCameraView]);
-
-  const renameCurrentScene = useCallback(() => {
-    const name = window.prompt("照明シーン名", activeScene?.name ?? "照明シーン");
-    if (!name?.trim()) return;
-    renameActiveScene(name.trim());
-  }, [activeScene?.name, renameActiveScene]);
-
   const elapsedSeconds = (renderProgress.elapsedMs / 1000).toFixed(1);
   const renderPercent = renderProgress.targetSamples
     ? Math.min(100, Math.round((renderProgress.samples / renderProgress.targetSamples) * 100))
@@ -516,7 +478,7 @@ export const App = () => {
             <div className="viewport-title">
               <div>
                 <p className="eyebrow">3D Preview</p>
-                <h2>{activeView?.name ?? "自由視点"} / {activeScene?.name ?? "照明シーン"}</h2>
+                <h2>3D Preview</h2>
               </div>
               <button
                 type="button"
@@ -566,7 +528,7 @@ export const App = () => {
                   {liveTrace.phase === "building" ? "BVH生成中…" : `間接光リアル描画 / ${liveTrace.samples} samples 収束中`}
                 </strong>
               ) : (
-                <strong>編集プレビュー / 露出 {activeView?.exposure.toFixed(2)}</strong>
+                <strong>編集プレビュー / 露出 {project.camera.exposure.toFixed(2)}</strong>
               )}
             </div>
 
@@ -702,14 +664,6 @@ export const App = () => {
               </div>
             )}
           </div>
-          <SceneStrip
-            project={project}
-            compareShots={compareShots}
-            compareOpen={compareOpen}
-            onDuplicateScene={duplicateActiveScene}
-            onRenameScene={renameCurrentScene}
-            onSaveCameraView={saveCurrentCamera}
-          />
         </section>
         <Inspector project={project} selection={selection} />
       </main>

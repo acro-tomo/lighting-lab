@@ -3,13 +3,11 @@ import { demoProject } from "../data/demoProject";
 import type {
   CeilingZone,
   CompareShot,
-  CameraView,
   Daylight,
   FloorPlanBackground,
   FloorZone,
   FurnitureItem,
   LightFixture,
-  LightingScene,
   MaterialPreset,
   Project,
   Selection,
@@ -45,8 +43,7 @@ type ProjectStore = {
   undo: () => void;
   redo: () => void;
   select: (selection: Selection) => void;
-  setActiveScene: (sceneId: string) => void;
-  setActiveCameraView: (viewId: string) => void;
+  setCamera: (patch: Partial<Project["camera"]>) => void;
   addWall: (wall: WallSegment) => void;
   addWindow: (windowOpening: WindowOpening, selectionKind: "window" | "opening") => void;
   addFurniture: (item: FurnitureItem) => void;
@@ -59,20 +56,12 @@ type ProjectStore = {
   updateLight: (id: string, patch: Partial<LightFixture>) => void;
   setAllColorTemperature: (colorTemperatureK: number) => void;
   updateMaterial: (id: string, patch: Partial<MaterialPreset>) => void;
-  updateSceneLightState: (
-    sceneId: string,
-    lightId: string,
-    patch: { enabled?: boolean; dimmer?: number }
-  ) => void;
   updateFurniture: (id: string, patch: Partial<FurnitureItem>) => void;
   updateWall: (id: string, patch: Partial<WallSegment>) => void;
   updateWindow: (id: string, patch: Partial<WindowOpening>) => void;
   updateVoid: (id: string, patch: Partial<VoidArea>) => void;
   setBackgroundScale: (pixels: number, millimeters: number) => void;
   deleteSelection: (selection: Selection) => void;
-  duplicateActiveScene: () => void;
-  renameActiveScene: (name: string) => void;
-  saveCameraView: (view: CameraView) => void;
   setBackgroundPlan: (backgroundPlan: FloorPlanBackground) => void;
   setDaylight: (patch: Partial<Daylight>) => void;
   setShowCeiling: (value: boolean) => void;
@@ -115,7 +104,6 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       compareShots: []
     }),
   // 間取り図トレース用に、部屋枠以外のジオメトリを一括削除してまっさらにする。
-  // 照明を消すので各シーンの lightStates 参照も空にし、孤立参照を残さない。
   clearGeometry: () =>
     set((state) => {
       const nextProject = cloneProject(state.project);
@@ -126,10 +114,6 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       nextProject.floorZones = [];
       nextProject.furniture = [];
       nextProject.lights = [];
-      nextProject.lightingScenes = nextProject.lightingScenes.map((scene) => ({
-        ...scene,
-        lightStates: {}
-      }));
       return { ...withHistory(state, nextProject), selection: null };
     }),
   undo: () => {
@@ -153,20 +137,12 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     });
   },
   select: (selection) => set({ selection }),
-  setActiveScene: (sceneId) =>
-    set((state) =>
-      withHistory(state, {
-        ...cloneProject(state.project),
-        activeSceneId: sceneId
-      })
-    ),
-  setActiveCameraView: (viewId) =>
-    set((state) =>
-      withHistory(state, {
-        ...cloneProject(state.project),
-        activeCameraViewId: viewId
-      })
-    ),
+  setCamera: (patch) =>
+    set((state) => {
+      const nextProject = cloneProject(state.project);
+      nextProject.camera = { ...nextProject.camera, ...patch };
+      return withHistory(state, nextProject);
+    }),
   addWall: (wall) =>
     set((state) => {
       const nextProject = cloneProject(state.project);
@@ -198,13 +174,6 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     set((state) => {
       const nextProject = cloneProject(state.project);
       nextProject.lights = [...nextProject.lights, light];
-      nextProject.lightingScenes = nextProject.lightingScenes.map((scene) => ({
-        ...scene,
-        lightStates: {
-          ...scene.lightStates,
-          [light.id]: { enabled: true, dimmer: light.dimmer }
-        }
-      }));
       return {
         ...withHistory(state, nextProject),
         selection: { kind: "light", id: light.id }
@@ -275,22 +244,6 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       );
       return withHistory(state, nextProject);
     }),
-  updateSceneLightState: (sceneId, lightId, patch) =>
-    set((state) => {
-      const nextProject = cloneProject(state.project);
-      nextProject.lightingScenes = nextProject.lightingScenes.map((scene) => {
-        if (scene.id !== sceneId) return scene;
-        const current = scene.lightStates[lightId] ?? { enabled: true, dimmer: 100 };
-        return {
-          ...scene,
-          lightStates: {
-            ...scene.lightStates,
-            [lightId]: { ...current, ...patch }
-          }
-        };
-      });
-      return withHistory(state, nextProject);
-    }),
   updateFurniture: (id, patch) =>
     set((state) => {
       const nextProject = cloneProject(state.project);
@@ -349,10 +302,6 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
         nextProject.furniture = nextProject.furniture.filter((item) => item.id !== selection.id);
       } else if (selection.kind === "light") {
         nextProject.lights = nextProject.lights.filter((light) => light.id !== selection.id);
-        nextProject.lightingScenes = nextProject.lightingScenes.map((scene) => {
-          const { [selection.id]: _removed, ...lightStates } = scene.lightStates;
-          return { ...scene, lightStates };
-        });
       } else if (selection.kind === "void") {
         nextProject.voids = nextProject.voids.filter((voidArea) => voidArea.id !== selection.id);
       } else if (selection.kind === "ceilingZone") {
@@ -365,38 +314,6 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
         ...withHistory(state, nextProject),
         selection: null
       };
-    }),
-  duplicateActiveScene: () =>
-    set((state) => {
-      const nextProject = cloneProject(state.project);
-      const scene = nextProject.lightingScenes.find((item) => item.id === nextProject.activeSceneId);
-      if (!scene) return {};
-      const copy: LightingScene = {
-        ...scene,
-        id: `scene-${Date.now()}`,
-        name: `${scene.name} コピー`,
-        lightStates: cloneProject(scene.lightStates)
-      };
-      nextProject.lightingScenes = [...nextProject.lightingScenes, copy];
-      nextProject.activeSceneId = copy.id;
-      return withHistory(state, nextProject);
-    }),
-  renameActiveScene: (name) =>
-    set((state) => {
-      const trimmed = name.trim();
-      if (!trimmed) return {};
-      const nextProject = cloneProject(state.project);
-      nextProject.lightingScenes = nextProject.lightingScenes.map((scene) =>
-        scene.id === nextProject.activeSceneId ? { ...scene, name: trimmed } : scene
-      );
-      return withHistory(state, nextProject);
-    }),
-  saveCameraView: (view) =>
-    set((state) => {
-      const nextProject = cloneProject(state.project);
-      nextProject.cameraViews = [...nextProject.cameraViews, view];
-      nextProject.activeCameraViewId = view.id;
-      return withHistory(state, nextProject);
     }),
   setBackgroundPlan: (backgroundPlan) =>
     set((state) => {
