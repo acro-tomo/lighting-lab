@@ -836,6 +836,52 @@ const CanvasReady = ({
   return null;
 };
 
+// 床・天井は壁の囲い（絶対座標）に合わせて生成する。壁が無い/極小なら room 寸法を原点中心でフォールバック。
+const computeFloorBounds = (project: Project) => {
+  if (project.walls.length === 0) {
+    return {
+      centerX: 0,
+      centerZ: 0,
+      sizeX: project.room.widthM,
+      sizeZ: project.room.depthM
+    };
+  }
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minZ = Infinity;
+  let maxZ = -Infinity;
+  let maxThickness = 0;
+  for (const wall of project.walls) {
+    minX = Math.min(minX, wall.start.x, wall.end.x);
+    maxX = Math.max(maxX, wall.start.x, wall.end.x);
+    minZ = Math.min(minZ, wall.start.z, wall.end.z);
+    maxZ = Math.max(maxZ, wall.start.z, wall.end.z);
+    maxThickness = Math.max(maxThickness, wall.thicknessM);
+  }
+  // 壁の外周を床/天井が覆うよう、最大厚みの半分を一律マージンで外側へ広げる。
+  const margin = maxThickness / 2;
+  minX -= margin;
+  maxX += margin;
+  minZ -= margin;
+  maxZ += margin;
+  const sizeX = Math.max(maxX - minX, 0.5);
+  const sizeZ = Math.max(maxZ - minZ, 0.5);
+  if (sizeX < 0.5 || sizeZ < 0.5) {
+    return {
+      centerX: 0,
+      centerZ: 0,
+      sizeX: project.room.widthM,
+      sizeZ: project.room.depthM
+    };
+  }
+  return {
+    centerX: (minX + maxX) / 2,
+    centerZ: (minZ + maxZ) / 2,
+    sizeX,
+    sizeZ
+  };
+};
+
 const RoomShell = ({
   project,
   materialMap,
@@ -859,11 +905,12 @@ const RoomShell = ({
   const wallMaxHeight = project.walls.reduce((max, wall) => Math.max(max, wall.heightM), project.room.ceilingHeightM);
   const upperCeilingHeight =
     wallMaxHeight > project.room.ceilingHeightM + 0.05 ? wallMaxHeight : project.room.ceilingHeightM + 1.4;
+  const floorBounds = computeFloorBounds(project);
 
   return (
     <>
-      <mesh receiveShadow rotation-x={-Math.PI / 2} position={[0, 0, 0]}>
-        <planeGeometry args={[project.room.widthM, project.room.depthM]} />
+      <mesh receiveShadow rotation-x={-Math.PI / 2} position={[floorBounds.centerX, 0, floorBounds.centerZ]}>
+        <planeGeometry args={[floorBounds.sizeX, floorBounds.sizeZ]} />
         <meshStandardMaterial
           map={debugMode === "beauty" ? floorTexture ?? undefined : undefined}
           color={debugColorForRole("floor", debugMode, floorMaterial.baseColor)}
@@ -934,9 +981,13 @@ const RoomShell = ({
 const Ceiling = ({ project, material, debugMode }: { project: Project; material: MaterialPreset; debugMode: RenderDebugMode }) => {
   // 部屋矩形を1枚の Shape にし、全 void を hole(THREE.Path) として抜く。
   // 任意個数の吹き抜けに対応でき、旧4分割方式の破綻も無い。
+  // 床と同じく壁の囲いに合わせる。mesh を中心(centerX,centerZ)へ移動するので
+  // Shape は中心原点・サイズ sizeX×sizeZ、void hole は mesh ローカルへオフセットする。
+  const bounds = computeFloorBounds(project);
+  const { centerX, centerZ, sizeX, sizeZ } = bounds;
   const geometry = useMemo(() => {
-    const halfW = project.room.widthM / 2;
-    const halfD = project.room.depthM / 2;
+    const halfW = sizeX / 2;
+    const halfD = sizeZ / 2;
     // Shape は XY 平面で作る。ローカル(u,v) = (x, z) とし、後で回転して水平面に置く。
     const shape = new THREE.Shape();
     shape.moveTo(-halfW, -halfD);
@@ -945,10 +996,11 @@ const Ceiling = ({ project, material, debugMode }: { project: Project; material:
     shape.lineTo(-halfW, halfD);
     shape.closePath();
     for (const voidArea of project.voids) {
-      const minX = voidArea.center.x - voidArea.size.x / 2;
-      const maxX = voidArea.center.x + voidArea.size.x / 2;
-      const minZ = voidArea.center.z - voidArea.size.z / 2;
-      const maxZ = voidArea.center.z + voidArea.size.z / 2;
+      // void の center は絶対座標。mesh が centerX/centerZ にあるためローカルへ変換する。
+      const minX = voidArea.center.x - centerX - voidArea.size.x / 2;
+      const maxX = voidArea.center.x - centerX + voidArea.size.x / 2;
+      const minZ = voidArea.center.z - centerZ - voidArea.size.z / 2;
+      const maxZ = voidArea.center.z - centerZ + voidArea.size.z / 2;
       if (maxX - minX < 0.02 || maxZ - minZ < 0.02) continue;
       const hole = new THREE.Path();
       hole.moveTo(minX, minZ);
@@ -963,12 +1015,12 @@ const Ceiling = ({ project, material, debugMode }: { project: Project; material:
     // 室内（下）から見える＝旧単一void実装と同じ向き。
     geo.rotateX(Math.PI / 2);
     return geo;
-  }, [project.room.depthM, project.room.widthM, project.voids]);
+  }, [centerX, centerZ, sizeX, sizeZ, project.voids]);
 
   useEffect(() => () => geometry.dispose(), [geometry]);
 
   return (
-    <mesh receiveShadow position={[0, project.room.ceilingHeightM, 0]} geometry={geometry}>
+    <mesh receiveShadow position={[centerX, project.room.ceilingHeightM, centerZ]} geometry={geometry}>
       <meshStandardMaterial
         color={debugColorForRole("ceiling", debugMode, material.baseColor)}
         roughness={material.roughness}
