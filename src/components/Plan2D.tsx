@@ -87,6 +87,15 @@ const snap = (value: number, grid = 0.1) => Math.round(value / grid) * grid;
 
 const snapPoint = (point: Vec2M): Vec2M => ({ x: snap(point.x), z: snap(point.z) });
 
+// 尺グリッド: 1尺=0.303030m。壁トレースは 1/4尺(0.0757575m)間隔へ吸着する。
+// グリッド原点はそのトレースの最初の点(origin)。origin + round((p-origin)/Q)*Q。
+const SHAKU = 0.30303;
+const Q = SHAKU / 4;
+const snapToShaku = (p: Vec2M, origin: Vec2M): Vec2M => ({
+  x: origin.x + Math.round((p.x - origin.x) / Q) * Q,
+  z: origin.z + Math.round((p.z - origin.z) / Q) * Q
+});
+
 const uid = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
 // 前頂点 prev から見て生の点 raw が水平/垂直に近ければ直角に吸着する。
@@ -542,10 +551,13 @@ export const Plan2D = ({
     }
 
     // 壁モード: クリックで頂点を連続配置。前頂点があれば線分を即コミット。
+    // 最初の点は自由（=尺グリッドの原点）。2点目以降は直角スナップ後に
+    // wallDraft[0] 原点の 1/4尺グリッドへ吸着する（プレビューと確定位置を一致させる）。
     if (mode === "wall") {
       const raw = svgToWorld(event.clientX, event.clientY);
       const prev = wallDraft[wallDraft.length - 1];
-      const v = prev ? snapPoint(angleSnap(prev, raw)) : snapPoint(raw);
+      const origin = wallDraft[0];
+      const v = prev ? snapToShaku(angleSnap(prev, raw), origin) : raw;
       if (prev) commitWallSegment(prev, v, draftInnerSide);
       setWallDraft([...wallDraft, v]);
       return;
@@ -557,9 +569,11 @@ export const Plan2D = ({
 
   const onPointerMove = (event: React.PointerEvent<SVGSVGElement>) => {
     // 壁モードはドラッグでなくてもカーソル追従でラバーバンドを更新する。
+    // 確定時(commit)と同じ吸着（直角→wallDraft[0]原点の1/4尺グリッド）を適用する。
     if (mode === "wall" && wallDraft.length > 0) {
       const prev = wallDraft[wallDraft.length - 1];
-      setWallCursor(snapPoint(angleSnap(prev, svgToWorld(event.clientX, event.clientY))));
+      const origin = wallDraft[0];
+      setWallCursor(snapToShaku(angleSnap(prev, svgToWorld(event.clientX, event.clientY)), origin));
     }
 
     // 窓/扉の追加待ち中: カーソル直下の最寄り壁を設置先候補としてハイライト。
@@ -855,6 +869,7 @@ export const Plan2D = ({
               project={project}
               selection={selection}
               worldToSvg={worldToSvg}
+              pxPerM={planSize.pxPerM}
               onSelect={handleSelect}
             />
             {project.windows.map((windowItem) => (
@@ -962,7 +977,7 @@ export const Plan2D = ({
                 x2={e.x}
                 y2={e.y}
                 stroke="#7fd1ff"
-                strokeWidth={Math.max(10, wall.thicknessM * 100 + 6)}
+                strokeWidth={Math.max(10, wall.thicknessM * planSize.pxPerM + 6)}
                 strokeOpacity={0.5}
                 strokeLinecap="round"
                 style={{ pointerEvents: "none" }}
@@ -1080,11 +1095,13 @@ const RoomOutline = ({
   project,
   selection,
   worldToSvg,
+  pxPerM,
   onSelect
 }: {
   project: Project;
   selection: Selection;
   worldToSvg: (point: Vec2M) => { x: number; y: number };
+  pxPerM: number;
   onSelect: (selection: Selection) => void;
 }) => (
   <>
@@ -1092,7 +1109,9 @@ const RoomOutline = ({
       const start = worldToSvg(wall.start);
       const end = worldToSvg(wall.end);
       const selected = selection?.kind === "wall" && selection.id === wall.id;
-      const displayWidth = Math.max(8, wall.thicknessM * 100);
+      // 実寸の厚み(thicknessM)を worldToSvg と同じ pxPerM スケールで描く。
+      // 視認用に最小 2px は確保。透明ヒット線もこの実寸 displayWidth から導出する。
+      const displayWidth = Math.max(2, wall.thicknessM * pxPerM);
       // innerSide 指定時は厚みを内側の面が芯線に乗るよう外側へ寄せる。中心線を
       // 外側(=innerSideの反対)へ displayWidth/2 平行移動して描く。
       // undefined は従来どおり中心対称（オフセット0）。後方互換。
