@@ -303,11 +303,12 @@ export const Plan2D = ({
         event.key === "ArrowDown"
       ) {
         event.preventDefault();
-        // 左寄せ系キー→left、右寄せ系キー→right。未指定からも確定させる。
+        // 3状態サイクル: その側を指している状態で同方向を再度押すと undefined
+        // (=外壁無し・室内間仕切り=中心対称)になる。反対方向ならその側へ寄せる。
         const toLeft = event.key === "ArrowLeft" || event.key === "ArrowUp";
         setDraftInnerSide((current) => {
-          if (current === undefined) return toLeft ? "left" : "right";
-          return current === "left" ? "right" : "left";
+          if (toLeft) return current === "left" ? undefined : "left";
+          return current === "right" ? undefined : "right";
         });
       }
     };
@@ -988,7 +989,8 @@ export const Plan2D = ({
                 />
               )}
               {/* 内側(室内側)を指す△マーカー。現在引いている辺の中点に法線方向で描く。
-                  矢印キーで draftInnerSide を反転すると向きが切り替わる。未指定時は left を仮表示。 */}
+                  draftInnerSide が left/right のときは片側に1つ。undefined のときは
+                  「外壁無し(室内間仕切り＝両側が室内)」を示すため両側に△を出す。 */}
               {(() => {
                 // 現在の辺: 最後の確定点→カーソル。カーソルが無ければ直近2点の辺。
                 const last = wallDraft[wallDraft.length - 1];
@@ -998,28 +1000,33 @@ export const Plan2D = ({
                 const s = worldToSvg(edgeStart);
                 const e = worldToSvg(edgeEnd);
                 if (Math.hypot(e.x - s.x, e.y - s.y) < 1) return null;
-                const side = draftInnerSide ?? "left";
-                const n = svgSideNormal(s, e, side);
                 const mid = { x: (s.x + e.x) / 2, y: (s.y + e.y) / 2 };
-                // 辺から少し内側へ離した位置に、内側を指す三角形を置く。
                 const gap = 10;
-                const tip = { x: mid.x + n.x * gap, y: mid.y + n.y * gap };
                 const size = 9;
-                // 辺方向の単位ベクトル（三角形の底辺を辺と平行にする）。
                 const len = Math.hypot(e.x - s.x, e.y - s.y) || 1;
-                const tx = (e.x - s.x) / len;
+                const tx = (e.x - s.x) / len; // 辺方向（三角形の底辺を辺と平行に）
                 const ty = (e.y - s.y) / len;
-                const baseC = { x: tip.x - n.x * size, y: tip.y - n.y * size };
-                const b1 = { x: baseC.x + tx * size * 0.7, y: baseC.y + ty * size * 0.7 };
-                const b2 = { x: baseC.x - tx * size * 0.7, y: baseC.y - ty * size * 0.7 };
-                return (
-                  <polygon
-                    points={`${tip.x},${tip.y} ${b1.x},${b1.y} ${b2.x},${b2.y}`}
-                    fill="#ffd166"
-                    stroke="#7a5b00"
-                    strokeWidth={1}
-                  />
-                );
+                const triangle = (side: "left" | "right") => {
+                  const n = svgSideNormal(s, e, side);
+                  const tip = { x: mid.x + n.x * gap, y: mid.y + n.y * gap };
+                  const baseC = { x: tip.x - n.x * size, y: tip.y - n.y * size };
+                  const b1 = { x: baseC.x + tx * size * 0.7, y: baseC.y + ty * size * 0.7 };
+                  const b2 = { x: baseC.x - tx * size * 0.7, y: baseC.y - ty * size * 0.7 };
+                  return (
+                    <polygon
+                      key={side}
+                      points={`${tip.x},${tip.y} ${b1.x},${b1.y} ${b2.x},${b2.y}`}
+                      fill="#ffd166"
+                      stroke="#7a5b00"
+                      strokeWidth={1}
+                    />
+                  );
+                };
+                // undefined=外壁無し: 両側に△。指定時はその側のみ。
+                const sides: ("left" | "right")[] = draftInnerSide
+                  ? [draftInnerSide]
+                  : ["left", "right"];
+                return <>{sides.map(triangle)}</>;
               })()}
             </g>
           )}
