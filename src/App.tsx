@@ -178,6 +178,11 @@ export const App = () => {
         event.preventDefault();
         pasteSelection();
       } else if (event.key === "Escape") {
+        // 配置待ち中は Esc で配置モードを終了し、選択もクリアする。
+        if (pendingAdd) {
+          setPendingAdd(null);
+          setNotice("配置を終了しました。");
+        }
         select(null);
       } else if (event.key === "Delete" || event.key === "Backspace") {
         const target = event.target as HTMLElement | null;
@@ -193,7 +198,7 @@ export const App = () => {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [copySelection, deleteSelection, pasteSelection, redo, select, undo]);
+  }, [copySelection, deleteSelection, pasteSelection, pendingAdd, redo, select, undo]);
 
   const handleImportFloorPlan = async (file: File) => {
     try {
@@ -409,39 +414,64 @@ export const App = () => {
     [addCeilingZone, addFloorZone, addFurniture, addLight, addVoid, addWindow, project]
   );
 
+  // ライト種別は連続配置できる。Esc で pendingAdd をクリアして終了。
+  const isLightKind = (kind: string) =>
+    kind === "downlight" || kind === "wallspot" || kind === "pendant" || kind === "linelight";
+
   // 「＋追加」で種別を選んだら配置待ちにする。実際の生成はクリック位置確定時。
   const handleStartAdd = useCallback((kind: string) => {
     setPendingAdd(kind);
     setMode("select");
     setNotice(
-      kind === "door" || kind.startsWith("window")
-        ? "設置したい壁を2Dでクリックしてください。"
-        : "配置したい位置を2Dでクリックしてください。"
+      kind === "door" || kind.startsWith("window") || kind === "wallspot"
+        ? "設置したい壁を2Dでクリックしてください。Escで終了。"
+        : isLightKind(kind)
+          ? "配置したい位置をクリックしてください。Escで終了（連続配置）。"
+          : "配置したい位置を2Dでクリックしてください。"
     );
   }, []);
 
-  // 床に置く物の配置（クリック位置）。
+  // 床に置く物の配置（クリック位置）。ライト種別のみ pendingAdd を維持して連続配置。
   const handlePlaceObject = useCallback(
     (at: { x: number; z: number }) => {
       if (!pendingAdd) return;
       handleAddObject(pendingAdd, { at });
-      setPendingAdd(null);
-      setMode("move");
-      setNotice("配置しました。ドラッグで微調整できます。");
+      if (isLightKind(pendingAdd)) {
+        setNotice("配置しました。続けてクリックで追加配置。Escで終了。");
+      } else {
+        setPendingAdd(null);
+        setMode("move");
+        setNotice("配置しました。ドラッグで微調整できます。");
+      }
     },
     [pendingAdd, handleAddObject]
   );
 
-  // 壁に付く物(窓/扉)の配置。Plan2D がクリック点を最寄り壁へ射影して渡す。
+  // 壁に付く物(窓/扉/壁付スポット)の配置。Plan2D がクリック点を最寄り壁へ射影して渡す。
+  // heightM は3D側がカーソルの壁上Y値を渡す場合のみ存在する（2Dからは undefined）。
   const handlePlaceOnWall = useCallback(
-    (wallId: string, centerRatio: number) => {
+    (wallId: string, centerRatio: number, heightM?: number) => {
       if (!pendingAdd) return;
+      if (pendingAdd === "wallspot") {
+        // 壁付スポットは直接 addLight で生成し、heightM があれば y/mountHeightM を上書きする。
+        const base = newWallSpot(project);
+        const light = heightM !== undefined
+          ? { ...base, position: { ...base.position, y: heightM }, mountHeightM: heightM }
+          : base;
+        addLight(light);
+        setNotice("壁に設置しました。続けてクリックで追加配置。Escで終了。");
+        return;
+      }
       handleAddObject(pendingAdd, { wallId, centerRatio });
-      setPendingAdd(null);
-      setMode("select");
-      setNotice("壁に設置しました。2Dで壁上をドラッグして位置を調整できます。");
+      if (isLightKind(pendingAdd)) {
+        setNotice("壁に設置しました。続けてクリックで追加配置。Escで終了。");
+      } else {
+        setPendingAdd(null);
+        setMode("select");
+        setNotice("壁に設置しました。2Dで壁上をドラッグして位置を調整できます。");
+      }
     },
-    [pendingAdd, handleAddObject]
+    [pendingAdd, handleAddObject, addLight, project]
   );
 
   const elapsedSeconds = (renderProgress.elapsedMs / 1000).toFixed(1);
@@ -470,6 +500,29 @@ export const App = () => {
         viewMode={viewMode}
         onViewModeChange={setViewMode}
       />
+      {/* 操作＋追加ツールバー: 2D/3D 両パネル共通の1インスタンス。 */}
+      <div className="shared-toolbar">
+        <EditToolbar
+          mode={mode}
+          onModeChange={(next) => {
+            setMode(next);
+            setPendingAdd(null);
+          }}
+          onAdd={handleStartAdd}
+          pendingAdd={pendingAdd}
+        />
+        <span className="toolbar-hint">
+          {pendingAdd === "door" || pendingAdd?.startsWith("window") || pendingAdd === "wallspot"
+            ? "壁をクリックして設置（Escで終了）"
+            : pendingAdd
+              ? "クリックした位置に配置（Escで終了）"
+              : mode === "wall"
+                ? "クリックで壁の頂点、Enter/ダブルクリックで終了"
+                : mode === "move"
+                  ? "ドラッグで移動"
+                  : "クリックで選択・ドラッグで移動"}
+        </span>
+      </div>
       <main className={focusViewport ? "workspace is-focus-3d" : focusPlan ? "workspace is-focus-2d" : "workspace"}>
         <Plan2D
           project={project}
@@ -510,27 +563,6 @@ export const App = () => {
                 {focusViewport ? "🗗" : "⤢"}
               </button>
             </div>
-
-            <EditToolbar
-              mode={mode}
-              onModeChange={(next) => {
-                setMode(next);
-                setPendingAdd(null);
-              }}
-              onAdd={handleStartAdd}
-              pendingAdd={pendingAdd}
-            />
-            <span className="toolbar-hint">
-              {pendingAdd === "door" || pendingAdd?.startsWith("window")
-                ? "壁をクリックして設置"
-                : pendingAdd
-                  ? "クリックした位置に配置"
-                  : mode === "wall"
-                    ? "クリックで壁の頂点、Enter/ダブルクリックで終了"
-                    : mode === "move"
-                      ? "ドラッグで移動"
-                      : "クリックで選択・ドラッグで移動"}
-            </span>
 
             <div className="render-status">
               {viewMode === "realistic" ? (

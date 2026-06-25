@@ -54,7 +54,9 @@ type Scene3DProps = {
   // 3Dビューポートでの追加配置（ゴーストプレビュー）。pendingAdd がある間だけ有効。
   pendingAdd?: string | null;
   onPlaceObject?: (at: { x: number; z: number }) => void;
-  onPlaceOnWall?: (wallId: string, centerRatio: number) => void;
+  // 壁配置。壁ライト(wallspot)はカーソルの壁上ワールドYを heightM で渡し、自由な高さに付ける。
+  // 窓/扉は従来どおり heightM 省略（種別既定の高さ）。
+  onPlaceOnWall?: (wallId: string, centerRatio: number, heightM?: number) => void;
 };
 
 export type EditMode = "select" | "move" | "delete";
@@ -69,14 +71,18 @@ const usePathTraced = () => useContext(PathTracedContext);
 
 // 追加配置中かどうかを編集メッシュへ配る。配置中は子メッシュのクリックを
 // 「選択」ではなく「配置」に振り替える/素通りさせる（パストレ常駐時は null=無効）。
+// 壁ライト(wallspot)のゴーストプレビュー用に、壁メッシュが拾ったカーソルの壁上ヒットを共有する。
+type WallHover = { wallId: string; ratio: number; x: number; y: number; z: number; angle: number } | null;
 type PlacementCtx = {
   pendingAdd: string | null;
-  onPlaceOnWall?: (wallId: string, centerRatio: number) => void;
+  onPlaceOnWall?: (wallId: string, centerRatio: number, heightM?: number) => void;
+  // 壁メッシュ→SceneRoot へ壁上カーソルを上げる（wallspot 配置時のみ使用）。
+  onWallHover?: (hit: WallHover) => void;
 };
 const PlacementContext = createContext<PlacementCtx>({ pendingAdd: null });
 const usePlacement = () => useContext(PlacementContext);
 const isWallPending = (pendingAdd: string | null) =>
-  pendingAdd === "door" || (pendingAdd?.startsWith("window") ?? false);
+  pendingAdd === "door" || pendingAdd === "wallspot" || (pendingAdd?.startsWith("window") ?? false);
 
 // 太陽高度から空色を補間する。昼=明るい空青、日の出/日没=橙、夜=暗い紺。
 // scene.background に色を入れると常駐パストレが GradientEquirect 環境光として拾う。
@@ -567,6 +573,8 @@ const SceneRoot = ({
   onPlaceOnWall
 }: Scene3DProps) => {
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
+  // 壁ライト(wallspot)配置中の壁上カーソル。壁メッシュが onWallHover で更新する。
+  const [wallCursor, setWallCursor] = useState<WallHover>(null);
   const materialMap = useMemo(() => materialById(project.materials), [project.materials]);
   const floorTexture = useMemo(createWoodTexture, []);
   const floorMaterial = materialMap.get("floor-oak") ?? project.materials[0];
@@ -610,7 +618,7 @@ const SceneRoot = ({
   return (
     <EditModeContext.Provider value={mode}>
     <PathTracedContext.Provider value={pathTraced}>
-    <PlacementContext.Provider value={{ pendingAdd: pathTraced ? null : pendingAdd, onPlaceOnWall }}>
+    <PlacementContext.Provider value={{ pendingAdd: pathTraced ? null : pendingAdd, onPlaceOnWall, onWallHover: setWallCursor }}>
       <CameraViewSync view={project.camera} controlsRef={controlsRef} />
       <color attach="background" args={[backgroundColor]} />
       <Outdoors />
@@ -679,6 +687,7 @@ const SceneRoot = ({
           project={project}
           onPlaceObject={onPlaceObject}
           onPlaceOnWall={onPlaceOnWall}
+          wallCursor={wallCursor}
         />
       )}
       {!pathTraced && (
@@ -1665,13 +1674,34 @@ const WallMesh = ({
       // 選択は onPointerDown で確定する。手前の家具/照明は同じ pointerdown で
       // stopPropagation するため、onClick だと手前を選んでも click が壁へ伝播して
       // 選択が壁に転写される再発バグになる。pointer 系で統一して伝播を断つ。
+      // 壁ライト(wallspot)配置中は、カーソルが壁上に来たら壁面ヒットをゴーストへ上げる。
+      onPointerMove={
+        placement.pendingAdd === "wallspot"
+          ? (event: ThreeEvent<PointerEvent>) => {
+              event.stopPropagation();
+              const { ratio } = projectPointOntoWall(event.point.x, event.point.z, wall);
+              const angle = Math.atan2(wall.end.z - wall.start.z, wall.end.x - wall.start.x);
+              placement.onWallHover?.({
+                wallId: wall.id,
+                ratio,
+                x: wall.start.x + (wall.end.x - wall.start.x) * ratio,
+                y: event.point.y,
+                z: wall.start.z + (wall.end.z - wall.start.z) * ratio,
+                angle
+              });
+            }
+          : undefined
+      }
       onPointerDown={(event: ThreeEvent<PointerEvent>) => {
         event.stopPropagation();
-        // 壁物（窓・扉）の配置中は、選択ではなくクリックした壁自身へ設置する。
+        // 壁物（窓・扉・壁ライト）の配置中は、選択ではなくクリックした壁自身へ設置する。
         // クリック点(x,z)をこの壁に射影して比率を求める（最寄り壁＝クリック壁）。
         if (isWallPending(placement.pendingAdd)) {
           const { ratio } = projectPointOntoWall(event.point.x, event.point.z, wall);
-          placement.onPlaceOnWall?.(wall.id, ratio);
+          // 壁ライトはカーソルの壁上ワールドYをそのまま高さに渡す（壁面に吸い付かせる）。
+          // 窓/扉は heightM 省略で種別既定の高さに任せる。
+          const heightM = placement.pendingAdd === "wallspot" ? event.point.y : undefined;
+          placement.onPlaceOnWall?.(wall.id, ratio, heightM);
           return;
         }
         onSelect({ kind: "wall", id: wall.id });
@@ -2780,19 +2810,52 @@ const nearestWallAt = (x: number, z: number, walls: WallSegment[]) => {
 
 // 追加配置のゴーストプレビューとクリック設置。床全面を覆う不可視キャッチャーで
 // カーソルのワールド座標を拾い、種別に応じて床ゴースト or 壁スナップゴーストを出す。
+// 天井ライトを既存ライトのX/Z軸に整列スナップする。最寄りライトのx/zがしきい値内なら吸着し、
+// どの軸を吸着したか（ガイド線描画用）も返す。
+const LIGHT_SNAP_M = 0.15;
+const snapToLightAxes = (
+  x: number,
+  z: number,
+  lights: LightFixture[]
+): { x: number; z: number; snapX: number | null; snapZ: number | null } => {
+  let snapX: number | null = null;
+  let snapZ: number | null = null;
+  let bestX = LIGHT_SNAP_M;
+  let bestZ = LIGHT_SNAP_M;
+  for (const light of lights) {
+    const dx = Math.abs(light.position.x - x);
+    if (dx < bestX) {
+      bestX = dx;
+      snapX = light.position.x;
+    }
+    const dz = Math.abs(light.position.z - z);
+    if (dz < bestZ) {
+      bestZ = dz;
+      snapZ = light.position.z;
+    }
+  }
+  return { x: snapX ?? x, z: snapZ ?? z, snapX, snapZ };
+};
+
 const PlacementLayer = ({
   pendingAdd,
   project,
   onPlaceObject,
-  onPlaceOnWall
+  onPlaceOnWall,
+  wallCursor
 }: {
   pendingAdd: string;
   project: Project;
   onPlaceObject?: (at: { x: number; z: number }) => void;
-  onPlaceOnWall?: (wallId: string, centerRatio: number) => void;
+  onPlaceOnWall?: (wallId: string, centerRatio: number, heightM?: number) => void;
+  wallCursor: WallHover;
 }) => {
   const [cursor, setCursor] = useState<{ x: number; z: number } | null>(null);
-  const isWallItem = pendingAdd === "door" || pendingAdd.startsWith("window");
+  // 窓・扉は床カーソルから最寄り壁へスナップ。壁ライト(wallspot)は壁メッシュのヒット(wallCursor)を使う。
+  const isWindowOrDoor = pendingAdd === "door" || pendingAdd.startsWith("window");
+  const isWallItem = isWindowOrDoor || pendingAdd === "wallspot";
+  // 天井ライトは既存ライトのX/Z軸へ吸着し、整列ガイド線を出す。
+  const isCeilingLight = pendingAdd === "downlight" || pendingAdd === "pendant" || pendingAdd === "linelight";
 
   // ゴーストの寸法・形状を種別から決める。
   const ghostColor = "#7fe9ff";
@@ -2800,7 +2863,10 @@ const PlacementLayer = ({
     <meshBasicMaterial color={ghostColor} transparent opacity={0.45} depthWrite={false} />
   );
 
-  // 床に置く物（家具・照明・吹き抜け・下げ天井・階段）のゴースト。
+  // 天井ライトのスナップ結果（ガイド線描画とクリック設置で共有）。
+  const ceilingSnap = cursor && isCeilingLight ? snapToLightAxes(cursor.x, cursor.z, project.lights) : null;
+
+  // 床に置く物（家具・吹き抜け・下げ天井・階段）と天井ライトのゴースト。
   const floorGhost = (() => {
     if (!cursor || isWallItem) return null;
     if (pendingAdd.startsWith("furniture:")) {
@@ -2813,16 +2879,16 @@ const PlacementLayer = ({
         </mesh>
       );
     }
-    if (pendingAdd === "downlight" || pendingAdd === "wallspot") {
-      // 照明はカーソル位置に小マーカー＋天井までの目印。
+    if (isCeilingLight && ceilingSnap) {
+      // 天井ライトはスナップ後の(x,z)で天井面付近にマーカーを出す。
       const ceil = project.room.ceilingHeightM;
       return (
-        <group position={[cursor.x, 0, cursor.z]}>
+        <group position={[ceilingSnap.x, 0, ceilingSnap.z]}>
           <mesh position={[0, ceil - 0.05, 0]}>
             <sphereGeometry args={[0.1, 16, 12]} />
             {ghostMaterial}
           </mesh>
-          <mesh position={[0, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <mesh position={[0, ceil - 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
             <ringGeometry args={[0.18, 0.24, 24]} />
             {ghostMaterial}
           </mesh>
@@ -2838,10 +2904,55 @@ const PlacementLayer = ({
     );
   })();
 
-  // 壁物（窓・扉）のゴースト。最寄り壁にスナップし、壁面上に板を出す。
-  const wall = isWallItem && cursor ? nearestWallAt(cursor.x, cursor.z, project.walls) : null;
+  // 整列スナップが効いている軸に細いガイド線を出す（パストレ常駐時は PlacementLayer 自体が非表示）。
+  const snapGuides = (() => {
+    if (!isCeilingLight || !ceilingSnap) return null;
+    const y = project.room.ceilingHeightM - 0.04;
+    const span = Math.max(project.room.widthM, project.room.depthM) + 4;
+    return (
+      <>
+        {ceilingSnap.snapX !== null && (
+          <line>
+            <bufferGeometry>
+              <bufferAttribute
+                attach="attributes-position"
+                args={[new Float32Array([ceilingSnap.snapX, y, -span, ceilingSnap.snapX, y, span]), 3]}
+              />
+            </bufferGeometry>
+            <lineBasicMaterial color="#ffd24a" transparent opacity={0.8} />
+          </line>
+        )}
+        {ceilingSnap.snapZ !== null && (
+          <line>
+            <bufferGeometry>
+              <bufferAttribute
+                attach="attributes-position"
+                args={[new Float32Array([-span, y, ceilingSnap.snapZ, span, y, ceilingSnap.snapZ]), 3]}
+              />
+            </bufferGeometry>
+            <lineBasicMaterial color="#ffd24a" transparent opacity={0.8} />
+          </line>
+        )}
+      </>
+    );
+  })();
+
+  // 窓・扉のゴースト: 床カーソルから最寄り壁へスナップし壁面上に板を出す。
+  const windowWall = isWindowOrDoor && cursor ? nearestWallAt(cursor.x, cursor.z, project.walls) : null;
+  // 壁ライト(wallspot)のゴースト: 壁メッシュが拾ったヒット(wallCursor)へ壁面に吸い付けて出す。
   const wallGhost = (() => {
-    if (!wall) return null;
+    if (pendingAdd === "wallspot") {
+      if (!wallCursor) return null;
+      return (
+        <group position={[wallCursor.x, wallCursor.y, wallCursor.z]} rotation={[0, -wallCursor.angle, 0]}>
+          <mesh>
+            <boxGeometry args={[0.16, 0.16, 0.08]} />
+            {ghostMaterial}
+          </mesh>
+        </group>
+      );
+    }
+    if (!windowWall) return null;
     let w = 0.85;
     let h = 2.0;
     let sill = 0;
@@ -2853,7 +2964,7 @@ const PlacementLayer = ({
         sill = preset.sillHeightM;
       }
     }
-    const { wall: seg, ratio } = wall;
+    const { wall: seg, ratio } = windowWall;
     const x = seg.start.x + (seg.end.x - seg.start.x) * ratio;
     const z = seg.start.z + (seg.end.z - seg.start.z) * ratio;
     const angle = Math.atan2(seg.end.z - seg.start.z, seg.end.x - seg.start.x);
@@ -2872,9 +2983,14 @@ const PlacementLayer = ({
     event.stopPropagation();
     const x = event.point.x;
     const z = event.point.z;
-    if (isWallItem) {
+    // 壁ライト(wallspot)は床カーソルでは確定しない（壁メッシュの onPointerDown が壁ヒット＋高さで設置）。
+    if (pendingAdd === "wallspot") return;
+    if (isWindowOrDoor) {
       const hit = nearestWallAt(x, z, project.walls);
       if (hit) onPlaceOnWall?.(hit.wall.id, hit.ratio);
+    } else if (isCeilingLight) {
+      const snap = snapToLightAxes(x, z, project.lights);
+      onPlaceObject?.({ x: snap.x, z: snap.z });
     } else {
       onPlaceObject?.({ x, z });
     }
@@ -2896,6 +3012,7 @@ const PlacementLayer = ({
         <meshBasicMaterial visible={false} transparent opacity={0} depthWrite={false} />
       </mesh>
       {floorGhost}
+      {snapGuides}
       {wallGhost}
     </group>
   );

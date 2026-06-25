@@ -11,7 +11,7 @@ import type {
 } from "../types";
 import { useProjectStore } from "../store/projectStore";
 import { ScaleCalibrationModal } from "./ScaleCalibrationModal";
-import { EditToolbar, type EditMode } from "./EditToolbar";
+import type { EditMode } from "./EditToolbar";
 
 type Plan2DProps = {
   project: Project;
@@ -22,7 +22,7 @@ type Plan2DProps = {
   onAdd: (kind: string) => void;
   pendingAdd: string | null;
   onPlaceObject: (at: { x: number; z: number }) => void;
-  onPlaceOnWall: (wallId: string, centerRatio: number) => void;
+  onPlaceOnWall: (wallId: string, centerRatio: number, heightM?: number) => void;
   focusPlan: boolean;
   onToggleFocusPlan: () => void;
 };
@@ -59,9 +59,9 @@ const MIN_SIZE_M = 0.2;
 // 窓/扉をクリックで壁に設置するときの許容距離(m)。これ以内の最寄り壁に付く。
 const WALL_SNAP_M = 1.2;
 
-// 壁に付く追加物（窓カタログ "window:<id>" / 扉 "door"）の判定。
+// 壁に付く追加物（窓カタログ "window:<id>" / 扉 "door" / 壁付スポット "wallspot"）の判定。
 const isWallOpening = (kind: string | null): boolean =>
-  !!kind && (kind === "door" || kind.startsWith("window"));
+  !!kind && (kind === "door" || kind.startsWith("window") || kind === "wallspot");
 
 const NAV_TOOLS: NavTool[] = ["パン"];
 
@@ -763,9 +763,6 @@ export const Plan2D = ({
           </button>
         </div>
       </div>
-
-      {/* 操作(コンボボックス)＋追加(ポップアップ)。2D集中表示でもここから追加できる（要望1）。 */}
-      <EditToolbar mode={mode} onModeChange={onModeChange} onAdd={onAdd} pendingAdd={pendingAdd} />
 
       <div className="tool-strip" role="toolbar" aria-label="2Dナビゲーション">
         {NAV_TOOLS.map((label) => (
