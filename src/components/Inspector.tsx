@@ -52,6 +52,8 @@ export const Inspector = ({ project, selection }: InspectorProps) => {
   const updateMaterial = useProjectStore((state) => state.updateMaterial);
   const setAllColorTemperature = useProjectStore((state) => state.setAllColorTemperature);
   const select = useProjectStore((state) => state.select);
+  const setShowCeiling = useProjectStore((state) => state.setShowCeiling);
+  const setFloorLevel = useProjectStore((state) => state.setFloorLevel);
   const activeScene = project.lightingScenes.find((scene) => scene.id === project.activeSceneId);
 
   const selectedLight =
@@ -100,6 +102,34 @@ export const Inspector = ({ project, selection }: InspectorProps) => {
         <div>
           <span>有効lm</span>
           <strong>{Math.round(totalActiveLumens).toLocaleString("ja-JP")}</strong>
+        </div>
+      </section>
+
+      <section className="panel-block">
+        <div className="panel-heading compact">
+          <h2>室内設定</h2>
+        </div>
+        <div className="form-grid">
+          <label className="field">
+            <span>天井を表示</span>
+            <label className="scene-control">
+              <input
+                type="checkbox"
+                checked={project.showCeiling ?? true}
+                onChange={(event) => setShowCeiling(event.target.checked)}
+              />
+              表示する
+            </label>
+            <p className="field-hint">非矩形の間取りで天井が室外にはみ出す場合はOFF</p>
+          </label>
+          <NumberField
+            label="室内床レベル"
+            unit="mm"
+            value={mToMm(project.room.floorLevelM ?? 0)}
+            min={0}
+            onChange={(value) => setFloorLevel(mmToM(value))}
+          />
+          <p className="field-hint">土間/下げ床がマイナスに潜らないよう室内床を持ち上げる。土間の下がり量をこの値に合わせると土間が地面(0)になる</p>
         </div>
       </section>
 
@@ -353,6 +383,21 @@ const WallInspector = ({
       <NumberField label="厚み" unit="mm" value={mToMm(wall.thicknessM)} min={20} onChange={(value) => updateWall(wall.id, { thicknessM: mmToM(value) })} />
       <NumberField label="高さ" unit="mm" value={mToMm(wall.heightM)} min={100} onChange={(value) => updateWall(wall.id, { heightM: mmToM(value) })} />
     </div>
+    <label className="field">
+      <span>内側方向</span>
+      <select
+        value={wall.innerSide ?? "center"}
+        onChange={(event) => {
+          const v = event.target.value;
+          updateWall(wall.id, { innerSide: v === "center" ? undefined : (v as "left" | "right") });
+        }}
+      >
+        <option value="center">中央（既定）</option>
+        <option value="left">左（start→end向きで左）</option>
+        <option value="right">右（start→end向きで右）</option>
+      </select>
+      <p className="field-hint">start→endへ向かって室内側がどちらか。背景間取り図の内壁線にトレース線を合わせるとき使う</p>
+    </label>
     <label className="field">
       <span>素材</span>
       <select
