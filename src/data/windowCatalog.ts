@@ -18,7 +18,9 @@ export const windowCatalog: WindowPreset[] = [
   { id: "large", label: "大開口窓", widthM: 2.6, heightM: 2.1, sillHeightM: 0, hasGlass: true, style: "window" },
   { id: "small", label: "小窓", widthM: 0.6, heightM: 0.9, sillHeightM: 1.0, hasGlass: true, style: "window" },
   { id: "high", label: "高窓（横長）", widthM: 1.6, heightM: 0.45, sillHeightM: 1.9, hasGlass: true, style: "window" },
-  { id: "opening", label: "開口（壁穴）", widthM: 1.2, heightM: 2.0, sillHeightM: 0, hasGlass: false, style: "opening" }
+  { id: "opening", label: "開口（壁穴）", widthM: 1.2, heightM: 2.0, sillHeightM: 0, hasGlass: false, style: "opening" },
+  { id: "entranceDoor", label: "玄関扉", widthM: 0.9, heightM: 2.0, sillHeightM: 0, hasGlass: false, style: "door" },
+  { id: "backDoor", label: "勝手口", widthM: 0.75, heightM: 2.0, sillHeightM: 0, hasGlass: false, style: "door" }
 ];
 
 export const getWindowPreset = (id: string) => windowCatalog.find((preset) => preset.id === id);

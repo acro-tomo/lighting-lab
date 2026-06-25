@@ -1,5 +1,5 @@
 import type { ChangeEvent } from "react";
-import type { CeilingZone, FurnitureItem, LightFixture, MaterialPreset, Project, Selection, VoidArea, WallSegment, WindowOpening } from "../types";
+import type { CeilingZone, FloorZone, FurnitureItem, LightFixture, MaterialPreset, Project, Selection, VoidArea, WallSegment, WindowOpening } from "../types";
 import { useProjectStore } from "../store/projectStore";
 import { applyFixtureModel, fixtureCatalog, getFixtureModel } from "../data/fixtureCatalog";
 import { getSceneLightState } from "../utils/lighting";
@@ -48,6 +48,7 @@ export const Inspector = ({ project, selection }: InspectorProps) => {
   const updateWindow = useProjectStore((state) => state.updateWindow);
   const updateVoid = useProjectStore((state) => state.updateVoid);
   const updateCeilingZone = useProjectStore((state) => state.updateCeilingZone);
+  const updateFloorZone = useProjectStore((state) => state.updateFloorZone);
   const updateMaterial = useProjectStore((state) => state.updateMaterial);
   const setAllColorTemperature = useProjectStore((state) => state.setAllColorTemperature);
   const select = useProjectStore((state) => state.select);
@@ -70,6 +71,10 @@ export const Inspector = ({ project, selection }: InspectorProps) => {
   const selectedCeilingZone =
     selection?.kind === "ceilingZone"
       ? (project.ceilingZones ?? []).find((zone) => zone.id === selection.id)
+      : undefined;
+  const selectedFloorZone =
+    selection?.kind === "floorZone"
+      ? (project.floorZones ?? []).find((zone) => zone.id === selection.id)
       : undefined;
 
   const totalActiveLumens = project.lights.reduce((sum, light) => {
@@ -122,6 +127,7 @@ export const Inspector = ({ project, selection }: InspectorProps) => {
         {selectedWindow && <WindowInspector windowItem={selectedWindow} project={project} updateWindow={updateWindow} />}
         {selectedVoid && <VoidInspector voidArea={selectedVoid} updateVoid={updateVoid} />}
         {selectedCeilingZone && <CeilingZoneInspector zone={selectedCeilingZone} updateCeilingZone={updateCeilingZone} />}
+        {selectedFloorZone && <FloorZoneInspector zone={selectedFloorZone} updateFloorZone={updateFloorZone} />}
       </section>
 
       <section className="panel-block">
@@ -214,6 +220,12 @@ const LightInspector = ({
         <NumberField label="照射先Y" unit="mm" value={mToMm(aim.y)} onChange={(value) => updateLight(light.id, { target: { ...aim, y: mmToM(value) } })} />
         <NumberField label="照射先Z" unit="mm" value={mToMm(aim.z)} onChange={(value) => updateLight(light.id, { target: { ...aim, z: mmToM(value) } })} />
       </div>
+    )}
+    {light.type === "pendant" && (
+      <NumberField label="吊り長さ" unit="mm" value={mToMm(light.cordLengthM ?? 0.6)} min={100} max={3000} onChange={(value) => updateLight(light.id, { cordLengthM: mmToM(value) })} />
+    )}
+    {light.type === "tape" && (
+      <NumberField label="長さ" unit="mm" value={mToMm(light.lengthM ?? 1.2)} min={100} max={10000} onChange={(value) => updateLight(light.id, { lengthM: mmToM(value) })} />
     )}
     <div className="field-row">
       <NumberField label="光束" unit="lm" value={light.lumens} min={0} onChange={(lumens) => updateLight(light.id, { lumens })} />
@@ -483,6 +495,27 @@ const CeilingZoneInspector = ({
       <NumberField label="奥行" unit="mm" value={mToMm(zone.size.z)} min={100} onChange={(value) => updateCeilingZone(zone.id, { size: { ...zone.size, z: mmToM(value) } })} />
     </div>
     <NumberField label="下がり" unit="mm" value={mToMm(zone.dropM)} min={20} max={1000} onChange={(value) => updateCeilingZone(zone.id, { dropM: mmToM(value) })} />
+  </div>
+);
+
+const FloorZoneInspector = ({
+  zone,
+  updateFloorZone
+}: {
+  zone: FloorZone;
+  updateFloorZone: (id: string, patch: Partial<FloorZone>) => void;
+}) => (
+  <div className="form-grid">
+    <TextField label="名前" value={zone.name} onChange={(name) => updateFloorZone(zone.id, { name })} />
+    <div className="field-row">
+      <NumberField label="X" unit="mm" value={mToMm(zone.center.x)} onChange={(value) => updateFloorZone(zone.id, { center: { ...zone.center, x: mmToM(value) } })} />
+      <NumberField label="Z" unit="mm" value={mToMm(zone.center.z)} onChange={(value) => updateFloorZone(zone.id, { center: { ...zone.center, z: mmToM(value) } })} />
+    </div>
+    <div className="field-row">
+      <NumberField label="幅" unit="mm" value={mToMm(zone.size.x)} min={100} onChange={(value) => updateFloorZone(zone.id, { size: { ...zone.size, x: mmToM(value) } })} />
+      <NumberField label="奥行" unit="mm" value={mToMm(zone.size.z)} min={100} onChange={(value) => updateFloorZone(zone.id, { size: { ...zone.size, z: mmToM(value) } })} />
+    </div>
+    <NumberField label="下げ量" unit="mm" value={mToMm(zone.dropM)} min={20} max={500} onChange={(value) => updateFloorZone(zone.id, { dropM: mmToM(value) })} />
   </div>
 );
 

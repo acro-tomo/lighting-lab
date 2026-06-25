@@ -17,6 +17,7 @@ import type { RenderContext } from "../rendering/renderContext";
 import type {
   CameraView,
   CeilingZone,
+  FloorZone,
   FurnitureItem,
   LightFixture,
   LightingScene,
@@ -909,15 +910,23 @@ const RoomShell = ({
 
   return (
     <>
-      <mesh receiveShadow rotation-x={-Math.PI / 2} position={[floorBounds.centerX, 0, floorBounds.centerZ]}>
-        <planeGeometry args={[floorBounds.sizeX, floorBounds.sizeZ]} />
-        <meshStandardMaterial
-          map={debugMode === "beauty" ? floorTexture ?? undefined : undefined}
-          color={debugColorForRole("floor", debugMode, floorMaterial.baseColor)}
-          roughness={floorMaterial.roughness}
-          metalness={floorMaterial.metalness}
+      <Floor
+        project={project}
+        floorTexture={floorTexture}
+        floorMaterial={floorMaterial}
+        debugMode={debugMode}
+      />
+      {(project.floorZones ?? []).map((zone) => (
+        <FloorZoneMesh
+          key={zone.id}
+          zone={zone}
+          floorTexture={floorTexture}
+          floorMaterial={floorMaterial}
+          selected={selection?.kind === "floorZone" && selection.id === zone.id}
+          onSelect={onSelect}
+          debugMode={debugMode}
         />
-      </mesh>
+      ))}
       {project.voids.map((voidArea) => (
         <VoidMarker
           key={voidArea.id}
@@ -952,6 +961,7 @@ const RoomShell = ({
         <WallMesh
           key={wall.id}
           wall={wall}
+          walls={project.walls}
           windows={project.windows.filter((windowItem) => windowItem.wallId === wall.id)}
           material={materialMap.get(wall.materialId) ?? ceilingMaterial}
           roomCenter={new THREE.Vector3(0, 0, 0)}
@@ -1028,6 +1038,153 @@ const Ceiling = ({ project, material, debugMode }: { project: Project; material:
         side={THREE.FrontSide}
       />
     </mesh>
+  );
+};
+
+// 床。下げ床(floorZones)がある場合は天井と同じ Shape+holes 方式で各ピットを刳り抜く。
+// floorZones が無ければ従来通り単純な planeGeometry のままにする。
+const Floor = ({
+  project,
+  floorTexture,
+  floorMaterial,
+  debugMode
+}: {
+  project: Project;
+  floorTexture: THREE.Texture | null;
+  floorMaterial: MaterialPreset;
+  debugMode: RenderDebugMode;
+}) => {
+  const bounds = computeFloorBounds(project);
+  const { centerX, centerZ, sizeX, sizeZ } = bounds;
+  const zones = project.floorZones ?? [];
+
+  const geometry = useMemo(() => {
+    if (zones.length === 0) return null;
+    const halfW = sizeX / 2;
+    const halfD = sizeZ / 2;
+    const shape = new THREE.Shape();
+    shape.moveTo(-halfW, -halfD);
+    shape.lineTo(halfW, -halfD);
+    shape.lineTo(halfW, halfD);
+    shape.lineTo(-halfW, halfD);
+    shape.closePath();
+    for (const zone of zones) {
+      // zone.center は絶対座標。mesh が centerX/centerZ にあるためローカルへ変換する。
+      const minX = zone.center.x - centerX - zone.size.x / 2;
+      const maxX = zone.center.x - centerX + zone.size.x / 2;
+      const minZ = zone.center.z - centerZ - zone.size.z / 2;
+      const maxZ = zone.center.z - centerZ + zone.size.z / 2;
+      if (maxX - minX < 0.02 || maxZ - minZ < 0.02) continue;
+      const hole = new THREE.Path();
+      hole.moveTo(minX, minZ);
+      hole.lineTo(maxX, minZ);
+      hole.lineTo(maxX, maxZ);
+      hole.lineTo(minX, maxZ);
+      hole.closePath();
+      shape.holes.push(hole);
+    }
+    const geo = new THREE.ShapeGeometry(shape);
+    // 床は上向き(+Y)。-90°回転で法線を +Y にする（planeGeometry の rotation-x=-π/2 と同じ向き）。
+    geo.rotateX(-Math.PI / 2);
+    return geo;
+  }, [centerX, centerZ, sizeX, sizeZ, zones]);
+
+  useEffect(() => () => geometry?.dispose(), [geometry]);
+
+  const materialProps = {
+    map: debugMode === "beauty" ? floorTexture ?? undefined : undefined,
+    color: debugColorForRole("floor", debugMode, floorMaterial.baseColor),
+    roughness: floorMaterial.roughness,
+    metalness: floorMaterial.metalness
+  };
+
+  if (!geometry) {
+    return (
+      <mesh receiveShadow rotation-x={-Math.PI / 2} position={[centerX, 0, centerZ]}>
+        <planeGeometry args={[sizeX, sizeZ]} />
+        <meshStandardMaterial {...materialProps} />
+      </mesh>
+    );
+  }
+
+  return (
+    <mesh receiveShadow position={[centerX, 0, centerZ]} geometry={geometry}>
+      <meshStandardMaterial {...materialProps} />
+    </mesh>
+  );
+};
+
+// 下げ床(玄関土間など): 床に開けたピットへ Y=-dropM の床パネルを敷き、縁に蹴込みの側面を立てる。
+const FloorZoneMesh = ({
+  zone,
+  floorTexture,
+  floorMaterial,
+  selected,
+  onSelect,
+  debugMode
+}: {
+  zone: FloorZone;
+  floorTexture: THREE.Texture | null;
+  floorMaterial: MaterialPreset;
+  selected: boolean;
+  onSelect: (selection: Selection) => void;
+  debugMode: RenderDebugMode;
+}) => {
+  const pathTraced = usePathTraced();
+  const editMode = useEditMode();
+  const deleteSelection = useProjectStore((store) => store.deleteSelection);
+  const drop = Math.max(0.02, zone.dropM);
+  const { center, size } = zone;
+  const color = debugColorForRole("floor", debugMode, floorMaterial.baseColor);
+  const sideColor = debugColorForRole("wall", debugMode, floorMaterial.baseColor);
+  const wall = (
+    <meshStandardMaterial color={sideColor} roughness={floorMaterial.roughness} metalness={0} side={THREE.DoubleSide} />
+  );
+  return (
+    <group
+      onPointerDown={(event: ThreeEvent<PointerEvent>) => {
+        event.stopPropagation();
+        if (editMode === "delete") {
+          deleteSelection({ kind: "floorZone", id: zone.id });
+          return;
+        }
+        onSelect({ kind: "floorZone", id: zone.id });
+      }}
+    >
+      {/* 下げパネル（ピット底） */}
+      <mesh receiveShadow rotation-x={-Math.PI / 2} position={[center.x, -drop, center.z]}>
+        <planeGeometry args={[size.x, size.z]} />
+        <meshStandardMaterial
+          map={debugMode === "beauty" ? floorTexture ?? undefined : undefined}
+          color={color}
+          roughness={floorMaterial.roughness}
+          metalness={floorMaterial.metalness}
+        />
+      </mesh>
+      {/* 蹴込み（立ち上がり）: Y=0→-drop の側面4枚。黒抜け防止。 */}
+      <mesh receiveShadow position={[center.x, -drop / 2, center.z - size.z / 2]}>
+        <boxGeometry args={[size.x, drop, 0.02]} />
+        {wall}
+      </mesh>
+      <mesh receiveShadow position={[center.x, -drop / 2, center.z + size.z / 2]}>
+        <boxGeometry args={[size.x, drop, 0.02]} />
+        {wall}
+      </mesh>
+      <mesh receiveShadow position={[center.x - size.x / 2, -drop / 2, center.z]}>
+        <boxGeometry args={[0.02, drop, size.z]} />
+        {wall}
+      </mesh>
+      <mesh receiveShadow position={[center.x + size.x / 2, -drop / 2, center.z]}>
+        <boxGeometry args={[0.02, drop, size.z]} />
+        {wall}
+      </mesh>
+      {selected && !pathTraced && (
+        <mesh position={[center.x, -drop / 2, center.z]}>
+          <boxGeometry args={[size.x + 0.04, drop + 0.04, size.z + 0.04]} />
+          <meshBasicMaterial color="#f5c64d" wireframe transparent opacity={0.8} />
+        </mesh>
+      )}
+    </group>
   );
 };
 
@@ -1217,8 +1374,39 @@ const WallPanel = ({
   );
 };
 
+// 壁コーナーの隙間埋め: 各端点が他の壁の端点と近接(=接続)していれば、その端だけ
+// 半厚ぶん延長して隣接壁へ食い込ませる。自由端(どの壁とも接続しない端)は延長しない
+// （外側へ飛び出さないように）。延長後の start/end を返す。
+const cornerExtendedWall = (wall: WallSegment, walls: WallSegment[]): { start: { x: number; z: number }; end: { x: number; z: number } } => {
+  const dx = wall.end.x - wall.start.x;
+  const dz = wall.end.z - wall.start.z;
+  const length = Math.hypot(dx, dz);
+  if (length < 1e-4) return { start: { ...wall.start }, end: { ...wall.end } };
+  const ux = dx / length;
+  const uz = dz / length;
+  // 端点が他の壁のいずれかの端点と近接しているか。epsilon は厚みの和の半分程度。
+  const connected = (px: number, pz: number) => {
+    for (const other of walls) {
+      if (other.id === wall.id) continue;
+      const eps = (wall.thicknessM + other.thicknessM) / 2 + 0.02;
+      for (const pt of [other.start, other.end]) {
+        if (Math.hypot(px - pt.x, pz - pt.z) <= eps) return true;
+      }
+    }
+    return false;
+  };
+  const ext = wall.thicknessM / 2;
+  const startExt = connected(wall.start.x, wall.start.z) ? ext : 0;
+  const endExt = connected(wall.end.x, wall.end.z) ? ext : 0;
+  return {
+    start: { x: wall.start.x - ux * startExt, z: wall.start.z - uz * startExt },
+    end: { x: wall.end.x + ux * endExt, z: wall.end.z + uz * endExt }
+  };
+};
+
 const WallMesh = ({
   wall,
+  walls,
   windows,
   material,
   roomCenter,
@@ -1227,6 +1415,7 @@ const WallMesh = ({
   debugMode
 }: {
   wall: WallSegment;
+  walls: WallSegment[];
   windows: WindowOpening[];
   material: MaterialPreset;
   roomCenter: THREE.Vector3;
@@ -1234,10 +1423,14 @@ const WallMesh = ({
   onSelect: (selection: Selection) => void;
   debugMode: RenderDebugMode;
 }) => {
-  const dx = wall.end.x - wall.start.x;
-  const dz = wall.end.z - wall.start.z;
+  // コーナーの隙間を塞ぐため接続端だけ半厚ぶん延長した端点で描く。
+  // 窓 hole は元の centerRatio から絶対座標(wx,wz)を求め、延長後の midpoint/length に
+  // 対して射影するので、延長してもガラス位置・幅はずれない（cx は絶対位置基準）。
+  const ext = cornerExtendedWall(wall, walls);
+  const dx = ext.end.x - ext.start.x;
+  const dz = ext.end.z - ext.start.z;
   const length = Math.hypot(dx, dz);
-  const midpointVector = new THREE.Vector3((wall.start.x + wall.end.x) / 2, wall.heightM / 2, (wall.start.z + wall.end.z) / 2);
+  const midpointVector = new THREE.Vector3((ext.start.x + ext.end.x) / 2, wall.heightM / 2, (ext.start.z + ext.end.z) / 2);
   const normalA = new THREE.Vector3(-dz / length, 0, dx / length);
   const normalB = normalA.clone().multiplyScalar(-1);
   const toCenter = roomCenter.clone().sub(midpointVector);
@@ -1822,6 +2015,141 @@ const FurniturePrimitive = ({
             <meshStandardMaterial color="#1c1c1a" roughness={0.5} metalness={0.6} />
           </mesh>
         ))}
+      </>
+    );
+  }
+
+  if (item.type === "washer") {
+    // 洗濯機: 白い箱＋正面(+z)の丸い扉。
+    const { x: w, y: h, z: d } = item.size;
+    return (
+      <>
+        <mesh castShadow receiveShadow>
+          <boxGeometry args={[w, h, d]} />
+          <meshStandardMaterial color="#f0f0ee" roughness={0.45} metalness={metalness} />
+        </mesh>
+        <mesh position={[0, -h * 0.05, d / 2 + 0.004]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[Math.min(w, h) * 0.32, Math.min(w, h) * 0.32, 0.02, 32]} />
+          <meshStandardMaterial color="#2a2c30" roughness={0.3} metalness={0.4} />
+        </mesh>
+      </>
+    );
+  }
+
+  if (item.type === "washstand") {
+    // 洗面化粧台: カウンター＋下部キャビネット＋上部の鏡板。
+    const { x: w, y: h, z: d } = item.size;
+    const counterY = h * 0.45;
+    return (
+      <>
+        {/* 下部キャビネット */}
+        <mesh castShadow receiveShadow position={[0, -h / 2 + counterY / 2, 0]}>
+          <boxGeometry args={[w, counterY, d]} />
+          <meshStandardMaterial color="#e9e7e1" roughness={0.5} metalness={metalness} />
+        </mesh>
+        {/* カウンター天板 */}
+        <mesh castShadow receiveShadow position={[0, -h / 2 + counterY + 0.02, 0]}>
+          <boxGeometry args={[w + 0.03, 0.04, d + 0.03]} />
+          <meshStandardMaterial color="#f4f3ef" roughness={0.3} metalness={metalness} />
+        </mesh>
+        {/* 鏡板（背面寄り上部） */}
+        <mesh receiveShadow position={[0, h / 2 - h * 0.18, -d / 2 + 0.02]}>
+          <boxGeometry args={[w * 0.86, h * 0.34, 0.02]} />
+          <meshStandardMaterial color="#aab4bc" roughness={0.08} metalness={0.55} />
+        </mesh>
+      </>
+    );
+  }
+
+  if (item.type === "toilet") {
+    // 便器（ボウル）＋背面タンクの2段構成。
+    const { x: w, y: h, z: d } = item.size;
+    const bowlH = h * 0.55;
+    const tankH = h * 0.45;
+    return (
+      <>
+        {/* ボウル */}
+        <mesh castShadow receiveShadow position={[0, -h / 2 + bowlH / 2, d * 0.12]}>
+          <boxGeometry args={[w * 0.7, bowlH, d * 0.72]} />
+          <meshStandardMaterial color="#f3f3f1" roughness={0.25} metalness={metalness} />
+        </mesh>
+        {/* 便座（上面） */}
+        <mesh receiveShadow position={[0, -h / 2 + bowlH + 0.015, d * 0.12]}>
+          <boxGeometry args={[w * 0.76, 0.04, d * 0.78]} />
+          <meshStandardMaterial color="#fafafa" roughness={0.3} />
+        </mesh>
+        {/* 背面タンク */}
+        <mesh castShadow receiveShadow position={[0, h / 2 - tankH / 2, -d / 2 + d * 0.16]}>
+          <boxGeometry args={[w * 0.82, tankH, d * 0.3]} />
+          <meshStandardMaterial color="#f3f3f1" roughness={0.25} metalness={metalness} />
+        </mesh>
+      </>
+    );
+  }
+
+  if (item.type === "bathtub") {
+    // 浴槽: 外箱＋内側を浅く窪ませた湯面。窪みは薄い縁を残した内箱で表現する。
+    const { x: w, y: h, z: d } = item.size;
+    const rim = Math.min(w, d) * 0.12;
+    return (
+      <>
+        <mesh castShadow receiveShadow>
+          <boxGeometry args={[w, h, d]} />
+          <meshStandardMaterial color="#eef0f0" roughness={0.3} metalness={metalness} />
+        </mesh>
+        {/* 内側の窪み（湯面を兼ねた青みがかった面） */}
+        <mesh position={[0, h / 2 - 0.06, 0]}>
+          <boxGeometry args={[w - rim * 2, 0.06, d - rim * 2]} />
+          <meshStandardMaterial color="#cfe0e6" roughness={0.12} metalness={0.1} />
+        </mesh>
+      </>
+    );
+  }
+
+  if (item.type === "desk") {
+    // デスク: 天板＋4本脚。
+    const { x: w, y: h, z: d } = item.size;
+    const topT = 0.04;
+    const legW = 0.05;
+    const legY = -h / 2 + (h - topT) / 2;
+    const legH = h - topT;
+    const offX = w / 2 - legW / 2 - 0.02;
+    const offZ = d / 2 - legW / 2 - 0.02;
+    return (
+      <>
+        <mesh castShadow receiveShadow position={[0, h / 2 - topT / 2, 0]}>
+          <boxGeometry args={[w, topT, d]} />
+          <meshStandardMaterial color={color} roughness={roughness} metalness={metalness} />
+        </mesh>
+        {[
+          [offX, offZ],
+          [-offX, offZ],
+          [offX, -offZ],
+          [-offX, -offZ]
+        ].map(([x, z], index) => (
+          <mesh key={index} castShadow receiveShadow position={[x, legY, z]}>
+            <boxGeometry args={[legW, legH, legW]} />
+            <meshStandardMaterial color="#3a342b" roughness={0.6} metalness={metalness} />
+          </mesh>
+        ))}
+      </>
+    );
+  }
+
+  if (item.type === "shoeCabinet") {
+    // 下駄箱: 縦長キャビネット＋扉の分割溝（正面=+z）。
+    const { x: w, y: h, z: d } = item.size;
+    return (
+      <>
+        <mesh castShadow receiveShadow>
+          <boxGeometry args={[w, h, d]} />
+          <meshStandardMaterial color={color} roughness={roughness} metalness={metalness} />
+        </mesh>
+        {/* 扉の縦溝（左右2枚扉想定） */}
+        <mesh position={[0, 0, d / 2 + 0.002]}>
+          <boxGeometry args={[0.012, h * 0.96, 0.012]} />
+          <meshStandardMaterial color="#9a9a96" roughness={0.5} />
+        </mesh>
       </>
     );
   }

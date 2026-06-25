@@ -1,4 +1,5 @@
-import type { CeilingZone, FurnitureItem, LightFixture, Project, VoidArea, WindowOpening } from "../types";
+import type { CeilingZone, FloorZone, FurnitureItem, LightFixture, Project, VoidArea, WindowOpening } from "../types";
+import { fixtureModelMap } from "./fixtureCatalog";
 import type { FurniturePreset } from "./furnitureCatalog";
 import type { WindowPreset } from "./windowCatalog";
 
@@ -48,6 +49,53 @@ export const newWallSpot = (project: Project, at?: { x: number; z: number }): Li
     penumbra: 0.45,
     castsShadow: true,
     note: "壁付スポット（向き変更可）"
+  };
+};
+
+export const newPendant = (project: Project, at?: { x: number; z: number }): LightFixture => {
+  const model = fixtureModelMap.get("pendant");
+  const cordLengthM = 0.6;
+  return {
+    id: uid("light"),
+    name: "ペンダント",
+    type: "pendant",
+    model: "pendant",
+    position: { x: at?.x ?? 0, y: project.room.ceilingHeightM - cordLengthM, z: at?.z ?? 0 },
+    mountHeightM: project.room.ceilingHeightM,
+    rotationDeg: { x: 0, y: 0, z: 0 },
+    target: { x: at?.x ?? 0, y: 0, z: at?.z ?? 0 },
+    lumens: model?.defaultLumens ?? 800,
+    colorTemperatureK: 2700,
+    dimmer: 80,
+    enabled: true,
+    beamAngleDeg: model?.beamAngleDeg ?? 90,
+    penumbra: model?.penumbra ?? 0.8,
+    castsShadow: true,
+    note: "",
+    cordLengthM
+  };
+};
+
+export const newLineLight = (project: Project, at?: { x: number; z: number }): LightFixture => {
+  const model = fixtureModelMap.get("tape");
+  return {
+    id: uid("light"),
+    name: "ライン照明",
+    type: "tape",
+    model: "tape",
+    position: { x: at?.x ?? 0, y: project.room.ceilingHeightM - 0.04, z: at?.z ?? 0 },
+    mountHeightM: project.room.ceilingHeightM,
+    rotationDeg: { x: -90, y: 0, z: 0 },
+    target: { x: at?.x ?? 0, y: 0, z: at?.z ?? 0 },
+    lumens: model?.defaultLumens ?? 420,
+    colorTemperatureK: 3000,
+    dimmer: 80,
+    enabled: true,
+    beamAngleDeg: model?.beamAngleDeg ?? 120,
+    penumbra: model?.penumbra ?? 0.9,
+    castsShadow: false,
+    note: "棚下・壁裏の間接照明",
+    lengthM: 1.2
   };
 };
 
@@ -150,4 +198,12 @@ export const newCeilingZone = (at?: { x: number; z: number }): CeilingZone => ({
   center: { x: at?.x ?? 0, z: at?.z ?? 0 },
   size: { x: 2.4, z: 2.0 },
   dropM: 0.3
+});
+
+export const newFloorZone = (at?: { x: number; z: number }): FloorZone => ({
+  id: uid("floor"),
+  name: "玄関土間",
+  center: { x: at?.x ?? 0, z: at?.z ?? 0 },
+  size: { x: 1.6, z: 1.2 },
+  dropM: 0.15
 });

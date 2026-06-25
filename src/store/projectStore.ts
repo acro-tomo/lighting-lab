@@ -6,6 +6,7 @@ import type {
   CameraView,
   Daylight,
   FloorPlanBackground,
+  FloorZone,
   FurnitureItem,
   LightFixture,
   LightingScene,
@@ -53,6 +54,8 @@ type ProjectStore = {
   addVoid: (voidArea: VoidArea) => void;
   addCeilingZone: (zone: CeilingZone) => void;
   updateCeilingZone: (id: string, patch: Partial<CeilingZone>) => void;
+  addFloorZone: (zone: FloorZone) => void;
+  updateFloorZone: (id: string, patch: Partial<FloorZone>) => void;
   updateLight: (id: string, patch: Partial<LightFixture>) => void;
   setAllColorTemperature: (colorTemperatureK: number) => void;
   updateMaterial: (id: string, patch: Partial<MaterialPreset>) => void;
@@ -118,6 +121,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       nextProject.windows = [];
       nextProject.voids = [];
       nextProject.ceilingZones = [];
+      nextProject.floorZones = [];
       nextProject.furniture = [];
       nextProject.lights = [];
       nextProject.lightingScenes = nextProject.lightingScenes.map((scene) => ({
@@ -230,6 +234,23 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       );
       return withHistory(state, nextProject);
     }),
+  addFloorZone: (zone) =>
+    set((state) => {
+      const nextProject = cloneProject(state.project);
+      nextProject.floorZones = [...(nextProject.floorZones ?? []), zone];
+      return {
+        ...withHistory(state, nextProject),
+        selection: { kind: "floorZone", id: zone.id }
+      };
+    }),
+  updateFloorZone: (id, patch) =>
+    set((state) => {
+      const nextProject = cloneProject(state.project);
+      nextProject.floorZones = (nextProject.floorZones ?? []).map((zone) =>
+        zone.id === id ? { ...zone, ...patch } : zone
+      );
+      return withHistory(state, nextProject);
+    }),
   updateLight: (id, patch) =>
     set((state) => {
       const nextProject = cloneProject(state.project);
@@ -334,6 +355,8 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
         nextProject.voids = nextProject.voids.filter((voidArea) => voidArea.id !== selection.id);
       } else if (selection.kind === "ceilingZone") {
         nextProject.ceilingZones = (nextProject.ceilingZones ?? []).filter((zone) => zone.id !== selection.id);
+      } else if (selection.kind === "floorZone") {
+        nextProject.floorZones = (nextProject.floorZones ?? []).filter((zone) => zone.id !== selection.id);
       }
 
       return {

@@ -13,7 +13,7 @@ import type { CompareShot, Project } from "./types";
 import { floorPlanFileToDataUrl } from "./utils/floorplanImport";
 import { DEFAULT_DAYLIGHT } from "./utils/sun";
 import { cloneProject } from "./utils/units";
-import { newCeilingZone, newDoor, newDownlight, newFurnitureFromPreset, newStair, newVoid, newWallSpot, newWindow, newWindowFromPreset } from "./data/objectFactory";
+import { newCeilingZone, newDoor, newDownlight, newFloorZone, newFurnitureFromPreset, newLineLight, newPendant, newStair, newVoid, newWallSpot, newWindow, newWindowFromPreset } from "./data/objectFactory";
 import { getFurniturePreset } from "./data/furnitureCatalog";
 import { getWindowPreset } from "./data/windowCatalog";
 import { EditToolbar, type EditMode } from "./components/EditToolbar";
@@ -78,6 +78,7 @@ export const App = () => {
   const addWindow = useProjectStore((state) => state.addWindow);
   const addVoid = useProjectStore((state) => state.addVoid);
   const addCeilingZone = useProjectStore((state) => state.addCeilingZone);
+  const addFloorZone = useProjectStore((state) => state.addFloorZone);
   const deleteSelection = useProjectStore((state) => state.deleteSelection);
   const setDaylight = useProjectStore((state) => state.setDaylight);
   const [canvasElement, setCanvasElement] = useState<HTMLCanvasElement | null>(null);
@@ -370,6 +371,12 @@ export const App = () => {
         case "wallspot":
           addLight(newWallSpot(project, at));
           break;
+        case "pendant":
+          addLight(newPendant(project, at));
+          break;
+        case "linelight":
+          addLight(newLineLight(project, at));
+          break;
         case "stair":
           addFurniture(newStair(project, at));
           break;
@@ -385,11 +392,14 @@ export const App = () => {
         case "ceilingZone":
           addCeilingZone(newCeilingZone(at));
           break;
+        case "floorZone":
+          addFloorZone(newFloorZone(at));
+          break;
         default:
           return;
       }
     },
-    [addCeilingZone, addFurniture, addLight, addVoid, addWindow, project]
+    [addCeilingZone, addFloorZone, addFurniture, addLight, addVoid, addWindow, project]
   );
 
   // 「＋追加」で種別を選んだら配置待ちにする。実際の生成はクリック位置確定時。

@@ -15,20 +15,33 @@ const ADD_GROUPS: { title: string; items: AddItem[] }[] = [
     title: "照明",
     items: [
       { kind: "downlight", label: "ダウンライト" },
-      { kind: "wallspot", label: "壁付スポット" }
+      { kind: "wallspot", label: "壁付スポット" },
+      { kind: "pendant", label: "ペンダント" },
+      { kind: "linelight", label: "ライン照明" }
     ]
   },
   {
     // 窓はカタログから選ぶ（kind = "window:<presetId>"）。掃き出し/腰窓/高窓など。
     title: "窓",
-    items: windowCatalog.map((preset) => ({ kind: `window:${preset.id}`, label: preset.label, hint: "壁をクリック" }))
+    items: windowCatalog
+      .filter((preset) => preset.style === "window" || preset.style === "opening")
+      .map((preset) => ({ kind: `window:${preset.id}`, label: preset.label, hint: "壁をクリック" }))
+  },
+  {
+    title: "建具",
+    items: [
+      { kind: "door", label: "扉", hint: "壁をクリック" },
+      ...windowCatalog
+        .filter((preset) => preset.style === "door")
+        .map((preset) => ({ kind: `window:${preset.id}`, label: preset.label, hint: "壁をクリック" }))
+    ]
   },
   {
     title: "開口・構造",
     items: [
-      { kind: "door", label: "扉", hint: "壁をクリック" },
       { kind: "void", label: "吹き抜け" },
       { kind: "ceilingZone", label: "下げ天井" },
+      { kind: "floorZone", label: "下げ床(土間)" },
       { kind: "stair", label: "階段" }
     ]
   },

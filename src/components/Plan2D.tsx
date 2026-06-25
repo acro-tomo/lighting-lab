@@ -37,12 +37,13 @@ type DragState =
   | { kind: "light"; id: string; offset: Vec2M }
   | { kind: "void"; id: string; offset: Vec2M }
   | { kind: "ceilingZone"; id: string; offset: Vec2M }
+  | { kind: "floorZone"; id: string; offset: Vec2M }
   | { kind: "window"; id: string }
   | { kind: "pan"; clientStart: { x: number; y: number }; panStart: { x: number; y: number } }
   | null;
 
 // パワポ風の辺ドラッグリサイズ対象。矩形フットプリント(幅x・奥行z)を持つ物のみ。
-type ResizeKind = "furniture" | "void" | "ceilingZone";
+type ResizeKind = "furniture" | "void" | "ceilingZone" | "floorZone";
 type ResizeEdge =
   | "left"
   | "right"
@@ -215,6 +216,7 @@ export const Plan2D = ({
   const setBackgroundPlan = useProjectStore((state) => state.setBackgroundPlan);
   const updateWindow = useProjectStore((state) => state.updateWindow);
   const updateCeilingZone = useProjectStore((state) => state.updateCeilingZone);
+  const updateFloorZone = useProjectStore((state) => state.updateFloorZone);
   const addWall = useProjectStore((state) => state.addWall);
   // 3Dビューの現在カメラ位置/注視点(ワールドm)。null のとき平面図にマーカーを描かない。
   const liveCamera = useProjectStore((state) => state.liveCamera);
@@ -399,7 +401,7 @@ export const Plan2D = ({
 
   // ダブルクリックでリサイズハンドルを表示する（矩形フットプリント物のみ）。
   const startResize = (kind: ResizeKind, id: string) => {
-    onSelect({ kind: kind === "furniture" ? "furniture" : kind === "void" ? "void" : "ceilingZone", id });
+    onSelect({ kind, id });
     setResizeTarget({ kind, id });
   };
 
@@ -473,11 +475,16 @@ export const Plan2D = ({
         if (!voidArea) return;
         const r = resizeRect(voidArea.center, voidArea.size, 0, resizing.edge, cursor);
         updateVoid(voidArea.id, { center: r.center, size: r.size });
-      } else {
+      } else if (resizing.kind === "ceilingZone") {
         const zone = (project.ceilingZones ?? []).find((candidate) => candidate.id === resizing.id);
         if (!zone) return;
         const r = resizeRect(zone.center, zone.size, 0, resizing.edge, cursor);
         updateCeilingZone(zone.id, { center: r.center, size: r.size });
+      } else {
+        const zone = (project.floorZones ?? []).find((candidate) => candidate.id === resizing.id);
+        if (!zone) return;
+        const r = resizeRect(zone.center, zone.size, 0, resizing.edge, cursor);
+        updateFloorZone(zone.id, { center: r.center, size: r.size });
       }
       return;
     }
@@ -528,6 +535,14 @@ export const Plan2D = ({
       const voidArea = project.voids.find((candidate) => candidate.id === dragging.id);
       if (!voidArea) return;
       updateVoid(voidArea.id, { center: next });
+    } else if (dragging.kind === "ceilingZone") {
+      const zone = (project.ceilingZones ?? []).find((candidate) => candidate.id === dragging.id);
+      if (!zone) return;
+      updateCeilingZone(zone.id, { center: next });
+    } else if (dragging.kind === "floorZone") {
+      const zone = (project.floorZones ?? []).find((candidate) => candidate.id === dragging.id);
+      if (!zone) return;
+      updateFloorZone(zone.id, { center: next });
     }
   };
 
@@ -747,6 +762,20 @@ export const Plan2D = ({
                 onSelect={handleSelect}
                 onDragStart={(offset) => setDragging({ kind: "ceilingZone", id: zone.id, offset })}
                 onResize={() => startResize("ceilingZone", zone.id)}
+                svgToWorld={svgToWorld}
+                canDrag={canDragObjects}
+              />
+            ))}
+            {(project.floorZones ?? []).map((zone) => (
+              <FloorZonePlanItem
+                key={zone.id}
+                zone={zone}
+                planSize={planSize}
+                worldToSvg={worldToSvg}
+                selected={selection?.kind === "floorZone" && selection.id === zone.id}
+                onSelect={handleSelect}
+                onDragStart={(offset) => setDragging({ kind: "floorZone", id: zone.id, offset })}
+                onResize={() => startResize("floorZone", zone.id)}
                 svgToWorld={svgToWorld}
                 canDrag={canDragObjects}
               />
@@ -1084,6 +1113,56 @@ const CeilingZonePlanItem = ({
   );
 };
 
+const FloorZonePlanItem = ({
+  zone,
+  planSize,
+  worldToSvg,
+  selected,
+  onSelect,
+  onDragStart,
+  onResize,
+  svgToWorld,
+  canDrag
+}: {
+  zone: NonNullable<Project["floorZones"]>[number];
+  planSize: { pxPerM: number };
+  worldToSvg: (point: Vec2M) => { x: number; y: number };
+  selected: boolean;
+  onSelect: (selection: Selection) => void;
+  onDragStart: (offset: Vec2M) => void;
+  onResize: () => void;
+  svgToWorld: (clientX: number, clientY: number) => Vec2M;
+  canDrag: boolean;
+}) => {
+  const topLeft = worldToSvg({
+    x: zone.center.x - zone.size.x / 2,
+    z: zone.center.z - zone.size.z / 2
+  });
+
+  const handlePointerDown = (event: React.PointerEvent<SVGGElement>) => {
+    event.stopPropagation();
+    onSelect({ kind: "floorZone", id: zone.id });
+    if (!canDrag) return;
+    const point = svgToWorld(event.clientX, event.clientY);
+    onDragStart({ x: point.x - zone.center.x, z: point.z - zone.center.z });
+  };
+
+  return (
+    <g onPointerDown={handlePointerDown} onDoubleClick={(event) => { event.stopPropagation(); onResize(); }}>
+      <rect
+        x={topLeft.x}
+        y={topLeft.y}
+        width={zone.size.x * planSize.pxPerM}
+        height={zone.size.z * planSize.pxPerM}
+        className={selected ? "plan-floor is-selected" : "plan-floor"}
+      />
+      <text x={topLeft.x + 12} y={topLeft.y + 24} className="plan-label">
+        {zone.name}（▽{Math.round(zone.dropM * 1000)}）
+      </text>
+    </g>
+  );
+};
+
 const FurniturePlanItem = ({
   item,
   planSize,
@@ -1211,8 +1290,13 @@ const ResizeHandles = ({
     if (!voidArea) return null;
     center = voidArea.center;
     size = voidArea.size;
-  } else {
+  } else if (target.kind === "ceilingZone") {
     const zone = (project.ceilingZones ?? []).find((candidate) => candidate.id === target.id);
+    if (!zone) return null;
+    center = zone.center;
+    size = zone.size;
+  } else {
+    const zone = (project.floorZones ?? []).find((candidate) => candidate.id === target.id);
     if (!zone) return null;
     center = zone.center;
     size = zone.size;

@@ -6,6 +6,7 @@ export type ObjectKind =
   | "light"
   | "void"
   | "ceilingZone"
+  | "floorZone"
   | "material";
 
 export type Vec2M = {
@@ -84,6 +85,16 @@ export type CeilingZone = {
   dropM: number;
 };
 
+// 下げ床 / 土間: 指定した矩形領域だけ床を dropM 分だけ下げる（玄関土間・上がり框の段差）。
+export type FloorZone = {
+  id: string;
+  name: string;
+  center: Vec2M;
+  size: Vec2M;
+  /** 床からの下がり量(m)。玄関土間の一段下げは 0.15 程度。 */
+  dropM: number;
+};
+
 export type FurnitureType =
   | "roundTable"
   | "rectTable"
@@ -98,6 +109,12 @@ export type FurnitureType =
   | "counter"
   | "rug"
   | "stair"
+  | "washer"
+  | "washstand"
+  | "toilet"
+  | "bathtub"
+  | "desk"
+  | "shoeCabinet"
   | "box";
 
 export type FurnitureItem = {
@@ -225,6 +242,7 @@ export type Project = {
   windows: WindowOpening[];
   voids: VoidArea[];
   ceilingZones?: CeilingZone[];
+  floorZones?: FloorZone[];
   furniture: FurnitureItem[];
   lights: LightFixture[];
   lightingScenes: LightingScene[];

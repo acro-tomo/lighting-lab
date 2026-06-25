@@ -522,6 +522,17 @@ h2 {
   stroke: #f5c64d;
 }
 
+.plan-floor {
+  fill: rgba(80, 130, 170, 0.2);
+  stroke: rgba(150, 200, 240, 0.85);
+  stroke-dasharray: 7 4;
+  stroke-width: 2;
+}
+
+.plan-floor.is-selected {
+  stroke: #f5c64d;
+}
+
 /* パワポ風リサイズハンドル */
 .plan-resize-handle {
   fill: #f5c64d;
