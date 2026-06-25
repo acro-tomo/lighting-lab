@@ -938,6 +938,111 @@ const computeFloorBounds = (project: Project) => {
   };
 };
 
+// 壁セグメントから室内外周ポリゴン（絶対座標の頂点列）を導出する。
+// 端点を近接マージしてグラフ化し、最大面積の閉ループを外周とみなす。
+// L字など非矩形の間取りで床/天井を室内だけに張るために使う。
+// 綺麗に取れない場合は null を返し、呼び出し側は bbox 矩形へフォールバックする。
+const computeRoomPolygon = (project: Project): { x: number; z: number }[] | null => {
+  if (project.walls.length < 3) return null;
+  // 端点近接マージのしきい値: 最大厚みの半分か 0.05m の大きい方。
+  const maxThickness = project.walls.reduce((m, w) => Math.max(m, w.thicknessM), 0);
+  const mergeEps = Math.max(maxThickness / 2, 0.05);
+
+  // 代表点(ノード)へ端点を量子化する。近接ノードがあれば共有する。
+  const nodes: { x: number; z: number }[] = [];
+  const nodeIndex = (p: { x: number; z: number }): number => {
+    for (let i = 0; i < nodes.length; i++) {
+      if (Math.hypot(nodes[i].x - p.x, nodes[i].z - p.z) <= mergeEps) return i;
+    }
+    nodes.push({ x: p.x, z: p.z });
+    return nodes.length - 1;
+  };
+
+  // 無向グラフ（隣接集合）。間仕切りで分岐があっても外周ループ抽出は最大面積で吸収する。
+  const adj = new Map<number, Set<number>>();
+  const addEdge = (a: number, b: number) => {
+    if (a === b) return;
+    if (!adj.has(a)) adj.set(a, new Set());
+    if (!adj.has(b)) adj.set(b, new Set());
+    adj.get(a)!.add(b);
+    adj.get(b)!.add(a);
+  };
+  for (const wall of project.walls) {
+    addEdge(nodeIndex(wall.start), nodeIndex(wall.end));
+  }
+  if (nodes.length < 3) return null;
+
+  const signedArea = (poly: number[]): number => {
+    let area = 0;
+    for (let i = 0; i < poly.length; i++) {
+      const a = nodes[poly[i]];
+      const b = nodes[poly[(i + 1) % poly.length]];
+      area += a.x * b.z - b.x * a.z;
+    }
+    return area / 2;
+  };
+
+  // 各辺から最も鋭く左へ曲がる隣へ進む「面トレース」で全ての面ループを列挙し、
+  // 面積最大（外周）を採用する。無限外面は面積が負/最大絶対値の符号で判別。
+  const visited = new Set<string>();
+  let best: number[] | null = null;
+  let bestArea = 0;
+  for (const [from, neighbors] of adj) {
+    for (const to of neighbors) {
+      const startKey = `${from}->${to}`;
+      if (visited.has(startKey)) continue;
+      const loop: number[] = [from];
+      let prev = from;
+      let curr = to;
+      let guard = 0;
+      let ok = true;
+      while (curr !== from && guard < 2000) {
+        guard++;
+        visited.add(`${prev}->${curr}`);
+        loop.push(curr);
+        const incoming = Math.atan2(nodes[curr].z - nodes[prev].z, nodes[curr].x - nodes[prev].x);
+        const currNeighbors = adj.get(curr);
+        if (!currNeighbors || currNeighbors.size === 0) {
+          ok = false;
+          break;
+        }
+        // 進入方向に対し最も時計回り側（最小の左回転角）の辺を選ぶ＝最小面に沿う。
+        let nextNode = -1;
+        let bestTurn = Infinity;
+        for (const cand of currNeighbors) {
+          if (cand === prev && currNeighbors.size > 1) continue;
+          const outgoing = Math.atan2(nodes[cand].z - nodes[curr].z, nodes[cand].x - nodes[curr].x);
+          let turn = outgoing - (incoming + Math.PI);
+          while (turn <= 0) turn += Math.PI * 2;
+          while (turn > Math.PI * 2) turn -= Math.PI * 2;
+          if (turn < bestTurn) {
+            bestTurn = turn;
+            nextNode = cand;
+          }
+        }
+        if (nextNode < 0) {
+          ok = false;
+          break;
+        }
+        prev = curr;
+        curr = nextNode;
+      }
+      visited.add(`${prev}->${curr}`);
+      if (!ok || curr !== from || loop.length < 3) continue;
+      const area = signedArea(loop);
+      if (Math.abs(area) > Math.abs(bestArea)) {
+        bestArea = area;
+        best = loop;
+      }
+    }
+  }
+
+  if (!best || best.length < 3 || Math.abs(bestArea) < 0.25) return null;
+  // CCW（正の符号）へ正規化して返す。
+  const ordered = bestArea < 0 ? [...best].reverse() : best;
+  return ordered.map((i) => ({ x: nodes[i].x, z: nodes[i].z }));
+};
+
 const RoomShell = ({
   project,
   materialMap,
@@ -1057,16 +1162,29 @@ const Ceiling = ({ project, material, debugMode }: { project: Project; material:
   // Shape は中心原点・サイズ sizeX×sizeZ、void hole は mesh ローカルへオフセットする。
   const bounds = computeFloorBounds(project);
   const { centerX, centerZ, sizeX, sizeZ } = bounds;
+  // L字など非矩形は室内ポリゴンで張る。取れなければ bbox 矩形にフォールバック。
+  const polygon = useMemo(() => computeRoomPolygon(project), [project.walls]);
   const geometry = useMemo(() => {
     const halfW = sizeX / 2;
     const halfD = sizeZ / 2;
     // Shape は XY 平面で作る。ローカル(u,v) = (x, z) とし、後で回転して水平面に置く。
+    // 頂点は mesh(centerX,centerZ) 中心のローカル座標へ変換する（void hole と同じ規約）。
     const shape = new THREE.Shape();
-    shape.moveTo(-halfW, -halfD);
-    shape.lineTo(halfW, -halfD);
-    shape.lineTo(halfW, halfD);
-    shape.lineTo(-halfW, halfD);
-    shape.closePath();
+    if (polygon) {
+      polygon.forEach((p, i) => {
+        const lx = p.x - centerX;
+        const lz = p.z - centerZ;
+        if (i === 0) shape.moveTo(lx, lz);
+        else shape.lineTo(lx, lz);
+      });
+      shape.closePath();
+    } else {
+      shape.moveTo(-halfW, -halfD);
+      shape.lineTo(halfW, -halfD);
+      shape.lineTo(halfW, halfD);
+      shape.lineTo(-halfW, halfD);
+      shape.closePath();
+    }
     for (const voidArea of project.voids) {
       // void の center は絶対座標。mesh が centerX/centerZ にあるためローカルへ変換する。
       const minX = voidArea.center.x - centerX - voidArea.size.x / 2;
@@ -1087,7 +1205,7 @@ const Ceiling = ({ project, material, debugMode }: { project: Project; material:
     // 室内（下）から見える＝旧単一void実装と同じ向き。
     geo.rotateX(Math.PI / 2);
     return geo;
-  }, [centerX, centerZ, sizeX, sizeZ, project.voids]);
+  }, [centerX, centerZ, sizeX, sizeZ, project.voids, polygon]);
 
   useEffect(() => () => geometry.dispose(), [geometry]);
 
@@ -1119,17 +1237,30 @@ const Floor = ({
   const bounds = computeFloorBounds(project);
   const { centerX, centerZ, sizeX, sizeZ } = bounds;
   const zones = project.floorZones ?? [];
+  // 床も室内ポリゴンで張れば室外へはみ出さない。取れなければ bbox 矩形。
+  const polygon = useMemo(() => computeRoomPolygon(project), [project.walls]);
 
   const geometry = useMemo(() => {
-    if (zones.length === 0) return null;
+    // ポリゴンも下げ床ピットも無ければ従来通り planeGeometry を使う（null を返す）。
+    if (zones.length === 0 && !polygon) return null;
     const halfW = sizeX / 2;
     const halfD = sizeZ / 2;
     const shape = new THREE.Shape();
-    shape.moveTo(-halfW, -halfD);
-    shape.lineTo(halfW, -halfD);
-    shape.lineTo(halfW, halfD);
-    shape.lineTo(-halfW, halfD);
-    shape.closePath();
+    if (polygon) {
+      polygon.forEach((p, i) => {
+        const lx = p.x - centerX;
+        const lz = p.z - centerZ;
+        if (i === 0) shape.moveTo(lx, lz);
+        else shape.lineTo(lx, lz);
+      });
+      shape.closePath();
+    } else {
+      shape.moveTo(-halfW, -halfD);
+      shape.lineTo(halfW, -halfD);
+      shape.lineTo(halfW, halfD);
+      shape.lineTo(-halfW, halfD);
+      shape.closePath();
+    }
     for (const zone of zones) {
       // zone.center は絶対座標。mesh が centerX/centerZ にあるためローカルへ変換する。
       const minX = zone.center.x - centerX - zone.size.x / 2;
@@ -1149,7 +1280,7 @@ const Floor = ({
     // 床は上向き(+Y)。-90°回転で法線を +Y にする（planeGeometry の rotation-x=-π/2 と同じ向き）。
     geo.rotateX(-Math.PI / 2);
     return geo;
-  }, [centerX, centerZ, sizeX, sizeZ, zones]);
+  }, [centerX, centerZ, sizeX, sizeZ, zones, polygon]);
 
   useEffect(() => () => geometry?.dispose(), [geometry]);
 
@@ -1395,6 +1526,7 @@ const wallPanelsWithHoles = (
 const WallPanel = ({
   rect,
   wallHeight,
+  depth,
   wallpaper,
   tile,
   material,
@@ -1402,6 +1534,7 @@ const WallPanel = ({
 }: {
   rect: WallPanelRect;
   wallHeight: number;
+  depth: number;
   wallpaper: THREE.Texture | null;
   tile: { w: number; h: number };
   material: MaterialPreset;
@@ -1419,8 +1552,10 @@ const WallPanel = ({
   }, [wallpaper, rect.w, rect.h, tile.w, tile.h]);
 
   return (
+    // 平面ではなく depth(壁厚)を持つ箱にする。芯線(z=0)中心で対称＝innerSide非依存。
+    // 厚みで両面が立つため side は FrontSide で足り、抜けは起きない。
     <mesh position={[rect.cx, rect.cy - wallHeight / 2, 0]} receiveShadow castShadow>
-      <planeGeometry args={[rect.w, rect.h]} />
+      <boxGeometry args={[rect.w, rect.h, depth]} />
       <meshStandardMaterial
         map={map ?? undefined}
         color={map ? "#ffffff" : debugColorForRole("wall", debugMode, material.baseColor)}
@@ -1428,9 +1563,6 @@ const WallPanel = ({
         metalness={material.metalness}
         emissive={material.emissiveColor}
         emissiveIntensity={debugMode === "beauty" ? material.emissiveIntensity : 0}
-        // 室内に内壁を立てるとカメラが法線裏側へ回り込んで壁が抜けるため両面描画。
-        // 編集ラスター/常駐パストレ共通のメッシュで WYSIWYG を保つ。
-        side={THREE.DoubleSide}
       />
     </mesh>
   );
@@ -1552,6 +1684,7 @@ const WallMesh = ({
           key={index}
           rect={panel}
           wallHeight={wall.heightM}
+          depth={wall.thicknessM}
           wallpaper={wallpaper}
           tile={tile}
           material={material}
