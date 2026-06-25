@@ -65,6 +65,22 @@ const isWallOpening = (kind: string | null): boolean =>
 
 const NAV_TOOLS: NavTool[] = ["パン"];
 
+// SVG空間で線分 s→e に対する単位法線。side="left"/"right" は start→end を歩いた
+// ときの左/右（worldToSvg は x→x, z→y で向きを保つので world の左右と一致する）。
+// SVGはy下向きなので、left法線は (dy, -dx) を正規化したものとする。
+const svgSideNormal = (
+  s: { x: number; y: number },
+  e: { x: number; y: number },
+  side: "left" | "right"
+): { x: number; y: number } => {
+  const dx = e.x - s.x;
+  const dy = e.y - s.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const nx = dy / len;
+  const ny = -dx / len;
+  return side === "left" ? { x: nx, y: ny } : { x: -nx, y: -ny };
+};
+
 const distance = (a: Vec2M, b: Vec2M) => Math.hypot(a.x - b.x, a.z - b.z);
 
 const snap = (value: number, grid = 0.1) => Math.round(value / grid) * grid;
@@ -210,6 +226,9 @@ export const Plan2D = ({
   // 選択モードでもドラッグで動かせるほうが直感的。クリックのみなら移動は起きず選択だけ。
   const canDragObjects = !navTool && (mode === "select" || mode === "move");
 
+  // 壁トレース中の内側(室内側)。start→end に対し左/右。undefined=未指定(中心対称)。
+  const [draftInnerSide, setDraftInnerSide] = useState<"left" | "right" | undefined>(undefined);
+
   const updateFurniture = useProjectStore((state) => state.updateFurniture);
   const updateLight = useProjectStore((state) => state.updateLight);
   const updateVoid = useProjectStore((state) => state.updateVoid);
@@ -252,6 +271,7 @@ export const Plan2D = ({
     if (mode !== "wall") {
       setWallDraft([]);
       setWallCursor(null);
+      setDraftInnerSide(undefined);
     }
   }, [mode]);
 
@@ -260,13 +280,35 @@ export const Plan2D = ({
     if (!isWallOpening(pendingAdd)) setWallTarget(null);
   }, [pendingAdd]);
 
-  // 壁モード中は Enter でトレースを終了する（Escは集中表示解除等と衝突するため使わない）。
+  // 壁モード中: Enter でトレース終了。矢印キーで内側(室内側)の左右を反転する。
+  // キーが平面図(SVG)にフォーカスしている / SVG内のイベント時のみ反応させ、
+  // 3Dカメラ操作の矢印キーと二重発火しないようにする。
   useEffect(() => {
     if (mode !== "wall") return;
     const onKeyDown = (event: KeyboardEvent) => {
+      const svg = svgRef.current;
+      const target = event.target as Node | null;
+      const planFocused = !!svg && (svg === target || (target ? svg.contains(target) : false));
+      if (!planFocused) return;
       if (event.key === "Enter") {
         setWallDraft([]);
         setWallCursor(null);
+        setDraftInnerSide(undefined);
+        return;
+      }
+      if (
+        event.key === "ArrowLeft" ||
+        event.key === "ArrowRight" ||
+        event.key === "ArrowUp" ||
+        event.key === "ArrowDown"
+      ) {
+        event.preventDefault();
+        // 左寄せ系キー→left、右寄せ系キー→right。未指定からも確定させる。
+        const toLeft = event.key === "ArrowLeft" || event.key === "ArrowUp";
+        setDraftInnerSide((current) => {
+          if (current === undefined) return toLeft ? "left" : "right";
+          return current === "left" ? "right" : "left";
+        });
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -274,7 +316,8 @@ export const Plan2D = ({
   }, [mode]);
 
   // 壁の既定値: 高さは天井高、厚みは既存壁を踏襲(無ければ0.12)、材質も既存壁を踏襲。
-  const commitWallSegment = (start: Vec2M, end: Vec2M) => {
+  // innerSide はトレース中に矢印キーで選んだ内側を保存（未指定なら中心対称）。
+  const commitWallSegment = (start: Vec2M, end: Vec2M, innerSide: "left" | "right" | undefined) => {
     const reference = project.walls[project.walls.length - 1];
     addWall({
       id: uid("wall"),
@@ -283,20 +326,83 @@ export const Plan2D = ({
       end,
       thicknessM: reference?.thicknessM ?? 0.12,
       heightM: project.room.ceilingHeightM,
-      materialId: reference?.materialId ?? "wall-white"
+      materialId: reference?.materialId ?? "wall-white",
+      ...(innerSide ? { innerSide } : {})
     });
   };
 
+  // コンテンツ全体(壁/room矩形/窓が乗る壁/家具/void/天井・床ゾーン/背景画像)を
+  // 内包する world(m) バウンディングボックス。これを基準に planSize/座標系を作る。
+  // room 矩形より壁が外に広がっていても 100%(=fit) で全体が映るようにするのが目的。
+  const contentBox = useMemo(() => {
+    let minX = Infinity;
+    let minZ = Infinity;
+    let maxX = -Infinity;
+    let maxZ = -Infinity;
+    const include = (x: number, z: number) => {
+      if (x < minX) minX = x;
+      if (z < minZ) minZ = z;
+      if (x > maxX) maxX = x;
+      if (z > maxZ) maxZ = z;
+    };
+    // room 矩形(中心原点)は常に含める。
+    include(-project.room.widthM / 2, -project.room.depthM / 2);
+    include(project.room.widthM / 2, project.room.depthM / 2);
+    for (const wall of project.walls) {
+      include(wall.start.x, wall.start.z);
+      include(wall.end.x, wall.end.z);
+    }
+    const includeRect = (c: Vec2M, s: { x: number; z: number }) => {
+      include(c.x - s.x / 2, c.z - s.z / 2);
+      include(c.x + s.x / 2, c.z + s.z / 2);
+    };
+    for (const item of project.furniture) includeRect(item.position, item.size);
+    for (const v of project.voids) includeRect(v.center, v.size);
+    for (const zone of project.ceilingZones ?? []) includeRect(zone.center, zone.size);
+    for (const zone of project.floorZones ?? []) includeRect(zone.center, zone.size);
+    const place = project.backgroundPlan?.placement;
+    if (place && bgNaturalSize) {
+      include(place.originXM, place.originZM);
+      include(
+        place.originXM + bgNaturalSize.width * place.metersPerPixel,
+        place.originZM + bgNaturalSize.height * place.metersPerPixel
+      );
+    }
+    if (!Number.isFinite(minX)) {
+      // フォールバック: room 矩形のみ。
+      minX = -project.room.widthM / 2;
+      minZ = -project.room.depthM / 2;
+      maxX = project.room.widthM / 2;
+      maxZ = project.room.depthM / 2;
+    }
+    return { minX, minZ, maxX, maxZ };
+    // 背景 placement は project.backgroundPlan 内なので依存に含める。
+  }, [
+    project.room.widthM,
+    project.room.depthM,
+    project.walls,
+    project.furniture,
+    project.voids,
+    project.ceilingZones,
+    project.floorZones,
+    project.backgroundPlan,
+    bgNaturalSize
+  ]);
+
+  // bbox 全体が 100%(zoom=1) で余白付きに収まるよう planSize/pxPerM を決める。
+  // worldToSvg は (x - minX + MARGIN_M) * pxPerM。原点は bbox の min を使う。
+  const MARGIN_M = 0.8;
   const planSize = useMemo(() => {
-    const width = 920;
-    const height = Math.round(width * (project.room.depthM / project.room.widthM));
-    const pxPerM = width / project.room.widthM;
-    return { width, height, pxPerM };
-  }, [project.room.depthM, project.room.widthM]);
+    const targetWidth = 920;
+    const bboxW = Math.max(0.5, contentBox.maxX - contentBox.minX) + MARGIN_M * 2;
+    const bboxH = Math.max(0.5, contentBox.maxZ - contentBox.minZ) + MARGIN_M * 2;
+    const pxPerM = targetWidth / bboxW;
+    return { width: targetWidth, height: bboxH * pxPerM, pxPerM };
+  }, [contentBox]);
 
   // 外周(部屋の端)に来る太い壁ストロークがクリップされないよう、viewBoxを
   // 表示用の余白ぶん広げる。座標系は getScreenCTM 逆行列で扱うため
-  // worldToSvg/svgPointToWorld は変更不要（padは表示余白のみ）。
+  // worldToSvg/svgPointToWorld は viewBox(pad) の影響を受けない。
   const VIEW_PAD = 60;
   const viewBox = {
     x: pan.x - VIEW_PAD,
@@ -306,13 +412,13 @@ export const Plan2D = ({
   };
 
   const worldToSvg = (point: Vec2M) => ({
-    x: (point.x + project.room.widthM / 2) * planSize.pxPerM,
-    y: (point.z + project.room.depthM / 2) * planSize.pxPerM
+    x: (point.x - contentBox.minX + MARGIN_M) * planSize.pxPerM,
+    y: (point.z - contentBox.minZ + MARGIN_M) * planSize.pxPerM
   });
 
   const svgPointToWorld = (point: { x: number; y: number }): Vec2M => ({
-    x: point.x / planSize.pxPerM - project.room.widthM / 2,
-    z: point.y / planSize.pxPerM - project.room.depthM / 2
+    x: point.x / planSize.pxPerM + contentBox.minX - MARGIN_M,
+    z: point.y / planSize.pxPerM + contentBox.minZ - MARGIN_M
   });
 
   // SVGのgetScreenCTMで画面座標→viewBoxユーザー座標へ変換する。
@@ -349,7 +455,9 @@ export const Plan2D = ({
       originZM: origin.z,
       metersPerPixel: scalePx / planSize.pxPerM
     } satisfies NonNullable<FloorPlanBackground["placement"]>;
-  }, [bgNaturalSize, planSize.width, planSize.height, planSize.pxPerM]);
+    // svgPointToWorld は contentBox 基準（min/MARGIN）で原点が決まるため依存に含める。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bgNaturalSize, planSize.width, planSize.height, planSize.pxPerM, contentBox]);
 
   const placement = project.backgroundPlan?.placement ?? defaultPlacement;
 
@@ -437,7 +545,7 @@ export const Plan2D = ({
       const raw = svgToWorld(event.clientX, event.clientY);
       const prev = wallDraft[wallDraft.length - 1];
       const v = prev ? snapPoint(angleSnap(prev, raw)) : snapPoint(raw);
-      if (prev) commitWallSegment(prev, v);
+      if (prev) commitWallSegment(prev, v, draftInnerSide);
       setWallDraft([...wallDraft, v]);
       return;
     }
@@ -551,7 +659,7 @@ export const Plan2D = ({
   // u = viewBox.x + frac*viewBox.width（frac=アンカーの viewBox 内相対位置）を不変に保つ。
   // → 新 viewBox.x = u - frac*newWidth、新 pan = viewBox.x + VIEW_PAD。
   const zoomAtUserPoint = (nextZoom: number, anchorX: number, anchorY: number) => {
-    const clamped = Math.min(8, Math.max(0.65, nextZoom));
+    const clamped = Math.min(8, Math.max(0.2, nextZoom));
     if (clamped === zoom) return;
     const newWidth = planSize.width / clamped + VIEW_PAD * 2;
     const newHeight = planSize.height / clamped + VIEW_PAD * 2;
@@ -564,12 +672,32 @@ export const Plan2D = ({
     setZoom(clamped);
   };
 
-  const handleWheel = (event: React.WheelEvent<SVGSVGElement>) => {
+  // ホイール/トラックパッドでカーソル位置を中心にズーム。
+  // トラックパッドのピンチは ctrlKey 付き wheel、2本指スクロールは通常 wheel として届く。
+  // deltaY に比例した倍率にして、ピンチでも2本指スクロールでも滑らかにする。
+  // ページスクロールを誘発しないよう必ず preventDefault する（native リスナで passive:false）。
+  const handleWheel = (event: WheelEvent) => {
     event.preventDefault();
     // clientToSvgPoint は viewBox 変換込みのユーザー空間座標を返す（=固定したいアンカー点）。
     const anchor = clientToSvgPoint(event.clientX, event.clientY);
-    zoomAtUserPoint(zoom * (event.deltaY > 0 ? 0.9 : 1.1), anchor.x, anchor.y);
+    // ピンチ(ctrlKey)は感度を上げる。指数で倍率化すると方向反転や大きなdeltaでも破綻しない。
+    const intensity = event.ctrlKey ? 0.01 : 0.0015;
+    const factor = Math.exp(-event.deltaY * intensity);
+    zoomAtUserPoint(zoom * factor, anchor.x, anchor.y);
   };
+
+  // wheel は passive 既定だと preventDefault が効かずページスクロールを誘発する。
+  // SVG へ passive:false の native リスナで付ける。最新の zoom/座標系を参照するため
+  // ref に最新ハンドラを保持し、リスナ自体は一度だけ登録する。
+  const wheelHandlerRef = useRef(handleWheel);
+  wheelHandlerRef.current = handleWheel;
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const listener = (event: WheelEvent) => wheelHandlerRef.current(event);
+    svg.addEventListener("wheel", listener, { passive: false });
+    return () => svg.removeEventListener("wheel", listener);
+  }, []);
 
   // ＋/－ボタンはカーソルが無いため平面図の中心をアンカーにズームする。
   const zoomAtCenter = (factor: number) => {
@@ -590,9 +718,9 @@ export const Plan2D = ({
       ty: topLeftSvg.y,
       scale: placement.metersPerPixel * planSize.pxPerM
     };
-    // imagePixelToWorld/worldToSvg は placement・room から導出されるため依存に含める
+    // imagePixelToWorld/worldToSvg は placement・contentBox(min/MARGIN) から導出される。
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bgNaturalSize, placement, planSize.pxPerM, project.room.widthM, project.room.depthM]);
+  }, [bgNaturalSize, placement, planSize.pxPerM, contentBox]);
 
   const scaleLabel = project.backgroundPlan?.scale
     ? `実寸合わせ済み（${Math.round(project.backgroundPlan.scale.millimeters).toLocaleString("ja-JP")}mm基準）`
@@ -647,9 +775,10 @@ export const Plan2D = ({
 
       <div className="plan-meta">
         <span>ズーム {Math.round(zoom * 100)}%</span>
-        <button onClick={() => zoomAtCenter(1.2)}>+</button>
-        <button onClick={() => zoomAtCenter(1 / 1.2)}>-</button>
-        <button onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }}>全体</button>
+        <button type="button" onClick={() => zoomAtCenter(1.2)} aria-label="拡大">+</button>
+        <button type="button" onClick={() => zoomAtCenter(1 / 1.2)} aria-label="縮小">-</button>
+        {/* zoom=1/pan=0 がコンテンツbbox全体のフィット表示（座標系をbbox基準にしたため）。 */}
+        <button type="button" onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }}>全体表示</button>
       </div>
 
       <p className="tool-help">
@@ -658,14 +787,15 @@ export const Plan2D = ({
         {!navTool && pendingAdd && !isWallOpening(pendingAdd) && "クリックした位置にオブジェクトを配置します。"}
         {!navTool && !pendingAdd && mode === "select" && "オブジェクトをクリックで選択、ドラッグで移動。何もない所のドラッグで平面図をパン。Deleteで削除。"}
         {!navTool && !pendingAdd && mode === "move" && "オブジェクトをドラッグで移動。何もない所のドラッグで平面図をパン。"}
-        {!navTool && !pendingAdd && mode === "wall" && "クリックで壁の頂点を連続配置。水平/垂直に自動スナップ。Enter/ダブルクリックで終了。"}
+        {!navTool && !pendingAdd && mode === "wall" && "クリックで壁の頂点を連続配置。水平/垂直に自動スナップ。△が室内側＝矢印キーで左右反転。Enter/ダブルクリックで終了。"}
       </p>
 
       <div className="plan-canvas-wrap">
         <svg
           ref={svgRef}
           className="plan-canvas"
-          style={{ cursor: mode === "wall" || pendingAdd ? "crosshair" : undefined }}
+          tabIndex={0}
+          style={{ cursor: mode === "wall" || pendingAdd ? "crosshair" : undefined, outline: "none" }}
           viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
           onPointerDown={handleCanvasPointerDown}
           onPointerMove={onPointerMove}
@@ -680,8 +810,8 @@ export const Plan2D = ({
           onDoubleClick={() => {
             setWallDraft([]);
             setWallCursor(null);
+            setDraftInnerSide(undefined);
           }}
-          onWheel={handleWheel}
         >
           <defs>
             <pattern id="smallGrid" width={planSize.pxPerM / 2} height={planSize.pxPerM / 2} patternUnits="userSpaceOnUse">
@@ -857,6 +987,40 @@ export const Plan2D = ({
                   strokeDasharray="8 6"
                 />
               )}
+              {/* 内側(室内側)を指す△マーカー。現在引いている辺の中点に法線方向で描く。
+                  矢印キーで draftInnerSide を反転すると向きが切り替わる。未指定時は left を仮表示。 */}
+              {(() => {
+                // 現在の辺: 最後の確定点→カーソル。カーソルが無ければ直近2点の辺。
+                const last = wallDraft[wallDraft.length - 1];
+                const edgeStart = wallCursor ? last : wallDraft[wallDraft.length - 2];
+                const edgeEnd = wallCursor ?? last;
+                if (!edgeStart || !edgeEnd) return null;
+                const s = worldToSvg(edgeStart);
+                const e = worldToSvg(edgeEnd);
+                if (Math.hypot(e.x - s.x, e.y - s.y) < 1) return null;
+                const side = draftInnerSide ?? "left";
+                const n = svgSideNormal(s, e, side);
+                const mid = { x: (s.x + e.x) / 2, y: (s.y + e.y) / 2 };
+                // 辺から少し内側へ離した位置に、内側を指す三角形を置く。
+                const gap = 10;
+                const tip = { x: mid.x + n.x * gap, y: mid.y + n.y * gap };
+                const size = 9;
+                // 辺方向の単位ベクトル（三角形の底辺を辺と平行にする）。
+                const len = Math.hypot(e.x - s.x, e.y - s.y) || 1;
+                const tx = (e.x - s.x) / len;
+                const ty = (e.y - s.y) / len;
+                const baseC = { x: tip.x - n.x * size, y: tip.y - n.y * size };
+                const b1 = { x: baseC.x + tx * size * 0.7, y: baseC.y + ty * size * 0.7 };
+                const b2 = { x: baseC.x - tx * size * 0.7, y: baseC.y - ty * size * 0.7 };
+                return (
+                  <polygon
+                    points={`${tip.x},${tip.y} ${b1.x},${b1.y} ${b2.x},${b2.y}`}
+                    fill="#ffd166"
+                    stroke="#7a5b00"
+                    strokeWidth={1}
+                  />
+                );
+              })()}
             </g>
           )}
 
@@ -922,15 +1086,25 @@ const RoomOutline = ({
       const end = worldToSvg(wall.end);
       const selected = selection?.kind === "wall" && selection.id === wall.id;
       const displayWidth = Math.max(8, wall.thicknessM * 100);
+      // innerSide 指定時は厚みを内側の面が芯線に乗るよう外側へ寄せる。中心線を
+      // 外側(=innerSideの反対)へ displayWidth/2 平行移動して描く。
+      // undefined は従来どおり中心対称（オフセット0）。後方互換。
+      let off = { x: 0, y: 0 };
+      if (wall.innerSide) {
+        const outer = svgSideNormal(start, end, wall.innerSide === "left" ? "right" : "left");
+        off = { x: outer.x * (displayWidth / 2), y: outer.y * (displayWidth / 2) };
+      }
+      const ds = { x: start.x + off.x, y: start.y + off.y };
+      const de = { x: end.x + off.x, y: end.y + off.y };
       return (
         <g key={wall.id}>
           {/* 表示用の線とは別に透明で太いヒット線を重ね、壁を選択しやすくする（要望9）。
               表示の太さは displayWidth のまま変えない。 */}
           <line
-            x1={start.x}
-            y1={start.y}
-            x2={end.x}
-            y2={end.y}
+            x1={ds.x}
+            y1={ds.y}
+            x2={de.x}
+            y2={de.y}
             stroke="transparent"
             strokeWidth={Math.max(24, displayWidth + 16)}
             strokeLinecap="round"
@@ -941,10 +1115,10 @@ const RoomOutline = ({
             }}
           />
           <line
-            x1={start.x}
-            y1={start.y}
-            x2={end.x}
-            y2={end.y}
+            x1={ds.x}
+            y1={ds.y}
+            x2={de.x}
+            y2={de.y}
             className={selected ? "plan-wall is-selected" : "plan-wall"}
             strokeWidth={displayWidth}
             style={{ pointerEvents: "none" }}
