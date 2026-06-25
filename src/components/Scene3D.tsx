@@ -540,10 +540,14 @@ const SceneRoot = ({
       kWeighted += light.colorTemperatureK * lm;
     }
     const kelvin = lumens > 0 ? kWeighted / lumens : 2700;
-    const warm = colorTemperatureToHex(kelvin).getStyle();
+    const warmColor = colorTemperatureToHex(kelvin);
+    const warm = warmColor.getStyle();
+    // 下向き面（天井）に当てる弱い暖色。床・壁で一度反射して天井へ戻る間接光の近似で、
+    // 床(skyColor=full)より十分暗くして下方配光の見え方を保つ（要望: 天井が真っ黒にならないよう薄く反射）。
+    const warmCeiling = warmColor.clone().multiplyScalar(0.4).getStyle();
     // 総光束→フィル強度。おおよそ 0〜26000lm を 0〜0.5 に飽和させる。
     const intensity = Math.min(0.5, lumens / 26000);
-    return { warm, intensity };
+    return { warm, warmCeiling, intensity };
   }, [project.lights, activeScene]);
 
   return (
@@ -567,10 +571,11 @@ const SceneRoot = ({
           <hemisphereLight args={["#1f2530", "#0a0805", 0.22]} />
           <directionalLight position={[-2, 4, 3]} intensity={0.14} color="#c9d6ff" />
           {/* 照明量に連動した暖色バウンスフィル（疑似間接光）。skyColor=上向き面(床)に当たり、
-              groundColor=下向き面(天井裏)に当たる。ダウンライト等は天井をほぼ照らさないのが実物
-              なので、天井側(groundColor)はほぼ黒にし、暖色フィルは床・家具上面だけ持ち上げる。 */}
+              groundColor=下向き面(天井)に当たる。ダウンライトは下方配光なので天井は床より暗いが、
+              床・壁での反射が天井へ戻る分を warmCeiling(=暖色を約0.4に減光)で薄く再現し、
+              天井が真っ黒に沈まないようにする。 */}
           {bounceFill.intensity > 0.001 && (
-            <hemisphereLight args={[bounceFill.warm, "#060402", bounceFill.intensity]} />
+            <hemisphereLight args={[bounceFill.warm, bounceFill.warmCeiling, bounceFill.intensity]} />
           )}
         </>
       )}
@@ -1989,8 +1994,9 @@ const FixtureBody = ({
         <cylinderGeometry args={[0.108, 0.108, 0.014, 24]} />
         <meshStandardMaterial color="#17150f" roughness={0.75} />
       </mesh>
-      {/* 真下を向く発光アパーチャ（FrontSideで下方向のみ放射）。やや奥まらせて天井面と干渉させない。 */}
-      <mesh position={[0, -0.024, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      {/* 真下を向く発光アパーチャ。rotation[+π/2]で法線を -Y(真下)にし、室内（下）から
+          見て器具が光って見えるようにする（要望: ダウンライト自体が光っていないのを是正）。 */}
+      <mesh position={[0, -0.024, 0]} rotation={[Math.PI / 2, 0, 0]}>
         <circleGeometry args={[0.07, 32]} />
         <meshBasicMaterial color={color} transparent opacity={active ? 0.92 : 0.16} side={THREE.FrontSide} />
       </mesh>
