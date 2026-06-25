@@ -666,8 +666,9 @@ const PathTracerController = ({
     const tracer = new WebGLPathTracer(gl);
     tracer.setBVHWorker(worker);
     tracer.multipleImportanceSampling = true;
-    tracer.bounces = 6;
-    tracer.transmissiveBounces = 4;
+    // 壁→床→壁…と多重に反射する間接光を厚めに拾う（要望: 反射がさらに反射していく見え方）。
+    tracer.bounces = 8;
+    tracer.transmissiveBounces = 5;
     tracer.renderScale = 1;
     tracer.dynamicLowRes = true;
     tracer.lowResScale = 0.3;
@@ -1437,8 +1438,9 @@ const FurnitureMesh = ({
       position={[item.position.x, item.position.y, item.position.z]}
       rotation={[0, degToRad(item.rotationYDeg), 0]}
       onPointerDown={(event: ThreeEvent<PointerEvent>) => {
+        // 手前の家具をクリックしたら確定（背後の壁へ選択が伝播するのを止める）。
+        event.stopPropagation();
         if (editMode === "delete") {
-          event.stopPropagation();
           deleteSelection({ kind: "furniture", id: item.id });
           return;
         }
@@ -1733,8 +1735,9 @@ const FixtureMesh = ({
     <group
       position={[fixture.position.x, fixture.position.y, fixture.position.z]}
       onPointerDown={(event: ThreeEvent<PointerEvent>) => {
+        // 手前の照明をクリックしたら確定（背後の壁へ選択が伝播するのを止める）。
+        event.stopPropagation();
         if (editMode === "delete") {
-          event.stopPropagation();
           deleteSelection({ kind: "light", id: fixture.id });
           return;
         }
@@ -1879,15 +1882,29 @@ const FixtureBody = ({
     );
   }
 
+  // 埋込ダウンライト: 天井に埋まる暗色トリム＋上方を塞ぐ不透明キャップ＋真下向きの発光アパーチャ。
+  // キャップとトリムで上方への発光・漏れを物理的に遮り、天井面が照らないようにする（要望: 天井が明るくなるのを是正）。
   return (
     <>
-      <mesh>
-        <cylinderGeometry args={[0.105, 0.105, 0.028, 40]} />
-        <meshStandardMaterial color={debugColorForRole("fixture", debugMode, "#efede4")} roughness={0.48} metalness={debugMode === "beauty" ? 0.1 : 0} />
+      {/* 天井開口の暗色トリム（自発光しない） */}
+      <mesh position={[0, 0.0, 0]}>
+        <cylinderGeometry args={[0.105, 0.092, 0.05, 40, 1, true]} />
+        <meshStandardMaterial
+          color={debugColorForRole("fixture", debugMode, "#201e1a")}
+          roughness={0.6}
+          metalness={debugMode === "beauty" ? 0.1 : 0}
+          side={THREE.DoubleSide}
+        />
       </mesh>
-      <mesh position={[0, -0.018, 0]}>
-        <circleGeometry args={[0.078, 32]} />
-        <meshBasicMaterial color={color} transparent opacity={active ? 0.75 : 0.16} />
+      {/* 上方への光漏れ・発光の天井照りを塞ぐ不透明キャップ */}
+      <mesh position={[0, 0.04, 0]}>
+        <cylinderGeometry args={[0.108, 0.108, 0.014, 24]} />
+        <meshStandardMaterial color="#17150f" roughness={0.75} />
+      </mesh>
+      {/* 真下を向く発光アパーチャ（FrontSideで下方向のみ放射）。やや奥まらせて天井面と干渉させない。 */}
+      <mesh position={[0, -0.024, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[0.07, 32]} />
+        <meshBasicMaterial color={color} transparent opacity={active ? 0.92 : 0.16} side={THREE.FrontSide} />
       </mesh>
     </>
   );
