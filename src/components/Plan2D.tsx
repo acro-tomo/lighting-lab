@@ -90,13 +90,13 @@ const snap = (value: number, grid = 0.1) => Math.round(value / grid) * grid;
 
 const snapPoint = (point: Vec2M): Vec2M => ({ x: snap(point.x), z: snap(point.z) });
 
-// 尺グリッド: 1尺=0.303030m。壁トレースは 1/4尺(0.0757575m)間隔へ吸着する。
-// グリッド原点はそのトレースの最初の点(origin)。origin + round((p-origin)/Q)*Q。
-const SHAKU = 0.30303;
-const Q = SHAKU / 4;
-const snapToShaku = (p: Vec2M, origin: Vec2M): Vec2M => ({
-  x: origin.x + Math.round((p.x - origin.x) / Q) * Q,
-  z: origin.z + Math.round((p.z - origin.z) / Q) * Q
+// 尺モジュール: 1尺=303.333...mm。壁トレースは 1/4尺(約75.8mm)へ吸着する。
+// グリッド原点はそのトレースの最初の点(origin)。origin + round((p-origin)/WALL_MODULE_M)*WALL_MODULE_M。
+const SHAKU_M = 0.30333333333333334;
+const WALL_MODULE_M = SHAKU_M / 4;
+const snapToShakuModule = (p: Vec2M, origin: Vec2M): Vec2M => ({
+  x: origin.x + Math.round((p.x - origin.x) / WALL_MODULE_M) * WALL_MODULE_M,
+  z: origin.z + Math.round((p.z - origin.z) / WALL_MODULE_M) * WALL_MODULE_M
 });
 
 const uid = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -610,12 +610,12 @@ export const Plan2D = ({
 
     // 壁モード: クリックで頂点を連続配置。前頂点があれば線分を即コミット。
     // 最初の点は自由（=尺グリッドの原点）。2点目以降は直角スナップ後に
-    // wallDraft[0] 原点の 1/4尺グリッドへ吸着する（プレビューと確定位置を一致させる）。
+    // wallDraft[0] 原点の 1/4尺(約75.8mm)グリッドへ吸着する（プレビューと確定位置を一致させる）。
     if (mode === "wall") {
       const raw = svgToWorld(event.clientX, event.clientY);
       const prev = wallDraft[wallDraft.length - 1];
       const origin = wallDraft[0];
-      const v = prev ? snapToShaku(angleSnap(prev, raw), origin) : raw;
+      const v = prev ? snapToShakuModule(angleSnap(prev, raw), origin) : raw;
       if (prev) commitWallSegment(prev, v, draftInnerSide);
       setWallDraft([...wallDraft, v]);
       return;
@@ -631,7 +631,7 @@ export const Plan2D = ({
     if (mode === "wall" && wallDraft.length > 0) {
       const prev = wallDraft[wallDraft.length - 1];
       const origin = wallDraft[0];
-      setWallCursor(snapToShaku(angleSnap(prev, svgToWorld(event.clientX, event.clientY)), origin));
+      setWallCursor(snapToShakuModule(angleSnap(prev, svgToWorld(event.clientX, event.clientY)), origin));
     }
 
     // 窓/扉の追加待ち中: カーソル直下の最寄り壁を設置先候補としてハイライト。
@@ -894,6 +894,32 @@ export const Plan2D = ({
         <button type="button" onClick={() => zoomAtCenter(1 / 1.2)} aria-label="縮小">-</button>
         {/* zoom=1/pan=0 がコンテンツbbox全体のフィット表示（座標系をbbox基準にしたため）。 */}
         <button type="button" onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }}>全体表示</button>
+
+        {/* 方位ダイヤル。N矢印をドラッグして実際の北に合わせる。
+            図面上に被せると編集対象を隠すため、キャンバス外の操作列に置く。 */}
+        <div
+          className="plan-compass"
+          ref={compassRef}
+          onPointerDown={(event) => {
+            event.currentTarget.setPointerCapture(event.pointerId);
+            handleCompassPointer(event);
+          }}
+          onPointerMove={(event) => {
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) handleCompassPointer(event);
+          }}
+          onPointerUp={(event) => event.currentTarget.releasePointerCapture(event.pointerId)}
+        >
+          <svg viewBox="-40 -40 80 80" className="plan-compass-dial">
+            <circle cx="0" cy="0" r="34" className="plan-compass-ring" />
+            {/* northOffsetDeg だけ時計回りに回す（SVGはy下向きなので正回転=時計回り）。 */}
+            <g transform={`rotate(${northOffsetDeg})`}>
+              <line x1="0" y1="22" x2="0" y2="-26" className="plan-compass-needle" />
+              <polygon points="0,-32 -6,-20 6,-20" className="plan-compass-arrow" />
+              <text x="0" y="-12" className="plan-compass-n">N</text>
+            </g>
+          </svg>
+          <span className="plan-compass-label">北 {Math.round(northOffsetDeg) % 360}°</span>
+        </div>
       </div>
 
       <p className="tool-help">
@@ -902,7 +928,7 @@ export const Plan2D = ({
         {!navTool && pendingAdd && !isWallOpening(pendingAdd) && "クリックした位置にオブジェクトを配置します。"}
         {!navTool && !pendingAdd && mode === "select" && "オブジェクトをクリックで選択、ドラッグで移動。何もない所のドラッグで平面図をパン。Deleteで削除。"}
         {!navTool && !pendingAdd && mode === "move" && "オブジェクトをドラッグで移動。何もない所のドラッグで平面図をパン。"}
-        {!navTool && !pendingAdd && mode === "wall" && "クリックで壁の頂点を連続配置。水平/垂直に自動スナップ。△が室内側＝矢印キーで左右反転。Enter/ダブルクリックで終了。"}
+        {!navTool && !pendingAdd && mode === "wall" && "クリックで壁の頂点を連続配置。水平/垂直＋1/4尺（約75.8mm）間隔に自動スナップ。△が室内側＝矢印キーで左右反転。Enter/ダブルクリックで終了。"}
       </p>
 
       <div className="plan-canvas-wrap">
@@ -1235,31 +1261,6 @@ export const Plan2D = ({
           })()}
         </svg>
 
-        {/* 方位ダイヤル(常時表示HUD)。N矢印をドラッグして実際の北に合わせる。
-            あくまで太陽シミュ用の建物向き設定で、実方位を保証するものではない。 */}
-        <div
-          className="plan-compass"
-          ref={compassRef}
-          onPointerDown={(event) => {
-            event.currentTarget.setPointerCapture(event.pointerId);
-            handleCompassPointer(event);
-          }}
-          onPointerMove={(event) => {
-            if (event.currentTarget.hasPointerCapture(event.pointerId)) handleCompassPointer(event);
-          }}
-          onPointerUp={(event) => event.currentTarget.releasePointerCapture(event.pointerId)}
-        >
-          <svg viewBox="-40 -40 80 80" className="plan-compass-dial">
-            <circle cx="0" cy="0" r="34" className="plan-compass-ring" />
-            {/* northOffsetDeg だけ時計回りに回す（SVGはy下向きなので正回転=時計回り）。 */}
-            <g transform={`rotate(${northOffsetDeg})`}>
-              <line x1="0" y1="22" x2="0" y2="-26" className="plan-compass-needle" />
-              <polygon points="0,-32 -6,-20 6,-20" className="plan-compass-arrow" />
-              <text x="0" y="-12" className="plan-compass-n">N</text>
-            </g>
-          </svg>
-          <span className="plan-compass-label">北 {Math.round(northOffsetDeg) % 360}°</span>
-        </div>
       </div>
 
       {scaleModalOpen && activeBackground?.dataUrl && bgNaturalSize && (

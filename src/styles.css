@@ -480,20 +480,16 @@ h2 {
   background: #080807;
 }
 
-/* 方位ダイヤル(右上のHUD)。N矢印をドラッグして建物の北を合わせる。 */
+/* 方位ダイヤル。図面を隠さないよう、キャンバス外の操作列に置く。 */
 .plan-compass {
-  position: absolute;
-  top: 10px;
-  right: 10px;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 6px 6px 4px;
-  border-radius: 10px;
-  background: rgba(10, 10, 9, 0.55);
+  gap: 5px;
+  min-height: 34px;
+  padding: 3px 7px 3px 4px;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(2px);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.045);
   user-select: none;
   touch-action: none;
   cursor: grab;
@@ -505,8 +501,16 @@ h2 {
 
 .plan-compass-dial {
   display: block;
-  width: 72px;
-  height: 72px;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+}
+
+.plan-compass-label {
+  min-width: 40px;
+  color: rgba(245, 241, 230, 0.85);
+  font-size: 11px;
+  line-height: 1;
 }
 
 .plan-compass-ring {
@@ -529,12 +533,6 @@ h2 {
   font-size: 11px;
   font-weight: 700;
   text-anchor: middle;
-}
-
-.plan-compass-label {
-  font-size: 11px;
-  color: rgba(245, 241, 230, 0.85);
-  letter-spacing: 0.02em;
 }
 
 .plan-canvas {

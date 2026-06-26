@@ -447,14 +447,13 @@ const CameraViewSync = ({
       const up = event.key === "ArrowUp";
       const down = event.key === "ArrowDown";
 
-      // イベント単体のフラグと ref 追跡値を OR で合成する。
-      // キーリピート中に shiftKey が event から落ちても modsRef.shift が true を
-      // 維持しているため、Shift 押下中は常に shiftDown=true になる。
+      // Shift は event.shiftKey を最優先し、キーリピートで落ちた時だけ ref で補正する。
+      // Alt は矢印イベント自身の状態だけを見る。ref の残留で Option+上下扱いにしない。
       const shiftDown = event.shiftKey || modsRef.current.shift;
-      const altDown   = event.altKey   || modsRef.current.alt;
+      const altDown = !shiftDown && event.altKey;
 
       // Shift が Alt に優先（ユーザーのメンタルモデル: Shift=見る / Option=昇降）。
-      // shiftDown=true なら altDown の値にかかわらず必ず pitch/yaw 側に入る。
+      // shiftDown=true なら Alt 状態や通常移動へ落ちず、必ず pitch/yaw 側に入る。
 
       // Shift+左右: 視線方向を左右に旋回（首振り）。
       if (shiftDown && (left || right)) {
@@ -795,6 +794,7 @@ const SceneRoot = ({
         ref={controlsRef}
         makeDefault
         enableDamping
+        keyEvents={false}
         dampingFactor={0.08}
         minDistance={1.2}
         maxDistance={12}

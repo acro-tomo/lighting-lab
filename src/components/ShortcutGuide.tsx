@@ -31,7 +31,7 @@ const Row = ({ keys, label }: { keys: React.ReactNode[]; label: string }) => (
 
 export const ShortcutGuide = () => {
   const [modifier, setModifier] = useState<Modifier>("none");
-  const [visible, setVisible] = useState(true);
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
