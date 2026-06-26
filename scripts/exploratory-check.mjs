@@ -6,6 +6,7 @@ const canvasTimeoutMs = Number(process.env.EXPLORATORY_CHECK_CANVAS_TIMEOUT_MS ?
 const shouldPeekRealistic = process.argv.includes("--realistic") || process.env.EXPLORATORY_CHECK_REALISTIC === "true";
 const url = process.argv.find((arg, index) => index > 1 && !arg.startsWith("--")) ?? "http://127.0.0.1:5175/";
 const outputPath = "output/playwright/ldk-lighting-lab-exploratory.png";
+const introSeenStorageKey = "ldk-intro-seen";
 const completedSteps = [];
 const failures = [];
 const warnings = [];
@@ -17,6 +18,9 @@ const browser = await chromium.launch({
   args: ["--use-gl=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist", "--disable-dev-shm-usage"]
 });
 const page = await browser.newPage({ viewport: { width: 1440, height: 960 }, deviceScaleFactor: 1 });
+await page.addInitScript((storageKey) => {
+  window.localStorage.setItem(storageKey, "1");
+}, introSeenStorageKey);
 
 const isIgnorableResource = (resourceUrl) => /favicon|apple-touch-icon|site\.webmanifest|manifest\.json/.test(resourceUrl);
 
@@ -63,7 +67,8 @@ const step = async (name, action) => {
 const closeIntroIfVisible = async () => {
   const startButton = page.getByRole("button", { name: "はじめる" });
   if (await startButton.isVisible({ timeout: 1500 }).catch(() => false)) {
-    await startButton.click();
+    await startButton.dispatchEvent("click");
+    await startButton.waitFor({ state: "hidden", timeout: 5000 });
   }
 };
 
@@ -207,7 +212,7 @@ try {
   await step("open help dialog", async () => {
     await page.getByRole("button", { name: "使い方を見る" }).click();
     await assertTextVisible("LDK Lighting Lab とは");
-    await page.getByRole("button", { name: "はじめる" }).click();
+    await page.getByRole("button", { name: "はじめる" }).dispatchEvent("click");
   });
 
   await step("sample final 3d canvas", async () => {
