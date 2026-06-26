@@ -17,6 +17,38 @@ import { getFurniturePreset } from "./data/furnitureCatalog";
 import { getWindowPreset } from "./data/windowCatalog";
 import { EditToolbar, type EditMode } from "./components/EditToolbar";
 import { ShortcutGuide } from "./components/ShortcutGuide";
+import { SmallScreenNotice } from "./components/SmallScreenNotice";
+import { IntroGuide } from "./components/IntroGuide";
+
+// 書き出しPNGに焼き込むウォーターマーク。公開後は実ドメインに変更してください。
+const APP_URL = "ldk-lighting-lab.example.com";
+
+const withWatermark = (dataUrl: string): Promise<string> =>
+  new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const w = img.naturalWidth;
+      const h = img.naturalHeight;
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { resolve(dataUrl); return; }
+      ctx.drawImage(img, 0, 0);
+      const fontSize = Math.max(12, Math.round(h * 0.022));
+      ctx.font = `${fontSize}px Inter, ui-sans-serif, system-ui, sans-serif`;
+      ctx.globalAlpha = 0.55;
+      ctx.shadowColor = "rgba(0,0,0,0.7)";
+      ctx.shadowBlur = 4;
+      ctx.fillStyle = "#ffffff";
+      const text = `LDK Lighting Lab · ${APP_URL}`;
+      const margin = Math.round(fontSize * 0.9);
+      ctx.fillText(text, w - ctx.measureText(text).width - margin, h - margin);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
 
 // 小数hourをHH:MM文字列に変換する（例: 14.5 → "14:30"）。
 const formatHour = (hour: number): string => {
@@ -256,16 +288,19 @@ export const App = () => {
     );
   };
 
-  const exportPng = useCallback(() => {
+  const exportPng = useCallback(async () => {
     if (lastPathTracedImage) {
-      downloadDataUrl("ldk-lighting-lab-pathtraced.png", lastPathTracedImage);
+      const stamped = await withWatermark(lastPathTracedImage);
+      downloadDataUrl("ldk-lighting-lab-pathtraced.png", stamped);
       return;
     }
     if (!canvasElement) {
       setNotice("3Dキャンバスがまだ準備できていません。");
       return;
     }
-    downloadDataUrl("ldk-lighting-lab-preview.png", canvasElement.toDataURL("image/png"));
+    const raw = canvasElement.toDataURL("image/png");
+    const stamped = await withWatermark(raw);
+    downloadDataUrl("ldk-lighting-lab-preview.png", stamped);
   }, [canvasElement, lastPathTracedImage]);
 
   const captureCompare = useCallback(() => {
