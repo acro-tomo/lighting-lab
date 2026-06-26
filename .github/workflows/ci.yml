@@ -52,7 +52,7 @@ jobs:
           done
 
           VISUAL_CHECK_HEADLESS=false VISUAL_CHECK_CANVAS_TIMEOUT_MS=90000 xvfb-run -a npm run visual-check -- http://127.0.0.1:4173/
-          EXPLORATORY_CHECK_CANVAS_TIMEOUT_MS=90000 EXPLORATORY_CHECK_INTERACTION_TIMEOUT_MS=60000 npm run exploratory-check -- http://127.0.0.1:4173/
+          EXPLORATORY_CHECK_SMOKE=true EXPLORATORY_CHECK_CANVAS_TIMEOUT_MS=90000 EXPLORATORY_CHECK_INTERACTION_TIMEOUT_MS=60000 npm run exploratory-check -- http://127.0.0.1:4173/
 
       - name: Upload runtime check artifacts
         if: always()

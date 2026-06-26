@@ -5,6 +5,7 @@ const headless = process.env.EXPLORATORY_CHECK_HEADLESS !== "false";
 const canvasTimeoutMs = Number(process.env.EXPLORATORY_CHECK_CANVAS_TIMEOUT_MS ?? 30000);
 const interactionTimeoutMs = Number(process.env.EXPLORATORY_CHECK_INTERACTION_TIMEOUT_MS ?? 30000);
 const shouldPeekRealistic = process.argv.includes("--realistic") || process.env.EXPLORATORY_CHECK_REALISTIC === "true";
+const shouldSmoke = process.argv.includes("--smoke") || process.env.EXPLORATORY_CHECK_SMOKE === "true";
 const url = process.argv.find((arg, index) => index > 1 && !arg.startsWith("--")) ?? "http://127.0.0.1:5175/";
 const outputPath = "output/playwright/ldk-lighting-lab-exploratory.png";
 const introSeenStorageKey = "ldk-intro-seen";
@@ -170,42 +171,46 @@ try {
     await assertOperationModeOptions();
   });
 
-  await step("switch floors", async () => {
-    await activate(page.getByRole("button", { name: "2階" }));
-    await assertTextVisible(/2階編集中/);
-    await activate(page.getByRole("button", { name: "1階" }));
-    await page.getByText(/2階編集中/).waitFor({ state: "hidden", timeout: interactionTimeoutMs });
-  });
+  if (!shouldSmoke) {
+    await step("switch floors", async () => {
+      await activate(page.getByRole("button", { name: "2階" }));
+      await assertTextVisible(/2階編集中/);
+      await activate(page.getByRole("button", { name: "1階" }));
+      await page.getByText(/2階編集中/).waitFor({ state: "hidden", timeout: interactionTimeoutMs });
+    });
 
-  await step("open add menu and start cancellable placement", async () => {
-    await activate(page.getByRole("button", { name: "＋追加" }));
-    await activate(page.getByRole("button", { name: /開口・構造/ }));
-    await activate(page.getByRole("menuitem", { name: /吹き抜け/ }));
-    await assertTextVisible(/クリックした位置に配置/);
-    await page.keyboard.press("Escape");
-    await assertTextVisible("クリックで選択・ドラッグで移動");
-  });
+    await step("open add menu and start cancellable placement", async () => {
+      await activate(page.getByRole("button", { name: "＋追加" }));
+      await activate(page.getByRole("button", { name: /開口・構造/ }));
+      await activate(page.getByRole("menuitem", { name: /吹き抜け/ }));
+      await assertTextVisible(/クリックした位置に配置/);
+      await page.keyboard.press("Escape");
+      await assertTextVisible("クリックで選択・ドラッグで移動");
+    });
 
-  await step("pan 2d plan and toggle plan focus", async () => {
-    const plan = page.locator(".plan-canvas");
-    await dragLocator(plan, { x: 0.5, y: 0.5 }, { x: 0.58, y: 0.42 });
-    await activate(page.getByRole("button", { name: "2Dを最大化" }));
-    await activate(page.getByRole("button", { name: "通常表示に戻す" }).first());
-  });
+    await step("pan 2d plan and toggle plan focus", async () => {
+      const plan = page.locator(".plan-canvas");
+      await dragLocator(plan, { x: 0.5, y: 0.5 }, { x: 0.58, y: 0.42 });
+      await activate(page.getByRole("button", { name: "2Dを最大化" }));
+      await activate(page.getByRole("button", { name: "通常表示に戻す" }).first());
+    });
 
-  await step("drag 3d viewport and toggle viewport focus", async () => {
-    const viewport = page.locator(".scene-stage canvas").first();
-    await dragLocator(viewport, { x: 0.5, y: 0.5 }, { x: 0.62, y: 0.45 });
-    await activate(page.getByRole("button", { name: "3Dを最大化" }));
-    await activate(page.getByRole("button", { name: "通常表示に戻す" }).first());
-  });
+    await step("drag 3d viewport and toggle viewport focus", async () => {
+      const viewport = page.locator(".scene-stage canvas").first();
+      await dragLocator(viewport, { x: 0.5, y: 0.5 }, { x: 0.62, y: 0.45 });
+      await activate(page.getByRole("button", { name: "3Dを最大化" }));
+      await activate(page.getByRole("button", { name: "通常表示に戻す" }).first());
+    });
 
-  await step("open daylight controls", async () => {
-    await activate(page.getByRole("button", { name: /日光/ }));
-    await setCheckbox(page.getByLabel("日光を有効にする"), true);
-    await setInputValue(page.locator(".daylight-popover input[type='range']"), "18");
-    await activate(page.getByRole("button", { name: /日光/ }));
-  });
+    await step("open daylight controls", async () => {
+      await activate(page.getByRole("button", { name: /日光/ }));
+      await setCheckbox(page.getByLabel("日光を有効にする"), true);
+      await setInputValue(page.locator(".daylight-popover input[type='range']"), "18");
+      await activate(page.getByRole("button", { name: /日光/ }));
+    });
+  } else {
+    console.log("smokeMode=skipping long interaction journey");
+  }
 
   if (shouldPeekRealistic) {
     await step("peek realistic mode", async () => {
