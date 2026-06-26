@@ -89,6 +89,25 @@ const assertTextVisible = async (textOrRegex, timeout = interactionTimeoutMs) =>
   await page.getByText(textOrRegex).first().waitFor({ state: "visible", timeout });
 };
 
+const activate = async (locator) => {
+  await locator.dispatchEvent("click");
+};
+
+const setCheckbox = async (locator, checked) => {
+  await locator.evaluate((input, nextChecked) => {
+    input.checked = nextChecked;
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  }, checked);
+};
+
+const setInputValue = async (locator, value) => {
+  await locator.evaluate((input, nextValue) => {
+    input.value = nextValue;
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  }, value);
+};
+
 const assertCanvasVisible = async () => {
   await page.locator("canvas").first().waitFor({ state: "attached", timeout: canvasTimeoutMs });
   await page.waitForTimeout(600);
@@ -152,16 +171,16 @@ try {
   });
 
   await step("switch floors", async () => {
-    await page.getByRole("button", { name: "2階" }).click();
+    await activate(page.getByRole("button", { name: "2階" }));
     await assertTextVisible(/2階編集中/);
-    await page.getByRole("button", { name: "1階" }).click();
+    await activate(page.getByRole("button", { name: "1階" }));
     await page.getByText(/2階編集中/).waitFor({ state: "hidden", timeout: interactionTimeoutMs });
   });
 
   await step("open add menu and start cancellable placement", async () => {
-    await page.getByRole("button", { name: "＋追加" }).click();
-    await page.getByRole("button", { name: /開口・構造/ }).click();
-    await page.getByRole("menuitem", { name: /吹き抜け/ }).click();
+    await activate(page.getByRole("button", { name: "＋追加" }));
+    await activate(page.getByRole("button", { name: /開口・構造/ }));
+    await activate(page.getByRole("menuitem", { name: /吹き抜け/ }));
     await assertTextVisible(/クリックした位置に配置/);
     await page.keyboard.press("Escape");
     await assertTextVisible("クリックで選択・ドラッグで移動");
@@ -170,30 +189,30 @@ try {
   await step("pan 2d plan and toggle plan focus", async () => {
     const plan = page.locator(".plan-canvas");
     await dragLocator(plan, { x: 0.5, y: 0.5 }, { x: 0.58, y: 0.42 });
-    await page.getByRole("button", { name: "2Dを最大化" }).click();
-    await page.getByRole("button", { name: "通常表示に戻す" }).first().click();
+    await activate(page.getByRole("button", { name: "2Dを最大化" }));
+    await activate(page.getByRole("button", { name: "通常表示に戻す" }).first());
   });
 
   await step("drag 3d viewport and toggle viewport focus", async () => {
     const viewport = page.locator(".scene-stage canvas").first();
     await dragLocator(viewport, { x: 0.5, y: 0.5 }, { x: 0.62, y: 0.45 });
-    await page.getByRole("button", { name: "3Dを最大化" }).click();
-    await page.getByRole("button", { name: "通常表示に戻す" }).first().click();
+    await activate(page.getByRole("button", { name: "3Dを最大化" }));
+    await activate(page.getByRole("button", { name: "通常表示に戻す" }).first());
   });
 
   await step("open daylight controls", async () => {
-    await page.getByRole("button", { name: /日光/ }).click();
-    await page.getByLabel("日光を有効にする").check();
-    await page.locator(".daylight-popover input[type='range']").fill("18");
-    await page.getByRole("button", { name: /日光/ }).click();
+    await activate(page.getByRole("button", { name: /日光/ }));
+    await setCheckbox(page.getByLabel("日光を有効にする"), true);
+    await setInputValue(page.locator(".daylight-popover input[type='range']"), "18");
+    await activate(page.getByRole("button", { name: /日光/ }));
   });
 
   if (shouldPeekRealistic) {
     await step("peek realistic mode", async () => {
-      await page.locator(".view-mode-toggle button").filter({ hasText: "リアル" }).click();
+      await activate(page.locator(".view-mode-toggle button").filter({ hasText: "リアル" }));
       await assertTextVisible(/BVH生成中|間接光リアル描画/);
       await page.waitForTimeout(1200);
-      await page.locator(".view-mode-toggle button").filter({ hasText: "編集" }).click();
+      await activate(page.locator(".view-mode-toggle button").filter({ hasText: "編集" }));
       await assertTextVisible(/編集プレビュー/);
     });
   } else {
@@ -204,16 +223,16 @@ try {
   }
 
   await step("open output controls without rendering", async () => {
-    await page.getByRole("button", { name: "出力 / レンダリング" }).click();
+    await activate(page.getByRole("button", { name: "出力 / レンダリング" }));
     const output = page.locator(".output-popover");
     await output.waitFor({ state: "visible", timeout: interactionTimeoutMs });
     await output.locator("select").first().waitFor({ state: "visible", timeout: interactionTimeoutMs });
     await output.getByRole("button", { name: "レンダリング開始" }).waitFor({ state: "visible", timeout: interactionTimeoutMs });
-    await page.getByRole("button", { name: "出力 / レンダリング" }).click();
+    await activate(page.getByRole("button", { name: "出力 / レンダリング" }));
   });
 
   await step("open help dialog", async () => {
-    await page.getByRole("button", { name: "使い方を見る" }).click();
+    await activate(page.getByRole("button", { name: "使い方を見る" }));
     await assertTextVisible("LDK Lighting Lab とは");
     await page.getByRole("button", { name: "はじめる" }).dispatchEvent("click");
   });
