@@ -28,12 +28,27 @@ page.on("pageerror", (error) => {
 page.on("requestfailed", (request) => {
   console.log(`requestfailed: ${request.url()} ${request.failure()?.errorText ?? ""}`);
 });
+page.on("response", (response) => {
+  if (response.status() >= 400) {
+    console.log(`http.${response.status()}: ${response.url()}`);
+  }
+});
 
 await page.goto(url, { waitUntil: "networkidle" });
 try {
   await page.locator("canvas").first().waitFor({ state: "attached", timeout: 30000 });
 } catch (error) {
+  const diagnostics = await page.evaluate(() => {
+    const probe = document.createElement("canvas");
+    return {
+      canvasCount: document.querySelectorAll("canvas").length,
+      hasWebGL: Boolean(probe.getContext("webgl")),
+      hasWebGL2: Boolean(probe.getContext("webgl2")),
+      sceneStageHtml: document.querySelector(".scene-stage")?.innerHTML.slice(0, 600) ?? null
+    };
+  }).catch((diagnosticError) => ({ diagnosticError: diagnosticError.message }));
   console.log(`pageUrl=${page.url()}`);
+  console.log(`diagnostics=${JSON.stringify(diagnostics)}`);
   console.log(`body=${await page.locator("body").innerText().catch(() => "")}`);
   await page.screenshot({ path: "output/playwright/debug-no-canvas.png", fullPage: true, timeout: 10000 }).catch((screenshotError) => {
     console.log(`debugScreenshotError=${screenshotError.message}`);
