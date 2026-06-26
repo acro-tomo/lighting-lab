@@ -16,6 +16,7 @@ import { newCeilingZone, newDoor, newDownlight, newFloorZone, newFurnitureFromPr
 import { getFurniturePreset } from "./data/furnitureCatalog";
 import { getWindowPreset } from "./data/windowCatalog";
 import { EditToolbar, type EditMode } from "./components/EditToolbar";
+import { ShortcutGuide } from "./components/ShortcutGuide";
 
 // 小数hourをHH:MM文字列に変換する（例: 14.5 → "14:30"）。
 const formatHour = (hour: number): string => {
@@ -741,6 +742,7 @@ export const App = () => {
         <Inspector project={project} selection={selection} />
       </main>
       <div className="notice" role="status">{notice}</div>
+      <ShortcutGuide />
     </div>
   );
 };

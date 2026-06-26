@@ -1514,3 +1514,134 @@ h2 {
   color: #b8a96a;
   font-size: 11px;
 }
+
+/* ショートカット案内オーバーレイ */
+.shortcut-guide {
+  position: fixed;
+  bottom: 52px;
+  left: 16px;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  /* 本体ではなくトグルボタンだけクリックを受け取る */
+  pointer-events: none;
+}
+
+.sg-toggle {
+  pointer-events: auto;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 7px;
+  padding: 4px 8px;
+  font-size: 14px;
+  line-height: 1.3;
+  color: #a9a194;
+  background: rgba(10, 10, 9, 0.72);
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  order: 2;
+  align-self: flex-end;
+}
+
+.sg-toggle:hover {
+  color: #e8e2d7;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.sg-toggle.is-open {
+  color: #f5c64d;
+  border-color: rgba(245, 198, 77, 0.4);
+}
+
+.sg-body {
+  order: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(10, 10, 9, 0.82);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
+  min-width: 230px;
+}
+
+.sg-section {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  opacity: 0.38;
+  transition: opacity 0.12s ease;
+}
+
+/* 修飾キー押下中のセクション、または補助セクション */
+.sg-section.is-active,
+.sg-section.sg-aux {
+  opacity: 1;
+}
+
+.sg-section-label {
+  margin-bottom: 2px;
+}
+
+.sg-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.sg-keys {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  min-width: 88px;
+}
+
+.sg-key-wrap {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.sg-plus {
+  color: #6b6459;
+  font-size: 9px;
+}
+
+.sg-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  padding: 1px 5px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e8e2d7;
+  font-size: 10px;
+  font-family: ui-monospace, "SF Mono", monospace;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.sg-label {
+  color: #a9a194;
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+/* is-active セクション内のラベルを少し明るく */
+.sg-section.is-active .sg-label,
+.sg-section.sg-aux .sg-label {
+  color: #cfc7b8;
+}
+
+.sg-section.is-active .sg-key {
+  border-color: rgba(245, 198, 77, 0.5);
+  background: rgba(245, 198, 77, 0.12);
+  color: #fff8dd;
+}
