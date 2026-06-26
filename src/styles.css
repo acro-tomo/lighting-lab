@@ -1703,3 +1703,189 @@ h2 {
   background: rgba(245, 198, 77, 0.12);
   color: #fff8dd;
 }
+
+/* ヘッダー「?」ボタン: 他の action ボタンと同列だが控えめに */
+.intro-help-btn {
+  min-height: 34px;
+  width: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 7px;
+  padding: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #a9a194;
+  background: rgba(255, 255, 255, 0.055);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.intro-help-btn:hover {
+  color: #f5c64d;
+  background: rgba(255, 255, 255, 0.11);
+}
+
+/* 小画面案内オーバーレイ */
+.small-screen-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(6, 6, 5, 0.82);
+  backdrop-filter: blur(10px);
+}
+
+.small-screen-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: min(440px, 92vw);
+  padding: 28px 24px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  background: rgba(20, 20, 18, 0.96);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+  color: #e9e1d2;
+}
+
+.small-screen-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 760;
+  color: #fffaf0;
+}
+
+.small-screen-body {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.65;
+  color: #cfc7b8;
+}
+
+.small-screen-continue {
+  align-self: flex-start;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-size: 13px;
+  color: #e8e2d7;
+  background: rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+}
+
+.small-screen-continue:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* 初回使い方ガイドオーバーレイ */
+.intro-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 190;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(6, 6, 5, 0.78);
+  backdrop-filter: blur(10px);
+}
+
+.intro-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: min(500px, 94vw);
+  padding: 30px 26px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  background: rgba(20, 20, 18, 0.97);
+  box-shadow: 0 28px 72px rgba(0, 0, 0, 0.6);
+  color: #e9e1d2;
+}
+
+.intro-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 760;
+  color: #fffaf0;
+}
+
+.intro-features {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #cfc7b8;
+}
+
+.intro-disclaimer {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(245, 198, 77, 0.25);
+  border-radius: 7px;
+  background: rgba(245, 198, 77, 0.07);
+  font-size: 12px;
+  color: #c8b97a;
+  line-height: 1.5;
+}
+
+.intro-keys {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.intro-keys-heading {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 760;
+  color: #a9a194;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.intro-key-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 13px;
+  color: #cfc7b8;
+}
+
+.intro-key {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 6px;
+  padding: 1px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e8e2d7;
+  font-size: 11px;
+  font-family: ui-monospace, "SF Mono", monospace;
+}
+
+.intro-start {
+  align-self: flex-start;
+  border: 1px solid rgba(245, 198, 77, 0.6);
+  border-radius: 9px;
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 760;
+  color: #1b1608;
+  background: #f5c64d;
+  cursor: pointer;
+}
+
+.intro-start:hover {
+  background: #f7d06a;
+}

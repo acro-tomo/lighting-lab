@@ -135,6 +135,7 @@ export const App = () => {
     elapsedMs: 0,
     message: "待機中"
   });
+  const [showIntro, setShowIntro] = useState(false);
   const loadedOnce = useRef(false);
   const renderAbortRef = useRef<AbortController | null>(null);
   const renderingRef = useRef(false);
@@ -547,6 +548,7 @@ export const App = () => {
         outputOpen={outputOpen}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
+        onShowIntro={() => setShowIntro(true)}
       />
       {/* 操作＋追加ツールバー: 2D/3D 両パネル共通の1インスタンス。 */}
       <div className="shared-toolbar">
@@ -778,6 +780,8 @@ export const App = () => {
       </main>
       <div className="notice" role="status">{notice}</div>
       <ShortcutGuide />
+      <SmallScreenNotice />
+      <IntroGuide forceOpen={showIntro} onClose={() => setShowIntro(false)} />
     </div>
   );
 };

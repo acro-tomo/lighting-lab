@@ -11,6 +11,7 @@ type HeaderBarProps = {
   outputOpen: boolean;
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
+  onShowIntro: () => void;
 };
 
 export const HeaderBar = ({
@@ -21,7 +22,8 @@ export const HeaderBar = ({
   onToggleOutput,
   outputOpen,
   viewMode,
-  onViewModeChange
+  onViewModeChange,
+  onShowIntro
 }: HeaderBarProps) => {
   const planInputRef = useRef<HTMLInputElement | null>(null);
   const projectInputRef = useRef<HTMLInputElement | null>(null);
@@ -81,6 +83,9 @@ export const HeaderBar = ({
         {/* レンダリング(パストレ)は普段使わないため出力ポップオーバーに集約（要望: PathTracer邪魔）。 */}
         <button className={outputOpen ? "primary-action is-active" : "primary-action"} onClick={onToggleOutput}>
           出力 / レンダリング
+        </button>
+        <button className="intro-help-btn" onClick={onShowIntro} title="使い方を見る" aria-label="使い方を見る">
+          ?
         </button>
       </nav>
     </header>
