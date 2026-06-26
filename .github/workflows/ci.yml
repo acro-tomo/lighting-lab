@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   test:
-    name: Typecheck, build, and visual check
+    name: Typecheck, build, and runtime checks
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -38,7 +38,7 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Visual check
+      - name: Runtime checks
         run: |
           npm run preview -- --port 4173 > /tmp/lighting-lab-preview.log 2>&1 &
           preview_pid=$!
@@ -52,11 +52,12 @@ jobs:
           done
 
           VISUAL_CHECK_HEADLESS=false VISUAL_CHECK_CANVAS_TIMEOUT_MS=90000 xvfb-run -a npm run visual-check -- http://127.0.0.1:4173/
+          EXPLORATORY_CHECK_HEADLESS=false EXPLORATORY_CHECK_CANVAS_TIMEOUT_MS=90000 xvfb-run -a npm run exploratory-check -- http://127.0.0.1:4173/
 
-      - name: Upload visual check screenshot
+      - name: Upload runtime check artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: visual-check-screenshot
+          name: runtime-check-artifacts
           path: output/playwright/
           if-no-files-found: ignore
