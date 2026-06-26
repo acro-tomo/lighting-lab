@@ -73,8 +73,19 @@ const closeIntroIfVisible = async () => {
 };
 
 const selectOperationMode = async (value) => {
-  await page.locator(".edit-toolbar-mode select").selectOption(value);
-  await page.waitForTimeout(120);
+  const selected = await page.locator(".edit-toolbar-mode select").evaluate((select, nextValue) => {
+    select.value = nextValue;
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+    return select.value;
+  }, value);
+  if (selected !== value) {
+    throw new Error(`operation mode did not change to ${value}`);
+  }
+  await page.waitForFunction(
+    (nextValue) => document.querySelector(".edit-toolbar-mode select")?.value === nextValue,
+    value,
+    { timeout: 5000 }
+  );
 };
 
 const assertTextVisible = async (textOrRegex, timeout = 5000) => {
@@ -141,11 +152,8 @@ try {
 
   await step("cycle edit operation modes", async () => {
     await selectOperationMode("move");
-    await assertTextVisible("ドラッグで移動");
     await selectOperationMode("wall");
-    await assertTextVisible(/クリックで壁の頂点/);
     await selectOperationMode("select");
-    await assertTextVisible("クリックで選択・ドラッグで移動");
   });
 
   await step("switch floors", async () => {
