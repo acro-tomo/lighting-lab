@@ -76,6 +76,7 @@ type ProjectStore = {
   setBackgroundScale: (pixels: number, millimeters: number) => void;
   deleteSelection: (selection: Selection) => void;
   setBackgroundPlan: (backgroundPlan: FloorPlanBackground) => void;
+  setActiveFloor: (floor: 1 | 2) => void;
   setDaylight: (patch: Partial<Daylight>) => void;
   setShowCeiling: (value: boolean) => void;
   setFloorLevel: (value: number) => void;
@@ -180,8 +181,9 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     }),
   addWall: (wall) =>
     set((state) => {
+      const floor = state.project.activeFloor ?? 1;
       const nextProject = cloneProject(state.project);
-      nextProject.walls = [...nextProject.walls, wall];
+      nextProject.walls = [...nextProject.walls, { ...wall, floor }];
       return {
         ...withHistory(state, nextProject),
         selection: { kind: "wall", id: wall.id }
@@ -189,8 +191,9 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     }),
   addWindow: (windowOpening, selectionKind) =>
     set((state) => {
+      const floor = state.project.activeFloor ?? 1;
       const nextProject = cloneProject(state.project);
-      nextProject.windows = [...nextProject.windows, windowOpening];
+      nextProject.windows = [...nextProject.windows, { ...windowOpening, floor }];
       return {
         ...withHistory(state, nextProject),
         selection: { kind: selectionKind, id: windowOpening.id }
@@ -198,8 +201,9 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     }),
   addFurniture: (item) =>
     set((state) => {
+      const floor = state.project.activeFloor ?? 1;
       const nextProject = cloneProject(state.project);
-      nextProject.furniture = [...nextProject.furniture, item];
+      nextProject.furniture = [...nextProject.furniture, { ...item, floor }];
       return {
         ...withHistory(state, nextProject),
         selection: { kind: "furniture", id: item.id }
@@ -207,8 +211,9 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     }),
   addLight: (light) =>
     set((state) => {
+      const floor = state.project.activeFloor ?? 1;
       const nextProject = cloneProject(state.project);
-      nextProject.lights = [...nextProject.lights, light];
+      nextProject.lights = [...nextProject.lights, { ...light, floor }];
       return {
         ...withHistory(state, nextProject),
         selection: { kind: "light", id: light.id }
@@ -216,8 +221,9 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     }),
   addVoid: (voidArea) =>
     set((state) => {
+      const floor = state.project.activeFloor ?? 1;
       const nextProject = cloneProject(state.project);
-      nextProject.voids = [...nextProject.voids, voidArea];
+      nextProject.voids = [...nextProject.voids, { ...voidArea, floor }];
       return {
         ...withHistory(state, nextProject),
         selection: { kind: "void", id: voidArea.id }
@@ -225,8 +231,9 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     }),
   addCeilingZone: (zone) =>
     set((state) => {
+      const floor = state.project.activeFloor ?? 1;
       const nextProject = cloneProject(state.project);
-      nextProject.ceilingZones = [...(nextProject.ceilingZones ?? []), zone];
+      nextProject.ceilingZones = [...(nextProject.ceilingZones ?? []), { ...zone, floor }];
       return {
         ...withHistory(state, nextProject),
         selection: { kind: "ceilingZone", id: zone.id }
@@ -242,8 +249,9 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     }),
   addFloorZone: (zone) =>
     set((state) => {
+      const floor = state.project.activeFloor ?? 1;
       const nextProject = cloneProject(state.project);
-      nextProject.floorZones = [...(nextProject.floorZones ?? []), zone];
+      nextProject.floorZones = [...(nextProject.floorZones ?? []), { ...zone, floor }];
       return {
         ...withHistory(state, nextProject),
         selection: { kind: "floorZone", id: zone.id }
@@ -322,11 +330,12 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     }),
   setBackgroundScale: (pixels, millimeters) =>
     set((state) => {
-      if (!state.project.backgroundPlan) return {};
+      const key = (state.project.activeFloor ?? 1) === 2 ? "backgroundPlan2" : "backgroundPlan";
+      if (!state.project[key]) return {};
       const nextProject = cloneProject(state.project);
-      const backgroundPlan = nextProject.backgroundPlan;
+      const backgroundPlan = nextProject[key];
       if (!backgroundPlan) return {};
-      nextProject.backgroundPlan = {
+      nextProject[key] = {
         ...backgroundPlan,
         scale: { pixels, millimeters }
       };
@@ -364,12 +373,24 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
         selectedLightIds: nextSelectedLightIds
       };
     }),
+  // 背景は活性階へ書き込む（2階なら backgroundPlan2、1階なら backgroundPlan）。
   setBackgroundPlan: (backgroundPlan) =>
     set((state) => {
       const nextProject = cloneProject(state.project);
-      nextProject.backgroundPlan = backgroundPlan;
+      if ((state.project.activeFloor ?? 1) === 2) {
+        nextProject.backgroundPlan2 = backgroundPlan;
+      } else {
+        nextProject.backgroundPlan = backgroundPlan;
+      }
       return withHistory(state, nextProject);
     }),
+  // 活性階の単純切替（undo対象外）。selection はクリアする。
+  setActiveFloor: (floor) =>
+    set((state) => ({
+      project: { ...state.project, activeFloor: floor },
+      selection: null,
+      selectedLightIds: []
+    })),
   setDaylight: (patch) =>
     set((state) => {
       const nextProject = cloneProject(state.project);

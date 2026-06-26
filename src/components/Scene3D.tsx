@@ -16,6 +16,7 @@ import type { RenderDebugMode } from "../rendering/pathTracer";
 import type { RenderContext } from "../rendering/renderContext";
 import type {
   CeilingZone,
+  FloorTag,
   FloorZone,
   FurnitureItem,
   LightFixture,
@@ -576,6 +577,23 @@ const SceneRoot = ({
   // 壁ライト(wallspot)配置中の壁上カーソル。壁メッシュが onWallHover で更新する。
   const [wallCursor, setWallCursor] = useState<WallHover>(null);
   const materialMap = useMemo(() => materialById(project.materials), [project.materials]);
+  // 「1階/2階」: 活性階のオブジェクトだけを描画する。各オブジェクト群を floor で絞った
+  // 浅いコピーを単一の真実として下流（RoomShell/Floor/Ceiling/BaseBoards/配置補助/パストレ）へ渡し、
+  // 床/天井/baseboard/室内ポリゴンも自動的に活性階の壁に追従させる（今回は活性階のみ表示）。
+  const activeFloor = project.activeFloor ?? 1;
+  const floorProject = useMemo<Project>(() => {
+    const onFloor = <T extends { floor?: FloorTag }>(item: T) => (item.floor ?? 1) === activeFloor;
+    return {
+      ...project,
+      walls: project.walls.filter(onFloor),
+      furniture: project.furniture.filter(onFloor),
+      lights: project.lights.filter(onFloor),
+      windows: project.windows.filter(onFloor),
+      voids: project.voids.filter(onFloor),
+      ceilingZones: (project.ceilingZones ?? []).filter(onFloor),
+      floorZones: (project.floorZones ?? []).filter(onFloor)
+    };
+  }, [project, activeFloor]);
   const floorTexture = useMemo(createWoodTexture, []);
   const floorMaterial = materialMap.get("floor-oak") ?? project.materials[0];
   const pathTraced = viewMode === "realistic";
@@ -598,7 +616,7 @@ const SceneRoot = ({
   const bounceFill = useMemo(() => {
     let lumens = 0;
     let kWeighted = 0;
-    for (const light of project.lights) {
+    for (const light of floorProject.lights) {
       if (!light.enabled) continue;
       const lm = light.lumens * light.dimmer * 0.01;
       lumens += lm;
@@ -613,7 +631,7 @@ const SceneRoot = ({
     // 総光束→フィル強度。おおよそ 0〜26000lm を 0〜0.5 に飽和させる。
     const intensity = Math.min(0.5, lumens / 26000);
     return { warm, warmCeiling, intensity };
-  }, [project.lights]);
+  }, [floorProject.lights]);
 
   return (
     <EditModeContext.Provider value={mode}>
@@ -647,7 +665,7 @@ const SceneRoot = ({
       {/* 配置モード中はクリックが選択解除に化けないよう抑止する（誤操作防止）。 */}
       <group onPointerMissed={() => { if (!pendingAdd) onSelect(null); }}>
         <RoomShell
-          project={project}
+          project={floorProject}
           materialMap={materialMap}
           floorTexture={floorTexture}
           floorMaterial={floorMaterial}
@@ -657,7 +675,7 @@ const SceneRoot = ({
         />
         {/* 室内オブジェクトも室内床レベルに合わせて持ち上げる（floorLevelM=0で従来同一）。 */}
         <group position={[0, floorLevelM, 0]}>
-          {project.furniture.map((item) => (
+          {floorProject.furniture.map((item) => (
             <FurnitureMesh
               key={item.id}
               item={item}
@@ -668,7 +686,7 @@ const SceneRoot = ({
             />
           ))}
           <DuctRail />
-          {project.lights.map((fixture) => (
+          {floorProject.lights.map((fixture) => (
             <FixtureMesh
               key={fixture.id}
               fixture={fixture}
@@ -677,14 +695,14 @@ const SceneRoot = ({
               debugMode={debugMode}
             />
           ))}
-          {debugMode === "normals" && <NormalDebugHelpers project={project} />}
+          {debugMode === "normals" && <NormalDebugHelpers project={floorProject} />}
         </group>
       </group>
       {/* 追加配置のゴーストプレビュー。非物理の編集補助なので常駐パストレ時は出さない。 */}
       {!pathTraced && pendingAdd && (
         <PlacementLayer
           pendingAdd={pendingAdd}
-          project={project}
+          project={floorProject}
           onPlaceObject={onPlaceObject}
           onPlaceOnWall={onPlaceOnWall}
           wallCursor={wallCursor}

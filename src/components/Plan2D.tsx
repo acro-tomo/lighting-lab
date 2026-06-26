@@ -257,7 +257,34 @@ export const Plan2D = ({
   // 3Dビューの現在カメラ位置/注視点(ワールドm)。null のとき平面図にマーカーを描かない。
   const liveCamera = useProjectStore((state) => state.liveCamera);
 
-  const backgroundUrl = project.backgroundPlan?.dataUrl;
+  // 活性階。オブジェクトの所属階フィルタ・背景の切替・ゴースト壁の基準。
+  const activeFloor = project.activeFloor ?? 1;
+  // 活性階に紐づく背景（2階なら backgroundPlan2、1階なら backgroundPlan）。
+  const activeBackground = activeFloor === 2 ? project.backgroundPlan2 : project.backgroundPlan;
+
+  // 活性階に属するオブジェクトだけを編集対象にする（floor 未指定は1階扱い）。
+  const onActiveFloor = <T extends { floor?: number }>(obj: T) => (obj.floor ?? 1) === activeFloor;
+  const activeWalls = useMemo(() => project.walls.filter(onActiveFloor), [project.walls, activeFloor]);
+  const activeFurniture = useMemo(() => project.furniture.filter(onActiveFloor), [project.furniture, activeFloor]);
+  const activeLights = useMemo(() => project.lights.filter(onActiveFloor), [project.lights, activeFloor]);
+  const activeWindows = useMemo(() => project.windows.filter(onActiveFloor), [project.windows, activeFloor]);
+  const activeVoids = useMemo(() => project.voids.filter(onActiveFloor), [project.voids, activeFloor]);
+  const activeCeilingZones = useMemo(
+    () => (project.ceilingZones ?? []).filter(onActiveFloor),
+    [project.ceilingZones, activeFloor]
+  );
+  const activeFloorZones = useMemo(
+    () => (project.floorZones ?? []).filter(onActiveFloor),
+    [project.floorZones, activeFloor]
+  );
+  // 非活性階の壁（ゴースト表示用・操作不可）。2階編集時に1階壁を透かして見せ、
+  // それに合わせて2階壁を引けるようにする。
+  const ghostWalls = useMemo(
+    () => project.walls.filter((wall) => (wall.floor ?? 1) !== activeFloor),
+    [project.walls, activeFloor]
+  );
+
+  const backgroundUrl = activeBackground?.dataUrl;
   useEffect(() => {
     if (!backgroundUrl) {
       setBgNaturalSize(null);
@@ -276,7 +303,7 @@ export const Plan2D = ({
 
   // 間取り図が新たに読み込まれ、まだ縮尺(scale/placement)が未設定なら
   // 自動的に縮尺合わせモーダルを開いて誘導する（要望10）。
-  const hasScale = Boolean(project.backgroundPlan?.scale);
+  const hasScale = Boolean(activeBackground?.scale);
   useEffect(() => {
     if (backgroundUrl && !hasScale) {
       setScaleModalOpen(true);
@@ -336,7 +363,7 @@ export const Plan2D = ({
   // 壁の既定値: 高さは天井高、厚みは既存壁を踏襲(無ければ0.12)、材質も既存壁を踏襲。
   // innerSide はトレース中に矢印キーで選んだ内側を保存（未指定なら中心対称）。
   const commitWallSegment = (start: Vec2M, end: Vec2M, innerSide: "left" | "right" | undefined) => {
-    const reference = project.walls[project.walls.length - 1];
+    const reference = activeWalls[activeWalls.length - 1] ?? project.walls[project.walls.length - 1];
     addWall({
       id: uid("wall"),
       name: "追加壁",
@@ -366,7 +393,12 @@ export const Plan2D = ({
     // room 矩形(中心原点)は常に含める。
     include(-project.room.widthM / 2, -project.room.depthM / 2);
     include(project.room.widthM / 2, project.room.depthM / 2);
-    for (const wall of project.walls) {
+    // 活性階の壁＋ゴースト(非活性階)壁の両方を内包し、重ねた全体が映るようにする。
+    for (const wall of activeWalls) {
+      include(wall.start.x, wall.start.z);
+      include(wall.end.x, wall.end.z);
+    }
+    for (const wall of ghostWalls) {
       include(wall.start.x, wall.start.z);
       include(wall.end.x, wall.end.z);
     }
@@ -374,11 +406,11 @@ export const Plan2D = ({
       include(c.x - s.x / 2, c.z - s.z / 2);
       include(c.x + s.x / 2, c.z + s.z / 2);
     };
-    for (const item of project.furniture) includeRect(item.position, item.size);
-    for (const v of project.voids) includeRect(v.center, v.size);
-    for (const zone of project.ceilingZones ?? []) includeRect(zone.center, zone.size);
-    for (const zone of project.floorZones ?? []) includeRect(zone.center, zone.size);
-    const place = project.backgroundPlan?.placement;
+    for (const item of activeFurniture) includeRect(item.position, item.size);
+    for (const v of activeVoids) includeRect(v.center, v.size);
+    for (const zone of activeCeilingZones) includeRect(zone.center, zone.size);
+    for (const zone of activeFloorZones) includeRect(zone.center, zone.size);
+    const place = activeBackground?.placement;
     if (place && bgNaturalSize) {
       include(place.originXM, place.originZM);
       include(
@@ -398,12 +430,13 @@ export const Plan2D = ({
   }, [
     project.room.widthM,
     project.room.depthM,
-    project.walls,
-    project.furniture,
-    project.voids,
-    project.ceilingZones,
-    project.floorZones,
-    project.backgroundPlan,
+    activeWalls,
+    ghostWalls,
+    activeFurniture,
+    activeVoids,
+    activeCeilingZones,
+    activeFloorZones,
+    activeBackground,
     bgNaturalSize
   ]);
 
@@ -477,7 +510,7 @@ export const Plan2D = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bgNaturalSize, planSize.width, planSize.height, planSize.pxPerM, contentBox]);
 
-  const placement = project.backgroundPlan?.placement ?? defaultPlacement;
+  const placement = activeBackground?.placement ?? defaultPlacement;
 
   // 画像ピクセル座標 → ワールド座標(m)
   const imagePixelToWorld = (ipx: number, ipy: number): Vec2M | null => {
@@ -496,7 +529,7 @@ export const Plan2D = ({
     pix2: { x: number; y: number },
     millimeters: number
   ) => {
-    const background = project.backgroundPlan;
+    const background = activeBackground;
     if (!background) return;
     const pixels = Math.hypot(pix2.x - pix1.x, pix2.y - pix1.y);
     if (pixels <= 1 || !(millimeters > 0)) return;
@@ -556,7 +589,7 @@ export const Plan2D = ({
       // 窓/扉は「クリックした壁」に付ける。壁の近く(0.7m以内)を押したときだけ設置し、
       // 室内の何もない所では設置しない（遠い壁へ勝手に付くのを防ぐ＝要望: 壁を自分で選ぶ）。
       if (isWallOpening(pendingAdd)) {
-        const hit = nearestWall(world, project.walls);
+        const hit = nearestWall(world, activeWalls);
         // 1.2m まで許容して取りこぼしを減らす。クリック前に対象壁を青くハイライト
         // しているので、どこに付くかは見て分かる。離れすぎなら維持して再クリックさせる。
         if (hit && hit.dist <= WALL_SNAP_M) {
@@ -597,7 +630,7 @@ export const Plan2D = ({
 
     // 窓/扉の追加待ち中: カーソル直下の最寄り壁を設置先候補としてハイライト。
     if (isWallOpening(pendingAdd)) {
-      const hit = nearestWall(svgToWorld(event.clientX, event.clientY), project.walls);
+      const hit = nearestWall(svgToWorld(event.clientX, event.clientY), activeWalls);
       setWallTarget(hit && hit.dist <= WALL_SNAP_M ? { wallId: hit.wallId, ratio: hit.ratio } : null);
     }
 
@@ -674,7 +707,7 @@ export const Plan2D = ({
       let snapZ: number | null = null;
       let bestX = SNAP_M;
       let bestZ = SNAP_M;
-      for (const other of project.lights) {
+      for (const other of activeLights) {
         if (other.id === fixture.id) continue;
         const dx = Math.abs(other.position.x - next.x);
         if (dx < bestX) {
@@ -777,9 +810,9 @@ export const Plan2D = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bgNaturalSize, placement, planSize.pxPerM, contentBox]);
 
-  const scaleLabel = project.backgroundPlan?.scale
-    ? `実寸合わせ済み（${Math.round(project.backgroundPlan.scale.millimeters).toLocaleString("ja-JP")}mm基準）`
-    : project.backgroundPlan
+  const scaleLabel = activeBackground?.scale
+    ? `実寸合わせ済み（${Math.round(activeBackground.scale.millimeters).toLocaleString("ja-JP")}mm基準）`
+    : activeBackground
     ? "縮尺未設定（フィット表示）"
     : "背景なし";
 
@@ -818,7 +851,7 @@ export const Plan2D = ({
           </button>
         ))}
         {/* 縮尺合わせは専用モーダルで実施。背景画像があるときだけ押せる。 */}
-        {project.backgroundPlan && (
+        {activeBackground && (
           <button className="tool" onClick={() => setScaleModalOpen(true)}>
             縮尺
           </button>
@@ -883,9 +916,9 @@ export const Plan2D = ({
             height={planSize.height + VIEW_PAD * 2}
             fill="#141414"
           />
-          {project.backgroundPlan && bgRender && (
+          {activeBackground && bgRender && (
             <image
-              href={project.backgroundPlan.dataUrl}
+              href={activeBackground.dataUrl}
               x="0"
               y="0"
               width={bgRender.width}
@@ -901,17 +934,46 @@ export const Plan2D = ({
             height={planSize.height + VIEW_PAD * 2}
             fill="url(#meterGrid)"
           />
+          {/* 非活性階の壁ゴースト（薄く・操作不可）。2階作図時に1階壁を透かして見せ、
+              それに合わせて2階壁を引けるようにする。選択ヒット線は付けない。 */}
+          {ghostWalls.length > 0 && (
+            <g style={{ pointerEvents: "none" }}>
+              {ghostWalls.map((wall) => {
+                const start = worldToSvg(wall.start);
+                const end = worldToSvg(wall.end);
+                const displayWidth = Math.max(2, wall.thicknessM * planSize.pxPerM);
+                let off = { x: 0, y: 0 };
+                if (wall.innerSide) {
+                  const outer = svgSideNormal(start, end, wall.innerSide === "left" ? "right" : "left");
+                  off = { x: outer.x * (displayWidth / 2), y: outer.y * (displayWidth / 2) };
+                }
+                return (
+                  <line
+                    key={wall.id}
+                    x1={start.x + off.x}
+                    y1={start.y + off.y}
+                    x2={end.x + off.x}
+                    y2={end.y + off.y}
+                    stroke="#9aa0a6"
+                    strokeWidth={displayWidth}
+                    strokeOpacity={0.25}
+                    strokeLinecap="round"
+                  />
+                );
+              })}
+            </g>
+          )}
           {/* パン/縮尺中はオブジェクトがクリックを奪わないよう pointerEvents を切り、
               背景の handleCanvasPointerDown に素通りさせる。select/move/delete のみ受け取る。 */}
           <g style={{ pointerEvents: canSelectObjects ? "auto" : "none" }}>
             <RoomOutline
-              project={project}
+              walls={activeWalls}
               selection={selection}
               worldToSvg={worldToSvg}
               pxPerM={planSize.pxPerM}
               onSelect={handleSelect}
             />
-            {project.windows.map((windowItem) => (
+            {activeWindows.map((windowItem) => (
               <OpeningPlanItem
                 key={windowItem.id}
                 windowItem={windowItem}
@@ -923,7 +985,7 @@ export const Plan2D = ({
                 onDragStart={() => setDragging({ kind: "window", id: windowItem.id })}
               />
             ))}
-            {project.voids.map((voidArea) => (
+            {activeVoids.map((voidArea) => (
               <VoidPlanItem
                 key={voidArea.id}
                 voidArea={voidArea}
@@ -937,7 +999,7 @@ export const Plan2D = ({
                 canDrag={canDragObjects}
               />
             ))}
-            {(project.ceilingZones ?? []).map((zone) => (
+            {activeCeilingZones.map((zone) => (
               <CeilingZonePlanItem
                 key={zone.id}
                 zone={zone}
@@ -951,7 +1013,7 @@ export const Plan2D = ({
                 canDrag={canDragObjects}
               />
             ))}
-            {(project.floorZones ?? []).map((zone) => (
+            {activeFloorZones.map((zone) => (
               <FloorZonePlanItem
                 key={zone.id}
                 zone={zone}
@@ -965,7 +1027,7 @@ export const Plan2D = ({
                 canDrag={canDragObjects}
               />
             ))}
-            {project.furniture.map((item) => (
+            {activeFurniture.map((item) => (
               <FurniturePlanItem
                 key={item.id}
                 item={item}
@@ -979,7 +1041,7 @@ export const Plan2D = ({
                 canDrag={canDragObjects}
               />
             ))}
-            {project.lights.map((fixture) => (
+            {activeLights.map((fixture) => (
               <LightPlanItem
                 key={fixture.id}
                 fixture={fixture}
@@ -1144,9 +1206,9 @@ export const Plan2D = ({
         </svg>
       </div>
 
-      {scaleModalOpen && project.backgroundPlan?.dataUrl && bgNaturalSize && (
+      {scaleModalOpen && activeBackground?.dataUrl && bgNaturalSize && (
         <ScaleCalibrationModal
-          imageUrl={project.backgroundPlan.dataUrl}
+          imageUrl={activeBackground.dataUrl}
           naturalSize={bgNaturalSize}
           onCancel={() => setScaleModalOpen(false)}
           onConfirm={(p1, p2, mm) => {
@@ -1160,20 +1222,20 @@ export const Plan2D = ({
 };
 
 const RoomOutline = ({
-  project,
+  walls,
   selection,
   worldToSvg,
   pxPerM,
   onSelect
 }: {
-  project: Project;
+  walls: WallSegment[];
   selection: Selection;
   worldToSvg: (point: Vec2M) => { x: number; y: number };
   pxPerM: number;
   onSelect: (selection: Selection) => void;
 }) => (
   <>
-    {project.walls.map((wall) => {
+    {walls.map((wall) => {
       const start = worldToSvg(wall.start);
       const end = worldToSvg(wall.end);
       const selected = selection?.kind === "wall" && selection.id === wall.id;

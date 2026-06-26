@@ -1473,3 +1473,44 @@ h2 {
   width: 100%;
   accent-color: #f5c64d;
 }
+
+/* 1階/2階 切替トグル（shared-toolbarに常時表示） */
+.floor-toggle {
+  display: flex;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 7px;
+  overflow: hidden;
+  margin-left: auto;
+}
+
+.floor-toggle-btn {
+  min-height: 30px;
+  border: 0;
+  border-radius: 0;
+  padding: 5px 13px;
+  color: #e8e2d7;
+  background: rgba(255, 255, 255, 0.055);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.floor-toggle-btn + .floor-toggle-btn {
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.floor-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.floor-toggle-btn.is-active {
+  color: #1b1608;
+  background: #f5c64d;
+  font-weight: 760;
+}
+
+.floor-hint {
+  color: #b8a96a;
+  font-size: 11px;
+}

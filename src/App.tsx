@@ -79,6 +79,7 @@ export const App = () => {
   const copySelection = useProjectStore((state) => state.copySelection);
   const pasteSelection = useProjectStore((state) => state.pasteSelection);
   const setDaylight = useProjectStore((state) => state.setDaylight);
+  const setActiveFloor = useProjectStore((state) => state.setActiveFloor);
   const [canvasElement, setCanvasElement] = useState<HTMLCanvasElement | null>(null);
   const [renderContext, setRenderContext] = useState<RenderContext | null>(null);
   const [notice, setNotice] = useState("IndexedDBに自動保存します。");
@@ -533,6 +534,25 @@ export const App = () => {
                   ? "ドラッグで移動"
                   : "クリックで選択・ドラッグで移動"}
         </span>
+        <div className="floor-toggle" role="group" aria-label="階切替">
+          <button
+            className={(project.activeFloor ?? 1) === 1 ? "floor-toggle-btn is-active" : "floor-toggle-btn"}
+            onClick={() => setActiveFloor(1)}
+            title="1階を編集"
+          >
+            1階
+          </button>
+          <button
+            className={(project.activeFloor ?? 1) === 2 ? "floor-toggle-btn is-active" : "floor-toggle-btn"}
+            onClick={() => setActiveFloor(2)}
+            title="2階を編集（1階の壁を薄く表示して作図補助）"
+          >
+            2階
+          </button>
+        </div>
+        {(project.activeFloor ?? 1) === 2 && (
+          <span className="floor-hint">2階編集中 — 1階の壁を薄く表示して作図補助</span>
+        )}
       </div>
       <main className={focusViewport ? "workspace is-focus-3d" : focusPlan ? "workspace is-focus-2d" : "workspace"}>
         <Plan2D

@@ -199,5 +199,6 @@ export const calibrationProject: Project = {
     fov: 56,
     exposure: 1.12,
     resolutionWidth: 1200
-  }
+  },
+  activeFloor: 1
 };

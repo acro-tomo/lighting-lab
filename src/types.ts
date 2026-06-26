@@ -52,6 +52,9 @@ export type MaterialPreset = {
   textureSizeM?: { w: number; h: number };
 };
 
+// 階タグ。undefined = 1階（後方互換：既存JSONは全て1階扱い）。
+export type FloorTag = 1 | 2;
+
 export type WallSegment = {
   id: string;
   name: string;
@@ -65,6 +68,8 @@ export type WallSegment = {
    * 内側の面を芯線に合わせる指定。undefined は従来の中心振り分け(対称)扱い。
    */
   innerSide?: "left" | "right";
+  /** 所属階。undefined = 1階。 */
+  floor?: FloorTag;
 };
 
 export type WindowOpening = {
@@ -78,6 +83,8 @@ export type WindowOpening = {
   hasGlass: boolean;
   /** "window"=窓(枠+ガラス) / "opening"=開口 / "door"=扉(ドア板)。未指定はhasGlassから判定。 */
   style?: "window" | "opening" | "door";
+  /** 所属階。undefined = 1階。 */
+  floor?: FloorTag;
 };
 
 export type VoidArea = {
@@ -85,6 +92,8 @@ export type VoidArea = {
   name: string;
   center: Vec2M;
   size: Vec2M;
+  /** 所属階。undefined = 1階。 */
+  floor?: FloorTag;
 };
 
 // 下げ天井: 指定した矩形領域だけ天井を dropM 分だけ下げる（折り上げの逆）。
@@ -95,6 +104,8 @@ export type CeilingZone = {
   size: Vec2M;
   /** 天井からの下がり量(m)。0.2〜0.4 が一般的。 */
   dropM: number;
+  /** 所属階。undefined = 1階。 */
+  floor?: FloorTag;
 };
 
 // 下げ床 / 土間: 指定した矩形領域だけ床を dropM 分だけ下げる（玄関土間・上がり框の段差）。
@@ -105,6 +116,8 @@ export type FloorZone = {
   size: Vec2M;
   /** 床からの下がり量(m)。玄関土間の一段下げは 0.15 程度。 */
   dropM: number;
+  /** 所属階。undefined = 1階。 */
+  floor?: FloorTag;
 };
 
 export type FurnitureType =
@@ -141,6 +154,8 @@ export type FurnitureItem = {
   roughness?: number;
   metalness?: number;
   castsShadow: boolean;
+  /** 所属階。undefined = 1階。 */
+  floor?: FloorTag;
 };
 
 export type LightType =
@@ -170,6 +185,8 @@ export type LightFixture = {
   note: string;
   lengthM?: number;
   cordLengthM?: number;
+  /** 所属階。undefined = 1階。 */
+  floor?: FloorTag;
 };
 
 // 唯一のカメラ＝編集視点かつ最終レンダーPNGの既定視点。
@@ -254,8 +271,13 @@ export type Project = {
   lights: LightFixture[];
   /** 編集視点かつ最終レンダーの既定視点。 */
   camera: ProjectCamera;
+  /** 1階の間取り図背景。後方互換：旧JSONの backgroundPlan は1階背景としてそのまま有効。 */
   backgroundPlan?: FloorPlanBackground;
+  /** 2階の間取り図背景。undefined = 2階背景なし。 */
+  backgroundPlan2?: FloorPlanBackground;
   daylight?: Daylight;
   /** 天井の表示ON/OFF。undefined は true 扱い(既定で天井表示)。 */
   showCeiling?: boolean;
+  /** 編集中の活性階。undefined = 1階。 */
+  activeFloor?: FloorTag;
 };

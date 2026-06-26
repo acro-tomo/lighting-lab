@@ -431,5 +431,6 @@ export const demoProject: Project = {
     exposure: 1.22,
     resolutionWidth: 1600
   },
-  daylight: { enabled: true, month: 10, day: 15, hour: 14, northOffsetDeg: 0, latitudeDeg: 35 }
+  daylight: { enabled: true, month: 10, day: 15, hour: 14, northOffsetDeg: 0, latitudeDeg: 35 },
+  activeFloor: 1
 };

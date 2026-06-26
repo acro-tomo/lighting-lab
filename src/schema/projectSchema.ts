@@ -11,6 +11,17 @@ const vec3Schema = z.object({
   z: z.number()
 });
 
+// 階タグ。undefined = 1階（後方互換）。
+const floorSchema = z.union([z.literal(1), z.literal(2)]).optional();
+
+const backgroundPlanSchema = z
+  .object({
+    dataUrl: z.string(),
+    fileName: z.string(),
+    kind: z.enum(["image", "pdf"])
+  })
+  .passthrough();
+
 // 下げ天井 / 下げ床は同形（矩形領域＋下がり量）。後方互換のため optional。
 const zoneSchema = z
   .object({
@@ -18,7 +29,8 @@ const zoneSchema = z
     name: z.string(),
     center: vec2Schema,
     size: vec2Schema,
-    dropM: z.number()
+    dropM: z.number(),
+    floor: floorSchema
   })
   .passthrough();
 
@@ -86,15 +98,23 @@ const baseProjectSchema = z
           id: z.string(),
           start: vec2Schema,
           end: vec2Schema,
-          innerSide: z.enum(["left", "right"]).optional()
+          innerSide: z.enum(["left", "right"]).optional(),
+          floor: floorSchema
         })
         .passthrough()
     ),
-    furniture: z.array(z.object({ id: z.string(), position: vec3Schema, size: vec3Schema }).passthrough()),
-    lights: z.array(z.object({ id: z.string(), position: vec3Schema, lumens: z.number() }).passthrough()),
+    furniture: z.array(
+      z.object({ id: z.string(), position: vec3Schema, size: vec3Schema, floor: floorSchema }).passthrough()
+    ),
+    lights: z.array(
+      z.object({ id: z.string(), position: vec3Schema, lumens: z.number(), floor: floorSchema }).passthrough()
+    ),
     camera: cameraSchema.optional(),
     ceilingZones: z.array(ceilingZoneSchema).optional(),
     floorZones: z.array(floorZoneSchema).optional(),
+    backgroundPlan: backgroundPlanSchema.optional(),
+    backgroundPlan2: backgroundPlanSchema.optional(),
+    activeFloor: floorSchema,
     showCeiling: z.boolean().optional(),
     // 後方互換のためだけに受理する旧フィールド（移行後に破棄）。
     lightingScenes: z.array(legacyLightingSceneSchema).optional(),
