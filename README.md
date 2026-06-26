@@ -95,6 +95,14 @@ http://127.0.0.1:5173/
   - WebGL2非対応時のガード
 - Cmd+Z / Cmd+Shift+Z
 
+## フィードバック（要望・不具合報告）
+
+アプリ右下の「💬 ご意見」フォームから、要望・不具合を送信できます。送信内容は
+Cloudflare Pages Function（`functions/api/feedback.ts`）経由でGitHubリポジトリに
+Issueとして起票されます。トークンはサーバ側の秘密として保持するため、リポジトリは
+非公開のまま、投稿者のGitHubアカウントも不要です。セットアップ手順は
+[docs/feedback-setup.md](docs/feedback-setup.md) を参照してください。
+
 ## 検証
 
 ```bash
