@@ -9,6 +9,11 @@ output/
 # tooling scratch
 .playwright-cli/
 
+# local-only Codex agent settings
+.agents/
+.codex/
+AGENTS.md
+
 # local-only Claude Code settings (personal overrides, may contain local paths)
 .claude/settings.local.json
 
