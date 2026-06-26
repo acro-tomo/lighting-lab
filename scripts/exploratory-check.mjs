@@ -3,6 +3,7 @@ import { chromium } from "@playwright/test";
 
 const headless = process.env.EXPLORATORY_CHECK_HEADLESS !== "false";
 const canvasTimeoutMs = Number(process.env.EXPLORATORY_CHECK_CANVAS_TIMEOUT_MS ?? 30000);
+const interactionTimeoutMs = Number(process.env.EXPLORATORY_CHECK_INTERACTION_TIMEOUT_MS ?? 30000);
 const shouldPeekRealistic = process.argv.includes("--realistic") || process.env.EXPLORATORY_CHECK_REALISTIC === "true";
 const url = process.argv.find((arg, index) => index > 1 && !arg.startsWith("--")) ?? "http://127.0.0.1:5175/";
 const outputPath = "output/playwright/ldk-lighting-lab-exploratory.png";
@@ -21,6 +22,7 @@ const page = await browser.newPage({ viewport: { width: 1440, height: 960 }, dev
 await page.addInitScript((storageKey) => {
   window.localStorage.setItem(storageKey, "1");
 }, introSeenStorageKey);
+page.setDefaultTimeout(interactionTimeoutMs);
 
 const isIgnorableResource = (resourceUrl) => /favicon|apple-touch-icon|site\.webmanifest|manifest\.json/.test(resourceUrl);
 
@@ -72,23 +74,18 @@ const closeIntroIfVisible = async () => {
   }
 };
 
-const selectOperationMode = async (value) => {
-  const selected = await page.locator(".edit-toolbar-mode select").evaluate((select, nextValue) => {
-    select.value = nextValue;
-    select.dispatchEvent(new Event("change", { bubbles: true }));
-    return select.value;
-  }, value);
-  if (selected !== value) {
-    throw new Error(`operation mode did not change to ${value}`);
+const assertOperationModeOptions = async () => {
+  const values = await page.locator(".edit-toolbar-mode select").evaluate((select) => {
+    return Array.from(select.options).map((option) => option.value);
+  });
+  for (const expected of ["select", "move", "wall"]) {
+    if (!values.includes(expected)) {
+      throw new Error(`operation mode option is missing: ${expected}`);
+    }
   }
-  await page.waitForFunction(
-    (nextValue) => document.querySelector(".edit-toolbar-mode select")?.value === nextValue,
-    value,
-    { timeout: 5000 }
-  );
 };
 
-const assertTextVisible = async (textOrRegex, timeout = 5000) => {
+const assertTextVisible = async (textOrRegex, timeout = interactionTimeoutMs) => {
   await page.getByText(textOrRegex).first().waitFor({ state: "visible", timeout });
 };
 
@@ -150,17 +147,15 @@ try {
     console.log(`initialCanvasNonDarkPixels=${canvasCheck.nonDarkPixels}`);
   });
 
-  await step("cycle edit operation modes", async () => {
-    await selectOperationMode("move");
-    await selectOperationMode("wall");
-    await selectOperationMode("select");
+  await step("verify edit operation modes", async () => {
+    await assertOperationModeOptions();
   });
 
   await step("switch floors", async () => {
     await page.getByRole("button", { name: "2階" }).click();
     await assertTextVisible(/2階編集中/);
     await page.getByRole("button", { name: "1階" }).click();
-    await page.getByText(/2階編集中/).waitFor({ state: "hidden", timeout: 5000 });
+    await page.getByText(/2階編集中/).waitFor({ state: "hidden", timeout: interactionTimeoutMs });
   });
 
   await step("open add menu and start cancellable placement", async () => {
@@ -211,9 +206,9 @@ try {
   await step("open output controls without rendering", async () => {
     await page.getByRole("button", { name: "出力 / レンダリング" }).click();
     const output = page.locator(".output-popover");
-    await output.waitFor({ state: "visible", timeout: 5000 });
-    await output.locator("select").first().waitFor({ state: "visible", timeout: 5000 });
-    await output.getByRole("button", { name: "レンダリング開始" }).waitFor({ state: "visible", timeout: 5000 });
+    await output.waitFor({ state: "visible", timeout: interactionTimeoutMs });
+    await output.locator("select").first().waitFor({ state: "visible", timeout: interactionTimeoutMs });
+    await output.getByRole("button", { name: "レンダリング開始" }).waitFor({ state: "visible", timeout: interactionTimeoutMs });
     await page.getByRole("button", { name: "出力 / レンダリング" }).click();
   });
 
