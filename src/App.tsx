@@ -20,8 +20,8 @@ import { ShortcutGuide } from "./components/ShortcutGuide";
 import { SmallScreenNotice } from "./components/SmallScreenNotice";
 import { IntroGuide } from "./components/IntroGuide";
 
-// 書き出しPNGに焼き込むウォーターマーク。公開後は実ドメインに変更してください。
-const APP_URL = "ldk-lighting-lab.example.com";
+// 書き出しPNGに焼き込むウォーターマーク。独自ドメイン取得後はそれに変更してください。
+const APP_URL = "ldk-lighting-lab.pages.dev";
 
 const withWatermark = (dataUrl: string): Promise<string> =>
   new Promise((resolve) => {
