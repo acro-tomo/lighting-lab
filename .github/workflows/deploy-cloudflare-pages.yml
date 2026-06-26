@@ -42,5 +42,6 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
           command: pages deploy dist --project-name=lighting-lab --branch=main
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
