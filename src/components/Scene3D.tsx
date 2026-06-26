@@ -1383,7 +1383,7 @@ const UpperVoidLevel = ({
     <group>
       {/* 2階床スラブ（吹き抜けフットプリントは抜けて廊下のフチが見える） */}
       {floorGeo && (
-        <mesh position={[0, floorY, 0]} geometry={floorGeo} receiveShadow>
+        <mesh position={[0, floorY, 0]} geometry={floorGeo} receiveShadow castShadow>
           <meshStandardMaterial
             map={debugMode === "beauty" ? floorTexture ?? undefined : undefined}
             color={debugColorForRole("floor", debugMode, floorMaterial.baseColor)}
@@ -1395,7 +1395,7 @@ const UpperVoidLevel = ({
       )}
       {/* 2階天井スラブ（見上げて黒/空へ抜けない蓋） */}
       {ceilingGeo && (
-        <mesh position={[0, ceilingY, 0]} geometry={ceilingGeo} receiveShadow>
+        <mesh position={[0, ceilingY, 0]} geometry={ceilingGeo} receiveShadow castShadow>
           <meshStandardMaterial
             color={debugColorForRole("ceiling", debugMode, ceilingMaterial.baseColor)}
             roughness={ceilingMaterial.roughness}
@@ -1597,7 +1597,7 @@ const Ceiling = ({ project, material, debugMode }: { project: Project; material:
   useEffect(() => () => geometry.dispose(), [geometry]);
 
   return (
-    <mesh receiveShadow position={[centerX, project.room.ceilingHeightM, centerZ]} geometry={geometry}>
+    <mesh receiveShadow castShadow position={[centerX, project.room.ceilingHeightM, centerZ]} geometry={geometry}>
       <meshStandardMaterial
         color={debugColorForRole("ceiling", debugMode, material.baseColor)}
         roughness={material.roughness}
