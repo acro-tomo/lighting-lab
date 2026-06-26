@@ -68,6 +68,12 @@ export type WallSegment = {
    * 内側の面を芯線に合わせる指定。undefined は従来の中心振り分け(対称)扱い。
    */
   innerSide?: "left" | "right";
+  /**
+   * 壁種別。undefined = "wall"（通常の実壁・フル高さ＝後方互換）。
+   * "wall": 通常の壁。"half": 腰壁（低い実壁、高さは heightM）。
+   * "railing": 手すり（支柱＋笠木の抜けた手すり、高さは heightM）。
+   */
+  kind?: "wall" | "half" | "railing";
   /** 所属階。undefined = 1階。 */
   floor?: FloorTag;
 };

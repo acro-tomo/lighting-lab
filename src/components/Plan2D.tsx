@@ -1242,6 +1242,22 @@ const RoomOutline = ({
       // 実寸の厚み(thicknessM)を worldToSvg と同じ pxPerM スケールで描く。
       // 視認用に最小 2px は確保。透明ヒット線もこの実寸 displayWidth から導出する。
       const displayWidth = Math.max(2, wall.thicknessM * pxPerM);
+      // 壁の種別で見た目だけ変える（当たり判定/座標は不変）。undefined は "wall"。
+      // half(腰壁): 控えめに細め＋やや明るい。railing(手すり): 細い破線で「抜け」を表現。
+      const kind = wall.kind ?? "wall";
+      const drawWidth =
+        kind === "railing"
+          ? Math.max(1.5, Math.min(3, displayWidth * 0.4))
+          : kind === "half"
+            ? Math.max(2, displayWidth * 0.6)
+            : displayWidth;
+      const dash =
+        kind === "railing"
+          ? `${drawWidth * 2} ${drawWidth * 1.5}`
+          : kind === "half"
+            ? `${drawWidth * 3} ${drawWidth * 2}`
+            : undefined;
+      const kindOpacity = kind === "railing" ? 0.85 : kind === "half" ? 0.7 : undefined;
       // innerSide 指定時は厚みを内側の面が芯線に乗るよう外側へ寄せる。中心線を
       // 外側(=innerSideの反対)へ displayWidth/2 平行移動して描く。
       // undefined は従来どおり中心対称（オフセット0）。後方互換。
@@ -1276,7 +1292,9 @@ const RoomOutline = ({
             x2={de.x}
             y2={de.y}
             className={selected ? "plan-wall is-selected" : "plan-wall"}
-            strokeWidth={displayWidth}
+            strokeWidth={drawWidth}
+            strokeDasharray={dash}
+            strokeOpacity={kindOpacity}
             style={{ pointerEvents: "none" }}
           />
         </g>

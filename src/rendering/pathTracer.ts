@@ -483,6 +483,28 @@ const buildPathTraceScene = (
         bottom: windowItem.sillHeightM,
         top: windowItem.sillHeightM + windowItem.heightM
       }));
+    // 手すりは「抜け」が要るのでソリッドパネルにせず笠木+縦支柱で組む（編集シーンと寸法/間隔を揃える）。
+    if (wall.kind === "railing") {
+      const cx = (wall.start.x + wall.end.x) / 2;
+      const cz = (wall.start.z + wall.end.z) / 2;
+      const angle = Math.atan2(dz, dx);
+      const ux = dx / length;
+      const uz = dz / length;
+      const railMaterial = makeMaterial(materials.get(wall.materialId), "#e2ddd2");
+      const railDepth = Math.min(wall.thicknessM, 0.06);
+      // 笠木（上桟）と下桟。addBox は size.x を rotationY 後のローカルX(壁方向)に取る。
+      addBox(scene, [length, 0.05, railDepth], [cx, wall.heightM - 0.025, cz], railMaterial, angle, "wall", debugMode);
+      addBox(scene, [length, 0.05, railDepth], [cx, 0.05, cz], railMaterial, angle, "wall", debugMode);
+      // 縦支柱を約0.11m間隔で両端含めて配置。
+      const postCount = Math.max(2, Math.round(length / 0.11) + 1);
+      for (let i = 0; i < postCount; i++) {
+        const t = i / (postCount - 1) - 0.5;
+        const px = cx + ux * length * t;
+        const pz = cz + uz * length * t;
+        addBox(scene, [0.04, wall.heightM, 0.04], [px, wall.heightM / 2, pz], railMaterial, angle, "wall", debugMode);
+      }
+      return;
+    }
     addInteriorWallPanel(scene, wall.start, wall.end, wall.heightM, makeMaterial(materials.get(wall.materialId), "#e2ddd2"), debugMode, holes);
   });
 

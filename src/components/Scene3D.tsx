@@ -1367,7 +1367,8 @@ const UpperVoidLevel = ({
         {boundaryWalls.map((wall) => (
           <WallMesh
             key={`upper-${wall.id}`}
-            wall={{ ...wall, heightM: wallHeightM }}
+            // 通常壁は2階全高に揃えるが、腰壁/手すりは自前の低い高さを保つ（吹抜周りに回せる）。
+            wall={{ ...wall, heightM: wall.kind === "half" || wall.kind === "railing" ? wall.heightM : wallHeightM }}
             walls={upperWalls}
             windows={[]}
             material={materialMap.get(wall.materialId) ?? ceilingMaterial}
@@ -1999,7 +2000,17 @@ const WallMesh = ({
       top: windowItem.sillHeightM + windowItem.heightM
     };
   });
-  const panels = wallPanelsWithHoles(length, wall.heightM, holes);
+  // 手すりは「抜け」が要るのでソリッドパネルにせず笠木+縦支柱で組む（窓くり抜きは不要）。
+  const isRailing = wall.kind === "railing";
+  const panels = isRailing ? [] : wallPanelsWithHoles(length, wall.heightM, holes);
+  // 縦支柱を約0.11m間隔で両端含めて配置（壁ローカルX: -length/2..length/2）。
+  const postSpacing = 0.11;
+  const postCount = Math.max(2, Math.round(length / postSpacing) + 1);
+  const postXs = isRailing
+    ? Array.from({ length: postCount }, (_, i) => -length / 2 + (length * i) / (postCount - 1))
+    : [];
+  // 笠木/下桟の厚みは壁厚を上限に細くする。
+  const railDepth = Math.min(wall.thicknessM, 0.06);
   // 壁全体ぶんの基準テクスチャ(repeat=1)を読み、パネルごとに repeat を実寸で割り当てる。
   const wallpaper = useWallpaperTexture(
     debugMode === "beauty" ? material.textureDataUrl : undefined,
@@ -2061,6 +2072,37 @@ const WallMesh = ({
           debugMode={debugMode}
         />
       ))}
+      {isRailing && (
+        <>
+          {/* 笠木（上桟）と下桟。group原点Yは heightM/2 なので局所Yは world高さ-heightM/2。 */}
+          <mesh position={[0, (wall.heightM - 0.025) - wall.heightM / 2, 0]} receiveShadow castShadow>
+            <boxGeometry args={[length, 0.05, railDepth]} />
+            <meshStandardMaterial
+              color={debugColorForRole("wall", debugMode, material.baseColor)}
+              roughness={material.roughness}
+              metalness={material.metalness}
+            />
+          </mesh>
+          <mesh position={[0, 0.05 - wall.heightM / 2, 0]} receiveShadow castShadow>
+            <boxGeometry args={[length, 0.05, railDepth]} />
+            <meshStandardMaterial
+              color={debugColorForRole("wall", debugMode, material.baseColor)}
+              roughness={material.roughness}
+              metalness={material.metalness}
+            />
+          </mesh>
+          {postXs.map((px, index) => (
+            <mesh key={`post-${index}`} position={[px, 0, 0]} receiveShadow castShadow>
+              <boxGeometry args={[0.04, wall.heightM, 0.04]} />
+              <meshStandardMaterial
+                color={debugColorForRole("wall", debugMode, material.baseColor)}
+                roughness={material.roughness}
+                metalness={material.metalness}
+              />
+            </mesh>
+          ))}
+        </>
+      )}
       {selected && !pathTraced && (
         <mesh>
           <planeGeometry args={[length + 0.03, wall.heightM + 0.03]} />
@@ -2074,6 +2116,8 @@ const WallMesh = ({
 const BaseBoards = ({ project }: { project: Project }) => (
   <>
     {project.walls.map((wall) => {
+      // 手すりは床から浮く笠木構造なので、下に巾木が出ると不自然。巾木を描かない。
+      if (wall.kind === "railing") return null;
       const dx = wall.end.x - wall.start.x;
       const dz = wall.end.z - wall.start.z;
       const length = Math.hypot(dx, dz);

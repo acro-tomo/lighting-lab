@@ -459,6 +459,24 @@ const WallInspector = ({
       <NumberField label="高さ" unit="mm" value={mToMm(wall.heightM)} min={100} onChange={(value) => updateWall(wall.id, { heightM: mmToM(value) })} />
     </div>
     <label className="field">
+      <span>種別</span>
+      <select
+        value={wall.kind ?? "wall"}
+        onChange={(event) => {
+          const v = event.target.value as "wall" | "half" | "railing";
+          // 種別切替時に妥当な既定高さを入れる（その後「高さ」欄で微調整可）。
+          if (v === "half") updateWall(wall.id, { kind: "half", heightM: 0.95 });
+          else if (v === "railing") updateWall(wall.id, { kind: "railing", heightM: 1.05 });
+          else updateWall(wall.id, { kind: "wall", heightM: project.room.ceilingHeightM });
+        }}
+      >
+        <option value="wall">通常壁</option>
+        <option value="half">腰壁</option>
+        <option value="railing">手すり</option>
+      </select>
+      <p className="field-hint">腰壁/手すりは吹き抜けまわりの表現に使えます。高さは上の欄で微調整可。</p>
+    </label>
+    <label className="field">
       <span>内側方向</span>
       <select
         value={wall.innerSide ?? "center"}

@@ -99,6 +99,7 @@ const baseProjectSchema = z
           start: vec2Schema,
           end: vec2Schema,
           innerSide: z.enum(["left", "right"]).optional(),
+          kind: z.enum(["wall", "half", "railing"]).optional(),
           floor: floorSchema
         })
         .passthrough()
