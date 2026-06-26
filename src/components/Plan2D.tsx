@@ -10,6 +10,7 @@ import type {
   WindowOpening
 } from "../types";
 import { useProjectStore } from "../store/projectStore";
+import { DEFAULT_DAYLIGHT } from "../utils/sun";
 import { ScaleCalibrationModal } from "./ScaleCalibrationModal";
 import type { EditMode } from "./EditToolbar";
 
@@ -254,8 +255,13 @@ export const Plan2D = ({
   const updateCeilingZone = useProjectStore((state) => state.updateCeilingZone);
   const updateFloorZone = useProjectStore((state) => state.updateFloorZone);
   const addWall = useProjectStore((state) => state.addWall);
+  const setDaylight = useProjectStore((state) => state.setDaylight);
   // 3Dビューの現在カメラ位置/注視点(ワールドm)。null のとき平面図にマーカーを描かない。
   const liveCamera = useProjectStore((state) => state.liveCamera);
+
+  // 方位ダイヤル。northOffsetDeg は「真北が -Z からY軸まわり時計回りに何度ずれるか」。
+  // worldToSvg は -Z を画面上に保つので 0° で N矢印が真上、増やすと画面上で時計回り。
+  const northOffsetDeg = project.daylight?.northOffsetDeg ?? DEFAULT_DAYLIGHT.northOffsetDeg;
 
   // 活性階。オブジェクトの所属階フィルタ・背景の切替・ゴースト壁の基準。
   const activeFloor = project.activeFloor ?? 1;
@@ -816,6 +822,30 @@ export const Plan2D = ({
     ? "縮尺未設定（フィット表示）"
     : "背景なし";
 
+  // 方位ダイヤルのドラッグ。中心→ポインタの角度を「上向き(画面 -y)からの時計回り角」に
+  // 変換し northOffsetDeg(0..360) に書く。Shift 押下中以外は8方位±4°へソフトスナップ。
+  const compassRef = useRef<HTMLDivElement | null>(null);
+  const handleCompassPointer = (event: React.PointerEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+    const dial = compassRef.current;
+    if (!dial) return;
+    const rect = dial.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    // atan2(dx, -dy): 上向き=0、時計回り(右回り)が正。
+    let deg = (Math.atan2(event.clientX - cx, -(event.clientY - cy)) * 180) / Math.PI;
+    deg = ((deg % 360) + 360) % 360;
+    if (!event.shiftKey) {
+      for (const snapDeg of [0, 45, 90, 135, 180, 225, 270, 315, 360]) {
+        if (Math.abs(deg - snapDeg) <= 4) {
+          deg = snapDeg % 360;
+          break;
+        }
+      }
+    }
+    setDaylight({ northOffsetDeg: deg });
+  };
+
   return (
     <section className="plan-panel" aria-label="2D平面図エディタ">
       <div className="panel-heading">
@@ -1204,6 +1234,32 @@ export const Plan2D = ({
             );
           })()}
         </svg>
+
+        {/* 方位ダイヤル(常時表示HUD)。N矢印をドラッグして実際の北に合わせる。
+            あくまで太陽シミュ用の建物向き設定で、実方位を保証するものではない。 */}
+        <div
+          className="plan-compass"
+          ref={compassRef}
+          onPointerDown={(event) => {
+            event.currentTarget.setPointerCapture(event.pointerId);
+            handleCompassPointer(event);
+          }}
+          onPointerMove={(event) => {
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) handleCompassPointer(event);
+          }}
+          onPointerUp={(event) => event.currentTarget.releasePointerCapture(event.pointerId)}
+        >
+          <svg viewBox="-40 -40 80 80" className="plan-compass-dial">
+            <circle cx="0" cy="0" r="34" className="plan-compass-ring" />
+            {/* northOffsetDeg だけ時計回りに回す（SVGはy下向きなので正回転=時計回り）。 */}
+            <g transform={`rotate(${northOffsetDeg})`}>
+              <line x1="0" y1="22" x2="0" y2="-26" className="plan-compass-needle" />
+              <polygon points="0,-32 -6,-20 6,-20" className="plan-compass-arrow" />
+              <text x="0" y="-12" className="plan-compass-n">N</text>
+            </g>
+          </svg>
+          <span className="plan-compass-label">北 {Math.round(northOffsetDeg) % 360}°</span>
+        </div>
       </div>
 
       {scaleModalOpen && activeBackground?.dataUrl && bgNaturalSize && (

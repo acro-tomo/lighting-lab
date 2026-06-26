@@ -473,10 +473,68 @@ h2 {
 }
 
 .plan-canvas-wrap {
+  position: relative;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 8px;
   background: #080807;
+}
+
+/* 方位ダイヤル(右上のHUD)。N矢印をドラッグして建物の北を合わせる。 */
+.plan-compass {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 6px 4px;
+  border-radius: 10px;
+  background: rgba(10, 10, 9, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(2px);
+  user-select: none;
+  touch-action: none;
+  cursor: grab;
+}
+
+.plan-compass:active {
+  cursor: grabbing;
+}
+
+.plan-compass-dial {
+  display: block;
+  width: 72px;
+  height: 72px;
+}
+
+.plan-compass-ring {
+  fill: rgba(255, 255, 255, 0.04);
+  stroke: rgba(255, 255, 255, 0.28);
+  stroke-width: 1.4;
+}
+
+.plan-compass-needle {
+  stroke: rgba(255, 255, 255, 0.45);
+  stroke-width: 2;
+}
+
+.plan-compass-arrow {
+  fill: #f25555;
+}
+
+.plan-compass-n {
+  fill: #f5f1e6;
+  font-size: 11px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
+.plan-compass-label {
+  font-size: 11px;
+  color: rgba(245, 241, 230, 0.85);
+  letter-spacing: 0.02em;
 }
 
 .plan-canvas {
