@@ -3,6 +3,7 @@ import { chromium } from "@playwright/test";
 
 const shouldRender = process.argv.includes("--render");
 const shouldPeekRender = process.argv.includes("--render-peek");
+const headless = process.env.VISUAL_CHECK_HEADLESS !== "false";
 const url = process.argv.find((arg, index) => index > 1 && !arg.startsWith("--")) ?? "http://127.0.0.1:5175/";
 const outputPath = shouldRender || shouldPeekRender
   ? "output/playwright/ldk-lighting-lab-pathtraced.png"
@@ -11,8 +12,8 @@ const outputPath = shouldRender || shouldPeekRender
 await mkdir("output/playwright", { recursive: true });
 
 const browser = await chromium.launch({
-  headless: true,
-  args: ["--use-gl=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"]
+  headless,
+  args: ["--use-gl=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist", "--disable-dev-shm-usage"]
 });
 const page = await browser.newPage({ viewport: { width: 1440, height: 960 }, deviceScaleFactor: 1 });
 

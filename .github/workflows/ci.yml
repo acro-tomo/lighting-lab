@@ -51,7 +51,7 @@ jobs:
             sleep 1
           done
 
-          npm run visual-check -- http://127.0.0.1:4173/
+          VISUAL_CHECK_HEADLESS=false xvfb-run -a npm run visual-check -- http://127.0.0.1:4173/
 
       - name: Upload visual check screenshot
         if: always()
