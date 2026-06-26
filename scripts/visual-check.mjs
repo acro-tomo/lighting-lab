@@ -10,7 +10,10 @@ const outputPath = shouldRender || shouldPeekRender
 
 await mkdir("output/playwright", { recursive: true });
 
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({
+  headless: true,
+  args: ["--use-gl=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"]
+});
 const page = await browser.newPage({ viewport: { width: 1440, height: 960 }, deviceScaleFactor: 1 });
 
 page.on("console", (message) => {
@@ -31,7 +34,9 @@ try {
 } catch (error) {
   console.log(`pageUrl=${page.url()}`);
   console.log(`body=${await page.locator("body").innerText().catch(() => "")}`);
-  await page.screenshot({ path: "output/playwright/debug-no-canvas.png", fullPage: true });
+  await page.screenshot({ path: "output/playwright/debug-no-canvas.png", fullPage: true, timeout: 10000 }).catch((screenshotError) => {
+    console.log(`debugScreenshotError=${screenshotError.message}`);
+  });
   throw error;
 }
 await page.waitForTimeout(1400);
