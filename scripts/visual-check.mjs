@@ -4,6 +4,7 @@ import { chromium } from "@playwright/test";
 const shouldRender = process.argv.includes("--render");
 const shouldPeekRender = process.argv.includes("--render-peek");
 const headless = process.env.VISUAL_CHECK_HEADLESS !== "false";
+const canvasTimeoutMs = Number(process.env.VISUAL_CHECK_CANVAS_TIMEOUT_MS ?? 30000);
 const url = process.argv.find((arg, index) => index > 1 && !arg.startsWith("--")) ?? "http://127.0.0.1:5175/";
 const outputPath = shouldRender || shouldPeekRender
   ? "output/playwright/ldk-lighting-lab-pathtraced.png"
@@ -36,7 +37,7 @@ page.on("response", (response) => {
 
 await page.goto(url, { waitUntil: "networkidle" });
 try {
-  await page.locator("canvas").first().waitFor({ state: "attached", timeout: 30000 });
+  await page.locator("canvas").first().waitFor({ state: "attached", timeout: canvasTimeoutMs });
 } catch (error) {
   const diagnostics = await page.evaluate(() => {
     const probe = document.createElement("canvas");
