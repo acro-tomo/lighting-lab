@@ -380,57 +380,38 @@ const CameraViewSync = ({
   // オブジェクトの移動/回転は3Dドラッグ・Inspector側に集約する。
   const MOVE_M = 0.4; // 矢印1回の移動量(m)
   const TURN_DEG = 5; // Shift+左右/上下1回の旋回・ピッチ角(度)
+
+  // macOS のキーリピート中に Shift を先に離すと、続く repeat keydown で
+  // event.shiftKey=false が報告されることがある。これを補正するため修飾キーの
+  // 物理押下状態を別途追跡し、「イベントが落としても ref でカバー」する。
+  // Shift が優先: shiftDown=true なら必ず pitch 側に入り、昇降には落ちない。
+  const modsRef = useRef({ shift: false, alt: false });
+
   useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      const controls = controlsRef.current;
-      if (!controls) return;
-      const el = event.target as HTMLElement | null;
-      const tag = el?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || el?.isContentEditable) return;
-      if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
-      event.preventDefault();
-
-      const left = event.key === "ArrowLeft";
-      const right = event.key === "ArrowRight";
-      const up = event.key === "ArrowUp";
-
-      // Shift+左右: 位置固定で注視点をカメラ位置まわりにY軸回転＝視線方向を左右に振る。
-      if (event.shiftKey && (left || right)) {
-        const angle = THREE.MathUtils.degToRad(left ? TURN_DEG : -TURN_DEG);
-        const dir = controls.target.clone().sub(camera.position);
-        dir.applyAxisAngle(new THREE.Vector3(0, 1, 0), angle);
-        controls.target.copy(camera.position).add(dir);
-        controls.update();
-        return;
-      }
-
-      // Shift+上下: 位置固定で見上げ/見下ろし（ピッチ）。水平方位と距離は保ち、
-      // 真上/真下を越えて反転しないよう±80°にクランプする。
-      if (event.shiftKey && up) {
-        pitchView(THREE.MathUtils.degToRad(TURN_DEG));
-        return;
-      }
-      if (event.shiftKey) {
-        pitchView(THREE.MathUtils.degToRad(-TURN_DEG)); // ArrowDown
-        return;
-      }
-
-      const forward = camera.getWorldDirection(new THREE.Vector3());
-      forward.y = 0;
-      if (forward.lengthSq() < 1e-6) forward.set(0, 0, -1);
-      forward.normalize();
-      const rightVec = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
-
-      const move = new THREE.Vector3();
-      if (event.altKey && (up || event.key === "ArrowDown")) move.set(0, up ? MOVE_M : -MOVE_M, 0); // Option+上下: 昇降
-      else if (left) move.copy(rightVec).multiplyScalar(-MOVE_M);
-      else if (right) move.copy(rightVec).multiplyScalar(MOVE_M);
-      else move.copy(forward).multiplyScalar(up ? MOVE_M : -MOVE_M); // 前後
-
-      camera.position.add(move);
-      controls.target.add(move);
-      controls.update();
+    const onMod = (e: KeyboardEvent) => {
+      // 修飾キー自身(Shift/Alt)の押下/解放だけで追跡する。矢印など非修飾イベントの
+      // e.shiftKey をコピーすると、キーリピート中に shiftKey=false が混じった瞬間に
+      // 追跡値が false へ落ち、補正(下の shiftDown OR)が無意味になるため対象を限定する。
+      const down = e.type === "keydown";
+      if (e.key === "Shift") modsRef.current.shift = down;
+      else if (e.key === "Alt") modsRef.current.alt = down;
     };
+    const onBlur = () => {
+      // フォーカス喪失時は keyup が届かないため残留をリセットする
+      // (ShortcutGuide.tsx と同じ作法)
+      modsRef.current = { shift: false, alt: false };
+    };
+    window.addEventListener("keydown", onMod);
+    window.addEventListener("keyup", onMod);
+    window.addEventListener("blur", onBlur);
+    return () => {
+      window.removeEventListener("keydown", onMod);
+      window.removeEventListener("keyup", onMod);
+      window.removeEventListener("blur", onBlur);
+    };
+  }, []); // mount/unmount のみ。modsRef は ref なので依存不要。
+
+  useEffect(() => {
     // ピッチ: target をカメラ位置まわりに上下回転。方位(水平向き)と距離を保ち±80°でクランプ。
     const pitchView = (delta: number) => {
       const controls = controlsRef.current;
@@ -449,6 +430,67 @@ const CameraViewSync = ({
         camera.position.y + Math.sin(pitch) * len,
         camera.position.z + hz * cos
       );
+      controls.update();
+    };
+
+    const onKey = (event: KeyboardEvent) => {
+      const controls = controlsRef.current;
+      if (!controls) return;
+      const el = event.target as HTMLElement | null;
+      const tag = el?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || el?.isContentEditable) return;
+      if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
+      event.preventDefault();
+
+      const left = event.key === "ArrowLeft";
+      const right = event.key === "ArrowRight";
+      const up = event.key === "ArrowUp";
+      const down = event.key === "ArrowDown";
+
+      // イベント単体のフラグと ref 追跡値を OR で合成する。
+      // キーリピート中に shiftKey が event から落ちても modsRef.shift が true を
+      // 維持しているため、Shift 押下中は常に shiftDown=true になる。
+      const shiftDown = event.shiftKey || modsRef.current.shift;
+      const altDown   = event.altKey   || modsRef.current.alt;
+
+      // Shift が Alt に優先（ユーザーのメンタルモデル: Shift=見る / Option=昇降）。
+      // shiftDown=true なら altDown の値にかかわらず必ず pitch/yaw 側に入る。
+
+      // Shift+左右: 視線方向を左右に旋回（首振り）。
+      if (shiftDown && (left || right)) {
+        const angle = THREE.MathUtils.degToRad(left ? TURN_DEG : -TURN_DEG);
+        const dir = controls.target.clone().sub(camera.position);
+        dir.applyAxisAngle(new THREE.Vector3(0, 1, 0), angle);
+        controls.target.copy(camera.position).add(dir);
+        controls.update();
+        return;
+      }
+
+      // Shift+上下: 見上げ/見下ろし（ピッチ）。水平方位と距離を保ち±80°でクランプ。
+      if (shiftDown && up) {
+        pitchView(THREE.MathUtils.degToRad(TURN_DEG));
+        return;
+      }
+      if (shiftDown && down) {
+        pitchView(THREE.MathUtils.degToRad(-TURN_DEG));
+        return;
+      }
+
+      const forward = camera.getWorldDirection(new THREE.Vector3());
+      forward.y = 0;
+      if (forward.lengthSq() < 1e-6) forward.set(0, 0, -1);
+      forward.normalize();
+      const rightVec = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
+
+      const move = new THREE.Vector3();
+      // Option+上下: 昇降。shiftDown=false のときだけここに到達するので排他は順序で担保済み。
+      if (altDown && (up || down)) move.set(0, up ? MOVE_M : -MOVE_M, 0);
+      else if (left)  move.copy(rightVec).multiplyScalar(-MOVE_M);
+      else if (right) move.copy(rightVec).multiplyScalar(MOVE_M);
+      else move.copy(forward).multiplyScalar(up ? MOVE_M : -MOVE_M); // 前後
+
+      camera.position.add(move);
+      controls.target.add(move);
       controls.update();
     };
     window.addEventListener("keydown", onKey);
