@@ -3,6 +3,8 @@ import { furnitureCatalog } from "../data/furnitureCatalog";
 import type { FurniturePreset } from "../data/furnitureCatalog";
 import { windowCatalog } from "../data/windowCatalog";
 import type { WindowPreset } from "../data/windowCatalog";
+import { fixtureCatalog } from "../data/fixtureCatalog";
+import { fixtureAddKind, fixtureModelFromAddKind } from "../data/fixtureAddKinds";
 
 // 操作モードはコンボボックスのまま（要望: 操作はコンボボックス）。
 // 追加は「＋追加」ボタン→ポップアップで種別選択（要望: 追加はポップアップ）。
@@ -15,12 +17,11 @@ type AddItem = { kind: string; label: string; hint?: string };
 const ADD_GROUPS: { title: string; items: AddItem[] }[] = [
   {
     title: "照明",
-    items: [
-      { kind: "downlight", label: "ダウンライト" },
-      { kind: "wallspot", label: "壁付スポット" },
-      { kind: "pendant", label: "ペンダント" },
-      { kind: "linelight", label: "ライン照明" }
-    ]
+    items: fixtureCatalog.map((model) => ({
+      kind: fixtureAddKind(model.id),
+      label: model.label,
+      hint: model.description
+    }))
   },
   {
     // 窓はカタログから選ぶ（kind = "window:<presetId>"）。掃き出し/腰窓/高窓など。
@@ -57,7 +58,16 @@ const ADD_GROUPS: { title: string; items: AddItem[] }[] = [
 
 // 照明アイコン: 照明 kind ごとに上面/側面の形状を描き分ける
 function LightIcon({ kind }: { kind: string }) {
-  if (kind === "downlight") {
+  const model = fixtureModelFromAddKind(kind);
+  const iconKind =
+    model?.id === "sp-wall" || model?.baseType === "bracket"
+      ? "wallspot"
+      : model?.baseType === "pendant"
+        ? "pendant"
+        : model?.baseType === "tape"
+          ? "linelight"
+          : "downlight";
+  if (iconKind === "downlight") {
     // ダウンライト: 天井埋め込み円 + 放射線
     return (
       <svg viewBox="0 0 40 40" className="add-item-icon" aria-hidden>
@@ -68,7 +78,7 @@ function LightIcon({ kind }: { kind: string }) {
       </svg>
     );
   }
-  if (kind === "wallspot") {
+  if (iconKind === "wallspot") {
     // 壁付スポット: 壁板 + 傾いたスポット
     return (
       <svg viewBox="0 0 40 40" className="add-item-icon" aria-hidden>
@@ -78,7 +88,7 @@ function LightIcon({ kind }: { kind: string }) {
       </svg>
     );
   }
-  if (kind === "pendant") {
+  if (iconKind === "pendant") {
     // ペンダント: コード + 傘
     return (
       <svg viewBox="0 0 40 40" className="add-item-icon" aria-hidden>
@@ -88,7 +98,7 @@ function LightIcon({ kind }: { kind: string }) {
       </svg>
     );
   }
-  if (kind === "linelight") {
+  if (iconKind === "linelight") {
     // ライン照明: 横長バー + 下方グロー
     return (
       <svg viewBox="0 0 40 40" className="add-item-icon" aria-hidden>
@@ -350,7 +360,7 @@ function StructureIcon({ kind }: { kind: string }) {
 
 // kind から対応するアイコンを返す
 function ItemIcon({ kind }: { kind: string }) {
-  if (kind === "downlight" || kind === "wallspot" || kind === "pendant" || kind === "linelight") {
+  if (fixtureModelFromAddKind(kind) || kind === "downlight" || kind === "wallspot" || kind === "pendant" || kind === "linelight") {
     return <LightIcon kind={kind} />;
   }
   if (kind.startsWith("window:")) {

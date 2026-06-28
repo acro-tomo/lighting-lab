@@ -31,9 +31,11 @@ import type {
 import { bracketRoomwardOffset, colorTemperatureToHex, lumensToPhysicalPower } from "../utils/lighting";
 import { getFurniturePreset } from "../data/furnitureCatalog";
 import { getWindowPreset } from "../data/windowCatalog";
+import { isCeilingLightAddKind, isWallLightAddKind } from "../data/fixtureAddKinds";
 import { useProjectStore } from "../store/projectStore";
 import { degToRad } from "../utils/units";
 import { DEFAULT_DAYLIGHT, sunVector } from "../utils/sun";
+import { ceilingMountHeightAt } from "../utils/ceiling";
 
 export type ViewMode = "raster" | "realistic";
 
@@ -83,7 +85,7 @@ type PlacementCtx = {
 const PlacementContext = createContext<PlacementCtx>({ pendingAdd: null });
 const usePlacement = () => useContext(PlacementContext);
 const isWallPending = (pendingAdd: string | null) =>
-  pendingAdd === "door" || pendingAdd === "wallspot" || (pendingAdd?.startsWith("window") ?? false);
+  pendingAdd === "door" || isWallLightAddKind(pendingAdd) || (pendingAdd?.startsWith("window") ?? false);
 
 // 太陽高度から空色を補間する。昼=明るい空青、日の出/日没=橙、夜=暗い紺。
 // scene.background に色を入れると常駐パストレが GradientEquirect 環境光として拾う。
@@ -658,7 +660,7 @@ const SceneRoot = ({
   const sunUp = daylight.enabled && sun.altitudeDeg > 0;
   // 空色（夜=既定の暗色 / 日中=空色）。scene.background 経由でパストレの環境光にもなる。
   const backgroundColor = useMemo(
-    () => (daylight.enabled ? skyColorForAltitude(sun.altitudeDeg).getStyle() : "#060504"),
+    () => (daylight.enabled ? skyColorForAltitude(sun.altitudeDeg).getStyle() : "#15110d"),
     [daylight.enabled, sun.altitudeDeg]
   );
   const roomSpan = Math.max(project.room.widthM, project.room.depthM);
@@ -704,8 +706,8 @@ const SceneRoot = ({
       {!pathTraced && (
         <>
           <fog attach="fog" args={["#060504", 8, 16]} />
-          <hemisphereLight args={["#1f2530", "#0a0805", 0.22]} />
-          <directionalLight position={[-2, 4, 3]} intensity={0.14} color="#c9d6ff" />
+          <hemisphereLight args={[sunUp ? "#1f2530" : "#2b2a25", "#0a0805", sunUp ? 0.16 : 0.34]} />
+          <directionalLight position={[-2, 4, 3]} intensity={sunUp ? 0.08 : 0.12} color="#c9d6ff" />
           {/* 照明量に連動した暖色バウンスフィル（疑似間接光）。skyColor=上向き面(床)に当たり、
               groundColor=下向き面(天井)に当たる。ダウンライトは下方配光なので天井は床より暗いが、
               床・壁での反射が天井へ戻る分を warmCeiling(=暖色を約0.4に減光)で薄く再現し、
@@ -1824,7 +1826,47 @@ const VoidWell = ({
   if (height <= 0.02) return null;
   const midY = (lowerY + upperY) / 2;
   const { center, size } = voidArea;
+  const placement = usePlacement();
   const color = debugColorForRole("ceiling", debugMode, material.baseColor);
+  const voidWallHit = (sideName: "north" | "south" | "west" | "east", point: THREE.Vector3) => {
+    const alongX = sideName === "north" || sideName === "south";
+    const ratio = alongX
+      ? THREE.MathUtils.clamp((point.x - (center.x - size.x / 2)) / size.x, 0, 1)
+      : THREE.MathUtils.clamp((point.z - (center.z - size.z / 2)) / size.z, 0, 1);
+    const x = alongX
+      ? center.x + (ratio - 0.5) * size.x
+      : sideName === "west"
+        ? center.x - size.x / 2
+        : center.x + size.x / 2;
+    const z = alongX
+      ? sideName === "north"
+        ? center.z - size.z / 2
+        : center.z + size.z / 2
+      : center.z + (ratio - 0.5) * size.z;
+    return {
+      wallId: `void:${voidArea.id}:${sideName}`,
+      ratio,
+      x,
+      y: point.y,
+      z,
+      angle: alongX ? 0 : Math.PI / 2
+    };
+  };
+  const voidWallHandlers = (sideName: "north" | "south" | "west" | "east") => ({
+    onPointerMove: isWallLightAddKind(placement.pendingAdd)
+      ? (event: ThreeEvent<PointerEvent>) => {
+          event.stopPropagation();
+          placement.onWallHover?.(voidWallHit(sideName, event.point));
+        }
+      : undefined,
+    onPointerDown: isWallLightAddKind(placement.pendingAdd)
+      ? (event: ThreeEvent<PointerEvent>) => {
+          event.stopPropagation();
+          const hit = voidWallHit(sideName, event.point);
+          placement.onPlaceOnWall?.(hit.wallId, hit.ratio, hit.y);
+        }
+      : undefined
+  });
   const side = (
     <meshStandardMaterial
       color={color}
@@ -1835,24 +1877,24 @@ const VoidWell = ({
   );
   return (
     <group>
-      <mesh position={[center.x, midY, center.z - size.z / 2]} receiveShadow>
+      <mesh position={[center.x, midY, center.z - size.z / 2]} receiveShadow castShadow {...voidWallHandlers("north")}>
         <boxGeometry args={[size.x, height, 0.04]} />
         {side}
       </mesh>
-      <mesh position={[center.x, midY, center.z + size.z / 2]} receiveShadow>
+      <mesh position={[center.x, midY, center.z + size.z / 2]} receiveShadow castShadow {...voidWallHandlers("south")}>
         <boxGeometry args={[size.x, height, 0.04]} />
         {side}
       </mesh>
-      <mesh position={[center.x - size.x / 2, midY, center.z]} receiveShadow>
+      <mesh position={[center.x - size.x / 2, midY, center.z]} receiveShadow castShadow {...voidWallHandlers("west")}>
         <boxGeometry args={[0.04, height, size.z]} />
         {side}
       </mesh>
-      <mesh position={[center.x + size.x / 2, midY, center.z]} receiveShadow>
+      <mesh position={[center.x + size.x / 2, midY, center.z]} receiveShadow castShadow {...voidWallHandlers("east")}>
         <boxGeometry args={[0.04, height, size.z]} />
         {side}
       </mesh>
       {showLid && (
-        <mesh position={[center.x, upperY, center.z]} rotation-x={Math.PI / 2} receiveShadow>
+        <mesh position={[center.x, upperY, center.z]} rotation-x={Math.PI / 2} receiveShadow castShadow>
           <planeGeometry args={[size.x, size.z]} />
           <meshStandardMaterial
             color={color}
@@ -2069,7 +2111,7 @@ const WallMesh = ({
       // 選択が壁に転写される再発バグになる。pointer 系で統一して伝播を断つ。
       // 壁ライト(wallspot)配置中は、カーソルが壁上に来たら壁面ヒットをゴーストへ上げる。
       onPointerMove={
-        placement.pendingAdd === "wallspot"
+        isWallLightAddKind(placement.pendingAdd)
           ? (event: ThreeEvent<PointerEvent>) => {
               event.stopPropagation();
               const { ratio } = projectPointOntoWall(event.point.x, event.point.z, wall);
@@ -2093,7 +2135,7 @@ const WallMesh = ({
           const { ratio } = projectPointOntoWall(event.point.x, event.point.z, wall);
           // 壁ライトはカーソルの壁上ワールドYをそのまま高さに渡す（壁面に吸い付かせる）。
           // 窓/扉は heightM 省略で種別既定の高さに任せる。
-          const heightM = placement.pendingAdd === "wallspot" ? event.point.y : undefined;
+          const heightM = isWallLightAddKind(placement.pendingAdd) ? event.point.y : undefined;
           placement.onPlaceOnWall?.(wall.id, ratio, heightM);
           return;
         }
@@ -3358,9 +3400,9 @@ const PlacementLayer = ({
   const [cursor, setCursor] = useState<{ x: number; z: number } | null>(null);
   // 窓・扉は床カーソルから最寄り壁へスナップ。壁ライト(wallspot)は壁メッシュのヒット(wallCursor)を使う。
   const isWindowOrDoor = pendingAdd === "door" || pendingAdd.startsWith("window");
-  const isWallItem = isWindowOrDoor || pendingAdd === "wallspot";
+  const isWallItem = isWindowOrDoor || isWallLightAddKind(pendingAdd);
   // 天井ライトは既存ライトのX/Z軸へ吸着し、整列ガイド線を出す。
-  const isCeilingLight = pendingAdd === "downlight" || pendingAdd === "pendant" || pendingAdd === "linelight";
+  const isCeilingLight = isCeilingLightAddKind(pendingAdd);
 
   // ゴーストの寸法・形状を種別から決める。
   const ghostColor = "#7fe9ff";
@@ -3386,7 +3428,7 @@ const PlacementLayer = ({
     }
     if (isCeilingLight && ceilingSnap) {
       // 天井ライトはスナップ後の(x,z)で天井面付近にマーカーを出す。
-      const ceil = project.room.ceilingHeightM;
+      const ceil = ceilingMountHeightAt(project, ceilingSnap);
       return (
         <group position={[ceilingSnap.x, 0, ceilingSnap.z]}>
           <mesh position={[0, ceil - 0.05, 0]}>
@@ -3412,7 +3454,7 @@ const PlacementLayer = ({
   // 整列スナップが効いている軸に細いガイド線を出す（パストレ常駐時は PlacementLayer 自体が非表示）。
   const snapGuides = (() => {
     if (!isCeilingLight || !ceilingSnap) return null;
-    const y = project.room.ceilingHeightM - 0.04;
+    const y = ceilingMountHeightAt(project, ceilingSnap) - 0.04;
     const span = Math.max(project.room.widthM, project.room.depthM) + 4;
     return (
       <>
@@ -3446,7 +3488,7 @@ const PlacementLayer = ({
   const windowWall = isWindowOrDoor && cursor ? nearestWallAt(cursor.x, cursor.z, project.walls) : null;
   // 壁ライト(wallspot)のゴースト: 壁メッシュが拾ったヒット(wallCursor)へ壁面に吸い付けて出す。
   const wallGhost = (() => {
-    if (pendingAdd === "wallspot") {
+    if (isWallLightAddKind(pendingAdd)) {
       if (!wallCursor) return null;
       return (
         <group position={[wallCursor.x, wallCursor.y, wallCursor.z]} rotation={[0, -wallCursor.angle, 0]}>
@@ -3488,8 +3530,8 @@ const PlacementLayer = ({
     event.stopPropagation();
     const x = event.point.x;
     const z = event.point.z;
-    // 壁ライト(wallspot)は床カーソルでは確定しない（壁メッシュの onPointerDown が壁ヒット＋高さで設置）。
-    if (pendingAdd === "wallspot") return;
+    // 壁ライトは床カーソルでは確定しない（壁/吹き抜け側面のヒット＋高さで設置）。
+    if (isWallLightAddKind(pendingAdd)) return;
     if (isWindowOrDoor) {
       const hit = nearestWallAt(x, z, project.walls);
       if (hit) onPlaceOnWall?.(hit.wall.id, hit.ratio);

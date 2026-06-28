@@ -8,8 +8,8 @@ export type SkyEnvironment = {
 
 // 昼光の較正値(開始値、視覚確認で詰める)。Sky 環境=間接光(skylight)、太陽 DirectionalLight=鋭い影と方向感。
 // Scene3D(常駐パストレ)と pathTracer.ts(PNG書き出し)で必ず同一値を使う(WYSIWYG)。
-export const SKY_ENVIRONMENT_INTENSITY = 1.8;
-export const SUN_INTENSITY_FACTOR = 5;
+export const SKY_ENVIRONMENT_INTENSITY = 0.8;
+export const SUN_INTENSITY_FACTOR = 1.4;
 
 export type SkyEnvironmentOptions = {
   turbidity?: number;

@@ -79,6 +79,7 @@ type ProjectStore = {
   setActiveFloor: (floor: 1 | 2) => void;
   setDaylight: (patch: Partial<Daylight>) => void;
   setShowCeiling: (value: boolean) => void;
+  setCeilingHeight: (value: number) => void;
   setFloorLevel: (value: number) => void;
   addCompareShot: (shot: CompareShot) => void;
   setCompareShots: (shots: CompareShot[]) => void;
@@ -408,6 +409,12 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
         showCeiling: value
       })
     ),
+  setCeilingHeight: (value) =>
+    set((state) => {
+      const nextProject = cloneProject(state.project);
+      nextProject.room = { ...nextProject.room, ceilingHeightM: Math.max(1.8, value) };
+      return withHistory(state, nextProject);
+    }),
   setFloorLevel: (value) =>
     set((state) => {
       const nextProject = cloneProject(state.project);

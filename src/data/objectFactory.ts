@@ -1,7 +1,8 @@
 import type { CeilingZone, FloorZone, FurnitureItem, LightFixture, Project, VoidArea, WindowOpening } from "../types";
-import { fixtureModelMap } from "./fixtureCatalog";
+import { fixtureModelMap, type FixtureModel } from "./fixtureCatalog";
 import type { FurniturePreset } from "./furnitureCatalog";
 import type { WindowPreset } from "./windowCatalog";
+import { ceilingMountHeightAt } from "../utils/ceiling";
 
 const uid = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -96,6 +97,93 @@ export const newLineLight = (project: Project, at?: { x: number; z: number }): L
     castsShadow: false,
     note: "棚下・壁裏の間接照明",
     lengthM: 1.2
+  };
+};
+
+type NewFixtureOptions = {
+  ceilingHeightM?: number;
+  wall?: {
+    x: number;
+    y: number;
+    z: number;
+    target: { x: number; y: number; z: number };
+  };
+};
+
+export const newFixtureFromModel = (
+  project: Project,
+  model: FixtureModel,
+  at?: { x: number; z: number },
+  opts: NewFixtureOptions = {}
+): LightFixture => {
+  const x = opts.wall?.x ?? at?.x ?? 0;
+  const z = opts.wall?.z ?? at?.z ?? 0;
+  const mountHeightM = opts.ceilingHeightM ?? ceilingMountHeightAt(project, { x, z });
+  const base = {
+    id: uid("light"),
+    name: model.label,
+    model: model.id,
+    lumens: model.defaultLumens,
+    colorTemperatureK: 2700,
+    dimmer: 80,
+    enabled: true,
+    beamAngleDeg: model.beamAngleDeg,
+    penumbra: model.penumbra,
+    castsShadow: true,
+    note: ""
+  };
+
+  if (opts.wall || model.id === "sp-wall" || model.baseType === "bracket") {
+    const y = opts.wall?.y ?? 1.9;
+    return {
+      ...base,
+      type: model.baseType,
+      position: { x, y, z },
+      mountHeightM: y,
+      rotationDeg: { x: 0, y: 0, z: 0 },
+      target: opts.wall?.target ?? { x: 0, y: 0.9, z: 0 },
+      dimmer: 85,
+      note: model.description
+    };
+  }
+
+  if (model.baseType === "pendant") {
+    const cordLengthM = 0.6;
+    return {
+      ...base,
+      type: "pendant",
+      position: { x, y: mountHeightM - cordLengthM, z },
+      mountHeightM,
+      rotationDeg: { x: 0, y: 0, z: 0 },
+      target: { x, y: 0, z },
+      beamAngleDeg: model.beamAngleDeg,
+      penumbra: model.penumbra,
+      cordLengthM
+    };
+  }
+
+  if (model.baseType === "tape") {
+    return {
+      ...base,
+      type: "tape",
+      position: { x, y: mountHeightM - 0.04, z },
+      mountHeightM,
+      rotationDeg: { x: -90, y: 0, z: 0 },
+      target: { x, y: 0, z },
+      castsShadow: false,
+      note: model.description,
+      lengthM: 1.2
+    };
+  }
+
+  return {
+    ...base,
+    type: model.baseType,
+    position: { x, y: mountHeightM - 0.04, z },
+    mountHeightM,
+    rotationDeg: { x: -90, y: 0, z: 0 },
+    target: { x, y: 0, z },
+    note: model.description
   };
 };
 
