@@ -19,9 +19,7 @@ import { EditToolbar, type EditMode } from "./components/EditToolbar";
 import { ShortcutGuide } from "./components/ShortcutGuide";
 import { SmallScreenNotice } from "./components/SmallScreenNotice";
 import { IntroGuide } from "./components/IntroGuide";
-
-// 書き出しPNGに焼き込むウォーターマーク。独自ドメイン取得後はそれに変更してください。
-const APP_URL = "ldk-lighting-lab.pages.dev";
+import { APP_NAME, getAppDisplayUrl } from "./config/appMeta";
 
 const withWatermark = (dataUrl: string): Promise<string> =>
   new Promise((resolve) => {
@@ -41,7 +39,7 @@ const withWatermark = (dataUrl: string): Promise<string> =>
       ctx.shadowColor = "rgba(0,0,0,0.7)";
       ctx.shadowBlur = 4;
       ctx.fillStyle = "#ffffff";
-      const text = `LDK Lighting Lab · ${APP_URL}`;
+      const text = `${APP_NAME} · ${getAppDisplayUrl()}`;
       const margin = Math.round(fontSize * 0.9);
       ctx.fillText(text, w - ctx.measureText(text).width - margin, h - margin);
       resolve(canvas.toDataURL("image/png"));

@@ -25,9 +25,9 @@ export const IntroGuide = ({ forceOpen, onClose }: IntroGuideProps) => {
   return (
     <div className="intro-overlay" role="dialog" aria-modal="true" aria-label="LDK Lighting Lab の使い方">
       <div className="intro-card">
-        <h2 className="intro-title">LDK Lighting Lab とは</h2>
+        <h2 className="intro-title">自分の間取りで夜の照明を試す</h2>
         <ul className="intro-features">
-          <li>間取り図を取り込み、照明の位置・明るさ・色温度を変えて「夜の見え方」を比較できます。</li>
+          <li>自分の間取り図を取り込み、照明の位置・明るさ・色温度を変えて「夜の見え方」を比較できます。</li>
           <li>ダウンライト・ペンダント・壁付スポットなど複数種の照明を自由に配置できます。</li>
           <li>Path Tracing による間接光レンダリングで雰囲気を視覚確認できます。</li>
         </ul>
