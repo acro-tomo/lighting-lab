@@ -1604,7 +1604,7 @@ const Ceiling = ({ project, material, debugMode }: { project: Project; material:
         color={debugColorForRole("ceiling", debugMode, material.baseColor)}
         roughness={material.roughness}
         metalness={material.metalness}
-        side={THREE.FrontSide}
+        side={THREE.DoubleSide}
       />
     </mesh>
   );
@@ -1828,6 +1828,36 @@ const VoidWell = ({
   const { center, size } = voidArea;
   const placement = usePlacement();
   const color = debugColorForRole("ceiling", debugMode, material.baseColor);
+  const resolveVoidHitPoint = (sideName: "north" | "south" | "west" | "east", event: ThreeEvent<PointerEvent>) => {
+    const candidates = [event.point.clone()];
+    if (event.object) candidates.push(event.object.localToWorld(event.point.clone()));
+    const minX = center.x - size.x / 2;
+    const maxX = center.x + size.x / 2;
+    const minZ = center.z - size.z / 2;
+    const maxZ = center.z + size.z / 2;
+    const plane =
+      sideName === "north"
+        ? { axis: "z" as const, value: minZ }
+        : sideName === "south"
+          ? { axis: "z" as const, value: maxZ }
+          : sideName === "west"
+            ? { axis: "x" as const, value: minX }
+            : { axis: "x" as const, value: maxX };
+    const outside = (value: number, min: number, max: number) => Math.max(0, min - value, value - max);
+    let best = candidates[0];
+    let bestScore = Infinity;
+    for (const point of candidates) {
+      const sideScore = Math.abs(point[plane.axis] - plane.value);
+      const rangeScore = plane.axis === "z" ? outside(point.x, minX, maxX) : outside(point.z, minZ, maxZ);
+      const heightScore = outside(point.y, lowerY, upperY);
+      const score = sideScore + rangeScore * 2 + heightScore;
+      if (score < bestScore) {
+        bestScore = score;
+        best = point;
+      }
+    }
+    return best;
+  };
   const voidWallHit = (sideName: "north" | "south" | "west" | "east", point: THREE.Vector3) => {
     const alongX = sideName === "north" || sideName === "south";
     const ratio = alongX
@@ -1856,13 +1886,13 @@ const VoidWell = ({
     onPointerMove: isWallLightAddKind(placement.pendingAdd)
       ? (event: ThreeEvent<PointerEvent>) => {
           event.stopPropagation();
-          placement.onWallHover?.(voidWallHit(sideName, event.point));
+          placement.onWallHover?.(voidWallHit(sideName, resolveVoidHitPoint(sideName, event)));
         }
       : undefined,
     onPointerDown: isWallLightAddKind(placement.pendingAdd)
       ? (event: ThreeEvent<PointerEvent>) => {
           event.stopPropagation();
-          const hit = voidWallHit(sideName, event.point);
+          const hit = voidWallHit(sideName, resolveVoidHitPoint(sideName, event));
           placement.onPlaceOnWall?.(hit.wallId, hit.ratio, hit.y);
         }
       : undefined
@@ -1900,7 +1930,7 @@ const VoidWell = ({
             color={color}
             roughness={material.roughness}
             metalness={material.metalness}
-            side={THREE.FrontSide}
+            side={THREE.DoubleSide}
           />
         </mesh>
       )}
@@ -2067,6 +2097,38 @@ const WallMesh = ({
   const pathTraced = usePathTraced();
   const placement = usePlacement();
   const tile = material.textureSizeM ?? { w: 0.92, h: 0.92 };
+  const groupRef = useRef<THREE.Group>(null);
+
+  const wallHitFromEvent = (event: ThreeEvent<PointerEvent>) => {
+    const group = groupRef.current;
+    const candidates = [event.point.clone()];
+    if (event.object) candidates.push(event.object.localToWorld(event.point.clone()));
+    let bestWorld = candidates[0];
+    let bestScore = Infinity;
+    for (const world of candidates) {
+      const local = group ? group.worldToLocal(world.clone()) : world.clone();
+      const clampedX = THREE.MathUtils.clamp(local.x, -length / 2, length / 2);
+      const clampedY = THREE.MathUtils.clamp(local.y, -wall.heightM / 2, wall.heightM / 2);
+      const score =
+        Math.abs(local.x - clampedX) +
+        Math.abs(local.y - clampedY) +
+        Math.abs(local.z) * 2;
+      if (score < bestScore) {
+        bestScore = score;
+        bestWorld = world;
+      }
+    }
+    const { ratio } = projectPointOntoWall(bestWorld.x, bestWorld.z, wall);
+    const angle = Math.atan2(wall.end.z - wall.start.z, wall.end.x - wall.start.x);
+    return {
+      wallId: wall.id,
+      ratio,
+      x: wall.start.x + (wall.end.x - wall.start.x) * ratio,
+      y: bestWorld.y,
+      z: wall.start.z + (wall.end.z - wall.start.z) * ratio,
+      angle
+    };
+  };
 
   // この壁に属する開口を、壁ローカルX(-length/2..length/2)・高さに変換してくり抜く。
   // パネルの並ぶローカル +X 軸（rotationY適用後の(1,0,0)）に窓中心を射影して
@@ -2104,6 +2166,7 @@ const WallMesh = ({
 
   return (
     <group
+      ref={groupRef}
       position={[midpointVector.x, midpointVector.y, midpointVector.z]}
       rotation={[0, rotationY, 0]}
       // 選択は onPointerDown で確定する。手前の家具/照明は同じ pointerdown で
@@ -2114,16 +2177,7 @@ const WallMesh = ({
         isWallLightAddKind(placement.pendingAdd)
           ? (event: ThreeEvent<PointerEvent>) => {
               event.stopPropagation();
-              const { ratio } = projectPointOntoWall(event.point.x, event.point.z, wall);
-              const angle = Math.atan2(wall.end.z - wall.start.z, wall.end.x - wall.start.x);
-              placement.onWallHover?.({
-                wallId: wall.id,
-                ratio,
-                x: wall.start.x + (wall.end.x - wall.start.x) * ratio,
-                y: event.point.y,
-                z: wall.start.z + (wall.end.z - wall.start.z) * ratio,
-                angle
-              });
+              placement.onWallHover?.(wallHitFromEvent(event));
             }
           : undefined
       }
@@ -2132,11 +2186,11 @@ const WallMesh = ({
         // 壁物（窓・扉・壁ライト）の配置中は、選択ではなくクリックした壁自身へ設置する。
         // クリック点(x,z)をこの壁に射影して比率を求める（最寄り壁＝クリック壁）。
         if (isWallPending(placement.pendingAdd)) {
-          const { ratio } = projectPointOntoWall(event.point.x, event.point.z, wall);
+          const hit = wallHitFromEvent(event);
           // 壁ライトはカーソルの壁上ワールドYをそのまま高さに渡す（壁面に吸い付かせる）。
           // 窓/扉は heightM 省略で種別既定の高さに任せる。
-          const heightM = isWallLightAddKind(placement.pendingAdd) ? event.point.y : undefined;
-          placement.onPlaceOnWall?.(wall.id, ratio, heightM);
+          const heightM = isWallLightAddKind(placement.pendingAdd) ? hit.y : undefined;
+          placement.onPlaceOnWall?.(wall.id, hit.ratio, heightM);
           return;
         }
         onSelect({ kind: "wall", id: wall.id });

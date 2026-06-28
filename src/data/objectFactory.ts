@@ -16,8 +16,12 @@ export const newDownlight = (project: Project, at?: { x: number; z: number }): L
   name: "中角ダウンライト",
   type: "downlight",
   model: "dl-medium",
-  position: { x: at?.x ?? 0, y: project.room.ceilingHeightM - 0.04, z: at?.z ?? 0 },
-  mountHeightM: project.room.ceilingHeightM,
+  position: {
+    x: at?.x ?? 0,
+    y: ceilingMountHeightAt(project, { x: at?.x ?? 0, z: at?.z ?? 0 }) - 0.04,
+    z: at?.z ?? 0
+  },
+  mountHeightM: ceilingMountHeightAt(project, { x: at?.x ?? 0, z: at?.z ?? 0 }),
   rotationDeg: { x: -90, y: 0, z: 0 },
   target: { x: at?.x ?? 0, y: 0, z: at?.z ?? 0 },
   lumens: 620,
@@ -56,13 +60,14 @@ export const newWallSpot = (project: Project, at?: { x: number; z: number }): Li
 export const newPendant = (project: Project, at?: { x: number; z: number }): LightFixture => {
   const model = fixtureModelMap.get("pendant");
   const cordLengthM = 0.6;
+  const mountHeightM = ceilingMountHeightAt(project, { x: at?.x ?? 0, z: at?.z ?? 0 });
   return {
     id: uid("light"),
     name: "ペンダント",
     type: "pendant",
     model: "pendant",
-    position: { x: at?.x ?? 0, y: project.room.ceilingHeightM - cordLengthM, z: at?.z ?? 0 },
-    mountHeightM: project.room.ceilingHeightM,
+    position: { x: at?.x ?? 0, y: mountHeightM - cordLengthM, z: at?.z ?? 0 },
+    mountHeightM,
     rotationDeg: { x: 0, y: 0, z: 0 },
     target: { x: at?.x ?? 0, y: 0, z: at?.z ?? 0 },
     lumens: model?.defaultLumens ?? 800,
@@ -79,13 +84,14 @@ export const newPendant = (project: Project, at?: { x: number; z: number }): Lig
 
 export const newLineLight = (project: Project, at?: { x: number; z: number }): LightFixture => {
   const model = fixtureModelMap.get("tape");
+  const mountHeightM = ceilingMountHeightAt(project, { x: at?.x ?? 0, z: at?.z ?? 0 });
   return {
     id: uid("light"),
     name: "ライン照明",
     type: "tape",
     model: "tape",
-    position: { x: at?.x ?? 0, y: project.room.ceilingHeightM - 0.04, z: at?.z ?? 0 },
-    mountHeightM: project.room.ceilingHeightM,
+    position: { x: at?.x ?? 0, y: mountHeightM - 0.04, z: at?.z ?? 0 },
+    mountHeightM,
     rotationDeg: { x: -90, y: 0, z: 0 },
     target: { x: at?.x ?? 0, y: 0, z: at?.z ?? 0 },
     lumens: model?.defaultLumens ?? 420,

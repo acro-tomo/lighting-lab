@@ -1666,7 +1666,7 @@ const LightPlanItem = ({
 }) => {
   const center = worldToSvg({ x: fixture.position.x, z: fixture.position.z });
   const target = fixture.target ? worldToSvg({ x: fixture.target.x, z: fixture.target.z }) : null;
-  const radius = fixture.type === "downlight" ? (selected ? 8 : 6) : (selected ? 11 : 8);
+  const radius = fixture.type === "downlight" ? (selected ? 6 : 4) : (selected ? 11 : 8);
   const handlePointerDown = (event: React.PointerEvent<SVGGElement>) => {
     event.stopPropagation();
     onSelectLight(fixture.id, event.shiftKey);
