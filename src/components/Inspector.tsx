@@ -39,6 +39,55 @@ const ColorTempPresets = ({
   </div>
 );
 
+const aimHeightPresets: { label: string; heightM: number }[] = [
+  { label: "床", heightM: 0 },
+  { label: "机高", heightM: 0.72 },
+  { label: "腰壁", heightM: 1.1 }
+];
+
+const AimTargetPresets = ({
+  light,
+  aim,
+  onChange
+}: {
+  light: LightFixture;
+  aim: LightFixture["target"];
+  onChange: (target: NonNullable<LightFixture["target"]>) => void;
+}) => {
+  const currentAim = aim ?? { x: light.position.x, y: 0, z: light.position.z };
+  const isStraightDown =
+    Math.abs(currentAim.x - light.position.x) < 0.02 &&
+    Math.abs(currentAim.z - light.position.z) < 0.02 &&
+    Math.abs(currentAim.y) < 0.02;
+
+  return (
+    <div className="aim-control">
+      <div className="chip-row aim-chip-row">
+        <button
+          type="button"
+          className={isStraightDown ? "chip is-active" : "chip"}
+          onClick={() => onChange({ x: light.position.x, y: 0, z: light.position.z })}
+        >
+          真下
+          <span>直下</span>
+        </button>
+        {aimHeightPresets.map((preset) => (
+          <button
+            key={preset.label}
+            type="button"
+            className={Math.abs(currentAim.y - preset.heightM) < 0.03 && !isStraightDown ? "chip is-active" : "chip"}
+            onClick={() => onChange({ ...currentAim, y: preset.heightM })}
+          >
+            {preset.label}
+            <span>{Math.round(preset.heightM * 1000)}mm</span>
+          </button>
+        ))}
+      </div>
+      <p className="field-hint">黄色の照射ポイントを3Dビュー上で調整</p>
+    </div>
+  );
+};
+
 export const Inspector = ({ project, selection }: InspectorProps) => {
   const updateLight = useProjectStore((state) => state.updateLight);
   const updateLights = useProjectStore((state) => state.updateLights);
@@ -213,7 +262,6 @@ const LightInspector = ({
   updateLight: (id: string, patch: Partial<LightFixture>) => void;
 }) => {
   const currentModel = getFixtureModel(light);
-  const aim = light.target ?? { x: light.position.x, y: 0, z: light.position.z };
   return (
   <div className="form-grid">
     <div className="scene-control">
@@ -264,10 +312,9 @@ const LightInspector = ({
       <NumberField label="Z" unit="mm" value={mToMm(light.position.z)} onChange={(value) => updateLight(light.id, { position: { ...light.position, z: mmToM(value) } })} />
     </div>
     {currentModel.aimable && (
-      <div className="field-row">
-        <NumberField label="照射先X" unit="mm" value={mToMm(aim.x)} onChange={(value) => updateLight(light.id, { target: { ...aim, x: mmToM(value) } })} />
-        <NumberField label="照射先Y" unit="mm" value={mToMm(aim.y)} onChange={(value) => updateLight(light.id, { target: { ...aim, y: mmToM(value) } })} />
-        <NumberField label="照射先Z" unit="mm" value={mToMm(aim.z)} onChange={(value) => updateLight(light.id, { target: { ...aim, z: mmToM(value) } })} />
+      <div className="field">
+        <span>照射先</span>
+        <AimTargetPresets light={light} aim={light.target} onChange={(target) => updateLight(light.id, { target })} />
       </div>
     )}
     {light.type === "pendant" && (

@@ -32,6 +32,7 @@ import { bracketRoomwardOffset, colorTemperatureToHex, lumensToPhysicalPower } f
 import { getFurniturePreset } from "../data/furnitureCatalog";
 import { getWindowPreset } from "../data/windowCatalog";
 import { isCeilingLightAddKind, isWallLightAddKind } from "../data/fixtureAddKinds";
+import { isAimable } from "../data/fixtureCatalog";
 import { useProjectStore } from "../store/projectStore";
 import { degToRad } from "../utils/units";
 import { DEFAULT_DAYLIGHT, sunVector } from "../utils/sun";
@@ -310,10 +311,14 @@ const createWoodTexture = () => {
 
 const CameraViewSync = ({
   view,
-  controlsRef
+  controlsRef,
+  floorLevelM,
+  ceilingHeightM
 }: {
   view: ProjectCamera;
   controlsRef: MutableRefObject<OrbitControlsImpl | null>;
+  floorLevelM: number;
+  ceilingHeightM: number;
 }) => {
   const { camera, gl } = useThree();
 
@@ -485,18 +490,26 @@ const CameraViewSync = ({
 
       const move = new THREE.Vector3();
       // Option+上下: 昇降。shiftDown=false のときだけここに到達するので排他は順序で担保済み。
-      if (altDown && (up || down)) move.set(0, up ? MOVE_M : -MOVE_M, 0);
+      // 天井を抜けるほど上げると「見上げ」ではなく視点高度の破綻に見えるため、
+      // カメラ位置だけを室内の自然な高さに収め、target は実際に動けた量だけ追従させる。
+      if (altDown && (up || down)) {
+        const minEyeY = floorLevelM + 0.35;
+        const maxEyeY = floorLevelM + Math.max(0.6, ceilingHeightM - 0.05);
+        const nextY = THREE.MathUtils.clamp(camera.position.y + (up ? MOVE_M : -MOVE_M), minEyeY, maxEyeY);
+        move.set(0, nextY - camera.position.y, 0);
+      }
       else if (left)  move.copy(rightVec).multiplyScalar(-MOVE_M);
       else if (right) move.copy(rightVec).multiplyScalar(MOVE_M);
       else move.copy(forward).multiplyScalar(up ? MOVE_M : -MOVE_M); // 前後
 
+      if (move.lengthSq() < 1e-10) return;
       camera.position.add(move);
       controls.target.add(move);
       controls.update();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [camera, controlsRef]);
+  }, [camera, ceilingHeightM, controlsRef, floorLevelM]);
 
   return null;
 };
@@ -703,7 +716,12 @@ const SceneRoot = ({
     <EditModeContext.Provider value={mode}>
     <PathTracedContext.Provider value={pathTraced}>
     <PlacementContext.Provider value={{ pendingAdd: pathTraced ? null : pendingAdd, onPlaceOnWall, onWallHover: setWallCursor }}>
-      <CameraViewSync view={project.camera} controlsRef={controlsRef} />
+      <CameraViewSync
+        view={project.camera}
+        controlsRef={controlsRef}
+        floorLevelM={floorLevelM}
+        ceilingHeightM={project.room.ceilingHeightM}
+      />
       <color attach="background" args={[backgroundColor]} />
       <Outdoors />
       {sunUp && <SunLight dir={sun.dir} altitudeDeg={sun.altitudeDeg} roomSpan={roomSpan} />}
@@ -3207,6 +3225,7 @@ const FixtureMesh = ({
   );
 
   const showOutline = (selected || multiSelected) && !pathTraced;
+  const showAimEditor = selected && isAimable(fixture) && !pathTraced && editMode !== "delete";
   // ガイド線は非物理の編集補助なので常駐パストレ時は出さない（WYSIWYG不変条件）。
   const guideY = floorLevelM + fixture.position.y;
   const guideSpan = 40;
@@ -3272,9 +3291,140 @@ const FixtureMesh = ({
           <lineBasicMaterial color="#ffd24a" transparent opacity={0.8} />
         </line>
       )}
-      {debugMode !== "beauty" && fixture.target && (
+      {showAimEditor && <LightAimHandle fixture={fixture} />}
+      {!showAimEditor && debugMode !== "beauty" && fixture.target && (
         <LightDirectionLine fixture={fixture} />
       )}
+    </group>
+  );
+};
+
+const LightAimHandle = ({ fixture }: { fixture: LightFixture }) => {
+  const controls = useThree((state) => state.controls) as { enabled: boolean } | null;
+  const updateLight = useProjectStore((store) => store.updateLight);
+  const floorLevelM = useProjectStore((store) => store.project.room.floorLevelM ?? 0);
+  const target = fixture.target ?? { x: fixture.position.x, y: 0, z: fixture.position.z };
+  const minTargetY = 0;
+  const maxTargetY = Math.max(minTargetY + 0.2, fixture.position.y - 0.08);
+  const localOffset = {
+    x: target.x - fixture.position.x,
+    y: target.y - fixture.position.y,
+    z: target.z - fixture.position.z
+  };
+  const dragRef = useRef<{
+    mode: "plane" | "height" | null;
+    grabX: number;
+    grabY: number;
+    grabZ: number;
+  }>({ mode: null, grabX: 0, grabY: 0, grabZ: 0 });
+  const horizontalPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), []);
+  const hit = useMemo(() => new THREE.Vector3(), []);
+  const heightHit = useMemo(() => new THREE.Vector3(), []);
+  const heightGripOffsetX = 0.28;
+
+  useEffect(() => {
+    return () => {
+      if (controls) controls.enabled = true;
+    };
+  }, [controls]);
+
+  const heightFromRay = (event: ThreeEvent<PointerEvent>) => {
+    const start = new THREE.Vector3(target.x + heightGripOffsetX, floorLevelM + minTargetY, target.z);
+    const end = new THREE.Vector3(target.x + heightGripOffsetX, floorLevelM + maxTargetY, target.z);
+    event.ray.distanceSqToSegment(start, end, undefined, heightHit);
+    return heightHit.y - floorLevelM;
+  };
+
+  const startHorizontalDrag = (event: ThreeEvent<PointerEvent>) => {
+    if (event.button !== 0) return;
+    event.stopPropagation();
+    horizontalPlane.constant = -(floorLevelM + target.y);
+    if (!event.ray.intersectPlane(horizontalPlane, hit)) return;
+    dragRef.current = {
+      mode: "plane",
+      grabX: target.x - hit.x,
+      grabY: 0,
+      grabZ: target.z - hit.z
+    };
+    (event.target as Element | null)?.setPointerCapture?.(event.pointerId);
+    if (controls) controls.enabled = false;
+  };
+
+  const startHeightDrag = (event: ThreeEvent<PointerEvent>) => {
+    if (event.button !== 0) return;
+    event.stopPropagation();
+    dragRef.current = {
+      mode: "height",
+      grabX: 0,
+      grabY: target.y - heightFromRay(event),
+      grabZ: 0
+    };
+    (event.target as Element | null)?.setPointerCapture?.(event.pointerId);
+    if (controls) controls.enabled = false;
+  };
+
+  const handlePointerMove = (event: ThreeEvent<PointerEvent>) => {
+    const drag = dragRef.current;
+    if (!drag.mode) return;
+    event.stopPropagation();
+    if (drag.mode === "plane") {
+      horizontalPlane.constant = -(floorLevelM + target.y);
+      if (!event.ray.intersectPlane(horizontalPlane, hit)) return;
+      updateLight(fixture.id, {
+        target: {
+          ...target,
+          x: hit.x + drag.grabX,
+          z: hit.z + drag.grabZ
+        }
+      });
+      return;
+    }
+    updateLight(fixture.id, {
+      target: {
+        ...target,
+        y: THREE.MathUtils.clamp(heightFromRay(event) + drag.grabY, minTargetY, maxTargetY)
+      }
+    });
+  };
+
+  const stopDrag = (event: ThreeEvent<PointerEvent>) => {
+    if (!dragRef.current.mode) return;
+    event.stopPropagation();
+    dragRef.current.mode = null;
+    (event.target as Element | null)?.releasePointerCapture?.(event.pointerId);
+    if (controls) controls.enabled = true;
+  };
+
+  return (
+    <group onPointerMove={handlePointerMove} onPointerUp={stopDrag} renderOrder={40}>
+      <DebugLine from={[0, 0, 0]} to={[localOffset.x, localOffset.y, localOffset.z]} color="#ffd34f" />
+      <DebugLine
+        from={[localOffset.x + heightGripOffsetX, minTargetY - fixture.position.y, localOffset.z]}
+        to={[localOffset.x + heightGripOffsetX, maxTargetY - fixture.position.y, localOffset.z]}
+        color="#ffe38a"
+      />
+      <group position={[localOffset.x, localOffset.y, localOffset.z]}>
+        <mesh rotation-x={Math.PI / 2} onPointerDown={startHorizontalDrag} renderOrder={42}>
+          <torusGeometry args={[0.17, 0.012, 8, 40]} />
+          <meshBasicMaterial color="#ffd34f" transparent opacity={0.95} depthTest={false} />
+        </mesh>
+        <mesh onPointerDown={startHorizontalDrag} renderOrder={43}>
+          <sphereGeometry args={[0.06, 18, 12]} />
+          <meshBasicMaterial color="#fff2a8" transparent opacity={0.95} depthTest={false} />
+        </mesh>
+        <mesh position={[heightGripOffsetX, 0, 0]} onPointerDown={startHeightDrag} renderOrder={44}>
+          <sphereGeometry args={[0.055, 18, 12]} />
+          <meshBasicMaterial color="#ffb347" transparent opacity={0.95} depthTest={false} />
+        </mesh>
+        <mesh position={[heightGripOffsetX, 0.12, 0]} onPointerDown={startHeightDrag} renderOrder={44}>
+          <coneGeometry args={[0.045, 0.09, 18]} />
+          <meshBasicMaterial color="#ffb347" transparent opacity={0.85} depthTest={false} />
+        </mesh>
+        <mesh position={[heightGripOffsetX, -0.12, 0]} rotation-x={Math.PI} onPointerDown={startHeightDrag} renderOrder={44}>
+          <coneGeometry args={[0.045, 0.09, 18]} />
+          <meshBasicMaterial color="#ffb347" transparent opacity={0.85} depthTest={false} />
+        </mesh>
+      </group>
     </group>
   );
 };
