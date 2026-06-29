@@ -689,12 +689,14 @@ const SceneRoot = ({
     const kelvin = lumens > 0 ? kWeighted / lumens : 2700;
     const warmColor = colorTemperatureToHex(kelvin);
     const warm = warmColor.getStyle();
-    // 下向き面（天井）に当てる弱い暖色。床・壁で一度反射して天井へ戻る間接光の近似で、
-    // 床(skyColor=full)より十分暗くして下方配光の見え方を保つ（要望: 天井が真っ黒にならないよう薄く反射）。
-    const warmCeiling = warmColor.clone().multiplyScalar(0.4).getStyle();
-    // 総光束→フィル強度。おおよそ 0〜26000lm を 0〜0.5 に飽和させる。
-    const intensity = Math.min(0.5, lumens / 26000);
-    return { warm, warmCeiling, intensity };
+    // 下向き面（天井）側も少し起こす。直接光を外した壁・床が黒く沈むのを防ぎつつ、
+    // ダウンライトの下方配光と床の光だまりは残すため、床側よりは暗くする。
+    const warmCeiling = warmColor.clone().multiplyScalar(RASTER_BOUNCE_CEILING_FACTOR).getStyle();
+    // 総光束→フィル強度。線形だと家庭用の低〜中光束で反射が弱すぎるため、
+    // 早めに立ち上がって多灯時は飽和するカーブにする。
+    const intensity = rasterBounceIntensity(lumens);
+    const ambient = Math.min(RASTER_BOUNCE_MAX_AMBIENT, intensity * RASTER_BOUNCE_AMBIENT_RATIO);
+    return { warm, warmCeiling, intensity, ambient };
   }, [floorProject.lights, effectiveLightIds]);
 
   return (
@@ -718,11 +720,13 @@ const SceneRoot = ({
           <hemisphereLight args={[sunUp ? "#1f2530" : "#2b2a25", "#0a0805", sunUp ? 0.16 : 0.34]} />
           <directionalLight position={[-2, 4, 3]} intensity={sunUp ? 0.08 : 0.12} color="#c9d6ff" />
           {/* 照明量に連動した暖色バウンスフィル（疑似間接光）。skyColor=上向き面(床)に当たり、
-              groundColor=下向き面(天井)に当たる。ダウンライトは下方配光なので天井は床より暗いが、
-              床・壁での反射が天井へ戻る分を warmCeiling(=暖色を約0.4に減光)で薄く再現し、
-              天井が真っ黒に沈まないようにする。 */}
+              groundColor=下向き面(天井)に当たる。壁はその中間色になるため、直接光が外れた
+              床・壁・天井をまとめて少し持ち上げ、空間全体に光が回る見え方へ寄せる。 */}
           {bounceFill.intensity > 0.001 && (
-            <hemisphereLight args={[bounceFill.warm, bounceFill.warmCeiling, bounceFill.intensity]} />
+            <>
+              <ambientLight color={bounceFill.warm} intensity={bounceFill.ambient} />
+              <hemisphereLight args={[bounceFill.warm, bounceFill.warmCeiling, bounceFill.intensity]} />
+            </>
           )}
         </>
       )}
@@ -1181,6 +1185,22 @@ type FloorBounds = ReturnType<typeof computeFloorBounds>;
 
 const LIGHT_EFFECT_MARGIN_M = 1.2;
 const REALTIME_SHADOW_LIGHT_LIMIT = 6;
+const RASTER_BOUNCE_LUMEN_KNEE = 5200;
+const RASTER_BOUNCE_BASE_INTENSITY = 0.06;
+const RASTER_BOUNCE_ADDED_INTENSITY = 0.46;
+const RASTER_BOUNCE_MAX_INTENSITY = 0.52;
+const RASTER_BOUNCE_CEILING_FACTOR = 0.64;
+const RASTER_BOUNCE_AMBIENT_RATIO = 0.18;
+const RASTER_BOUNCE_MAX_AMBIENT = 0.075;
+
+const rasterBounceIntensity = (lumens: number): number => {
+  if (lumens <= 0) return 0;
+  const response = 1 - Math.exp(-lumens / RASTER_BOUNCE_LUMEN_KNEE);
+  return Math.min(
+    RASTER_BOUNCE_MAX_INTENSITY,
+    RASTER_BOUNCE_BASE_INTENSITY + response * RASTER_BOUNCE_ADDED_INTENSITY
+  );
+};
 
 // 誤操作で建物外へ飛んだ照明が露出やシャドウマップを支配しないよう、物理発光だけ抑える。
 const lightWithinBounds = (fixture: LightFixture, bounds: FloorBounds): boolean => {
