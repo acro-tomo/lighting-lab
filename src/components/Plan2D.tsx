@@ -56,6 +56,9 @@ type ResizeEdge =
   | "bottomLeft"
   | "bottomRight";
 type ResizeState = { kind: ResizeKind; id: string; edge: ResizeEdge } | null;
+type TouchPoint = { clientX: number; clientY: number };
+type PinchState = { distance: number; zoom: number; anchor: { x: number; y: number } };
+type TouchTapState = { pointerId: number; clientX: number; clientY: number } | null;
 
 const MIN_SIZE_M = 0.2;
 // 窓/扉をクリックで壁に設置するときの許容距離(m)。これ以内の最寄り壁に付く。
@@ -214,6 +217,9 @@ export const Plan2D = ({
   onToggleFocusPlan
 }: Plan2DProps) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const touchPointersRef = useRef<Map<number, TouchPoint>>(new Map());
+  const pinchRef = useRef<PinchState | null>(null);
+  const touchTapRef = useRef<TouchTapState>(null);
   // navTool は2D固有ナビ(パン)・縮尺のみ。null のときは App の mode に従う。
   const [navTool, setNavTool] = useState<NavTool | null>(null);
   const [dragging, setDragging] = useState<DragState>(null);
@@ -256,6 +262,7 @@ export const Plan2D = ({
   const updateCeilingZone = useProjectStore((state) => state.updateCeilingZone);
   const updateFloorZone = useProjectStore((state) => state.updateFloorZone);
   const addWall = useProjectStore((state) => state.addWall);
+  const undo = useProjectStore((state) => state.undo);
   const setDaylight = useProjectStore((state) => state.setDaylight);
   // 3Dビューの現在カメラ位置/注視点(ワールドm)。null のとき平面図にマーカーを描かない。
   const liveCamera = useProjectStore((state) => state.liveCamera);
@@ -366,6 +373,27 @@ export const Plan2D = ({
       materialId: reference?.materialId ?? "wall-white",
       ...(innerSide ? { innerSide } : {})
     });
+  };
+
+  const clearWallTrace = () => {
+    setWallDraft([]);
+    setWallCursor(null);
+    setDraftInnerSide(undefined);
+  };
+
+  const finishWallTrace = () => {
+    clearWallTrace();
+    onModeChange("select");
+  };
+
+  const undoWallPoint = () => {
+    if (wallDraft.length === 0) return;
+    if (wallDraft.length > 1) undo();
+    const nextDraft = wallDraft.slice(0, -1);
+    setWallDraft(nextDraft);
+    setWallCursor(null);
+    if (nextDraft.length === 0) setDraftInnerSide(undefined);
+    onSelect(null);
   };
 
   // コンテンツ全体(壁/room矩形/窓が乗る壁/家具/void/天井・床ゾーン/背景画像)を
@@ -480,6 +508,31 @@ export const Plan2D = ({
 
   const svgToWorld = (clientX: number, clientY: number): Vec2M =>
     svgPointToWorld(clientToSvgPoint(clientX, clientY));
+
+  const getPinchPoints = (): [TouchPoint, TouchPoint] | null => {
+    const points = Array.from(touchPointersRef.current.values());
+    return points.length >= 2 ? [points[0], points[1]] : null;
+  };
+
+  const startPinch = () => {
+    const points = getPinchPoints();
+    if (!points) return;
+    const [a, b] = points;
+    const center = clientToSvgPoint((a.clientX + b.clientX) / 2, (a.clientY + b.clientY) / 2);
+    pinchRef.current = {
+      distance: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY),
+      zoom,
+      anchor: center
+    };
+    touchTapRef.current = null;
+    setDragging(null);
+    setResizing(null);
+  };
+
+  const clearTouchGesture = (pointerId?: number) => {
+    if (pointerId !== undefined) touchPointersRef.current.delete(pointerId);
+    if (touchPointersRef.current.size < 2) pinchRef.current = null;
+  };
 
   useEffect(() => {
     if (mode !== "wall") return;
@@ -600,17 +653,10 @@ export const Plan2D = ({
     setResizeTarget({ kind, id });
   };
 
-  const handleCanvasPointerDown = (event: React.PointerEvent<SVGSVGElement>) => {
-    if (isPanMode || event.button === 1) {
-      setDragging({ kind: "pan", clientStart: { x: event.clientX, y: event.clientY }, panStart: pan });
-      return;
-    }
-
-    if (event.button !== 0) return;
-
+  const handleCanvasPlacement = (clientX: number, clientY: number) => {
     // pendingAdd 中はクリック位置にオブジェクトを配置（生成はApp側）。
     if (pendingAdd) {
-      const world = svgToWorld(event.clientX, event.clientY);
+      const world = svgToWorld(clientX, clientY);
       // 窓/扉は「クリックした壁」に付ける。壁の近く(0.7m以内)を押したときだけ設置し、
       // 室内の何もない所では設置しない（遠い壁へ勝手に付くのを防ぐ＝要望: 壁を自分で選ぶ）。
       if (isWallOpening(pendingAdd)) {
@@ -624,27 +670,75 @@ export const Plan2D = ({
       } else {
         onPlaceObject(snapPoint(world));
       }
-      return;
+      return true;
     }
 
     // 壁モード: クリックで頂点を連続配置。前頂点があれば線分を即コミット。
     // 最初の点は自由（=尺グリッドの原点）。2点目以降は直角スナップ後に
     // wallDraft[0] 原点の 1/4尺(約75.8mm)グリッドへ吸着する（プレビューと確定位置を一致させる）。
     if (mode === "wall") {
-      const raw = svgToWorld(event.clientX, event.clientY);
+      const raw = svgToWorld(clientX, clientY);
       const prev = wallDraft[wallDraft.length - 1];
       const origin = wallDraft[0];
       const v = prev ? snapToShakuModule(angleSnap(prev, raw), origin) : raw;
       if (prev) commitWallSegment(prev, v, draftInnerSide);
       setWallDraft([...wallDraft, v]);
+      return true;
+    }
+
+    return false;
+  };
+
+  const handleCanvasPointerDown = (event: React.PointerEvent<SVGSVGElement>) => {
+    if (event.pointerType === "touch") {
+      event.currentTarget.setPointerCapture(event.pointerId);
+      touchPointersRef.current.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
+      if (touchPointersRef.current.size >= 2) {
+        event.preventDefault();
+        startPinch();
+        return;
+      }
+      if (!isPanMode && (mode === "wall" || pendingAdd)) {
+        touchTapRef.current = { pointerId: event.pointerId, clientX: event.clientX, clientY: event.clientY };
+        return;
+      }
+    }
+
+    if (isPanMode || event.button === 1) {
+      setDragging({ kind: "pan", clientStart: { x: event.clientX, y: event.clientY }, panStart: pan });
       return;
     }
+
+    if (event.button !== 0) return;
+    if (handleCanvasPlacement(event.clientX, event.clientY)) return;
 
     // select/move で何も無い背景を掴んだら平面図をパンする（要望: 空白ドラッグでパン）。
     setDragging({ kind: "pan", clientStart: { x: event.clientX, y: event.clientY }, panStart: pan });
   };
 
   const onPointerMove = (event: React.PointerEvent<SVGSVGElement>) => {
+    if (event.pointerType === "touch" && touchPointersRef.current.has(event.pointerId)) {
+      touchPointersRef.current.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
+      const touchTap = touchTapRef.current;
+      if (
+        touchTap?.pointerId === event.pointerId &&
+        Math.hypot(event.clientX - touchTap.clientX, event.clientY - touchTap.clientY) > 10
+      ) {
+        touchTapRef.current = null;
+      }
+      const pinch = pinchRef.current;
+      const points = getPinchPoints();
+      if (pinch && points) {
+        event.preventDefault();
+        const [a, b] = points;
+        const nextDistance = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+        if (pinch.distance > 4) {
+          zoomAtUserPoint(pinch.zoom * (nextDistance / pinch.distance), pinch.anchor.x, pinch.anchor.y);
+        }
+        return;
+      }
+    }
+
     // 壁モードはドラッグでなくてもカーソル追従でラバーバンドを更新する。
     // 確定時(commit)と同じ吸着（直角→wallDraft[0]原点の1/4尺グリッド）を適用する。
     if (mode === "wall" && wallDraft.length > 0) {
@@ -764,6 +858,26 @@ export const Plan2D = ({
       const zone = (project.floorZones ?? []).find((candidate) => candidate.id === dragging.id);
       if (!zone) return;
       updateFloorZone(zone.id, { center: next });
+    }
+  };
+
+  const handleCanvasPointerEnd = (event: React.PointerEvent<SVGSVGElement>) => {
+    const touchTap = touchTapRef.current;
+    const wasPinching = !!pinchRef.current || touchPointersRef.current.size >= 2;
+    if (event.pointerType === "touch") {
+      clearTouchGesture(event.pointerId);
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+    }
+    setDragging(null);
+    setResizing(null);
+    setSnapGuides({ x: null, z: null });
+    if (touchTap?.pointerId !== event.pointerId) return;
+    touchTapRef.current = null;
+    if (event.type !== "pointerup" || wasPinching) return;
+    if (Math.hypot(event.clientX - touchTap.clientX, event.clientY - touchTap.clientY) <= 10) {
+      handleCanvasPlacement(event.clientX, event.clientY);
     }
   };
 
@@ -947,8 +1061,39 @@ export const Plan2D = ({
         {!navTool && pendingAdd && !isWallOpening(pendingAdd) && "クリックした位置にオブジェクトを配置します。"}
         {!navTool && !pendingAdd && mode === "select" && "オブジェクトをクリックで選択、ドラッグで移動。何もない所のドラッグで平面図をパン。Deleteで削除。"}
         {!navTool && !pendingAdd && mode === "move" && "オブジェクトをドラッグで移動。何もない所のドラッグで平面図をパン。"}
-        {!navTool && !pendingAdd && mode === "wall" && "クリックで壁の頂点を連続配置。水平/垂直＋1/4尺（約75.8mm）間隔に自動スナップ。△が室内側＝矢印キーで左右反転。Enter/ダブルクリックで終了。"}
+        {!navTool && !pendingAdd && mode === "wall" && "タップで壁の頂点を連続配置。水平/垂直＋1/4尺（約75.8mm）間隔に自動スナップ。内側は下のボタンで指定できます。"}
       </p>
+
+      {mode === "wall" && !pendingAdd && (
+        <div className="wall-trace-controls" role="toolbar" aria-label="壁作成">
+          <button type="button" onClick={undoWallPoint} disabled={wallDraft.length === 0}>1点戻す</button>
+          <div className="wall-side-toggle" role="group" aria-label="壁の内側">
+            <button
+              type="button"
+              className={draftInnerSide === undefined ? "is-active" : ""}
+              onClick={() => setDraftInnerSide(undefined)}
+            >
+              中央
+            </button>
+            <button
+              type="button"
+              className={draftInnerSide === "left" ? "is-active" : ""}
+              onClick={() => setDraftInnerSide("left")}
+            >
+              左
+            </button>
+            <button
+              type="button"
+              className={draftInnerSide === "right" ? "is-active" : ""}
+              onClick={() => setDraftInnerSide("right")}
+            >
+              右
+            </button>
+          </div>
+          <button type="button" className="primary-action" onClick={finishWallTrace}>完了</button>
+          <button type="button" onClick={finishWallTrace}>中止</button>
+        </div>
+      )}
 
       <div className="plan-canvas-wrap">
         <svg
@@ -959,20 +1104,11 @@ export const Plan2D = ({
           viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
           onPointerDown={handleCanvasPointerDown}
           onPointerMove={onPointerMove}
-          onPointerUp={() => {
-            setDragging(null);
-            setResizing(null);
-            setSnapGuides({ x: null, z: null });
-          }}
-          onPointerLeave={() => {
-            setDragging(null);
-            setResizing(null);
-            setSnapGuides({ x: null, z: null });
-          }}
+          onPointerUp={handleCanvasPointerEnd}
+          onPointerCancel={handleCanvasPointerEnd}
+          onPointerLeave={handleCanvasPointerEnd}
           onDoubleClick={() => {
-            setWallDraft([]);
-            setWallCursor(null);
-            setDraftInnerSide(undefined);
+            clearWallTrace();
           }}
         >
           <defs>

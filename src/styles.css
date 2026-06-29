@@ -394,6 +394,54 @@ h2 {
   font-size: 12px;
 }
 
+.wall-trace-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.wall-trace-controls button,
+.wall-side-toggle button,
+.mobile-edit-actions button,
+.mobile-view-tabs button {
+  min-height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 7px;
+  padding: 7px 11px;
+  color: #e8e2d7;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 12px;
+}
+
+.wall-side-toggle {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 7px;
+}
+
+.wall-side-toggle button {
+  border: 0;
+  border-radius: 0;
+}
+
+.wall-side-toggle button + button {
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.wall-side-toggle .is-active,
+.mobile-view-tabs .is-active {
+  color: #1b1608;
+  background: #f5c64d;
+  font-weight: 760;
+}
+
 .quick-add {
   display: flex;
   align-items: center;
@@ -1571,6 +1619,11 @@ h2 {
   font-size: 11px;
 }
 
+.mobile-edit-actions,
+.mobile-view-tabs {
+  display: none;
+}
+
 /* ショートカット案内オーバーレイ */
 .shortcut-guide {
   position: fixed;
@@ -1886,4 +1939,377 @@ h2 {
 
 .intro-start:hover {
   background: #f7d06a;
+}
+
+@media (max-width: 899px) {
+  html,
+  body,
+  #app {
+    width: 100%;
+    min-width: 0;
+    min-height: 100dvh;
+    overflow: hidden;
+  }
+
+  body {
+    overscroll-behavior: none;
+  }
+
+  .app-shell {
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    height: 100dvh;
+    min-width: 0;
+    width: 100%;
+    max-width: 100vw;
+  }
+
+  .app-shell > * {
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .app-header {
+    gap: 8px;
+    padding: calc(8px + env(safe-area-inset-top)) 10px 8px;
+  }
+
+  .brand {
+    min-width: 0;
+    max-width: 140px;
+    flex: 0 0 140px;
+    gap: 8px;
+  }
+
+  .brand-mark {
+    width: 28px;
+    height: 28px;
+    flex: 0 0 auto;
+  }
+
+  .brand .eyebrow {
+    display: none;
+  }
+
+  h1 {
+    max-width: 100%;
+    font-size: 14px;
+  }
+
+  .header-actions {
+    flex: 0 1 auto;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    max-width: calc(100vw - 158px);
+    overflow-x: auto;
+    gap: 6px;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+
+  .header-actions::-webkit-scrollbar,
+  .shared-toolbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .header-actions button,
+  .view-mode-btn {
+    min-height: 40px;
+    padding: 8px 10px;
+    white-space: nowrap;
+    font-size: 12px;
+  }
+
+  .shared-toolbar {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    overflow-x: auto;
+    padding: 8px 10px;
+  }
+
+  .toolbar-hint,
+  .floor-hint {
+    display: none;
+  }
+
+  .edit-toolbar {
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  .edit-toolbar-mode {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .edit-toolbar select,
+  .add-button,
+  .floor-toggle-btn {
+    min-height: 40px;
+  }
+
+  .floor-toggle {
+    flex: 0 0 auto;
+    margin-left: 0;
+  }
+
+  .mobile-edit-actions {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .mobile-edit-actions button {
+    min-height: 40px;
+    padding: 7px 10px;
+  }
+
+  .workspace,
+  .workspace.is-focus-2d,
+  .workspace.is-focus-3d {
+    grid-template-columns: minmax(0, 1fr);
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .workspace .plan-panel,
+  .workspace .viewport-panel,
+  .workspace .inspector-panel,
+  .workspace.is-focus-2d .viewport-panel,
+  .workspace.is-focus-2d .inspector-panel,
+  .workspace.is-focus-3d .plan-panel,
+  .workspace.is-focus-3d .inspector-panel {
+    display: none;
+  }
+
+  .workspace.mobile-view-plan .plan-panel {
+    display: flex;
+  }
+
+  .workspace.mobile-view-scene .viewport-panel {
+    display: grid;
+  }
+
+  .workspace.mobile-view-inspector .inspector-panel {
+    display: flex;
+  }
+
+  .plan-panel,
+  .inspector-panel,
+  .viewport-panel {
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    border: 0;
+  }
+
+  .plan-panel,
+  .inspector-panel {
+    gap: 9px;
+    padding: 10px;
+  }
+
+  .plan-panel {
+    overflow: hidden;
+  }
+
+  .inspector-panel {
+    overflow: hidden auto;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+
+  .panel-heading,
+  .viewport-toolbar {
+    gap: 8px;
+  }
+
+  .panel-heading {
+    flex-wrap: nowrap;
+  }
+
+  .panel-heading-actions {
+    min-width: 0;
+    flex-wrap: nowrap;
+  }
+
+  .unit-chip {
+    max-width: 42vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .focus-toggle {
+    display: none;
+  }
+
+  .tool-strip,
+  .plan-meta {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 1px;
+  }
+
+  .tool,
+  .plan-meta button,
+  .mini-actions button {
+    min-height: 40px;
+    white-space: nowrap;
+  }
+
+  .tool-help {
+    min-height: 0;
+    font-size: 11px;
+  }
+
+  .wall-trace-controls {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 7px;
+  }
+
+  .wall-trace-controls button,
+  .wall-side-toggle button {
+    min-height: 40px;
+    white-space: nowrap;
+  }
+
+  .plan-canvas-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    border-radius: 7px;
+  }
+
+  .plan-canvas {
+    width: 100%;
+    height: 100%;
+  }
+
+  .viewport-panel {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .viewport-toolbar {
+    align-items: flex-start;
+    padding: 9px 10px;
+  }
+
+  .viewport-title {
+    flex: 1 1 120px;
+  }
+
+  .render-status {
+    min-width: 0;
+    padding: 7px 8px;
+    font-size: 11px;
+  }
+
+  .render-status progress {
+    width: 72px;
+  }
+
+  .scene-stage {
+    min-height: 0;
+  }
+
+  .daylight-popover {
+    position: fixed;
+    top: auto;
+    right: 10px;
+    bottom: calc(70px + env(safe-area-inset-bottom));
+    left: 10px;
+    width: auto;
+  }
+
+  .output-popover {
+    top: auto;
+    right: 10px;
+    bottom: calc(70px + env(safe-area-inset-bottom));
+    left: 10px;
+    width: auto;
+    max-height: min(72dvh, 520px);
+    overflow: auto;
+  }
+
+  .add-modal-backdrop {
+    align-items: flex-end;
+    padding: 10px;
+  }
+
+  .add-modal {
+    width: 100%;
+    max-height: min(78dvh, 620px);
+    overflow: hidden;
+    padding: 14px;
+    border-radius: 13px;
+  }
+
+  .add-group-item {
+    min-height: 52px;
+  }
+
+  .add-modal-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .add-item-button {
+    min-height: 92px;
+  }
+
+  .summary-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .chip-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .field input,
+  .field select,
+  .field textarea {
+    min-height: 42px;
+  }
+
+  .number-input input {
+    min-height: 42px;
+  }
+
+  .mobile-view-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(9, 9, 8, 0.96);
+  }
+
+  .mobile-view-tabs button {
+    min-height: 44px;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .notice {
+    width: auto;
+    right: 10px;
+    bottom: calc(64px + env(safe-area-inset-bottom));
+    left: 10px;
+    max-width: none;
+    padding: 8px 10px;
+  }
+
+  .shortcut-guide,
+  .small-screen-overlay {
+    display: none;
+  }
+
+  .intro-card {
+    width: min(520px, calc(100vw - 20px));
+    max-height: min(82dvh, 700px);
+    padding: 20px;
+  }
 }

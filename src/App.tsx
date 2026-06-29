@@ -18,7 +18,6 @@ import { getWindowPreset } from "./data/windowCatalog";
 import { fixtureModelFromAddKind, isLightAddKind, isWallLightAddKind } from "./data/fixtureAddKinds";
 import { EditToolbar, type EditMode } from "./components/EditToolbar";
 import { ShortcutGuide } from "./components/ShortcutGuide";
-import { SmallScreenNotice } from "./components/SmallScreenNotice";
 import { IntroGuide } from "./components/IntroGuide";
 import { APP_NAME, getAppDisplayUrl } from "./config/appMeta";
 import { fixtureModelMap } from "./data/fixtureCatalog";
@@ -91,6 +90,8 @@ type RenderProgressState = {
   message: string;
 };
 
+type MobileView = "plan" | "scene" | "inspector";
+
 export const App = () => {
   const project = useProjectStore((state) => state.project);
   const selection = useProjectStore((state) => state.selection);
@@ -127,6 +128,7 @@ export const App = () => {
   const [focusPlan, setFocusPlan] = useState(false);
   const [outputOpen, setOutputOpen] = useState(false);
   const [daylightOpen, setDaylightOpen] = useState(false);
+  const [mobileView, setMobileView] = useState<MobileView>("plan");
   const [liveTrace, setLiveTrace] = useState<LiveTraceStatus>({ phase: "off", samples: 0 });
   const [debugMode, setDebugMode] = useState<RenderDebugMode>("beauty");
   const [lastPathTracedImage, setLastPathTracedImage] = useState<string | null>(null);
@@ -190,7 +192,37 @@ export const App = () => {
   useEffect(() => {
     const handle = window.setTimeout(() => window.dispatchEvent(new Event("resize")), 80);
     return () => window.clearTimeout(handle);
-  }, [focusViewport, focusPlan]);
+  }, [focusViewport, focusPlan, mobileView]);
+
+  const openMobileView = useCallback((view: MobileView) => {
+    setMobileView(view);
+    setFocusPlan(false);
+    setFocusViewport(false);
+  }, []);
+
+  const handleEditModeChange = useCallback((next: EditMode) => {
+    setMode(next);
+    setPendingAdd(null);
+    if (next === "wall") openMobileView("plan");
+  }, [openMobileView]);
+
+  const handleMobileClear = useCallback(() => {
+    if (pendingAdd) {
+      setPendingAdd(null);
+      setNotice("配置を終了しました。");
+      return;
+    }
+    if (selection) {
+      select(null);
+      setNotice("選択を解除しました。");
+    }
+  }, [pendingAdd, select, selection]);
+
+  const handleMobileDelete = useCallback(() => {
+    if (!selection) return;
+    deleteSelection(selection);
+    setNotice("選択中の要素を削除しました。");
+  }, [deleteSelection, selection]);
 
   useEffect(() => {
     if (!renderingRef.current) return;
@@ -531,6 +563,7 @@ export const App = () => {
     }
     setPendingAdd(nextKind);
     setMode("select");
+    openMobileView("plan");
     setNotice(
       nextKind === "door" || nextKind.startsWith("window") || isWallLightAddKind(nextKind)
         ? "設置したい壁を2Dでクリックしてください。Escで終了。"
@@ -538,7 +571,7 @@ export const App = () => {
           ? "配置したい位置をクリックしてください。配置後は選択してCmd+C / Cmd+Vで複製できます。"
           : "配置したい位置を2Dでクリックしてください。"
     );
-  }, [project.room.ceilingHeightM]);
+  }, [openMobileView, project.room.ceilingHeightM]);
 
   // 床に置く物の配置（クリック位置）。連続配置はせず、複製はCmd+C / Cmd+Vに寄せる。
   const handlePlaceObject = useCallback(
@@ -592,6 +625,13 @@ export const App = () => {
         ).toFixed(1)
       : "-";
 
+  const workspaceClassName = [
+    "workspace",
+    focusViewport ? "is-focus-3d" : "",
+    focusPlan ? "is-focus-2d" : "",
+    `mobile-view-${mobileView}`
+  ].filter(Boolean).join(" ");
+
   return (
     <div className="app-shell">
       <HeaderBar
@@ -609,10 +649,7 @@ export const App = () => {
       <div className="shared-toolbar">
         <EditToolbar
           mode={mode}
-          onModeChange={(next) => {
-            setMode(next);
-            setPendingAdd(null);
-          }}
+          onModeChange={handleEditModeChange}
           onAdd={handleStartAdd}
           pendingAdd={pendingAdd}
         />
@@ -646,17 +683,20 @@ export const App = () => {
         {(project.activeFloor ?? 1) === 2 && (
           <span className="floor-hint">2階編集中 — 1階の壁を薄く表示して作図補助</span>
         )}
+        <div className="mobile-edit-actions" aria-label="スマホ編集操作">
+          <button type="button" onClick={undo} aria-label="元に戻す">↶</button>
+          <button type="button" onClick={redo} aria-label="やり直す">↷</button>
+          <button type="button" onClick={handleMobileDelete} disabled={!selection}>削除</button>
+          <button type="button" onClick={handleMobileClear} disabled={!pendingAdd && !selection}>解除</button>
+        </div>
       </div>
-      <main className={focusViewport ? "workspace is-focus-3d" : focusPlan ? "workspace is-focus-2d" : "workspace"}>
+      <main className={workspaceClassName}>
         <Plan2D
           project={project}
           selection={selection}
           onSelect={select}
           mode={mode}
-          onModeChange={(next) => {
-            setMode(next);
-            setPendingAdd(null);
-          }}
+          onModeChange={handleEditModeChange}
           onAdd={handleStartAdd}
           pendingAdd={pendingAdd}
           onPlaceObject={handlePlaceObject}
@@ -833,9 +873,31 @@ export const App = () => {
         </section>
         <Inspector project={project} selection={selection} />
       </main>
+      <nav className="mobile-view-tabs" aria-label="スマホ表示切替">
+        <button
+          type="button"
+          className={mobileView === "plan" ? "is-active" : ""}
+          onClick={() => openMobileView("plan")}
+        >
+          2D
+        </button>
+        <button
+          type="button"
+          className={mobileView === "scene" ? "is-active" : ""}
+          onClick={() => openMobileView("scene")}
+        >
+          3D
+        </button>
+        <button
+          type="button"
+          className={mobileView === "inspector" ? "is-active" : ""}
+          onClick={() => openMobileView("inspector")}
+        >
+          設定
+        </button>
+      </nav>
       <div className="notice" role="status">{notice}</div>
       <ShortcutGuide />
-      <SmallScreenNotice />
       <IntroGuide forceOpen={showIntro} onClose={() => setShowIntro(false)} />
     </div>
   );

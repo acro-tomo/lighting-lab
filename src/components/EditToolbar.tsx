@@ -478,7 +478,7 @@ export const EditToolbar = ({ mode, onModeChange, onAdd, pendingAdd }: EditToolb
         <select value={mode} onChange={(event) => onModeChange(event.target.value as EditMode)}>
           <option value="select">選択</option>
           <option value="move">移動（ドラッグで動かす）</option>
-          <option value="wall">壁を引く（クリックで連続）</option>
+          <option value="wall">壁を引く（タップ/クリック）</option>
         </select>
       </label>
 
