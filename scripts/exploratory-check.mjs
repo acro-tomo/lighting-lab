@@ -238,7 +238,7 @@ try {
 
   await step("open help dialog", async () => {
     await activate(page.getByRole("button", { name: "使い方を見る" }));
-    await assertTextVisible("LDK Lighting Lab とは");
+    await assertTextVisible("自分の間取りで夜の照明を試す");
     await page.getByRole("button", { name: "はじめる" }).dispatchEvent("click");
   });
 
