@@ -1,6 +1,8 @@
 import type { Project, ProjectCamera } from "../types";
 
 const CAMERA_EPSILON = 0.001;
+const FITTED_CAMERA_EXPOSURE = 0.65;
+const FITTED_CAMERA_TARGET_HEIGHT_RATIO = 0.6;
 
 const approx = (a: number, b: number) => Math.abs(a - b) <= CAMERA_EPSILON;
 
@@ -79,6 +81,7 @@ export const fitCameraToProject = (project: Project, camera: ProjectCamera): Pro
   const position = pickInteriorCameraPoint(project, bounds.centerX, bounds.centerZ, span);
   return {
     ...camera,
+    exposure: Math.min(camera.exposure, FITTED_CAMERA_EXPOSURE),
     position: {
       x: position.x,
       y: Math.min(project.room.ceilingHeightM - 0.18, Math.max(1.45, project.room.ceilingHeightM * 0.76)),
@@ -86,7 +89,7 @@ export const fitCameraToProject = (project: Project, camera: ProjectCamera): Pro
     },
     target: {
       x: bounds.centerX,
-      y: Math.min(project.room.ceilingHeightM * 0.58, Math.max(0.8, project.room.ceilingHeightM * 0.42)),
+      y: Math.min(project.room.ceilingHeightM - 0.4, Math.max(1.35, project.room.ceilingHeightM * FITTED_CAMERA_TARGET_HEIGHT_RATIO)),
       z: bounds.centerZ
     }
   };
