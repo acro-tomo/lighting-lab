@@ -19,6 +19,7 @@ import { fixtureModelFromAddKind, isLightAddKind, isWallLightAddKind } from "./d
 import { EditToolbar, type EditMode } from "./components/EditToolbar";
 import { ShortcutGuide } from "./components/ShortcutGuide";
 import { IntroGuide } from "./components/IntroGuide";
+import { FeedbackForm } from "./components/FeedbackForm";
 import { APP_NAME, getAppDisplayUrl } from "./config/appMeta";
 import { fixtureModelMap } from "./data/fixtureCatalog";
 import { ceilingMountHeightAt } from "./utils/ceiling";
@@ -898,6 +899,7 @@ export const App = () => {
       </nav>
       <div className="notice" role="status">{notice}</div>
       <ShortcutGuide />
+      <FeedbackForm />
       <IntroGuide forceOpen={showIntro} onClose={() => setShowIntro(false)} />
     </div>
   );
