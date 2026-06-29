@@ -12,16 +12,17 @@ import type { CompareShot, Project } from "./types";
 import { floorPlanFileToDataUrl } from "./utils/floorplanImport";
 import { DEFAULT_DAYLIGHT } from "./utils/sun";
 import { cloneProject } from "./utils/units";
-import { newCeilingZone, newDoor, newDownlight, newFloorZone, newFurnitureFromPreset, newLineLight, newPendant, newStair, newVoid, newWallSpot, newWindow, newWindowFromPreset } from "./data/objectFactory";
+import { newCeilingZone, newDoor, newDownlight, newFixtureFromModel, newFloorZone, newFurnitureFromPreset, newLineLight, newPendant, newStair, newVoid, newWallSpot, newWindow, newWindowFromPreset } from "./data/objectFactory";
 import { getFurniturePreset } from "./data/furnitureCatalog";
 import { getWindowPreset } from "./data/windowCatalog";
+import { fixtureModelFromAddKind, isLightAddKind, isWallLightAddKind } from "./data/fixtureAddKinds";
 import { EditToolbar, type EditMode } from "./components/EditToolbar";
 import { ShortcutGuide } from "./components/ShortcutGuide";
 import { SmallScreenNotice } from "./components/SmallScreenNotice";
 import { IntroGuide } from "./components/IntroGuide";
-
-// 書き出しPNGに焼き込むウォーターマーク。独自ドメイン取得後はそれに変更してください。
-const APP_URL = "ldk-lighting-lab.pages.dev";
+import { APP_NAME, getAppDisplayUrl } from "./config/appMeta";
+import { fixtureModelMap } from "./data/fixtureCatalog";
+import { ceilingMountHeightAt } from "./utils/ceiling";
 
 const withWatermark = (dataUrl: string): Promise<string> =>
   new Promise((resolve) => {
@@ -41,7 +42,7 @@ const withWatermark = (dataUrl: string): Promise<string> =>
       ctx.shadowColor = "rgba(0,0,0,0.7)";
       ctx.shadowBlur = 4;
       ctx.fillStyle = "#ffffff";
-      const text = `LDK Lighting Lab · ${APP_URL}`;
+      const text = `${APP_NAME} · ${getAppDisplayUrl()}`;
       const margin = Math.round(fontSize * 0.9);
       ctx.fillText(text, w - ctx.measureText(text).width - margin, h - margin);
       resolve(canvas.toDataURL("image/png"));
@@ -112,6 +113,7 @@ export const App = () => {
   const copySelection = useProjectStore((state) => state.copySelection);
   const pasteSelection = useProjectStore((state) => state.pasteSelection);
   const setDaylight = useProjectStore((state) => state.setDaylight);
+  const setCeilingHeight = useProjectStore((state) => state.setCeilingHeight);
   const setActiveFloor = useProjectStore((state) => state.setActiveFloor);
   const [canvasElement, setCanvasElement] = useState<HTMLCanvasElement | null>(null);
   const [renderContext, setRenderContext] = useState<RenderContext | null>(null);
@@ -254,6 +256,14 @@ export const App = () => {
         kind: result.kind,
         fileName: file.name
       });
+      const ceilingInput = window.prompt(
+        "天井高をmmで入力してください。",
+        String(Math.round(project.room.ceilingHeightM * 1000))
+      );
+      const ceilingMm = ceilingInput === null ? NaN : Number(ceilingInput);
+      if (Number.isFinite(ceilingMm) && ceilingMm >= 1800) {
+        setCeilingHeight(ceilingMm / 1000);
+      }
       // 間取り図に沿って一から壁を引けるよう、既存ジオメトリの一括削除を促す。
       // キャンセル時は背景だけ読み込み、既存オブジェクトは残す（誤消し防止）。
       const cleared = window.confirm(
@@ -405,9 +415,57 @@ export const App = () => {
   // 配置情報。床に置く物は at(x,z)、壁に付く物(窓/扉)は wallId+centerRatio を使う。
   type PlaceOpts = { at?: { x: number; z: number }; wallId?: string; centerRatio?: number };
 
+  const lowerCeilingDropFromKind = (kind: string) => {
+    if (!kind.startsWith("ceilingZone:")) return undefined;
+    const dropM = Number(kind.slice("ceilingZone:".length));
+    return Number.isFinite(dropM) && dropM > 0 ? dropM : undefined;
+  };
+
+  const wallLightPlacement = (wallId: string, centerRatio: number, heightM: number) => {
+    if (wallId.startsWith("void:")) {
+      const [, voidId, side] = wallId.split(":");
+      const voidArea = project.voids.find((candidate) => candidate.id === voidId);
+      if (!voidArea) return null;
+      const x =
+        side === "west"
+          ? voidArea.center.x - voidArea.size.x / 2
+          : side === "east"
+            ? voidArea.center.x + voidArea.size.x / 2
+            : voidArea.center.x + (centerRatio - 0.5) * voidArea.size.x;
+      const z =
+        side === "north"
+          ? voidArea.center.z - voidArea.size.z / 2
+          : side === "south"
+            ? voidArea.center.z + voidArea.size.z / 2
+            : voidArea.center.z + (centerRatio - 0.5) * voidArea.size.z;
+      return {
+        x,
+        y: heightM,
+        z,
+        target: { x: voidArea.center.x, y: Math.max(0.6, heightM - 0.7), z: voidArea.center.z }
+      };
+    }
+
+    const wall = project.walls.find((candidate) => candidate.id === wallId);
+    if (!wall) return null;
+    const x = wall.start.x + (wall.end.x - wall.start.x) * centerRatio;
+    const z = wall.start.z + (wall.end.z - wall.start.z) * centerRatio;
+    return { x, y: heightM, z, target: { x: 0, y: Math.max(0.6, heightM - 0.7), z: 0 } };
+  };
+
   const handleAddObject = useCallback(
     (kind: string, opts: PlaceOpts = {}) => {
       const { at, wallId, centerRatio } = opts;
+      const model = fixtureModelFromAddKind(kind);
+      if (model) {
+        const mountHeightM = at ? ceilingMountHeightAt(project, at) : undefined;
+        addLight(newFixtureFromModel(project, model, at, { ceilingHeightM: mountHeightM }));
+        return;
+      }
+      if (kind.startsWith("ceilingZone")) {
+        addCeilingZone({ ...newCeilingZone(at), dropM: lowerCeilingDropFromKind(kind) ?? 0.3 });
+        return;
+      }
       // 家具カタログ: kind = "furniture:<presetId>"。
       if (kind.startsWith("furniture:")) {
         const preset = getFurniturePreset(kind.slice("furniture:".length));
@@ -450,9 +508,6 @@ export const App = () => {
         case "void":
           addVoid(newVoid(at));
           break;
-        case "ceilingZone":
-          addCeilingZone(newCeilingZone(at));
-          break;
         case "floorZone":
           addFloorZone(newFloorZone(at));
           break;
@@ -463,35 +518,40 @@ export const App = () => {
     [addCeilingZone, addFloorZone, addFurniture, addLight, addVoid, addWindow, project]
   );
 
-  // ライト種別は連続配置できる。Esc で pendingAdd をクリアして終了。
-  const isLightKind = (kind: string) =>
-    kind === "downlight" || kind === "wallspot" || kind === "pendant" || kind === "linelight";
-
   // 「＋追加」で種別を選んだら配置待ちにする。実際の生成はクリック位置確定時。
   const handleStartAdd = useCallback((kind: string) => {
-    setPendingAdd(kind);
+    let nextKind = kind;
+    if (kind === "ceilingZone") {
+      const defaultHeightMm = Math.round((project.room.ceilingHeightM - 0.3) * 1000);
+      const input = window.prompt("下げ天井の下端高さをmmで入力してください。", String(defaultHeightMm));
+      const lowerHeightM = input === null ? NaN : Number(input) / 1000;
+      if (Number.isFinite(lowerHeightM) && lowerHeightM > 1.6 && lowerHeightM < project.room.ceilingHeightM) {
+        nextKind = `ceilingZone:${project.room.ceilingHeightM - lowerHeightM}`;
+      }
+    }
+    setPendingAdd(nextKind);
     setMode("select");
     setNotice(
-      kind === "door" || kind.startsWith("window") || kind === "wallspot"
+      nextKind === "door" || nextKind.startsWith("window") || isWallLightAddKind(nextKind)
         ? "設置したい壁を2Dでクリックしてください。Escで終了。"
-        : isLightKind(kind)
-          ? "配置したい位置をクリックしてください。Escで終了（連続配置）。"
+        : isLightAddKind(nextKind)
+          ? "配置したい位置をクリックしてください。配置後は選択してCmd+C / Cmd+Vで複製できます。"
           : "配置したい位置を2Dでクリックしてください。"
     );
-  }, []);
+  }, [project.room.ceilingHeightM]);
 
-  // 床に置く物の配置（クリック位置）。ライト種別のみ pendingAdd を維持して連続配置。
+  // 床に置く物の配置（クリック位置）。連続配置はせず、複製はCmd+C / Cmd+Vに寄せる。
   const handlePlaceObject = useCallback(
     (at: { x: number; z: number }) => {
       if (!pendingAdd) return;
       handleAddObject(pendingAdd, { at });
-      if (isLightKind(pendingAdd)) {
-        setNotice("配置しました。続けてクリックで追加配置。Escで終了。");
-      } else {
-        setPendingAdd(null);
-        setMode("move");
-        setNotice("配置しました。ドラッグで微調整できます。");
-      }
+      setPendingAdd(null);
+      setMode("move");
+      setNotice(
+        isLightAddKind(pendingAdd)
+          ? "配置しました。選択してCmd+C / Cmd+Vで複製できます。"
+          : "配置しました。ドラッグで微調整できます。"
+      );
     },
     [pendingAdd, handleAddObject]
   );
@@ -501,24 +561,19 @@ export const App = () => {
   const handlePlaceOnWall = useCallback(
     (wallId: string, centerRatio: number, heightM?: number) => {
       if (!pendingAdd) return;
-      if (pendingAdd === "wallspot") {
-        // 壁付スポットは直接 addLight で生成し、heightM があれば y/mountHeightM を上書きする。
-        const base = newWallSpot(project);
-        const light = heightM !== undefined
-          ? { ...base, position: { ...base.position, y: heightM }, mountHeightM: heightM }
-          : base;
-        addLight(light);
-        setNotice("壁に設置しました。続けてクリックで追加配置。Escで終了。");
+      if (isWallLightAddKind(pendingAdd)) {
+        const model = fixtureModelFromAddKind(pendingAdd) ?? fixtureModelMap.get("sp-wall");
+        const placement = wallLightPlacement(wallId, centerRatio, heightM ?? 1.9);
+        if (model && placement) addLight(newFixtureFromModel(project, model, undefined, { wall: placement }));
+        setPendingAdd(null);
+        setMode("move");
+        setNotice("壁に設置しました。選択してCmd+C / Cmd+Vで複製できます。");
         return;
       }
       handleAddObject(pendingAdd, { wallId, centerRatio });
-      if (isLightKind(pendingAdd)) {
-        setNotice("壁に設置しました。続けてクリックで追加配置。Escで終了。");
-      } else {
-        setPendingAdd(null);
-        setMode("select");
-        setNotice("壁に設置しました。2Dで壁上をドラッグして位置を調整できます。");
-      }
+      setPendingAdd(null);
+      setMode("select");
+      setNotice("壁に設置しました。2Dで壁上をドラッグして位置を調整できます。");
     },
     [pendingAdd, handleAddObject, addLight, project]
   );
@@ -562,10 +617,10 @@ export const App = () => {
           pendingAdd={pendingAdd}
         />
         <span className="toolbar-hint">
-          {pendingAdd === "door" || pendingAdd?.startsWith("window") || pendingAdd === "wallspot"
+          {pendingAdd === "door" || pendingAdd?.startsWith("window") || isWallLightAddKind(pendingAdd)
             ? "壁をクリックして設置（Escで終了）"
             : pendingAdd
-              ? "クリックした位置に配置（Escで終了）"
+              ? "クリックした位置に配置"
               : mode === "wall"
                 ? "クリックで壁の頂点（1/4尺刻み）、Enter/ダブルクリックで終了"
                 : mode === "move"

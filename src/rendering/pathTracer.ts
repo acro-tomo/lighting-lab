@@ -137,7 +137,9 @@ const addPanel = (
   debugMode: RenderDebugMode
 ) => {
   const geometry = new THREE.PlaneGeometry(width, height);
-  const mesh = new THREE.Mesh(geometry, diagnosticMaterial(role, debugMode, material));
+  const panelMaterial = diagnosticMaterial(role, debugMode, material);
+  panelMaterial.side = THREE.DoubleSide;
+  const mesh = new THREE.Mesh(geometry, panelMaterial);
   mesh.position.copy(position);
   mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal.clone().normalize());
   mesh.castShadow = false;

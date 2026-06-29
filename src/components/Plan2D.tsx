@@ -13,6 +13,7 @@ import { useProjectStore } from "../store/projectStore";
 import { DEFAULT_DAYLIGHT } from "../utils/sun";
 import { ScaleCalibrationModal } from "./ScaleCalibrationModal";
 import type { EditMode } from "./EditToolbar";
+import { isWallLightAddKind } from "../data/fixtureAddKinds";
 
 type Plan2DProps = {
   project: Project;
@@ -64,7 +65,7 @@ const SNAP_M = 0.12;
 
 // 壁に付く追加物（窓カタログ "window:<id>" / 扉 "door" / 壁付スポット "wallspot"）の判定。
 const isWallOpening = (kind: string | null): boolean =>
-  !!kind && (kind === "door" || kind.startsWith("window") || kind === "wallspot");
+  !!kind && (kind === "door" || kind.startsWith("window") || isWallLightAddKind(kind));
 
 const NAV_TOOLS: NavTool[] = ["パン"];
 
@@ -330,7 +331,7 @@ export const Plan2D = ({
     if (!isWallOpening(pendingAdd)) setWallTarget(null);
   }, [pendingAdd]);
 
-  // 壁モード中: Enter でトレース終了。矢印キーで内側(室内側)の左右を反転する。
+  // 壁モード中: Enter でトレース終了。
   // キーが平面図(SVG)にフォーカスしている / SVG内のイベント時のみ反応させ、
   // 3Dカメラ操作の矢印キーと二重発火しないようにする。
   useEffect(() => {
@@ -345,21 +346,6 @@ export const Plan2D = ({
         setWallCursor(null);
         setDraftInnerSide(undefined);
         return;
-      }
-      if (
-        event.key === "ArrowLeft" ||
-        event.key === "ArrowRight" ||
-        event.key === "ArrowUp" ||
-        event.key === "ArrowDown"
-      ) {
-        event.preventDefault();
-        // 3状態サイクル: その側を指している状態で同方向を再度押すと undefined
-        // (=外壁無し・室内間仕切り=中心対称)になる。反対方向ならその側へ寄せる。
-        const toLeft = event.key === "ArrowLeft" || event.key === "ArrowUp";
-        setDraftInnerSide((current) => {
-          if (toLeft) return current === "left" ? undefined : "left";
-          return current === "right" ? undefined : "right";
-        });
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -494,6 +480,39 @@ export const Plan2D = ({
 
   const svgToWorld = (clientX: number, clientY: number): Vec2M =>
     svgPointToWorld(clientToSvgPoint(clientX, clientY));
+
+  useEffect(() => {
+    if (mode !== "wall") return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
+      const svg = svgRef.current;
+      const target = event.target as Node | null;
+      const planFocused = !!svg && (svg === target || (target ? svg.contains(target) : false));
+      if (!planFocused) return;
+      const last = wallDraft[wallDraft.length - 1];
+      const edgeStart = wallCursor ? last : wallDraft[wallDraft.length - 2];
+      const edgeEnd = wallCursor ?? last;
+      if (!edgeStart || !edgeEnd) return;
+      const s = worldToSvg(edgeStart);
+      const e = worldToSvg(edgeEnd);
+      if (Math.hypot(e.x - s.x, e.y - s.y) < 1) return;
+      event.preventDefault();
+      const desired =
+        event.key === "ArrowLeft"
+          ? { x: -1, y: 0 }
+          : event.key === "ArrowRight"
+            ? { x: 1, y: 0 }
+            : event.key === "ArrowUp"
+              ? { x: 0, y: -1 }
+              : { x: 0, y: 1 };
+      const left = svgSideNormal(s, e, "left");
+      const right = svgSideNormal(s, e, "right");
+      const next = left.x * desired.x + left.y * desired.y >= right.x * desired.x + right.y * desired.y ? "left" : "right";
+      setDraftInnerSide((current) => (current === next ? undefined : next));
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [mode, wallDraft, wallCursor, contentBox, planSize.pxPerM]);
 
   // 縮尺未設定の背景は従来どおりキャンバスに meet フィットさせる。
   // その配置をワールド座標(m)の placement として表現し、縮尺ツールの
@@ -1647,6 +1666,7 @@ const LightPlanItem = ({
 }) => {
   const center = worldToSvg({ x: fixture.position.x, z: fixture.position.z });
   const target = fixture.target ? worldToSvg({ x: fixture.target.x, z: fixture.target.z }) : null;
+  const radius = fixture.type === "downlight" ? (selected ? 6 : 4) : (selected ? 11 : 8);
   const handlePointerDown = (event: React.PointerEvent<SVGGElement>) => {
     event.stopPropagation();
     onSelectLight(fixture.id, event.shiftKey);
@@ -1662,8 +1682,8 @@ const LightPlanItem = ({
   return (
     <g onPointerDown={handlePointerDown} className={selected ? "plan-light is-selected" : "plan-light"}>
       {target && <line x1={center.x} y1={center.y} x2={target.x} y2={target.y} className="plan-aim-line" />}
-      <circle cx={center.x} cy={center.y} r={selected ? 13 : 10} />
-      <text x={center.x + 14} y={center.y - 12} className="plan-label">
+      <circle cx={center.x} cy={center.y} r={radius} />
+      <text x={center.x + radius + 5} y={center.y - radius - 2} className="plan-label">
         {fixture.name}
       </text>
     </g>

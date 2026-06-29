@@ -1,7 +1,7 @@
 import { ContactShadows, OrbitControls, Sky } from "@react-three/drei";
 import { Canvas, ThreeEvent, useFrame, useThree } from "@react-three/fiber";
 import type { MutableRefObject } from "react";
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { WebGLPathTracer } from "three-gpu-pathtracer";
@@ -31,9 +31,11 @@ import type {
 import { bracketRoomwardOffset, colorTemperatureToHex, lumensToPhysicalPower } from "../utils/lighting";
 import { getFurniturePreset } from "../data/furnitureCatalog";
 import { getWindowPreset } from "../data/windowCatalog";
+import { isCeilingLightAddKind, isWallLightAddKind } from "../data/fixtureAddKinds";
 import { useProjectStore } from "../store/projectStore";
 import { degToRad } from "../utils/units";
 import { DEFAULT_DAYLIGHT, sunVector } from "../utils/sun";
+import { ceilingMountHeightAt } from "../utils/ceiling";
 
 export type ViewMode = "raster" | "realistic";
 
@@ -83,7 +85,7 @@ type PlacementCtx = {
 const PlacementContext = createContext<PlacementCtx>({ pendingAdd: null });
 const usePlacement = () => useContext(PlacementContext);
 const isWallPending = (pendingAdd: string | null) =>
-  pendingAdd === "door" || pendingAdd === "wallspot" || (pendingAdd?.startsWith("window") ?? false);
+  pendingAdd === "door" || isWallLightAddKind(pendingAdd) || (pendingAdd?.startsWith("window") ?? false);
 
 // 太陽高度から空色を補間する。昼=明るい空青、日の出/日没=橙、夜=暗い紺。
 // scene.background に色を入れると常駐パストレが GradientEquirect 環境光として拾う。
@@ -658,7 +660,7 @@ const SceneRoot = ({
   const sunUp = daylight.enabled && sun.altitudeDeg > 0;
   // 空色（夜=既定の暗色 / 日中=空色）。scene.background 経由でパストレの環境光にもなる。
   const backgroundColor = useMemo(
-    () => (daylight.enabled ? skyColorForAltitude(sun.altitudeDeg).getStyle() : "#060504"),
+    () => (daylight.enabled ? skyColorForAltitude(sun.altitudeDeg).getStyle() : "#15110d"),
     [daylight.enabled, sun.altitudeDeg]
   );
   const roomSpan = Math.max(project.room.widthM, project.room.depthM);
@@ -704,8 +706,8 @@ const SceneRoot = ({
       {!pathTraced && (
         <>
           <fog attach="fog" args={["#060504", 8, 16]} />
-          <hemisphereLight args={["#1f2530", "#0a0805", 0.22]} />
-          <directionalLight position={[-2, 4, 3]} intensity={0.14} color="#c9d6ff" />
+          <hemisphereLight args={[sunUp ? "#1f2530" : "#2b2a25", "#0a0805", sunUp ? 0.16 : 0.34]} />
+          <directionalLight position={[-2, 4, 3]} intensity={sunUp ? 0.08 : 0.12} color="#c9d6ff" />
           {/* 照明量に連動した暖色バウンスフィル（疑似間接光）。skyColor=上向き面(床)に当たり、
               groundColor=下向き面(天井)に当たる。ダウンライトは下方配光なので天井は床より暗いが、
               床・壁での反射が天井へ戻る分を warmCeiling(=暖色を約0.4に減光)で薄く再現し、
@@ -819,6 +821,105 @@ const SceneRoot = ({
 // - カメラ移動中は dynamicLowRes が即時の低解像度像を出し、停止すると数秒で
 //   間接光込みの写実画像に収束する。
 // - mount/unmount で R3F の自動描画を奪う/返す（useFrame priority 1）。
+const pathTraceSceneKey = (project: Project, debugMode: RenderDebugMode) =>
+  JSON.stringify({
+    debugMode,
+    activeFloor: project.activeFloor ?? 1,
+    showCeiling: project.showCeiling,
+    room: {
+      widthM: project.room.widthM,
+      depthM: project.room.depthM,
+      ceilingHeightM: project.room.ceilingHeightM,
+      floorLevelM: project.room.floorLevelM ?? 0
+    },
+    walls: project.walls.map(({ id, start, end, thicknessM, heightM, innerSide, kind, floor }) => ({
+      id,
+      start,
+      end,
+      thicknessM,
+      heightM,
+      innerSide,
+      kind,
+      floor
+    })),
+    windows: project.windows.map(({ id, wallId, centerRatio, widthM, heightM, sillHeightM, hasGlass, style, floor }) => ({
+      id,
+      wallId,
+      centerRatio,
+      widthM,
+      heightM,
+      sillHeightM,
+      hasGlass,
+      style,
+      floor
+    })),
+    furniture: project.furniture.map(({ id, type, position, size, rotationYDeg, floor }) => ({
+      id,
+      type,
+      position,
+      size,
+      rotationYDeg,
+      floor
+    })),
+    lights: project.lights.map(({ id, type, model, position, mountHeightM, rotationDeg, target, lengthM, cordLengthM, floor }) => ({
+      id,
+      type,
+      model,
+      position,
+      mountHeightM,
+      rotationDeg,
+      target,
+      lengthM,
+      cordLengthM,
+      floor
+    })),
+    voids: project.voids.map(({ id, center, size, floor }) => ({ id, center, size, floor })),
+    ceilingZones: (project.ceilingZones ?? []).map(({ id, center, size, dropM, floor }) => ({ id, center, size, dropM, floor })),
+    floorZones: (project.floorZones ?? []).map(({ id, center, size, dropM, floor }) => ({ id, center, size, dropM, floor }))
+  });
+
+const pathTraceLightsKey = (project: Project) =>
+  JSON.stringify(
+    project.lights.map(
+      ({ id, type, model, position, mountHeightM, rotationDeg, target, lumens, colorTemperatureK, dimmer, enabled, beamAngleDeg, penumbra, castsShadow, lengthM, cordLengthM, floor }) => ({
+        id,
+        type,
+        model,
+        position,
+        mountHeightM,
+        rotationDeg,
+        target,
+        lumens,
+        colorTemperatureK,
+        dimmer,
+        enabled,
+        beamAngleDeg,
+        penumbra,
+        castsShadow,
+        lengthM,
+        cordLengthM,
+        floor
+      })
+    )
+  );
+
+const pathTraceMaterialsKey = (project: Project, debugMode: RenderDebugMode) =>
+  JSON.stringify({
+    debugMode,
+    materials: project.materials,
+    wallMaterials: project.walls.map(({ id, materialId }) => ({ id, materialId })),
+    furnitureMaterials: project.furniture.map(({ id, materialId, color, roughness, metalness }) => ({
+      id,
+      materialId,
+      color,
+      roughness,
+      metalness
+    }))
+  });
+
+const pathTraceDaylightKey = (project: Project) =>
+  JSON.stringify(project.daylight ?? DEFAULT_DAYLIGHT);
+
 const PathTracerController = ({
   project,
   debugMode,
@@ -836,6 +937,43 @@ const PathTracerController = ({
   const readyRef = useRef(false);
   const lastMatrix = useRef(new THREE.Matrix4());
   const lastReported = useRef(-1);
+  const buildTokenRef = useRef(0);
+  const sceneKey = useMemo(() => pathTraceSceneKey(project, debugMode), [project, debugMode]);
+  const lightsKey = useMemo(() => pathTraceLightsKey(project), [project]);
+  const materialsKey = useMemo(() => pathTraceMaterialsKey(project, debugMode), [project, debugMode]);
+  const daylightKey = useMemo(() => pathTraceDaylightKey(project), [project]);
+  const sceneKeyRef = useRef(sceneKey);
+  const builtSceneKeyRef = useRef<string | null>(null);
+  sceneKeyRef.current = sceneKey;
+
+  const rebuildScene = useCallback((tracer: WebGLPathTracer, nextSceneKey: string) => {
+    const buildToken = ++buildTokenRef.current;
+    readyRef.current = false;
+    lastReported.current = -1;
+    onStatus?.({ phase: "building", samples: 0 });
+    scene.updateMatrixWorld(true);
+    return tracer
+      .setSceneAsync(scene, camera)
+      .then(() => {
+        if (tracerRef.current !== tracer || buildTokenRef.current !== buildToken) return;
+        if (sceneKeyRef.current !== nextSceneKey) {
+          builtSceneKeyRef.current = nextSceneKey;
+          void rebuildScene(tracer, sceneKeyRef.current);
+          return;
+        }
+        tracer.updateEnvironment();
+        tracer.reset();
+        tracer.updateLights();
+        tracer.reset();
+        tracer.updateMaterials();
+        tracer.reset();
+        readyRef.current = true;
+        builtSceneKeyRef.current = nextSceneKey;
+        lastMatrix.current.copy(camera.matrixWorld);
+        onStatus?.({ phase: "rendering", samples: 0 });
+      })
+      .catch(() => undefined);
+  }, [camera, scene, onStatus]);
 
   // 常駐パストレ時のみ scene.environment に物理ベースの空(Sky→PMREM)を入れる。
   // WebGLPathTracer は scene.background 単色を「見える背景」としか扱わず環境光に
@@ -867,7 +1005,7 @@ const PathTracerController = ({
     // 初回 mount では tracer 生成 useEffect 内の setSceneAsync 完了時に updateEnvironment が走る。
     // ここでは tracer が既にある(daylight 変更など)場合だけ即反映する。
     const tracer = tracerRef.current;
-    if (tracer) {
+    if (tracer && readyRef.current) {
       tracer.updateEnvironment();
       tracer.reset();
     }
@@ -878,7 +1016,7 @@ const PathTracerController = ({
       scene.environmentIntensity = prevIntensity;
       skyEnv?.dispose();
     };
-  }, [scene, gl, project.daylight]);
+  }, [scene, gl, daylightKey]);
 
   useEffect(() => {
     const worker = new GenerateMeshBVHWorker();
@@ -906,20 +1044,7 @@ const PathTracerController = ({
     // BVHから漏れ、リアル表示で家具が消えることがあるため1フレーム待つ。
     const raf = requestAnimationFrame(() => {
       if (tracerRef.current !== tracer) return;
-      scene.updateMatrixWorld(true);
-      tracer
-        .setSceneAsync(scene, camera)
-        .then(() => {
-          if (tracerRef.current !== tracer) return;
-          // 初回はこの時点で environment useEffect が既に scene.environment を設定済み。
-          // tracer 生成前に設定された環境を確実にパストレへ登録する(P2: skylight 抜け対策)。
-          tracer.updateEnvironment();
-          tracer.reset();
-          readyRef.current = true;
-          lastMatrix.current.copy(camera.matrixWorld);
-          onStatus?.({ phase: "rendering", samples: 0 });
-        })
-        .catch(() => undefined);
+      void rebuildScene(tracer, sceneKeyRef.current);
     });
 
     return () => {
@@ -931,33 +1056,36 @@ const PathTracerController = ({
       worker.dispose();
       onStatus?.({ phase: "off", samples: 0 });
     };
-  }, [camera, gl, scene]);
+  }, [gl, rebuildScene]);
 
-  // プロジェクト（家具・照明・材質・シーン）変更時はBVH/シーンを再構築。
-  // R3Fがメッシュを更新し終えた後に走るのでデバウンスして拾う。
+  // R3Fが形状メッシュを更新し終えた後にBVHだけ再構築する。
   useEffect(() => {
     const tracer = tracerRef.current;
     if (!tracer) return;
+    if (builtSceneKeyRef.current === null || builtSceneKeyRef.current === sceneKey) return;
     const handle = window.setTimeout(() => {
       if (tracerRef.current !== tracer) return;
-      readyRef.current = false;
-      lastReported.current = -1;
-      onStatus?.({ phase: "building", samples: 0 });
-      // 再構築前にも全メッシュのワールド行列を確定させ、家具漏れを防ぐ。
-      scene.updateMatrixWorld(true);
-      tracer
-        .setSceneAsync(scene, camera)
-        .then(() => {
-          if (tracerRef.current !== tracer) return;
-          tracer.updateEnvironment();
-          tracer.reset();
-          readyRef.current = true;
-          lastMatrix.current.copy(camera.matrixWorld);
-        })
-        .catch(() => undefined);
+      if (builtSceneKeyRef.current === sceneKey) return;
+      void rebuildScene(tracer, sceneKey);
     }, 250);
     return () => window.clearTimeout(handle);
-  }, [project, debugMode, camera, scene, onStatus]);
+  }, [sceneKey, rebuildScene]);
+
+  useEffect(() => {
+    const tracer = tracerRef.current;
+    if (!tracer || !readyRef.current) return;
+    tracer.updateLights();
+    tracer.reset();
+    tracer.updateMaterials();
+    tracer.reset();
+  }, [lightsKey]);
+
+  useEffect(() => {
+    const tracer = tracerRef.current;
+    if (!tracer || !readyRef.current) return;
+    tracer.updateMaterials();
+    tracer.reset();
+  }, [materialsKey]);
 
   useFrame(() => {
     const tracer = tracerRef.current;
@@ -1602,7 +1730,7 @@ const Ceiling = ({ project, material, debugMode }: { project: Project; material:
         color={debugColorForRole("ceiling", debugMode, material.baseColor)}
         roughness={material.roughness}
         metalness={material.metalness}
-        side={THREE.FrontSide}
+        side={THREE.DoubleSide}
       />
     </mesh>
   );
@@ -1824,7 +1952,77 @@ const VoidWell = ({
   if (height <= 0.02) return null;
   const midY = (lowerY + upperY) / 2;
   const { center, size } = voidArea;
+  const placement = usePlacement();
   const color = debugColorForRole("ceiling", debugMode, material.baseColor);
+  const resolveVoidHitPoint = (sideName: "north" | "south" | "west" | "east", event: ThreeEvent<PointerEvent>) => {
+    const candidates = [event.point.clone()];
+    if (event.object) candidates.push(event.object.localToWorld(event.point.clone()));
+    const minX = center.x - size.x / 2;
+    const maxX = center.x + size.x / 2;
+    const minZ = center.z - size.z / 2;
+    const maxZ = center.z + size.z / 2;
+    const plane =
+      sideName === "north"
+        ? { axis: "z" as const, value: minZ }
+        : sideName === "south"
+          ? { axis: "z" as const, value: maxZ }
+          : sideName === "west"
+            ? { axis: "x" as const, value: minX }
+            : { axis: "x" as const, value: maxX };
+    const outside = (value: number, min: number, max: number) => Math.max(0, min - value, value - max);
+    let best = candidates[0];
+    let bestScore = Infinity;
+    for (const point of candidates) {
+      const sideScore = Math.abs(point[plane.axis] - plane.value);
+      const rangeScore = plane.axis === "z" ? outside(point.x, minX, maxX) : outside(point.z, minZ, maxZ);
+      const heightScore = outside(point.y, lowerY, upperY);
+      const score = sideScore + rangeScore * 2 + heightScore;
+      if (score < bestScore) {
+        bestScore = score;
+        best = point;
+      }
+    }
+    return best;
+  };
+  const voidWallHit = (sideName: "north" | "south" | "west" | "east", point: THREE.Vector3) => {
+    const alongX = sideName === "north" || sideName === "south";
+    const ratio = alongX
+      ? THREE.MathUtils.clamp((point.x - (center.x - size.x / 2)) / size.x, 0, 1)
+      : THREE.MathUtils.clamp((point.z - (center.z - size.z / 2)) / size.z, 0, 1);
+    const x = alongX
+      ? center.x + (ratio - 0.5) * size.x
+      : sideName === "west"
+        ? center.x - size.x / 2
+        : center.x + size.x / 2;
+    const z = alongX
+      ? sideName === "north"
+        ? center.z - size.z / 2
+        : center.z + size.z / 2
+      : center.z + (ratio - 0.5) * size.z;
+    return {
+      wallId: `void:${voidArea.id}:${sideName}`,
+      ratio,
+      x,
+      y: point.y,
+      z,
+      angle: alongX ? 0 : Math.PI / 2
+    };
+  };
+  const voidWallHandlers = (sideName: "north" | "south" | "west" | "east") => ({
+    onPointerMove: isWallLightAddKind(placement.pendingAdd)
+      ? (event: ThreeEvent<PointerEvent>) => {
+          event.stopPropagation();
+          placement.onWallHover?.(voidWallHit(sideName, resolveVoidHitPoint(sideName, event)));
+        }
+      : undefined,
+    onPointerDown: isWallLightAddKind(placement.pendingAdd)
+      ? (event: ThreeEvent<PointerEvent>) => {
+          event.stopPropagation();
+          const hit = voidWallHit(sideName, resolveVoidHitPoint(sideName, event));
+          placement.onPlaceOnWall?.(hit.wallId, hit.ratio, hit.y);
+        }
+      : undefined
+  });
   const side = (
     <meshStandardMaterial
       color={color}
@@ -1835,30 +2033,30 @@ const VoidWell = ({
   );
   return (
     <group>
-      <mesh position={[center.x, midY, center.z - size.z / 2]} receiveShadow>
+      <mesh position={[center.x, midY, center.z - size.z / 2]} receiveShadow castShadow {...voidWallHandlers("north")}>
         <boxGeometry args={[size.x, height, 0.04]} />
         {side}
       </mesh>
-      <mesh position={[center.x, midY, center.z + size.z / 2]} receiveShadow>
+      <mesh position={[center.x, midY, center.z + size.z / 2]} receiveShadow castShadow {...voidWallHandlers("south")}>
         <boxGeometry args={[size.x, height, 0.04]} />
         {side}
       </mesh>
-      <mesh position={[center.x - size.x / 2, midY, center.z]} receiveShadow>
+      <mesh position={[center.x - size.x / 2, midY, center.z]} receiveShadow castShadow {...voidWallHandlers("west")}>
         <boxGeometry args={[0.04, height, size.z]} />
         {side}
       </mesh>
-      <mesh position={[center.x + size.x / 2, midY, center.z]} receiveShadow>
+      <mesh position={[center.x + size.x / 2, midY, center.z]} receiveShadow castShadow {...voidWallHandlers("east")}>
         <boxGeometry args={[0.04, height, size.z]} />
         {side}
       </mesh>
       {showLid && (
-        <mesh position={[center.x, upperY, center.z]} rotation-x={Math.PI / 2} receiveShadow>
+        <mesh position={[center.x, upperY, center.z]} rotation-x={Math.PI / 2} receiveShadow castShadow>
           <planeGeometry args={[size.x, size.z]} />
           <meshStandardMaterial
             color={color}
             roughness={material.roughness}
             metalness={material.metalness}
-            side={THREE.FrontSide}
+            side={THREE.DoubleSide}
           />
         </mesh>
       )}
@@ -2025,6 +2223,38 @@ const WallMesh = ({
   const pathTraced = usePathTraced();
   const placement = usePlacement();
   const tile = material.textureSizeM ?? { w: 0.92, h: 0.92 };
+  const groupRef = useRef<THREE.Group>(null);
+
+  const wallHitFromEvent = (event: ThreeEvent<PointerEvent>) => {
+    const group = groupRef.current;
+    const candidates = [event.point.clone()];
+    if (event.object) candidates.push(event.object.localToWorld(event.point.clone()));
+    let bestWorld = candidates[0];
+    let bestScore = Infinity;
+    for (const world of candidates) {
+      const local = group ? group.worldToLocal(world.clone()) : world.clone();
+      const clampedX = THREE.MathUtils.clamp(local.x, -length / 2, length / 2);
+      const clampedY = THREE.MathUtils.clamp(local.y, -wall.heightM / 2, wall.heightM / 2);
+      const score =
+        Math.abs(local.x - clampedX) +
+        Math.abs(local.y - clampedY) +
+        Math.abs(local.z) * 2;
+      if (score < bestScore) {
+        bestScore = score;
+        bestWorld = world;
+      }
+    }
+    const { ratio } = projectPointOntoWall(bestWorld.x, bestWorld.z, wall);
+    const angle = Math.atan2(wall.end.z - wall.start.z, wall.end.x - wall.start.x);
+    return {
+      wallId: wall.id,
+      ratio,
+      x: wall.start.x + (wall.end.x - wall.start.x) * ratio,
+      y: bestWorld.y,
+      z: wall.start.z + (wall.end.z - wall.start.z) * ratio,
+      angle
+    };
+  };
 
   // この壁に属する開口を、壁ローカルX(-length/2..length/2)・高さに変換してくり抜く。
   // パネルの並ぶローカル +X 軸（rotationY適用後の(1,0,0)）に窓中心を射影して
@@ -2062,6 +2292,7 @@ const WallMesh = ({
 
   return (
     <group
+      ref={groupRef}
       position={[midpointVector.x, midpointVector.y, midpointVector.z]}
       rotation={[0, rotationY, 0]}
       // 選択は onPointerDown で確定する。手前の家具/照明は同じ pointerdown で
@@ -2069,19 +2300,10 @@ const WallMesh = ({
       // 選択が壁に転写される再発バグになる。pointer 系で統一して伝播を断つ。
       // 壁ライト(wallspot)配置中は、カーソルが壁上に来たら壁面ヒットをゴーストへ上げる。
       onPointerMove={
-        placement.pendingAdd === "wallspot"
+        isWallLightAddKind(placement.pendingAdd)
           ? (event: ThreeEvent<PointerEvent>) => {
               event.stopPropagation();
-              const { ratio } = projectPointOntoWall(event.point.x, event.point.z, wall);
-              const angle = Math.atan2(wall.end.z - wall.start.z, wall.end.x - wall.start.x);
-              placement.onWallHover?.({
-                wallId: wall.id,
-                ratio,
-                x: wall.start.x + (wall.end.x - wall.start.x) * ratio,
-                y: event.point.y,
-                z: wall.start.z + (wall.end.z - wall.start.z) * ratio,
-                angle
-              });
+              placement.onWallHover?.(wallHitFromEvent(event));
             }
           : undefined
       }
@@ -2090,11 +2312,11 @@ const WallMesh = ({
         // 壁物（窓・扉・壁ライト）の配置中は、選択ではなくクリックした壁自身へ設置する。
         // クリック点(x,z)をこの壁に射影して比率を求める（最寄り壁＝クリック壁）。
         if (isWallPending(placement.pendingAdd)) {
-          const { ratio } = projectPointOntoWall(event.point.x, event.point.z, wall);
+          const hit = wallHitFromEvent(event);
           // 壁ライトはカーソルの壁上ワールドYをそのまま高さに渡す（壁面に吸い付かせる）。
           // 窓/扉は heightM 省略で種別既定の高さに任せる。
-          const heightM = placement.pendingAdd === "wallspot" ? event.point.y : undefined;
-          placement.onPlaceOnWall?.(wall.id, ratio, heightM);
+          const heightM = isWallLightAddKind(placement.pendingAdd) ? hit.y : undefined;
+          placement.onPlaceOnWall?.(wall.id, hit.ratio, heightM);
           return;
         }
         onSelect({ kind: "wall", id: wall.id });
@@ -3358,9 +3580,9 @@ const PlacementLayer = ({
   const [cursor, setCursor] = useState<{ x: number; z: number } | null>(null);
   // 窓・扉は床カーソルから最寄り壁へスナップ。壁ライト(wallspot)は壁メッシュのヒット(wallCursor)を使う。
   const isWindowOrDoor = pendingAdd === "door" || pendingAdd.startsWith("window");
-  const isWallItem = isWindowOrDoor || pendingAdd === "wallspot";
+  const isWallItem = isWindowOrDoor || isWallLightAddKind(pendingAdd);
   // 天井ライトは既存ライトのX/Z軸へ吸着し、整列ガイド線を出す。
-  const isCeilingLight = pendingAdd === "downlight" || pendingAdd === "pendant" || pendingAdd === "linelight";
+  const isCeilingLight = isCeilingLightAddKind(pendingAdd);
 
   // ゴーストの寸法・形状を種別から決める。
   const ghostColor = "#7fe9ff";
@@ -3386,7 +3608,7 @@ const PlacementLayer = ({
     }
     if (isCeilingLight && ceilingSnap) {
       // 天井ライトはスナップ後の(x,z)で天井面付近にマーカーを出す。
-      const ceil = project.room.ceilingHeightM;
+      const ceil = ceilingMountHeightAt(project, ceilingSnap);
       return (
         <group position={[ceilingSnap.x, 0, ceilingSnap.z]}>
           <mesh position={[0, ceil - 0.05, 0]}>
@@ -3412,7 +3634,7 @@ const PlacementLayer = ({
   // 整列スナップが効いている軸に細いガイド線を出す（パストレ常駐時は PlacementLayer 自体が非表示）。
   const snapGuides = (() => {
     if (!isCeilingLight || !ceilingSnap) return null;
-    const y = project.room.ceilingHeightM - 0.04;
+    const y = ceilingMountHeightAt(project, ceilingSnap) - 0.04;
     const span = Math.max(project.room.widthM, project.room.depthM) + 4;
     return (
       <>
@@ -3446,7 +3668,7 @@ const PlacementLayer = ({
   const windowWall = isWindowOrDoor && cursor ? nearestWallAt(cursor.x, cursor.z, project.walls) : null;
   // 壁ライト(wallspot)のゴースト: 壁メッシュが拾ったヒット(wallCursor)へ壁面に吸い付けて出す。
   const wallGhost = (() => {
-    if (pendingAdd === "wallspot") {
+    if (isWallLightAddKind(pendingAdd)) {
       if (!wallCursor) return null;
       return (
         <group position={[wallCursor.x, wallCursor.y, wallCursor.z]} rotation={[0, -wallCursor.angle, 0]}>
@@ -3488,8 +3710,8 @@ const PlacementLayer = ({
     event.stopPropagation();
     const x = event.point.x;
     const z = event.point.z;
-    // 壁ライト(wallspot)は床カーソルでは確定しない（壁メッシュの onPointerDown が壁ヒット＋高さで設置）。
-    if (pendingAdd === "wallspot") return;
+    // 壁ライトは床カーソルでは確定しない（壁/吹き抜け側面のヒット＋高さで設置）。
+    if (isWallLightAddKind(pendingAdd)) return;
     if (isWindowOrDoor) {
       const hit = nearestWallAt(x, z, project.walls);
       if (hit) onPlaceOnWall?.(hit.wall.id, hit.ratio);

@@ -16,6 +16,7 @@ import type {
   WindowOpening,
   WallSegment
 } from "../types";
+import { isCeilingMountedFixture, normalizeCeilingMountedFixture } from "../utils/fixtureMounting";
 import { cloneProject } from "../utils/units";
 
 // store/Plan2D/objectFactory と同じ採番方式に合わせる。
@@ -79,6 +80,7 @@ type ProjectStore = {
   setActiveFloor: (floor: 1 | 2) => void;
   setDaylight: (patch: Partial<Daylight>) => void;
   setShowCeiling: (value: boolean) => void;
+  setCeilingHeight: (value: number) => void;
   setFloorLevel: (value: number) => void;
   addCompareShot: (shot: CompareShot) => void;
   setCompareShots: (shots: CompareShot[]) => void;
@@ -213,7 +215,8 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     set((state) => {
       const floor = state.project.activeFloor ?? 1;
       const nextProject = cloneProject(state.project);
-      nextProject.lights = [...nextProject.lights, { ...light, floor }];
+      const nextLight = normalizeCeilingMountedFixture(nextProject, { ...light, floor });
+      nextProject.lights = [...nextProject.lights, nextLight];
       return {
         ...withHistory(state, nextProject),
         selection: { kind: "light", id: light.id }
@@ -268,9 +271,21 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   updateLight: (id, patch) =>
     set((state) => {
       const nextProject = cloneProject(state.project);
-      nextProject.lights = nextProject.lights.map((light) =>
-        light.id === id ? { ...light, ...patch } : light
-      );
+      nextProject.lights = nextProject.lights.map((light) => {
+        if (light.id !== id) return light;
+        const nextLight = { ...light, ...patch };
+        const positionChanged = Boolean(
+          patch.position && (patch.position.x !== light.position.x || patch.position.z !== light.position.z)
+        );
+        const userChangedHeight = Boolean(
+          patch.mountHeightM !== undefined || (patch.position && patch.position.y !== light.position.y)
+        );
+        const cordChanged = patch.cordLengthM !== undefined;
+        if (isCeilingMountedFixture(nextLight) && (cordChanged || (positionChanged && !userChangedHeight))) {
+          return normalizeCeilingMountedFixture(nextProject, nextLight);
+        }
+        return nextLight;
+      });
       return withHistory(state, nextProject);
     }),
   setAllColorTemperature: (colorTemperatureK) =>
@@ -408,6 +423,12 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
         showCeiling: value
       })
     ),
+  setCeilingHeight: (value) =>
+    set((state) => {
+      const nextProject = cloneProject(state.project);
+      nextProject.room = { ...nextProject.room, ceilingHeightM: Math.max(1.8, value) };
+      return withHistory(state, nextProject);
+    }),
   setFloorLevel: (value) =>
     set((state) => {
       const nextProject = cloneProject(state.project);
@@ -495,11 +516,14 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       }
       case "light": {
         const light = data as LightFixture;
+        const dx = 0.3;
+        const dz = 0.3;
         get().addLight({
           ...light,
           id: uid("light"),
           name: copyName(light.name),
-          position: { ...light.position, x: light.position.x + 0.3, z: light.position.z + 0.3 }
+          position: { ...light.position, x: light.position.x + dx, z: light.position.z + dz },
+          target: light.target ? { ...light.target, x: light.target.x + dx, z: light.target.z + dz } : undefined
         });
         break;
       }

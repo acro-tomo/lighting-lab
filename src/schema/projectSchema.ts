@@ -1,4 +1,7 @@
 import { z } from "zod";
+import type { LightFixture, Project } from "../types";
+import { fitCameraToProject, shouldFitDefaultCamera } from "../utils/cameraFit";
+import { normalizeCeilingMountedFixture } from "../utils/fixtureMounting";
 
 const vec2Schema = z.object({
   x: z.number(),
@@ -156,12 +159,20 @@ export const projectSchema = baseProjectSchema.transform((raw) => {
   const activeScene =
     lightingScenes?.find((scene) => scene.id === activeSceneId) ?? lightingScenes?.[0];
   const lightStates = activeScene?.lightStates;
-  const nextLights = lightStates
+  const migratedLights = lightStates
     ? lights.map((light) => {
         const state = lightStates[light.id as string];
         return state ? { ...light, enabled: state.enabled, dimmer: state.dimmer } : light;
       })
     : lights;
 
-  return { ...rest, lights: nextLights, camera: nextCamera };
+  const project = { ...rest, lights: migratedLights, camera: nextCamera } as Project;
+  const nextLights = project.lights.map((light) =>
+    normalizeCeilingMountedFixture(project, light as LightFixture)
+  );
+  const fittedCamera = shouldFitDefaultCamera(project, nextCamera)
+    ? fitCameraToProject(project, nextCamera)
+    : nextCamera;
+
+  return { ...project, lights: nextLights, camera: fittedCamera };
 });
