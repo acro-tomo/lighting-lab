@@ -1,7 +1,7 @@
 import { ContactShadows, OrbitControls, Sky } from "@react-three/drei";
 import { Canvas, ThreeEvent, useFrame, useThree } from "@react-three/fiber";
 import type { MutableRefObject } from "react";
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { WebGLPathTracer } from "three-gpu-pathtracer";
@@ -821,6 +821,105 @@ const SceneRoot = ({
 // - カメラ移動中は dynamicLowRes が即時の低解像度像を出し、停止すると数秒で
 //   間接光込みの写実画像に収束する。
 // - mount/unmount で R3F の自動描画を奪う/返す（useFrame priority 1）。
+const pathTraceSceneKey = (project: Project, debugMode: RenderDebugMode) =>
+  JSON.stringify({
+    debugMode,
+    activeFloor: project.activeFloor ?? 1,
+    showCeiling: project.showCeiling,
+    room: {
+      widthM: project.room.widthM,
+      depthM: project.room.depthM,
+      ceilingHeightM: project.room.ceilingHeightM,
+      floorLevelM: project.room.floorLevelM ?? 0
+    },
+    walls: project.walls.map(({ id, start, end, thicknessM, heightM, innerSide, kind, floor }) => ({
+      id,
+      start,
+      end,
+      thicknessM,
+      heightM,
+      innerSide,
+      kind,
+      floor
+    })),
+    windows: project.windows.map(({ id, wallId, centerRatio, widthM, heightM, sillHeightM, hasGlass, style, floor }) => ({
+      id,
+      wallId,
+      centerRatio,
+      widthM,
+      heightM,
+      sillHeightM,
+      hasGlass,
+      style,
+      floor
+    })),
+    furniture: project.furniture.map(({ id, type, position, size, rotationYDeg, floor }) => ({
+      id,
+      type,
+      position,
+      size,
+      rotationYDeg,
+      floor
+    })),
+    lights: project.lights.map(({ id, type, model, position, mountHeightM, rotationDeg, target, lengthM, cordLengthM, floor }) => ({
+      id,
+      type,
+      model,
+      position,
+      mountHeightM,
+      rotationDeg,
+      target,
+      lengthM,
+      cordLengthM,
+      floor
+    })),
+    voids: project.voids.map(({ id, center, size, floor }) => ({ id, center, size, floor })),
+    ceilingZones: (project.ceilingZones ?? []).map(({ id, center, size, dropM, floor }) => ({ id, center, size, dropM, floor })),
+    floorZones: (project.floorZones ?? []).map(({ id, center, size, dropM, floor }) => ({ id, center, size, dropM, floor }))
+  });
+
+const pathTraceLightsKey = (project: Project) =>
+  JSON.stringify(
+    project.lights.map(
+      ({ id, type, model, position, mountHeightM, rotationDeg, target, lumens, colorTemperatureK, dimmer, enabled, beamAngleDeg, penumbra, castsShadow, lengthM, cordLengthM, floor }) => ({
+        id,
+        type,
+        model,
+        position,
+        mountHeightM,
+        rotationDeg,
+        target,
+        lumens,
+        colorTemperatureK,
+        dimmer,
+        enabled,
+        beamAngleDeg,
+        penumbra,
+        castsShadow,
+        lengthM,
+        cordLengthM,
+        floor
+      })
+    )
+  );
+
+const pathTraceMaterialsKey = (project: Project, debugMode: RenderDebugMode) =>
+  JSON.stringify({
+    debugMode,
+    materials: project.materials,
+    wallMaterials: project.walls.map(({ id, materialId }) => ({ id, materialId })),
+    furnitureMaterials: project.furniture.map(({ id, materialId, color, roughness, metalness }) => ({
+      id,
+      materialId,
+      color,
+      roughness,
+      metalness
+    }))
+  });
+
+const pathTraceDaylightKey = (project: Project) =>
+  JSON.stringify(project.daylight ?? DEFAULT_DAYLIGHT);
+
 const PathTracerController = ({
   project,
   debugMode,
@@ -838,6 +937,43 @@ const PathTracerController = ({
   const readyRef = useRef(false);
   const lastMatrix = useRef(new THREE.Matrix4());
   const lastReported = useRef(-1);
+  const buildTokenRef = useRef(0);
+  const sceneKey = useMemo(() => pathTraceSceneKey(project, debugMode), [project, debugMode]);
+  const lightsKey = useMemo(() => pathTraceLightsKey(project), [project]);
+  const materialsKey = useMemo(() => pathTraceMaterialsKey(project, debugMode), [project, debugMode]);
+  const daylightKey = useMemo(() => pathTraceDaylightKey(project), [project]);
+  const sceneKeyRef = useRef(sceneKey);
+  const builtSceneKeyRef = useRef<string | null>(null);
+  sceneKeyRef.current = sceneKey;
+
+  const rebuildScene = useCallback((tracer: WebGLPathTracer, nextSceneKey: string) => {
+    const buildToken = ++buildTokenRef.current;
+    readyRef.current = false;
+    lastReported.current = -1;
+    onStatus?.({ phase: "building", samples: 0 });
+    scene.updateMatrixWorld(true);
+    return tracer
+      .setSceneAsync(scene, camera)
+      .then(() => {
+        if (tracerRef.current !== tracer || buildTokenRef.current !== buildToken) return;
+        if (sceneKeyRef.current !== nextSceneKey) {
+          builtSceneKeyRef.current = nextSceneKey;
+          void rebuildScene(tracer, sceneKeyRef.current);
+          return;
+        }
+        tracer.updateEnvironment();
+        tracer.reset();
+        tracer.updateLights();
+        tracer.reset();
+        tracer.updateMaterials();
+        tracer.reset();
+        readyRef.current = true;
+        builtSceneKeyRef.current = nextSceneKey;
+        lastMatrix.current.copy(camera.matrixWorld);
+        onStatus?.({ phase: "rendering", samples: 0 });
+      })
+      .catch(() => undefined);
+  }, [camera, scene, onStatus]);
 
   // 常駐パストレ時のみ scene.environment に物理ベースの空(Sky→PMREM)を入れる。
   // WebGLPathTracer は scene.background 単色を「見える背景」としか扱わず環境光に
@@ -869,7 +1005,7 @@ const PathTracerController = ({
     // 初回 mount では tracer 生成 useEffect 内の setSceneAsync 完了時に updateEnvironment が走る。
     // ここでは tracer が既にある(daylight 変更など)場合だけ即反映する。
     const tracer = tracerRef.current;
-    if (tracer) {
+    if (tracer && readyRef.current) {
       tracer.updateEnvironment();
       tracer.reset();
     }
@@ -880,7 +1016,7 @@ const PathTracerController = ({
       scene.environmentIntensity = prevIntensity;
       skyEnv?.dispose();
     };
-  }, [scene, gl, project.daylight]);
+  }, [scene, gl, daylightKey]);
 
   useEffect(() => {
     const worker = new GenerateMeshBVHWorker();
@@ -908,20 +1044,7 @@ const PathTracerController = ({
     // BVHから漏れ、リアル表示で家具が消えることがあるため1フレーム待つ。
     const raf = requestAnimationFrame(() => {
       if (tracerRef.current !== tracer) return;
-      scene.updateMatrixWorld(true);
-      tracer
-        .setSceneAsync(scene, camera)
-        .then(() => {
-          if (tracerRef.current !== tracer) return;
-          // 初回はこの時点で environment useEffect が既に scene.environment を設定済み。
-          // tracer 生成前に設定された環境を確実にパストレへ登録する(P2: skylight 抜け対策)。
-          tracer.updateEnvironment();
-          tracer.reset();
-          readyRef.current = true;
-          lastMatrix.current.copy(camera.matrixWorld);
-          onStatus?.({ phase: "rendering", samples: 0 });
-        })
-        .catch(() => undefined);
+      void rebuildScene(tracer, sceneKeyRef.current);
     });
 
     return () => {
@@ -933,33 +1056,36 @@ const PathTracerController = ({
       worker.dispose();
       onStatus?.({ phase: "off", samples: 0 });
     };
-  }, [camera, gl, scene]);
+  }, [gl, rebuildScene]);
 
-  // プロジェクト（家具・照明・材質・シーン）変更時はBVH/シーンを再構築。
-  // R3Fがメッシュを更新し終えた後に走るのでデバウンスして拾う。
+  // R3Fが形状メッシュを更新し終えた後にBVHだけ再構築する。
   useEffect(() => {
     const tracer = tracerRef.current;
     if (!tracer) return;
+    if (builtSceneKeyRef.current === null || builtSceneKeyRef.current === sceneKey) return;
     const handle = window.setTimeout(() => {
       if (tracerRef.current !== tracer) return;
-      readyRef.current = false;
-      lastReported.current = -1;
-      onStatus?.({ phase: "building", samples: 0 });
-      // 再構築前にも全メッシュのワールド行列を確定させ、家具漏れを防ぐ。
-      scene.updateMatrixWorld(true);
-      tracer
-        .setSceneAsync(scene, camera)
-        .then(() => {
-          if (tracerRef.current !== tracer) return;
-          tracer.updateEnvironment();
-          tracer.reset();
-          readyRef.current = true;
-          lastMatrix.current.copy(camera.matrixWorld);
-        })
-        .catch(() => undefined);
+      if (builtSceneKeyRef.current === sceneKey) return;
+      void rebuildScene(tracer, sceneKey);
     }, 250);
     return () => window.clearTimeout(handle);
-  }, [project, debugMode, camera, scene, onStatus]);
+  }, [sceneKey, rebuildScene]);
+
+  useEffect(() => {
+    const tracer = tracerRef.current;
+    if (!tracer || !readyRef.current) return;
+    tracer.updateLights();
+    tracer.reset();
+    tracer.updateMaterials();
+    tracer.reset();
+  }, [lightsKey]);
+
+  useEffect(() => {
+    const tracer = tracerRef.current;
+    if (!tracer || !readyRef.current) return;
+    tracer.updateMaterials();
+    tracer.reset();
+  }, [materialsKey]);
 
   useFrame(() => {
     const tracer = tracerRef.current;
