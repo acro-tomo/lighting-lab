@@ -654,6 +654,15 @@ const SceneRoot = ({
     materialMap.get("cal-ceiling-white") ?? materialMap.get("wall-white") ?? project.materials[0];
   // 室内仕上げ床のレベル。室内オブジェクト(家具/照明)も床と同じだけ持ち上げる。未設定(=0)で従来同一。
   const floorLevelM = project.room.floorLevelM ?? 0;
+  const floorBounds = useMemo(() => computeFloorBounds(floorProject), [floorProject]);
+  const effectiveLightIds = useMemo(
+    () => effectiveLightIdSet(floorProject.lights, floorBounds),
+    [floorProject.lights, floorBounds]
+  );
+  const shadowLightIds = useMemo(
+    () => realtimeShadowLightIdSet(floorProject.lights, effectiveLightIds),
+    [floorProject.lights, effectiveLightIds]
+  );
 
   const daylight = project.daylight ?? DEFAULT_DAYLIGHT;
   const sun = useMemo(() => sunVector(daylight), [daylight]);
@@ -672,7 +681,7 @@ const SceneRoot = ({
     let lumens = 0;
     let kWeighted = 0;
     for (const light of floorProject.lights) {
-      if (!light.enabled) continue;
+      if (!effectiveLightIds.has(light.id)) continue;
       const lm = light.lumens * light.dimmer * 0.01;
       lumens += lm;
       kWeighted += light.colorTemperatureK * lm;
@@ -686,7 +695,7 @@ const SceneRoot = ({
     // 総光束→フィル強度。おおよそ 0〜26000lm を 0〜0.5 に飽和させる。
     const intensity = Math.min(0.5, lumens / 26000);
     return { warm, warmCeiling, intensity };
-  }, [floorProject.lights]);
+  }, [floorProject.lights, effectiveLightIds]);
 
   return (
     <EditModeContext.Provider value={mode}>
@@ -746,6 +755,8 @@ const SceneRoot = ({
             <FixtureMesh
               key={fixture.id}
               fixture={fixture}
+              emitsLight={effectiveLightIds.has(fixture.id)}
+              castsRealtimeShadow={shadowLightIds.has(fixture.id)}
               selected={selection?.kind === "light" && selection.id === fixture.id}
               onSelect={onSelect}
               debugMode={debugMode}
@@ -1165,6 +1176,41 @@ const computeFloorBounds = (project: Project) => {
     sizeZ
   };
 };
+
+type FloorBounds = ReturnType<typeof computeFloorBounds>;
+
+const LIGHT_EFFECT_MARGIN_M = 1.2;
+const REALTIME_SHADOW_LIGHT_LIMIT = 6;
+
+// 誤操作で建物外へ飛んだ照明が露出やシャドウマップを支配しないよう、物理発光だけ抑える。
+const lightWithinBounds = (fixture: LightFixture, bounds: FloorBounds): boolean => {
+  const minX = bounds.centerX - bounds.sizeX / 2 - LIGHT_EFFECT_MARGIN_M;
+  const maxX = bounds.centerX + bounds.sizeX / 2 + LIGHT_EFFECT_MARGIN_M;
+  const minZ = bounds.centerZ - bounds.sizeZ / 2 - LIGHT_EFFECT_MARGIN_M;
+  const maxZ = bounds.centerZ + bounds.sizeZ / 2 + LIGHT_EFFECT_MARGIN_M;
+  return (
+    fixture.position.x >= minX &&
+    fixture.position.x <= maxX &&
+    fixture.position.z >= minZ &&
+    fixture.position.z <= maxZ
+  );
+};
+
+const effectiveLightIdSet = (lights: LightFixture[], bounds: FloorBounds) =>
+  new Set(
+    lights
+      .filter((fixture) => fixture.enabled && fixture.dimmer > 0 && lightWithinBounds(fixture, bounds))
+      .map((fixture) => fixture.id)
+  );
+
+const realtimeShadowLightIdSet = (lights: LightFixture[], effectiveLightIds: Set<string>) =>
+  new Set(
+    lights
+      .filter((fixture) => effectiveLightIds.has(fixture.id) && fixture.castsShadow)
+      .sort((a, b) => b.lumens * b.dimmer - a.lumens * a.dimmer)
+      .slice(0, REALTIME_SHADOW_LIGHT_LIMIT)
+      .map((fixture) => fixture.id)
+  );
 
 // 壁セグメントから室内外周ポリゴン（絶対座標の頂点列）を導出する。
 // 端点を近接マージしてグラフ化し、最大面積の閉ループを外周とみなす。
@@ -3096,11 +3142,15 @@ const snapDragToLightAxes = (
 
 const FixtureMesh = ({
   fixture,
+  emitsLight,
+  castsRealtimeShadow,
   selected,
   onSelect,
   debugMode
 }: {
   fixture: LightFixture;
+  emitsLight: boolean;
+  castsRealtimeShadow: boolean;
   selected: boolean;
   onSelect: (selection: Selection) => void;
   debugMode: RenderDebugMode;
@@ -3171,8 +3221,8 @@ const FixtureMesh = ({
           : undefined
       }
     >
-      <FixtureBody fixture={fixture} color={lightColor} active={fixture.enabled && fixture.dimmer > 0} debugMode={debugMode} />
-      <PhysicalLight fixture={fixture} debugMode={debugMode} />
+      <FixtureBody fixture={fixture} color={lightColor} active={emitsLight} debugMode={debugMode} />
+      {emitsLight && <PhysicalLight fixture={fixture} castsRealtimeShadow={castsRealtimeShadow} debugMode={debugMode} />}
       {showOutline && (
         <mesh>
           <sphereGeometry args={[0.18, 24, 16]} />
@@ -3360,16 +3410,20 @@ const FixtureBody = ({
 
 const PhysicalLight = ({
   fixture,
+  castsRealtimeShadow,
   debugMode
 }: {
   fixture: LightFixture;
+  castsRealtimeShadow: boolean;
   debugMode: RenderDebugMode;
 }) => {
   const scene = useThree((state) => state.scene);
+  const pathTraced = usePathTraced();
   const target = useMemo(() => new THREE.Object3D(), []);
   const power = lumensToPhysicalPower(fixture);
   const color = colorTemperatureToHex(fixture.colorTemperatureK);
   const targetPosition = fixture.target ?? { x: fixture.position.x, y: 0.1, z: fixture.position.z };
+  const castShadow = !pathTraced && castsRealtimeShadow;
 
   useEffect(() => {
     scene.add(target);
@@ -3404,7 +3458,7 @@ const PhysicalLight = ({
         distance={0}
         decay={2}
         position={[off.x, 0, off.z]}
-        castShadow={fixture.castsShadow}
+        castShadow={castShadow}
         shadow-mapSize={[512, 512]}
       />
     );
@@ -3424,7 +3478,7 @@ const PhysicalLight = ({
         decay={2}
         position={[0, -0.08, 0]}
         target={target}
-        castShadow={fixture.castsShadow}
+        castShadow={castShadow}
         shadow-mapSize={[1024, 1024]}
       />
     );
@@ -3444,7 +3498,7 @@ const PhysicalLight = ({
       decay={2}
       position={[0, -lightDrop, 0]}
       target={target}
-      castShadow={fixture.castsShadow}
+      castShadow={castShadow}
       shadow-mapSize={[1024, 1024]}
     />
   );
