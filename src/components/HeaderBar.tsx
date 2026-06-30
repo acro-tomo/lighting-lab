@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import type { Project } from "../types";
 import type { ViewMode } from "./Scene3D";
 
@@ -27,6 +27,7 @@ export const HeaderBar = ({
 }: HeaderBarProps) => {
   const planInputRef = useRef<HTMLInputElement | null>(null);
   const projectInputRef = useRef<HTMLInputElement | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <header className="app-header">
@@ -38,7 +39,17 @@ export const HeaderBar = ({
         </div>
       </div>
 
-      <nav className="header-actions" aria-label="プロジェクト操作">
+      <button
+        type="button"
+        className={mobileMenuOpen ? "mobile-menu-button is-open" : "mobile-menu-button"}
+        aria-label="メニュー"
+        title="メニュー"
+        onClick={() => setMobileMenuOpen((open) => !open)}
+      >
+        ☰
+      </button>
+
+      <nav className={mobileMenuOpen ? "header-actions is-open" : "header-actions"} aria-label="プロジェクト操作">
         <input
           ref={planInputRef}
           type="file"
@@ -61,30 +72,30 @@ export const HeaderBar = ({
             event.currentTarget.value = "";
           }}
         />
-        <button onClick={() => planInputRef.current?.click()}>間取り図の読込</button>
-        <button onClick={onExportProject}>プロジェクト保存</button>
-        <button onClick={() => projectInputRef.current?.click()}>プロジェクト読込</button>
+        <button onClick={() => { planInputRef.current?.click(); setMobileMenuOpen(false); }}>間取り図の読込</button>
+        <button onClick={() => { onExportProject(); setMobileMenuOpen(false); }}>プロジェクト保存</button>
+        <button onClick={() => { projectInputRef.current?.click(); setMobileMenuOpen(false); }}>プロジェクト読込</button>
         <div className="view-mode-toggle" role="group" aria-label="表示モード">
           <button
             className={viewMode === "raster" ? "view-mode-btn is-active" : "view-mode-btn"}
-            onClick={() => onViewModeChange("raster")}
+            onClick={() => { onViewModeChange("raster"); setMobileMenuOpen(false); }}
             title="編集（高速ラスター）"
           >
             編集
           </button>
           <button
             className={viewMode === "realistic" ? "view-mode-btn is-active" : "view-mode-btn"}
-            onClick={() => onViewModeChange("realistic")}
+            onClick={() => { onViewModeChange("realistic"); setMobileMenuOpen(false); }}
             title="リアル（常駐パストレ）"
           >
             リアル
           </button>
         </div>
         {/* レンダリング(パストレ)は普段使わないため出力ポップオーバーに集約（要望: PathTracer邪魔）。 */}
-        <button className={outputOpen ? "primary-action is-active" : "primary-action"} onClick={onToggleOutput}>
+        <button className={outputOpen ? "primary-action is-active" : "primary-action"} onClick={() => { onToggleOutput(); setMobileMenuOpen(false); }}>
           出力 / レンダリング
         </button>
-        <button className="intro-help-btn" onClick={onShowIntro} title="使い方を見る" aria-label="使い方を見る">
+        <button className="intro-help-btn" onClick={() => { onShowIntro(); setMobileMenuOpen(false); }} title="使い方を見る" aria-label="使い方を見る">
           ?
         </button>
       </nav>

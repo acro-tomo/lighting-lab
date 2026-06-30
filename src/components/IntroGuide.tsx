@@ -37,8 +37,10 @@ export const IntroGuide = ({ forceOpen, onClose }: IntroGuideProps) => {
         <div className="intro-keys">
           <p className="intro-keys-heading">基本操作</p>
           <ul className="intro-key-list">
+            <li><span className="intro-key">☰</span> スマホでは読み込み・保存・出力を開く</li>
             <li><span className="intro-key">2D / 3D</span> スマホでは下タブで切替、設定は歯車</li>
-            <li><span className="intro-key">タップ</span> 選択・配置・壁の頂点追加</li>
+            <li><span className="intro-key">タップ</span> 選択・配置</li>
+            <li><span className="intro-key">間取り編集</span> 壁の選択・移動・削除、壁引き</li>
             <li><span className="intro-key">ピンチ</span> 平面図をズーム</li>
             <li><span className="intro-key">ドラッグ / 二本指</span> 3D視点の回転・パン</li>
             <li><span className="intro-key">Shift + ↑↓←→</span> 見回す</li>

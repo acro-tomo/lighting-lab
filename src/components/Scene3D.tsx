@@ -61,10 +61,11 @@ type Scene3DProps = {
   // 壁配置。壁ライト(wallspot)はカーソルの壁上ワールドYを heightM で渡し、自由な高さに付ける。
   // 窓/扉は従来どおり heightM 省略（種別既定の高さ）。
   onPlaceOnWall?: (wallId: string, centerRatio: number, heightM?: number) => void;
+  canEditWalls: boolean;
 };
 
 export type EditMode = "select" | "move" | "delete";
-// 操作モード（選択/移動/削除）をシーン全体へ配る。移動モードのときだけドラッグ可能。
+// 操作モードをシーン全体へ配る。通常の選択モードでドラッグ移動も行う。
 const EditModeContext = createContext<EditMode>("select");
 const useEditMode = () => useContext(EditModeContext);
 
@@ -627,7 +628,8 @@ const SceneRoot = ({
   onLiveTraceStatus,
   pendingAdd = null,
   onPlaceObject,
-  onPlaceOnWall
+  onPlaceOnWall,
+  canEditWalls
 }: Scene3DProps) => {
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   // 壁ライト(wallspot)配置中の壁上カーソル。壁メッシュが onWallHover で更新する。
@@ -759,6 +761,7 @@ const SceneRoot = ({
           onSelect={onSelect}
           debugMode={debugMode}
           upperVoid={upperVoid}
+          canEditWalls={canEditWalls}
         />
         {/* 室内オブジェクトも室内床レベルに合わせて持ち上げる（floorLevelM=0で従来同一）。 */}
         <group position={[0, floorLevelM, 0]}>
@@ -1634,6 +1637,7 @@ const UpperVoidLevel = ({
             selected={false}
             onSelect={() => {}}
             debugMode={debugMode}
+            canEditWalls={false}
           />
         ))}
       </group>
@@ -1649,7 +1653,8 @@ const RoomShell = ({
   selection,
   onSelect,
   debugMode,
-  upperVoid
+  upperVoid,
+  canEditWalls
 }: {
   project: Project;
   materialMap: Map<string, MaterialPreset>;
@@ -1660,6 +1665,7 @@ const RoomShell = ({
   debugMode: RenderDebugMode;
   // 2階の吹き抜け連続領域がある(=1階表示で2階を見せる)。void上蓋を出さず上方へ抜く。
   upperVoid: UpperVoidRegion | null;
+  canEditWalls: boolean;
 }) => {
   const ceilingMaterial = materialMap.get("cal-ceiling-white") ?? materialMap.get("wall-white") ?? project.materials[0];
   // 吹き抜けは下階天井を開口するだけだと黒背景に抜けて「穴」に見える。
@@ -1735,9 +1741,10 @@ const RoomShell = ({
           windows={project.windows.filter((windowItem) => windowItem.wallId === wall.id)}
           material={materialMap.get(wall.materialId) ?? ceilingMaterial}
           roomCenter={new THREE.Vector3(0, 0, 0)}
-          selected={selection?.kind === "wall" && selection.id === wall.id}
+          selected={canEditWalls && selection?.kind === "wall" && selection.id === wall.id}
           onSelect={onSelect}
           debugMode={debugMode}
+          canEditWalls={canEditWalls}
         />
       ))}
       {project.windows.map((windowItem) => {
@@ -2284,7 +2291,8 @@ const WallMesh = ({
   roomCenter,
   selected,
   onSelect,
-  debugMode
+  debugMode,
+  canEditWalls
 }: {
   wall: WallSegment;
   walls: WallSegment[];
@@ -2294,6 +2302,7 @@ const WallMesh = ({
   selected: boolean;
   onSelect: (selection: Selection) => void;
   debugMode: RenderDebugMode;
+  canEditWalls: boolean;
 }) => {
   // コーナーの隙間を塞ぐため接続端だけ半厚ぶん延長した端点で描く。
   // 窓 hole は元の centerRatio から絶対座標(wx,wz)を求め、延長後の midpoint/length に
@@ -2407,6 +2416,7 @@ const WallMesh = ({
           placement.onPlaceOnWall?.(wall.id, hit.ratio, heightM);
           return;
         }
+        if (!canEditWalls) return;
         onSelect({ kind: "wall", id: wall.id });
       }}
     >
@@ -2548,11 +2558,11 @@ const WindowMesh = ({
         if (placement.pendingAdd) return;
         event.stopPropagation();
         onSelect({ kind, id: windowItem.id });
-        // move モードでは壁沿いの水平移動ドラッグを開始（高さ変更は矢印キーに任せる）。
-        if (editMode === "move") drag.onPointerDown(event);
+        // 通常操作では壁沿いの水平移動ドラッグを開始（高さ変更は矢印キーに任せる）。
+        if (editMode === "select") drag.onPointerDown(event);
       }}
-      onPointerMove={editMode === "move" ? drag.onPointerMove : undefined}
-      onPointerUp={editMode === "move" ? drag.onPointerUp : undefined}
+      onPointerMove={editMode === "select" ? drag.onPointerMove : undefined}
+      onPointerUp={editMode === "select" ? drag.onPointerUp : undefined}
     >
       {/* 枠（窓・扉とも周囲に回す） */}
       {style !== "opening" && (
@@ -2764,10 +2774,10 @@ const FurnitureMesh = ({
           return;
         }
         onSelect({ kind: "furniture", id: item.id });
-        if (editMode === "move") drag.onPointerDown(event);
+        if (editMode === "select") drag.onPointerDown(event);
       }}
-      onPointerMove={editMode === "move" ? drag.onPointerMove : undefined}
-      onPointerUp={editMode === "move" ? drag.onPointerUp : undefined}
+      onPointerMove={editMode === "select" ? drag.onPointerMove : undefined}
+      onPointerUp={editMode === "select" ? drag.onPointerUp : undefined}
     >
       <FurniturePrimitive
         item={item}
@@ -3252,11 +3262,11 @@ const FixtureMesh = ({
           return;
         }
         onSelect({ kind: "light", id: fixture.id });
-        if (editMode === "move") drag.onPointerDown(event);
+        if (editMode === "select") drag.onPointerDown(event);
       }}
-      onPointerMove={editMode === "move" ? drag.onPointerMove : undefined}
+      onPointerMove={editMode === "select" ? drag.onPointerMove : undefined}
       onPointerUp={
-        editMode === "move"
+        editMode === "select"
           ? (event: ThreeEvent<PointerEvent>) => {
               drag.onPointerUp(event);
               setDragSnap(null);

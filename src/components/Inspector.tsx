@@ -7,6 +7,7 @@ import { clamp, mToMm, mmToM } from "../utils/units";
 type InspectorProps = {
   project: Project;
   selection: Selection;
+  canEditWalls: boolean;
   mobileHeader?: ReactNode;
 };
 
@@ -89,7 +90,7 @@ const AimTargetPresets = ({
   );
 };
 
-export const Inspector = ({ project, selection, mobileHeader }: InspectorProps) => {
+export const Inspector = ({ project, selection, canEditWalls, mobileHeader }: InspectorProps) => {
   const updateLight = useProjectStore((state) => state.updateLight);
   const updateLights = useProjectStore((state) => state.updateLights);
   const selectedLightIds = useProjectStore((state) => state.selectedLightIds);
@@ -113,7 +114,7 @@ export const Inspector = ({ project, selection, mobileHeader }: InspectorProps) 
       ? project.furniture.find((item) => item.id === selection.id)
       : undefined;
   const selectedWall =
-    selection?.kind === "wall" ? project.walls.find((wall) => wall.id === selection.id) : undefined;
+    canEditWalls && selection?.kind === "wall" ? project.walls.find((wall) => wall.id === selection.id) : undefined;
   const selectedWindow =
     selection?.kind === "window" || selection?.kind === "opening"
       ? project.windows.find((windowItem) => windowItem.id === selection.id)
@@ -180,7 +181,13 @@ export const Inspector = ({ project, selection, mobileHeader }: InspectorProps) 
             <h2>プロパティ</h2>
           </div>
         </div>
-        {!selection && selectedLightIds.length === 0 && <p className="muted">2Dまたは3Dで家具・照明・壁を選択してください。</p>}
+        {!selection && selectedLightIds.length === 0 && (
+          <p className="muted">
+            {canEditWalls
+              ? "2Dまたは3Dで家具・照明・壁を選択してください。"
+              : "2Dまたは3Dで家具・照明を選択してください。壁は間取り編集で変更できます。"}
+          </p>
+        )}
         {selectedLightIds.length >= 2 && (
           <BulkLightInspector
             lights={project.lights.filter((l) => selectedLightIds.includes(l.id))}

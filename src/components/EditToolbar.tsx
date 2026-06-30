@@ -6,9 +6,9 @@ import type { WindowPreset } from "../data/windowCatalog";
 import { fixtureCatalog } from "../data/fixtureCatalog";
 import { fixtureAddKind, fixtureModelFromAddKind } from "../data/fixtureAddKinds";
 
-// 操作モードはコンボボックスのまま（要望: 操作はコンボボックス）。
-// 追加は「＋追加」ボタン→ポップアップで種別選択（要望: 追加はポップアップ）。
-export type EditMode = "select" | "move" | "wall";
+// 通常操作は「選択したらそのままドラッグで移動」に統合する。
+// 壁の作図だけ連続操作なので wall として残す。
+export type EditMode = "select" | "wall";
 
 type AddItem = { kind: string; label: string; hint?: string };
 
@@ -439,11 +439,20 @@ function GroupIcon({ title }: { title: string }) {
 type EditToolbarProps = {
   mode: EditMode;
   onModeChange: (mode: EditMode) => void;
+  isPlanEditMode: boolean;
+  onPlanEditModeChange: (enabled: boolean) => void;
   onAdd: (kind: string) => void;
   pendingAdd: string | null;
 };
 
-export const EditToolbar = ({ mode, onModeChange, onAdd, pendingAdd }: EditToolbarProps) => {
+export const EditToolbar = ({
+  mode,
+  onModeChange,
+  isPlanEditMode,
+  onPlanEditModeChange,
+  onAdd,
+  pendingAdd
+}: EditToolbarProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
   // null = 第1画面（グループ選択）、string = 第2画面（グループ内アイテム）
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
@@ -473,14 +482,23 @@ export const EditToolbar = ({ mode, onModeChange, onAdd, pendingAdd }: EditToolb
 
   return (
     <div className="edit-toolbar">
-      <label className="edit-toolbar-mode">
-        操作
-        <select value={mode} onChange={(event) => onModeChange(event.target.value as EditMode)}>
-          <option value="select">選択</option>
-          <option value="move">移動（ドラッグで動かす）</option>
-          <option value="wall">壁を引く（タップ/クリック）</option>
-        </select>
-      </label>
+      <button
+        type="button"
+        className={isPlanEditMode ? "tool plan-mode-button is-active" : "tool plan-mode-button"}
+        onClick={() => onPlanEditModeChange(!isPlanEditMode)}
+      >
+        間取り編集
+      </button>
+
+      {isPlanEditMode && (
+        <button
+          type="button"
+          className={mode === "wall" ? "tool wall-draw-button is-active" : "tool wall-draw-button"}
+          onClick={() => onModeChange(mode === "wall" ? "select" : "wall")}
+        >
+          壁を引く
+        </button>
+      )}
 
       <button
         type="button"

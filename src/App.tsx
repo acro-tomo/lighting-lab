@@ -8,7 +8,7 @@ import type { RenderContext } from "./rendering/renderContext";
 import { projectSchema } from "./schema/projectSchema";
 import { loadProjectFromIndexedDb, saveProjectToIndexedDb } from "./storage/projectStorage";
 import { useProjectStore } from "./store/projectStore";
-import type { CompareShot, Project } from "./types";
+import type { CompareShot, Project, Selection } from "./types";
 import { floorPlanFileToDataUrl } from "./utils/floorplanImport";
 import { DEFAULT_DAYLIGHT } from "./utils/sun";
 import { cloneProject } from "./utils/units";
@@ -124,6 +124,7 @@ export const App = () => {
   const [pathTraceMode, setPathTraceMode] = useState<PathTraceMode>("standard");
   const [viewMode, setViewMode] = useState<ViewMode>("raster");
   const [mode, setMode] = useState<EditMode>("select");
+  const [planEditMode, setPlanEditMode] = useState(false);
   const [pendingAdd, setPendingAdd] = useState<string | null>(null);
   const [focusViewport, setFocusViewport] = useState(false);
   const [focusPlan, setFocusPlan] = useState(false);
@@ -203,11 +204,40 @@ export const App = () => {
     setFocusViewport(false);
   }, []);
 
+  const handleSelect = useCallback((next: Selection) => {
+    if (next?.kind === "wall" && !planEditMode) return;
+    select(next);
+  }, [planEditMode, select]);
+
   const handleEditModeChange = useCallback((next: EditMode) => {
     setMode(next);
     setPendingAdd(null);
-    if (next === "wall") openMobileView("plan");
+    if (next === "wall") {
+      setPlanEditMode(true);
+      openMobileView("plan");
+    }
   }, [openMobileView]);
+
+  const handlePlanEditModeChange = useCallback((enabled: boolean) => {
+    setPlanEditMode(enabled);
+    setPendingAdd(null);
+    setMode("select");
+    if (enabled) {
+      openMobileView("plan");
+      setNotice("間取り編集を開始しました。壁の選択・移動・削除ができます。");
+    } else {
+      if (selection?.kind === "wall") select(null);
+      setNotice("間取り編集を終了しました。壁は誤操作防止のため選択できません。");
+    }
+  }, [openMobileView, select, selection]);
+
+  useEffect(() => {
+    if (planEditMode) return;
+    if (mode === "wall") setMode("select");
+    if (selection?.kind === "wall") select(null);
+  }, [mode, planEditMode, select, selection]);
+
+  const canDeleteSelection = !!selection && (selection.kind !== "wall" || planEditMode);
 
   const handleMobileClear = useCallback(() => {
     if (pendingAdd) {
@@ -222,10 +252,10 @@ export const App = () => {
   }, [pendingAdd, select, selection]);
 
   const handleMobileDelete = useCallback(() => {
-    if (!selection) return;
+    if (!selection || (selection.kind === "wall" && !planEditMode)) return;
     deleteSelection(selection);
     setNotice("選択中の要素を削除しました。");
-  }, [deleteSelection, selection]);
+  }, [deleteSelection, planEditMode, selection]);
 
   useEffect(() => {
     if (!renderingRef.current) return;
@@ -273,7 +303,7 @@ export const App = () => {
         // 入力欄の編集中は削除キーを通常動作に任せる。
         if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
         const current = useProjectStore.getState().selection;
-        if (current) {
+        if (current && (current.kind !== "wall" || planEditMode)) {
           event.preventDefault();
           deleteSelection(current);
         }
@@ -281,7 +311,7 @@ export const App = () => {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [copySelection, deleteSelection, pasteSelection, pendingAdd, redo, select, undo]);
+  }, [copySelection, deleteSelection, pasteSelection, pendingAdd, planEditMode, redo, select, undo]);
 
   const handleImportFloorPlan = async (file: File) => {
     try {
@@ -582,7 +612,7 @@ export const App = () => {
       if (!pendingAdd) return;
       handleAddObject(pendingAdd, { at });
       setPendingAdd(null);
-      setMode("move");
+      setMode("select");
       setNotice(
         isLightAddKind(pendingAdd)
           ? "配置しました。選択してCmd+C / Cmd+Vで複製できます。"
@@ -602,7 +632,7 @@ export const App = () => {
         const placement = wallLightPlacement(wallId, centerRatio, heightM ?? 1.9);
         if (model && placement) addLight(newFixtureFromModel(project, model, undefined, { wall: placement }));
         setPendingAdd(null);
-        setMode("move");
+        setMode("select");
         setNotice("壁に設置しました。選択してCmd+C / Cmd+Vで複製できます。");
         return;
       }
@@ -638,73 +668,77 @@ export const App = () => {
 
   return (
     <div className="app-shell">
-      <HeaderBar
-        project={project}
-        onImportFloorPlan={handleImportFloorPlan}
-        onImportProject={handleImportProject}
-        onExportProject={exportProject}
-        onToggleOutput={() => setOutputOpen((current) => !current)}
-        outputOpen={outputOpen}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        onShowIntro={() => setShowIntro(true)}
-      />
-      {/* 操作＋追加ツールバー: 2D/3D 両パネル共通の1インスタンス。 */}
-      <div className="shared-toolbar">
-        <EditToolbar
-          mode={mode}
-          onModeChange={handleEditModeChange}
-          onAdd={handleStartAdd}
-          pendingAdd={pendingAdd}
+      <div className="top-chrome">
+        <HeaderBar
+          project={project}
+          onImportFloorPlan={handleImportFloorPlan}
+          onImportProject={handleImportProject}
+          onExportProject={exportProject}
+          onToggleOutput={() => setOutputOpen((current) => !current)}
+          outputOpen={outputOpen}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          onShowIntro={() => setShowIntro(true)}
         />
-        <span className="toolbar-hint">
-          {pendingAdd === "door" || pendingAdd?.startsWith("window") || isWallLightAddKind(pendingAdd)
-            ? "壁をクリックして設置（Escで終了）"
-            : pendingAdd
-              ? "クリックした位置に配置"
-              : mode === "wall"
-                ? "クリックで壁の頂点（1/4尺刻み）、Enter/ダブルクリックで終了"
-                : mode === "move"
-                  ? "ドラッグで移動"
-                  : "クリックで選択・ドラッグで移動"}
-        </span>
-        <div className="floor-toggle" role="group" aria-label="階切替">
-          <button
-            className={(project.activeFloor ?? 1) === 1 ? "floor-toggle-btn is-active" : "floor-toggle-btn"}
-            onClick={() => setActiveFloor(1)}
-            title="1階を編集"
-          >
-            1階
-          </button>
-          <button
-            className={(project.activeFloor ?? 1) === 2 ? "floor-toggle-btn is-active" : "floor-toggle-btn"}
-            onClick={() => setActiveFloor(2)}
-            title="2階を編集（1階の壁を薄く表示して作図補助）"
-          >
-            2階
-          </button>
-        </div>
-        {(project.activeFloor ?? 1) === 2 && (
-          <span className="floor-hint">2階編集中 — 1階の壁を薄く表示して作図補助</span>
-        )}
-        <div className="mobile-edit-actions" aria-label="スマホ編集操作">
-          <button type="button" onClick={undo} aria-label="元に戻す">↶</button>
-          <button type="button" onClick={redo} aria-label="やり直す">↷</button>
-          <button type="button" onClick={handleMobileDelete} disabled={!selection}>削除</button>
-          <button type="button" onClick={handleMobileClear} disabled={!pendingAdd && !selection}>解除</button>
+        {/* 操作＋追加ツールバー: 2D/3D 両パネル共通の1インスタンス。 */}
+        <div className="shared-toolbar">
+          <EditToolbar
+            mode={mode}
+            onModeChange={handleEditModeChange}
+            isPlanEditMode={planEditMode}
+            onPlanEditModeChange={handlePlanEditModeChange}
+            onAdd={handleStartAdd}
+            pendingAdd={pendingAdd}
+          />
+          <span className="toolbar-hint">
+            {pendingAdd === "door" || pendingAdd?.startsWith("window") || isWallLightAddKind(pendingAdd)
+              ? "壁をクリックして設置（Escで終了）"
+              : pendingAdd
+                ? "クリックした位置に配置"
+                : mode === "wall"
+                  ? "クリックで壁の頂点（1/4尺刻み）、Enter/ダブルクリックで終了"
+                  : planEditMode
+                    ? "壁を選択・ドラッグで移動。Deleteで削除"
+                    : "クリックで選択・ドラッグで移動"}
+          </span>
+          <div className="floor-toggle" role="group" aria-label="階切替">
+            <button
+              className={(project.activeFloor ?? 1) === 1 ? "floor-toggle-btn is-active" : "floor-toggle-btn"}
+              onClick={() => setActiveFloor(1)}
+              title="1階を編集"
+            >
+              1階
+            </button>
+            <button
+              className={(project.activeFloor ?? 1) === 2 ? "floor-toggle-btn is-active" : "floor-toggle-btn"}
+              onClick={() => setActiveFloor(2)}
+              title="2階を編集（1階の壁を薄く表示して作図補助）"
+            >
+              2階
+            </button>
+          </div>
+          {(project.activeFloor ?? 1) === 2 && (
+            <span className="floor-hint">2階編集中 — 1階の壁を薄く表示して作図補助</span>
+          )}
+          <div className="mobile-edit-actions" aria-label="スマホ編集操作">
+            <button type="button" onClick={undo} aria-label="元に戻す">↶</button>
+            <button type="button" onClick={redo} aria-label="やり直す">↷</button>
+            <button type="button" onClick={handleMobileDelete} disabled={!canDeleteSelection}>削除</button>
+            <button type="button" onClick={handleMobileClear} disabled={!pendingAdd && !selection}>解除</button>
+          </div>
         </div>
       </div>
       <main className={workspaceClassName}>
         <Plan2D
           project={project}
           selection={selection}
-          onSelect={select}
+          onSelect={handleSelect}
           mode={mode}
           onModeChange={handleEditModeChange}
-          onAdd={handleStartAdd}
           pendingAdd={pendingAdd}
           onPlaceObject={handlePlaceObject}
           onPlaceOnWall={handlePlaceOnWall}
+          canEditWalls={planEditMode}
           focusPlan={focusPlan}
           onToggleFocusPlan={() => {
             setFocusPlan((current) => !current);
@@ -856,7 +890,7 @@ export const App = () => {
             <Scene3D
               project={project}
               selection={selection}
-              onSelect={select}
+              onSelect={handleSelect}
               onCanvasReady={setCanvasElement}
               onRenderContextReady={setRenderContext}
               debugMode={debugMode}
@@ -866,6 +900,7 @@ export const App = () => {
               pendingAdd={pendingAdd}
               onPlaceObject={handlePlaceObject}
               onPlaceOnWall={handlePlaceOnWall}
+              canEditWalls={planEditMode}
             />
             {lastPathTracedImage && (
               <div className="pathtrace-result" aria-label="Path traced result">
@@ -878,6 +913,7 @@ export const App = () => {
         <Inspector
           project={project}
           selection={selection}
+          canEditWalls={planEditMode}
           mobileHeader={(
             <div className="mobile-settings-sheet-head">
               <strong>設定</strong>
