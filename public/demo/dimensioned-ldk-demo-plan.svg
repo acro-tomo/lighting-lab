@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto-start-reverse">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#2f3b40" />
+    </marker>
+    <style>
+      .sheet { fill: #fbfaf6; }
+      .room-fill { fill: #f8f4ea; }
+      .wall { fill: none; stroke: #22272a; stroke-width: 18; stroke-linejoin: round; }
+      .partition { fill: none; stroke: #4b555a; stroke-width: 10; stroke-linecap: square; }
+      .thin { fill: none; stroke: #6d767b; stroke-width: 3; }
+      .furniture { fill: #d8c3a2; stroke: #7a6650; stroke-width: 2; }
+      .fixture { fill: #f4d06f; stroke: #856d23; stroke-width: 2; }
+      .window { fill: none; stroke: #4a9bc1; stroke-width: 8; stroke-linecap: round; }
+      .void { fill: #ecf3f5; stroke: #5f808b; stroke-width: 3; stroke-dasharray: 10 8; }
+      .dim { stroke: #2f3b40; stroke-width: 2; marker-start: url(#arrow); marker-end: url(#arrow); }
+      .dim-label { fill: #273036; font: 600 22px system-ui, sans-serif; }
+      .ext { stroke: #2f3b40; stroke-width: 2; }
+      .label { fill: #232b30; font: 600 22px system-ui, sans-serif; }
+      .note { fill: #596267; font: 16px system-ui, sans-serif; }
+      .small { fill: #273036; font: 16px system-ui, sans-serif; }
+    </style>
+  </defs>
+  <rect x="0" y="0" width="1200" height="900" class="sheet" stroke-width="2" />
+  <text x="70" y="48" class="note" text-anchor="start">Original dimensioned demo plan / LDK Lighting Lab</text>
+  <text x="70" y="74" class="note" text-anchor="start">架空の拡散用サンプル。実在住宅の図面ではありません。</text>
+
+  <rect x="170" y="130" width="860" height="640" class="room-fill" stroke-width="2" />
+  <rect x="170" y="130" width="860" height="640" class="wall" stroke-width="2" />
+
+  <line x1="305" y1="130" x2="305" y2="385" class="partition" />
+  <line x1="170" y1="385" x2="475" y2="385" class="partition" />
+  <line x1="810" y1="490" x2="1030" y2="490" class="partition" />
+
+  <line x1="435" y1="770" x2="755" y2="770" class="window" />
+  <text x="595" y="808" class="small" text-anchor="middle">掃き出し窓 W3,200</text>
+
+  <rect x="155" y="346" width="290" height="98" class="furniture" stroke-width="2" />
+  <text x="300" y="402" class="small" text-anchor="middle">キッチン</text>
+  <rect x="179" y="160" width="42" height="220" class="furniture" stroke-width="2" />
+  <text x="232" y="235" class="small" text-anchor="middle">収納</text>
+  <rect x="405" y="485" width="120" height="120" class="thin" stroke-width="2" />
+  <circle cx="465" cy="545" r="60" class="furniture" />
+  <text x="465" y="552" class="small" text-anchor="middle">ダイニング</text>
+  <rect x="602.5" y="526" width="235" height="92" class="furniture" stroke-width="2" />
+  <text x="720" y="579" class="small" text-anchor="middle">ソファ</text>
+  <rect x="637.5" y="135" width="145" height="6" class="furniture" stroke-width="2" />
+  <text x="710" y="165" class="small" text-anchor="middle">TV壁</text>
+  <rect x="790" y="465" width="220" height="280" class="void" stroke-width="2" />
+  <text x="900" y="612" class="small" text-anchor="middle">階段・吹抜</text>
+
+  <circle cx="610" cy="158" r="14" class="fixture" />
+  <circle cx="710" cy="158" r="14" class="fixture" />
+  <circle cx="810" cy="158" r="14" class="fixture" />
+  <circle cx="210" cy="332" r="14" class="fixture" />
+  <circle cx="300" cy="332" r="14" class="fixture" />
+  <circle cx="390" cy="332" r="14" class="fixture" />
+  <circle cx="465" cy="545" r="19" class="fixture" />
+
+  <text x="600" y="178" class="label" text-anchor="middle">LDK 8,600 × 6,400</text>
+  <text x="350" y="480" class="label" text-anchor="middle">食事</text>
+  <text x="745" y="365" class="label" text-anchor="middle">くつろぎ</text>
+
+
+  <line x1="170" y1="72" x2="1030" y2="72" class="dim" />
+  <line x1="170" y1="60" x2="170" y2="84" class="ext" />
+  <line x1="1030" y1="60" x2="1030" y2="84" class="ext" />
+  <text x="600" y="58" class="dim-label" text-anchor="middle">8,600</text>
+
+
+  <line x1="1088" y1="130" x2="1088" y2="770" class="dim" />
+  <line x1="1076" y1="130" x2="1100" y2="130" class="ext" />
+  <line x1="1076" y1="770" x2="1100" y2="770" class="ext" />
+  <text transform="translate(1116 450) rotate(90)" class="dim-label">6,400</text>
+
+
+  <line x1="170" y1="422" x2="475" y2="422" class="dim" />
+  <line x1="170" y1="410" x2="170" y2="434" class="ext" />
+  <line x1="475" y1="410" x2="475" y2="434" class="ext" />
+  <text x="322.5" y="408" class="dim-label" text-anchor="middle">3,050</text>
+
+
+  <line x1="792" y1="490" x2="792" y2="770" class="dim" />
+  <line x1="780" y1="490" x2="804" y2="490" class="ext" />
+  <line x1="780" y1="770" x2="804" y2="770" class="ext" />
+  <text transform="translate(820 630) rotate(90)" class="dim-label">2,800</text>
+
+</svg>
