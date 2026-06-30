@@ -25,6 +25,7 @@ import type {
   ProjectCamera,
   Selection,
   VoidArea,
+  VoidSide,
   WallSegment,
   WindowOpening
 } from "../types";
@@ -2092,6 +2093,19 @@ const CeilingZoneMesh = ({
   );
 };
 
+const voidOutsideFaceIndex = (side: VoidSide) => {
+  switch (side) {
+    case "north":
+      return 5;
+    case "south":
+      return 4;
+    case "west":
+      return 1;
+    case "east":
+      return 0;
+  }
+};
+
 const VoidWell = ({
   voidArea,
   lowerY,
@@ -2124,11 +2138,13 @@ const VoidWell = ({
           : sideName === "west"
             ? [center.x - size.x / 2, midY, center.z]
             : [center.x + size.x / 2, midY, center.z],
-    args: sideName === "north" || sideName === "south" ? [size.x, height, 0.04] : [0.04, height, size.z]
+    args: sideName === "north" || sideName === "south" ? [size.x, height, 0.04] : [0.04, height, size.z],
+    outsideFaceIndex: voidOutsideFaceIndex(sideName)
   })) as {
-    sideName: "north" | "south" | "west" | "east";
+    sideName: VoidSide;
     position: [number, number, number];
     args: [number, number, number];
+    outsideFaceIndex: number;
   }[];
   const resolveVoidHitPoint = (sideName: "north" | "south" | "west" | "east", event: ThreeEvent<PointerEvent>) => {
     const candidates = [event.point.clone()];
@@ -2199,6 +2215,7 @@ const VoidWell = ({
         }
       : undefined
   });
+  const outsideOpacity = debugMode === "beauty" ? 0.36 : 0.62;
   return (
     <group>
       {sideConfigs.map((config) => (
@@ -2206,19 +2223,25 @@ const VoidWell = ({
           key={config.sideName}
           position={config.position}
           receiveShadow
-          castShadow={false}
+          castShadow
           {...voidWallHandlers(config.sideName)}
         >
           <boxGeometry args={config.args} />
-          <meshStandardMaterial
-            color={color}
-            roughness={material.roughness}
-            metalness={material.metalness}
-            side={THREE.DoubleSide}
-            transparent
-            opacity={debugMode === "beauty" ? 0.36 : 0.62}
-            depthWrite={false}
-          />
+          {Array.from({ length: 6 }, (_, index) => {
+            const outside = index === config.outsideFaceIndex;
+            return (
+              <meshStandardMaterial
+                key={index}
+                attach={`material-${index}`}
+                color={color}
+                roughness={material.roughness}
+                metalness={material.metalness}
+                transparent={outside}
+                opacity={outside ? outsideOpacity : 1}
+                depthWrite={!outside}
+              />
+            );
+          })}
         </mesh>
       ))}
       {showLid && (

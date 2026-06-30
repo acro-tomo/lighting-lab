@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { WebGLPathTracer } from "three-gpu-pathtracer";
 import { GenerateMeshBVHWorker } from "three-mesh-bvh/src/workers/index.js";
-import type { FurnitureItem, MaterialPreset, Project, WallSegment, WindowOpening } from "../types";
+import type { FurnitureItem, MaterialPreset, Project, VoidSide, WallSegment, WindowOpening } from "../types";
 import { bracketRoomwardOffset, colorTemperatureToHex, lumensToPhysicalPower } from "../utils/lighting";
 import { DEFAULT_DAYLIGHT, sunVector } from "../utils/sun";
 import { wallInwardNormal } from "../utils/wallGeometry";
@@ -103,6 +103,19 @@ const makeTransparentMaterial = (material: THREE.Material, opacity: number) => {
   next.opacity = opacity;
   next.depthWrite = false;
   return next;
+};
+
+const voidOutsideFaceIndex = (side: VoidSide) => {
+  switch (side) {
+    case "north":
+      return 5;
+    case "south":
+      return 4;
+    case "west":
+      return 1;
+    case "east":
+      return 0;
+  }
 };
 
 const diagnosticMaterial = (role: string, debugMode: RenderDebugMode, fallback: THREE.Material) => {
@@ -484,17 +497,28 @@ const buildPathTraceScene = (
     if (height <= 0.02) return;
     const midY = (lowerY + upperCeilingHeight) / 2;
     const { center, size } = voidArea;
-    const voidWallMaterial = makeTransparentMaterial(ceilingMaterial, 0.36);
     for (const side of visibleVoidSides(voidArea)) {
-      const mesh =
+      const boxSize: [number, number, number] =
+        side === "north" || side === "south" ? [size.x, height, 0.04] : [0.04, height, size.z];
+      const position: [number, number, number] =
         side === "north"
-          ? addBox(scene, [size.x, height, 0.04], [center.x, midY, center.z - size.z / 2], voidWallMaterial, 0, "ceiling", debugMode)
+          ? [center.x, midY, center.z - size.z / 2]
           : side === "south"
-            ? addBox(scene, [size.x, height, 0.04], [center.x, midY, center.z + size.z / 2], voidWallMaterial, 0, "ceiling", debugMode)
+            ? [center.x, midY, center.z + size.z / 2]
             : side === "west"
-              ? addBox(scene, [0.04, height, size.z], [center.x - size.x / 2, midY, center.z], voidWallMaterial, 0, "ceiling", debugMode)
-              : addBox(scene, [0.04, height, size.z], [center.x + size.x / 2, midY, center.z], voidWallMaterial, 0, "ceiling", debugMode);
-      mesh.castShadow = false;
+              ? [center.x - size.x / 2, midY, center.z]
+              : [center.x + size.x / 2, midY, center.z];
+      const baseMaterial = diagnosticMaterial("ceiling", debugMode, ceilingMaterial);
+      const outsideFaceIndex = voidOutsideFaceIndex(side);
+      const materials = Array.from({ length: 6 }, (_, index) =>
+        index === outsideFaceIndex ? makeTransparentMaterial(baseMaterial, 0.36) : baseMaterial.clone()
+      );
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(...boxSize), materials);
+      mesh.position.set(...position);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      mesh.userData.role = "ceiling";
+      scene.add(mesh);
     }
     addHorizontalPanel(scene, size.x, size.z, upperCeilingHeight, -1, ceilingMaterial, "ceiling", debugMode, center.x, center.z);
   });
