@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent } from "react";
+import { useState, type ChangeEvent, type ReactNode } from "react";
 import type { CeilingZone, FloorZone, FurnitureItem, LightFixture, LightType, MaterialPreset, Project, Selection, VoidArea, WallSegment, WindowOpening } from "../types";
 import { useProjectStore } from "../store/projectStore";
 import { applyFixtureModel, fixtureCatalog, getFixtureModel } from "../data/fixtureCatalog";
@@ -7,6 +7,7 @@ import { clamp, mToMm, mmToM } from "../utils/units";
 type InspectorProps = {
   project: Project;
   selection: Selection;
+  mobileHeader?: ReactNode;
 };
 
 // 日本の住宅照明で一般的な色温度プリセット。ワンタップで切替できるようにする。
@@ -88,7 +89,7 @@ const AimTargetPresets = ({
   );
 };
 
-export const Inspector = ({ project, selection }: InspectorProps) => {
+export const Inspector = ({ project, selection, mobileHeader }: InspectorProps) => {
   const updateLight = useProjectStore((state) => state.updateLight);
   const updateLights = useProjectStore((state) => state.updateLights);
   const selectedLightIds = useProjectStore((state) => state.selectedLightIds);
@@ -134,6 +135,7 @@ export const Inspector = ({ project, selection }: InspectorProps) => {
 
   return (
     <aside className="inspector-panel" aria-label="プロパティインスペクター">
+      {mobileHeader}
       <section className="summary-strip">
         <div>
           <span>照明</span>

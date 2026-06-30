@@ -829,7 +829,10 @@ const SceneRoot = ({
         ref={controlsRef}
         makeDefault
         enableDamping
+        enablePan
+        screenSpacePanning
         keyEvents={false}
+        touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }}
         dampingFactor={0.08}
         minDistance={1.2}
         maxDistance={12}

@@ -91,7 +91,7 @@ type RenderProgressState = {
   message: string;
 };
 
-type MobileView = "plan" | "scene" | "inspector";
+type MobileView = "plan" | "scene";
 
 export const App = () => {
   const project = useProjectStore((state) => state.project);
@@ -130,6 +130,7 @@ export const App = () => {
   const [outputOpen, setOutputOpen] = useState(false);
   const [daylightOpen, setDaylightOpen] = useState(false);
   const [mobileView, setMobileView] = useState<MobileView>("plan");
+  const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
   const [liveTrace, setLiveTrace] = useState<LiveTraceStatus>({ phase: "off", samples: 0 });
   const [debugMode, setDebugMode] = useState<RenderDebugMode>("beauty");
   const [lastPathTracedImage, setLastPathTracedImage] = useState<string | null>(null);
@@ -197,6 +198,7 @@ export const App = () => {
 
   const openMobileView = useCallback((view: MobileView) => {
     setMobileView(view);
+    setMobileSettingsOpen(false);
     setFocusPlan(false);
     setFocusViewport(false);
   }, []);
@@ -630,6 +632,7 @@ export const App = () => {
     "workspace",
     focusViewport ? "is-focus-3d" : "",
     focusPlan ? "is-focus-2d" : "",
+    mobileSettingsOpen ? "mobile-settings-open" : "",
     `mobile-view-${mobileView}`
   ].filter(Boolean).join(" ");
 
@@ -872,31 +875,50 @@ export const App = () => {
             )}
           </div>
         </section>
-        <Inspector project={project} selection={selection} />
+        <Inspector
+          project={project}
+          selection={selection}
+          mobileHeader={(
+            <div className="mobile-settings-sheet-head">
+              <strong>設定</strong>
+              <button type="button" onClick={() => setMobileSettingsOpen(false)}>閉じる</button>
+            </div>
+          )}
+        />
       </main>
-      <nav className="mobile-view-tabs" aria-label="スマホ表示切替">
+      <button
+        type="button"
+        className={mobileSettingsOpen ? "mobile-settings-backdrop is-open" : "mobile-settings-backdrop"}
+        aria-label="設定を閉じる"
+        onClick={() => setMobileSettingsOpen(false)}
+      />
+      <div className="mobile-bottom-bar">
+        <nav className="mobile-view-tabs" aria-label="スマホ表示切替">
+          <button
+            type="button"
+            className={mobileView === "plan" ? "is-active" : ""}
+            onClick={() => openMobileView("plan")}
+          >
+            2D
+          </button>
+          <button
+            type="button"
+            className={mobileView === "scene" ? "is-active" : ""}
+            onClick={() => openMobileView("scene")}
+          >
+            3D
+          </button>
+        </nav>
         <button
           type="button"
-          className={mobileView === "plan" ? "is-active" : ""}
-          onClick={() => openMobileView("plan")}
+          className={mobileSettingsOpen ? "mobile-settings-button is-active" : "mobile-settings-button"}
+          aria-label="設定を開く"
+          title="設定"
+          onClick={() => setMobileSettingsOpen((open) => !open)}
         >
-          2D
+          ⚙
         </button>
-        <button
-          type="button"
-          className={mobileView === "scene" ? "is-active" : ""}
-          onClick={() => openMobileView("scene")}
-        >
-          3D
-        </button>
-        <button
-          type="button"
-          className={mobileView === "inspector" ? "is-active" : ""}
-          onClick={() => openMobileView("inspector")}
-        >
-          設定
-        </button>
-      </nav>
+      </div>
       <div className="notice" role="status">{notice}</div>
       <ShortcutGuide />
       <FeedbackForm />
