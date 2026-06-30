@@ -833,7 +833,8 @@ const SceneRoot = ({
         dampingFactor={0.08}
         minDistance={1.2}
         maxDistance={12}
-        maxPolarAngle={Math.PI * 0.49}
+        minPolarAngle={Math.PI * 0.05}
+        maxPolarAngle={Math.PI * 0.95}
       />
       {pathTraced && (
         <PathTracerController
