@@ -1,6 +1,6 @@
 import { ContactShadows, OrbitControls, Sky } from "@react-three/drei";
 import { Canvas, ThreeEvent, useFrame, useThree } from "@react-three/fiber";
-import type { MutableRefObject } from "react";
+import type { MutableRefObject, ReactNode } from "react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
@@ -37,6 +37,7 @@ import { useProjectStore } from "../store/projectStore";
 import { degToRad } from "../utils/units";
 import { DEFAULT_DAYLIGHT, sunVector } from "../utils/sun";
 import { ceilingMountHeightAt } from "../utils/ceiling";
+import { isWallMountedFixture, wallMountedLightPlacementAt } from "../utils/fixtureMounting";
 
 export type ViewMode = "raster" | "realistic";
 
@@ -68,6 +69,41 @@ export type EditMode = "select" | "move" | "delete";
 // 操作モードをシーン全体へ配る。通常の選択モードでドラッグ移動も行う。
 const EditModeContext = createContext<EditMode>("select");
 const useEditMode = () => useContext(EditModeContext);
+
+type TouchDragGuard = { hasMultiTouch: () => boolean };
+const TouchDragGuardContext = createContext<TouchDragGuard>({ hasMultiTouch: () => false });
+const useTouchDragGuard = () => useContext(TouchDragGuardContext);
+
+const TouchDragGuardProvider = ({ children }: { children: ReactNode }) => {
+  const gl = useThree((state) => state.gl);
+  const touchPointerIds = useRef(new Set<number>());
+  useEffect(() => {
+    const canvas = gl.domElement;
+    const track = (event: PointerEvent) => {
+      if (event.pointerType === "touch") touchPointerIds.current.add(event.pointerId);
+    };
+    const untrack = (event: PointerEvent) => {
+      if (event.pointerType === "touch") touchPointerIds.current.delete(event.pointerId);
+    };
+    const clear = () => touchPointerIds.current.clear();
+    canvas.addEventListener("pointerdown", track, { capture: true });
+    canvas.addEventListener("pointerup", untrack, { capture: true });
+    canvas.addEventListener("pointercancel", untrack, { capture: true });
+    window.addEventListener("blur", clear);
+    return () => {
+      canvas.removeEventListener("pointerdown", track, { capture: true });
+      canvas.removeEventListener("pointerup", untrack, { capture: true });
+      canvas.removeEventListener("pointercancel", untrack, { capture: true });
+      window.removeEventListener("blur", clear);
+    };
+  }, [gl.domElement]);
+
+  const value = useMemo<TouchDragGuard>(
+    () => ({ hasMultiTouch: () => touchPointerIds.current.size >= 2 }),
+    []
+  );
+  return <TouchDragGuardContext.Provider value={value}>{children}</TouchDragGuardContext.Provider>;
+};
 
 // パストレ常駐モードでは選択枠・グロー・補助光など非物理の演出を隠す。
 // これにより編集用シーンをそのまま物理ベースで描画でき、見たまま=最終結果になる。
@@ -165,14 +201,22 @@ const useFloorDrag = (
   onMove: (x: number, z: number) => void
 ) => {
   const controls = useThree((state) => state.controls) as { enabled: boolean } | null;
+  const touchGuard = useTouchDragGuard();
   const dragging = useRef(false);
   const grab = useRef({ x: 0, z: 0 });
   const plane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), []);
   const hit = useMemo(() => new THREE.Vector3(), []);
+  const stopDrag = (event: ThreeEvent<PointerEvent>) => {
+    if (!dragging.current) return;
+    dragging.current = false;
+    (event.target as Element | null)?.releasePointerCapture?.(event.pointerId);
+    if (controls) controls.enabled = true;
+  };
 
   return {
     onPointerDown: (event: ThreeEvent<PointerEvent>) => {
       if (event.button !== 0) return;
+      if (event.pointerType === "touch" && touchGuard.hasMultiTouch()) return;
       event.stopPropagation();
       plane.constant = -floorY;
       if (!event.ray.intersectPlane(plane, hit)) return;
@@ -183,15 +227,19 @@ const useFloorDrag = (
     },
     onPointerMove: (event: ThreeEvent<PointerEvent>) => {
       if (!dragging.current) return;
+      if (event.pointerType === "touch" && touchGuard.hasMultiTouch()) {
+        stopDrag(event);
+        return;
+      }
       if (event.ray.intersectPlane(plane, hit)) {
         onMove(hit.x + grab.current.x, hit.z + grab.current.z);
       }
     },
     onPointerUp: (event: ThreeEvent<PointerEvent>) => {
-      if (!dragging.current) return;
-      dragging.current = false;
-      (event.target as Element | null)?.releasePointerCapture?.(event.pointerId);
-      if (controls) controls.enabled = true;
+      stopDrag(event);
+    },
+    onPointerCancel: (event: ThreeEvent<PointerEvent>) => {
+      stopDrag(event);
     }
   };
 };
@@ -199,11 +247,19 @@ const useFloorDrag = (
 // 3Dビュー上で平面ヒットを取りながらドラッグするための汎用ハンドラ（リサイズハンドル用）。
 const useHandleDrag = (getPlane: () => THREE.Plane, onHit: (point: THREE.Vector3) => void) => {
   const controls = useThree((state) => state.controls) as { enabled: boolean } | null;
+  const touchGuard = useTouchDragGuard();
   const dragging = useRef(false);
   const hit = useMemo(() => new THREE.Vector3(), []);
+  const stopDrag = (event: ThreeEvent<PointerEvent>) => {
+    if (!dragging.current) return;
+    dragging.current = false;
+    (event.target as Element | null)?.releasePointerCapture?.(event.pointerId);
+    if (controls) controls.enabled = true;
+  };
   return {
     onPointerDown: (event: ThreeEvent<PointerEvent>) => {
       if (event.button !== 0) return;
+      if (event.pointerType === "touch" && touchGuard.hasMultiTouch()) return;
       event.stopPropagation();
       dragging.current = true;
       (event.target as Element | null)?.setPointerCapture?.(event.pointerId);
@@ -211,13 +267,17 @@ const useHandleDrag = (getPlane: () => THREE.Plane, onHit: (point: THREE.Vector3
     },
     onPointerMove: (event: ThreeEvent<PointerEvent>) => {
       if (!dragging.current) return;
+      if (event.pointerType === "touch" && touchGuard.hasMultiTouch()) {
+        stopDrag(event);
+        return;
+      }
       if (event.ray.intersectPlane(getPlane(), hit)) onHit(hit);
     },
     onPointerUp: (event: ThreeEvent<PointerEvent>) => {
-      if (!dragging.current) return;
-      dragging.current = false;
-      (event.target as Element | null)?.releasePointerCapture?.(event.pointerId);
-      if (controls) controls.enabled = true;
+      stopDrag(event);
+    },
+    onPointerCancel: (event: ThreeEvent<PointerEvent>) => {
+      stopDrag(event);
     }
   };
 };
@@ -2342,13 +2402,16 @@ const WallMesh = ({
       }
     }
     const { ratio } = projectPointOntoWall(bestWorld.x, bestWorld.z, wall);
-    const angle = Math.atan2(wall.end.z - wall.start.z, wall.end.x - wall.start.x);
+    const surfaceOffset = wall.thicknessM / 2 + 0.04;
+    const wallX = wall.start.x + (wall.end.x - wall.start.x) * ratio;
+    const wallZ = wall.start.z + (wall.end.z - wall.start.z) * ratio;
+    const angle = Math.atan2(inwardNormal.x, inwardNormal.z);
     return {
       wallId: wall.id,
       ratio,
-      x: wall.start.x + (wall.end.x - wall.start.x) * ratio,
+      x: wallX + inwardNormal.x * surfaceOffset,
       y: bestWorld.y,
-      z: wall.start.z + (wall.end.z - wall.start.z) * ratio,
+      z: wallZ + inwardNormal.z * surfaceOffset,
       angle
     };
   };
@@ -2559,10 +2622,11 @@ const WindowMesh = ({
         event.stopPropagation();
         onSelect({ kind, id: windowItem.id });
         // 通常操作では壁沿いの水平移動ドラッグを開始（高さ変更は矢印キーに任せる）。
-        if (editMode === "select") drag.onPointerDown(event);
+        if (editMode === "select" && selected) drag.onPointerDown(event);
       }}
       onPointerMove={editMode === "select" ? drag.onPointerMove : undefined}
       onPointerUp={editMode === "select" ? drag.onPointerUp : undefined}
+      onPointerCancel={editMode === "select" ? drag.onPointerCancel : undefined}
     >
       {/* 枠（窓・扉とも周囲に回す） */}
       {style !== "opening" && (
@@ -2693,7 +2757,13 @@ const ResizeHandle3D = ({
 }) => {
   const drag = useHandleDrag(getPlane, onHit);
   return (
-    <mesh position={position} onPointerDown={drag.onPointerDown} onPointerMove={drag.onPointerMove} onPointerUp={drag.onPointerUp}>
+    <mesh
+      position={position}
+      onPointerDown={drag.onPointerDown}
+      onPointerMove={drag.onPointerMove}
+      onPointerUp={drag.onPointerUp}
+      onPointerCancel={drag.onPointerCancel}
+    >
       <sphereGeometry args={[0.085, 16, 12]} />
       <meshBasicMaterial color={color} depthTest={false} transparent opacity={0.95} />
     </mesh>
@@ -2774,10 +2844,11 @@ const FurnitureMesh = ({
           return;
         }
         onSelect({ kind: "furniture", id: item.id });
-        if (editMode === "select") drag.onPointerDown(event);
+        if (editMode === "select" && selected) drag.onPointerDown(event);
       }}
       onPointerMove={editMode === "select" ? drag.onPointerMove : undefined}
       onPointerUp={editMode === "select" ? drag.onPointerUp : undefined}
+      onPointerCancel={editMode === "select" ? drag.onPointerCancel : undefined}
     >
       <FurniturePrimitive
         item={item}
@@ -3213,10 +3284,12 @@ const FixtureMesh = ({
   const placement = usePlacement();
   const updateLight = useProjectStore((store) => store.updateLight);
   const deleteSelection = useProjectStore((store) => store.deleteSelection);
+  const project = useProjectStore((store) => store.project);
   const floorLevelM = useProjectStore((store) => store.project.room.floorLevelM ?? 0);
   const lights = useProjectStore((store) => store.project.lights);
   const toggleLightSelection = useProjectStore((store) => store.toggleLightSelection);
   const multiSelected = useProjectStore((store) => store.selectedLightIds.includes(fixture.id));
+  const wallMounted = isWallMountedFixture(fixture);
   // ドラッグ中に効いている整列軸のガイド位置（編集時のみ描画）。
   const [dragSnap, setDragSnap] = useState<{ snapX: number | null; snapZ: number | null } | null>(null);
   const drag = useFloorDrag(
@@ -3224,6 +3297,23 @@ const FixtureMesh = ({
     // 照明も floorLevelM 群に乗るのでドラッグ平面も同量持ち上げる（floorLevelM=0で従来同一）。
     floorLevelM + fixture.position.y,
     (rawX, rawZ) => {
+      if (wallMounted) {
+        const placement = wallMountedLightPlacementAt(
+          project,
+          rawX,
+          rawZ,
+          fixture.position.y,
+          fixture.floor ?? project.activeFloor ?? 1
+        );
+        if (!placement) return;
+        updateLight(fixture.id, {
+          position: placement.position,
+          mountHeightM: placement.position.y,
+          rotationDeg: { ...fixture.rotationDeg, y: placement.rotationYDeg },
+          target: placement.target
+        });
+        return;
+      }
       // 生の(x,z)を他ライト軸へ吸着してから反映（掴み相対オフセットは useFloorDrag が保持済み）。
       const snap = snapDragToLightAxes(rawX, rawZ, lights, fixture.id);
       setDragSnap(snap.snapX !== null || snap.snapZ !== null ? { snapX: snap.snapX, snapZ: snap.snapZ } : null);
@@ -3262,13 +3352,21 @@ const FixtureMesh = ({
           return;
         }
         onSelect({ kind: "light", id: fixture.id });
-        if (editMode === "select") drag.onPointerDown(event);
+        if (editMode === "select" && (selected || multiSelected)) drag.onPointerDown(event);
       }}
       onPointerMove={editMode === "select" ? drag.onPointerMove : undefined}
       onPointerUp={
         editMode === "select"
           ? (event: ThreeEvent<PointerEvent>) => {
               drag.onPointerUp(event);
+              setDragSnap(null);
+            }
+          : undefined
+      }
+      onPointerCancel={
+        editMode === "select"
+          ? (event: ThreeEvent<PointerEvent>) => {
+              drag.onPointerCancel(event);
               setDragSnap(null);
             }
           : undefined
@@ -3315,6 +3413,7 @@ const FixtureMesh = ({
 
 const LightAimHandle = ({ fixture }: { fixture: LightFixture }) => {
   const controls = useThree((state) => state.controls) as { enabled: boolean } | null;
+  const touchGuard = useTouchDragGuard();
   const updateLight = useProjectStore((store) => store.updateLight);
   const floorLevelM = useProjectStore((store) => store.project.room.floorLevelM ?? 0);
   const target = fixture.target ?? { x: fixture.position.x, y: 0, z: fixture.position.z };
@@ -3351,6 +3450,7 @@ const LightAimHandle = ({ fixture }: { fixture: LightFixture }) => {
 
   const startHorizontalDrag = (event: ThreeEvent<PointerEvent>) => {
     if (event.button !== 0) return;
+    if (event.pointerType === "touch" && touchGuard.hasMultiTouch()) return;
     event.stopPropagation();
     horizontalPlane.constant = -(floorLevelM + target.y);
     if (!event.ray.intersectPlane(horizontalPlane, hit)) return;
@@ -3366,6 +3466,7 @@ const LightAimHandle = ({ fixture }: { fixture: LightFixture }) => {
 
   const startHeightDrag = (event: ThreeEvent<PointerEvent>) => {
     if (event.button !== 0) return;
+    if (event.pointerType === "touch" && touchGuard.hasMultiTouch()) return;
     event.stopPropagation();
     dragRef.current = {
       mode: "height",
@@ -3380,6 +3481,10 @@ const LightAimHandle = ({ fixture }: { fixture: LightFixture }) => {
   const handlePointerMove = (event: ThreeEvent<PointerEvent>) => {
     const drag = dragRef.current;
     if (!drag.mode) return;
+    if (event.pointerType === "touch" && touchGuard.hasMultiTouch()) {
+      stopDrag(event);
+      return;
+    }
     event.stopPropagation();
     if (drag.mode === "plane") {
       horizontalPlane.constant = -(floorLevelM + target.y);
@@ -3410,7 +3515,7 @@ const LightAimHandle = ({ fixture }: { fixture: LightFixture }) => {
   };
 
   return (
-    <group onPointerMove={handlePointerMove} onPointerUp={stopDrag} renderOrder={40}>
+    <group onPointerMove={handlePointerMove} onPointerUp={stopDrag} onPointerCancel={stopDrag} renderOrder={40}>
       <DebugLine from={[0, 0, 0]} to={[localOffset.x, localOffset.y, localOffset.z]} color="#ffd34f" />
       <DebugLine
         from={[localOffset.x + heightGripOffsetX, minTargetY - fixture.position.y, localOffset.z]}
@@ -3909,7 +4014,7 @@ const PlacementLayer = ({
     if (isWallLightAddKind(pendingAdd)) {
       if (!wallCursor) return null;
       return (
-        <group position={[wallCursor.x, wallCursor.y, wallCursor.z]} rotation={[0, -wallCursor.angle, 0]}>
+        <group position={[wallCursor.x, wallCursor.y, wallCursor.z]} rotation={[0, wallCursor.angle, 0]}>
           <mesh>
             <boxGeometry args={[0.16, 0.16, 0.08]} />
             {ghostMaterial}
@@ -3997,6 +4102,8 @@ export const Scene3D = (props: Scene3DProps) => (
       gl.shadowMap.type = THREE.PCFSoftShadowMap;
     }}
   >
-    <SceneRoot {...props} />
+    <TouchDragGuardProvider>
+      <SceneRoot {...props} />
+    </TouchDragGuardProvider>
   </Canvas>
 );

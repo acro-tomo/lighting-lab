@@ -14,6 +14,7 @@ import { DEFAULT_DAYLIGHT } from "../utils/sun";
 import { ScaleCalibrationModal } from "./ScaleCalibrationModal";
 import type { EditMode } from "./EditToolbar";
 import { isWallLightAddKind } from "../data/fixtureAddKinds";
+import { isWallMountedFixture, wallMountedLightPlacementAt } from "../utils/fixtureMounting";
 
 type Plan2DProps = {
   project: Project;
@@ -525,6 +526,15 @@ export const Plan2D = ({
     if (touchPointersRef.current.size < 2) pinchRef.current = null;
   };
 
+  const handleObjectPointerDownCapture = (event: React.PointerEvent<SVGGElement>) => {
+    if (event.pointerType !== "touch") return;
+    touchPointersRef.current.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
+    if (touchPointersRef.current.size >= 2) {
+      event.preventDefault();
+      startPinch();
+    }
+  };
+
   useEffect(() => {
     if (mode !== "wall") return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -836,6 +846,24 @@ export const Plan2D = ({
     } else if (dragging.kind === "light") {
       const fixture = project.lights.find((candidate) => candidate.id === dragging.id);
       if (!fixture) return;
+      if (isWallMountedFixture(fixture)) {
+        const placement = wallMountedLightPlacementAt(
+          project,
+          next.x,
+          next.z,
+          fixture.position.y,
+          fixture.floor ?? project.activeFloor ?? 1
+        );
+        if (!placement) return;
+        setSnapGuides({ x: null, z: null });
+        updateLight(fixture.id, {
+          position: placement.position,
+          mountHeightM: placement.position.y,
+          rotationDeg: { ...fixture.rotationDeg, y: placement.rotationYDeg },
+          target: placement.target
+        });
+        return;
+      }
       // パワポ風の整列スナップ: 他ライトの x/z に SNAP_M 以内なら吸着し、ガイド線を出す。
       let snapX: number | null = null;
       let snapZ: number | null = null;
@@ -1175,7 +1203,10 @@ export const Plan2D = ({
           )}
           {/* 壁作図/追加中はオブジェクトがクリックを奪わないよう pointerEvents を切り、
               背景の handleCanvasPointerDown に素通りさせる。通常操作だけ受け取る。 */}
-          <g style={{ pointerEvents: canSelectObjects ? "auto" : "none" }}>
+          <g
+            style={{ pointerEvents: canSelectObjects ? "auto" : "none" }}
+            onPointerDownCapture={handleObjectPointerDownCapture}
+          >
             <RoomOutline
               walls={activeWalls}
               selection={selection}
@@ -1554,11 +1585,11 @@ const OpeningPlanItem = ({
 
   return (
     <g
-      style={{ cursor: canDrag ? "grab" : "pointer" }}
+      style={{ cursor: canDrag && selected ? "grab" : "pointer" }}
       onPointerDown={(event) => {
         event.stopPropagation();
         onSelect({ kind, id: windowItem.id });
-        if (canDrag) onDragStart();
+        if (canDrag && selected && !(event.pointerType === "touch" && !event.isPrimary)) onDragStart();
       }}
     >
       {/* 透明の太いヒット線で掴みやすくする（表示線は細いまま）。 */}
@@ -1604,7 +1635,7 @@ const VoidPlanItem = ({
   const handlePointerDown = (event: React.PointerEvent<SVGGElement>) => {
     event.stopPropagation();
     onSelect({ kind: "void", id: voidArea.id });
-    if (!canDrag) return;
+    if (!canDrag || !selected || (event.pointerType === "touch" && !event.isPrimary)) return;
     const point = svgToWorld(event.clientX, event.clientY);
     onDragStart({
       x: point.x - voidArea.center.x,
@@ -1657,7 +1688,7 @@ const CeilingZonePlanItem = ({
   const handlePointerDown = (event: React.PointerEvent<SVGGElement>) => {
     event.stopPropagation();
     onSelect({ kind: "ceilingZone", id: zone.id });
-    if (!canDrag) return;
+    if (!canDrag || !selected || (event.pointerType === "touch" && !event.isPrimary)) return;
     const point = svgToWorld(event.clientX, event.clientY);
     onDragStart({ x: point.x - zone.center.x, z: point.z - zone.center.z });
   };
@@ -1707,7 +1738,7 @@ const FloorZonePlanItem = ({
   const handlePointerDown = (event: React.PointerEvent<SVGGElement>) => {
     event.stopPropagation();
     onSelect({ kind: "floorZone", id: zone.id });
-    if (!canDrag) return;
+    if (!canDrag || !selected || (event.pointerType === "touch" && !event.isPrimary)) return;
     const point = svgToWorld(event.clientX, event.clientY);
     onDragStart({ x: point.x - zone.center.x, z: point.z - zone.center.z });
   };
@@ -1760,7 +1791,7 @@ const FurniturePlanItem = ({
   const handlePointerDown = (event: React.PointerEvent<SVGGElement>) => {
     event.stopPropagation();
     onSelect({ kind: "furniture", id: item.id });
-    if (!canDrag) return;
+    if (!canDrag || !selected || (event.pointerType === "touch" && !event.isPrimary)) return;
     const point = svgToWorld(event.clientX, event.clientY);
     onDragStart({
       x: point.x - item.position.x,
@@ -1812,7 +1843,7 @@ const LightPlanItem = ({
     event.stopPropagation();
     onSelectLight(fixture.id, event.shiftKey);
     // Shift+クリックは複数選択トグルのみ。ドラッグは開始しない。
-    if (event.shiftKey || !canDrag) return;
+    if (event.shiftKey || !canDrag || !selected || (event.pointerType === "touch" && !event.isPrimary)) return;
     const point = svgToWorld(event.clientX, event.clientY);
     onDragStart({
       x: point.x - fixture.position.x,

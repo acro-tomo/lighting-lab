@@ -113,6 +113,7 @@ type NewFixtureOptions = {
     y: number;
     z: number;
     target: { x: number; y: number; z: number };
+    rotationYDeg?: number;
   };
 };
 
@@ -146,7 +147,7 @@ export const newFixtureFromModel = (
       type: model.baseType,
       position: { x, y, z },
       mountHeightM: y,
-      rotationDeg: { x: 0, y: 0, z: 0 },
+      rotationDeg: { x: 0, y: opts.wall?.rotationYDeg ?? 0, z: 0 },
       target: opts.wall?.target ?? { x: 0, y: 0.9, z: 0 },
       dimmer: 85,
       note: model.description

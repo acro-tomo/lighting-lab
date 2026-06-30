@@ -23,6 +23,7 @@ import { FeedbackForm } from "./components/FeedbackForm";
 import { APP_NAME, getAppDisplayUrl } from "./config/appMeta";
 import { fixtureModelMap } from "./data/fixtureCatalog";
 import { ceilingMountHeightAt } from "./utils/ceiling";
+import { wallMountedLightPlacementOnWall } from "./utils/fixtureMounting";
 
 const withWatermark = (dataUrl: string): Promise<string> =>
   new Promise((resolve) => {
@@ -503,19 +504,25 @@ export const App = () => {
           : side === "south"
             ? voidArea.center.z + voidArea.size.z / 2
             : voidArea.center.z + (centerRatio - 0.5) * voidArea.size.z;
+      const target = { x: voidArea.center.x, y: Math.max(0.6, heightM - 0.7), z: voidArea.center.z };
       return {
         x,
         y: heightM,
         z,
-        target: { x: voidArea.center.x, y: Math.max(0.6, heightM - 0.7), z: voidArea.center.z }
+        target,
+        rotationYDeg: (Math.atan2(target.x - x, target.z - z) * 180) / Math.PI
       };
     }
 
-    const wall = project.walls.find((candidate) => candidate.id === wallId);
-    if (!wall) return null;
-    const x = wall.start.x + (wall.end.x - wall.start.x) * centerRatio;
-    const z = wall.start.z + (wall.end.z - wall.start.z) * centerRatio;
-    return { x, y: heightM, z, target: { x: 0, y: Math.max(0.6, heightM - 0.7), z: 0 } };
+    const placement = wallMountedLightPlacementOnWall(project, wallId, centerRatio, heightM);
+    if (!placement) return null;
+    return {
+      x: placement.position.x,
+      y: placement.position.y,
+      z: placement.position.z,
+      target: placement.target,
+      rotationYDeg: placement.rotationYDeg
+    };
   };
 
   const handleAddObject = useCallback(
@@ -596,15 +603,14 @@ export const App = () => {
     }
     setPendingAdd(nextKind);
     setMode("select");
-    openMobileView("plan");
     setNotice(
       nextKind === "door" || nextKind.startsWith("window") || isWallLightAddKind(nextKind)
-        ? "設置したい壁を2Dでクリックしてください。Escで終了。"
+        ? "設置したい壁をクリックしてください。Escで終了。"
         : isLightAddKind(nextKind)
           ? "配置したい位置をクリックしてください。配置後は選択してCmd+C / Cmd+Vで複製できます。"
-          : "配置したい位置を2Dでクリックしてください。"
+          : "配置したい位置をクリックしてください。"
     );
-  }, [openMobileView, project.room.ceilingHeightM]);
+  }, [project.room.ceilingHeightM]);
 
   // 床に置く物の配置（クリック位置）。連続配置はせず、複製はCmd+C / Cmd+Vに寄せる。
   const handlePlaceObject = useCallback(
@@ -616,7 +622,7 @@ export const App = () => {
       setNotice(
         isLightAddKind(pendingAdd)
           ? "配置しました。選択してCmd+C / Cmd+Vで複製できます。"
-          : "配置しました。ドラッグで微調整できます。"
+          : "配置しました。選択後にドラッグで微調整できます。"
       );
     },
     [pendingAdd, handleAddObject]
@@ -639,7 +645,7 @@ export const App = () => {
       handleAddObject(pendingAdd, { wallId, centerRatio });
       setPendingAdd(null);
       setMode("select");
-      setNotice("壁に設置しました。2Dで壁上をドラッグして位置を調整できます。");
+      setNotice("壁に設置しました。選択後に壁上をドラッグして位置を調整できます。");
     },
     [pendingAdd, handleAddObject, addLight, project]
   );
@@ -699,7 +705,7 @@ export const App = () => {
                   ? "クリックで壁の頂点（1/4尺刻み）、Enter/ダブルクリックで終了"
                   : planEditMode
                     ? "壁を選択・ドラッグで移動。Deleteで削除"
-                    : "クリックで選択・ドラッグで移動"}
+                    : "クリックで選択、選択後ドラッグで移動"}
           </span>
           <div className="floor-toggle" role="group" aria-label="階切替">
             <button
