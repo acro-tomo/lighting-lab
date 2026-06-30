@@ -1,9 +1,10 @@
 import * as THREE from "three";
 import { WebGLPathTracer } from "three-gpu-pathtracer";
 import { GenerateMeshBVHWorker } from "three-mesh-bvh/src/workers/index.js";
-import type { FurnitureItem, MaterialPreset, Project } from "../types";
+import type { FurnitureItem, MaterialPreset, Project, WallSegment, WindowOpening } from "../types";
 import { bracketRoomwardOffset, colorTemperatureToHex, lumensToPhysicalPower } from "../utils/lighting";
 import { DEFAULT_DAYLIGHT, sunVector } from "../utils/sun";
+import { wallInwardNormal } from "../utils/wallGeometry";
 import {
   buildSkyEnvironment,
   SKY_ENVIRONMENT_INTENSITY,
@@ -134,11 +135,12 @@ const addPanel = (
   normal: THREE.Vector3,
   material: THREE.Material,
   role: string,
-  debugMode: RenderDebugMode
+  debugMode: RenderDebugMode,
+  side: THREE.Side = THREE.DoubleSide
 ) => {
   const geometry = new THREE.PlaneGeometry(width, height);
   const panelMaterial = diagnosticMaterial(role, debugMode, material);
-  panelMaterial.side = THREE.DoubleSide;
+  panelMaterial.side = side;
   const mesh = new THREE.Mesh(geometry, panelMaterial);
   mesh.position.copy(position);
   mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal.clone().normalize());
@@ -184,26 +186,34 @@ const wallPanelRects = (length: number, height: number, holes: WallHole[]) => {
 
 const addInteriorWallPanel = (
   scene: THREE.Scene,
-  wallStart: { x: number; z: number },
-  wallEnd: { x: number; z: number },
-  height: number,
+  wall: WallSegment,
   material: THREE.Material,
   debugMode: RenderDebugMode,
-  holes: WallHole[] = [],
-  roomCenter = new THREE.Vector3(0, 0, 0)
+  windows: WindowOpening[] = [],
+  roomCenter: { x: number; z: number } = { x: 0, z: 0 }
 ) => {
+  const { start: wallStart, end: wallEnd, heightM: height } = wall;
   const dx = wallEnd.x - wallStart.x;
   const dz = wallEnd.z - wallStart.z;
   const length = Math.hypot(dx, dz);
   if (length <= 0.001) return null;
 
   const midpoint = new THREE.Vector3((wallStart.x + wallEnd.x) / 2, height / 2, (wallStart.z + wallEnd.z) / 2);
-  const normalA = new THREE.Vector3(-dz / length, 0, dx / length);
-  const normalB = normalA.clone().multiplyScalar(-1);
-  const toCenter = roomCenter.clone().sub(midpoint);
-  const normal = normalA.dot(toCenter) >= normalB.dot(toCenter) ? normalA : normalB;
+  const inward = wallInwardNormal(wall, roomCenter);
+  const normal = new THREE.Vector3(inward.x, 0, inward.z);
   const rotationY = Math.atan2(normal.x, normal.z);
   const localXAxis = new THREE.Vector3(Math.cos(rotationY), 0, -Math.sin(rotationY));
+  const holes = windows.map((windowItem) => {
+    const x = wall.start.x + (wall.end.x - wall.start.x) * windowItem.centerRatio;
+    const z = wall.start.z + (wall.end.z - wall.start.z) * windowItem.centerRatio;
+    const cxCentered = new THREE.Vector3(x - midpoint.x, 0, z - midpoint.z).dot(localXAxis);
+    return {
+      cx: cxCentered + length / 2,
+      w: windowItem.widthM,
+      bottom: windowItem.sillHeightM,
+      top: windowItem.sillHeightM + windowItem.heightM
+    };
+  });
 
   // 開口でくり抜いた残りパネルを、壁中心からローカルX/Yオフセットで配置する。
   wallPanelRects(length, height, holes).forEach((rect) => {
@@ -211,7 +221,7 @@ const addInteriorWallPanel = (
     const localY = rect.cy - height / 2;
     const pos = midpoint.clone().add(localXAxis.clone().multiplyScalar(localX));
     pos.y = midpoint.y + localY;
-    addPanel(scene, rect.w, rect.h, pos, normal, material, "wall", debugMode);
+    addPanel(scene, rect.w, rect.h, pos, normal, material, "wall", debugMode, THREE.FrontSide);
   });
   return null;
 };
@@ -472,19 +482,26 @@ const buildPathTraceScene = (
     addHorizontalPanel(scene, size.x, size.z, upperCeilingHeight, -1, ceilingMaterial, "ceiling", debugMode, center.x, center.z);
   });
 
+  const wallNormalFallback = (() => {
+    if (project.walls.length === 0) return { x: 0, z: 0 };
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minZ = Infinity;
+    let maxZ = -Infinity;
+    for (const wall of project.walls) {
+      minX = Math.min(minX, wall.start.x, wall.end.x);
+      maxX = Math.max(maxX, wall.start.x, wall.end.x);
+      minZ = Math.min(minZ, wall.start.z, wall.end.z);
+      maxZ = Math.max(maxZ, wall.start.z, wall.end.z);
+    }
+    return { x: (minX + maxX) / 2, z: (minZ + maxZ) / 2 };
+  })();
+
   project.walls.forEach((wall) => {
     const dx = wall.end.x - wall.start.x;
     const dz = wall.end.z - wall.start.z;
     const length = Math.hypot(dx, dz);
-    // この壁の開口を壁内座標(0..length)へ。centerRatio は start→end 比なので length 倍。
-    const holes = project.windows
-      .filter((windowItem) => windowItem.wallId === wall.id)
-      .map((windowItem) => ({
-        cx: windowItem.centerRatio * length,
-        w: windowItem.widthM,
-        bottom: windowItem.sillHeightM,
-        top: windowItem.sillHeightM + windowItem.heightM
-      }));
+    const wallWindows = project.windows.filter((windowItem) => windowItem.wallId === wall.id);
     // 手すりは「抜け」が要るのでソリッドパネルにせず笠木+縦支柱で組む（編集シーンと寸法/間隔を揃える）。
     if (wall.kind === "railing") {
       const cx = (wall.start.x + wall.end.x) / 2;
@@ -507,7 +524,14 @@ const buildPathTraceScene = (
       }
       return;
     }
-    addInteriorWallPanel(scene, wall.start, wall.end, wall.heightM, makeMaterial(materials.get(wall.materialId), "#e2ddd2"), debugMode, holes);
+    addInteriorWallPanel(
+      scene,
+      wall,
+      makeMaterial(materials.get(wall.materialId), "#e2ddd2"),
+      debugMode,
+      wallWindows,
+      wallNormalFallback
+    );
   });
 
   project.windows.forEach((windowItem) => {

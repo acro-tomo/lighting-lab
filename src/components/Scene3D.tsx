@@ -38,6 +38,7 @@ import { degToRad } from "../utils/units";
 import { DEFAULT_DAYLIGHT, sunVector } from "../utils/sun";
 import { ceilingMountHeightAt } from "../utils/ceiling";
 import { isWallMountedFixture, wallMountedLightPlacementAt } from "../utils/fixtureMounting";
+import { wallInwardNormal } from "../utils/wallGeometry";
 
 export type ViewMode = "raster" | "realistic";
 
@@ -1734,6 +1735,10 @@ const RoomShell = ({
   const upperCeilingHeight =
     wallMaxHeight > project.room.ceilingHeightM + 0.05 ? wallMaxHeight : project.room.ceilingHeightM + 1.4;
   const floorBounds = computeFloorBounds(project);
+  const roomCenter = useMemo(
+    () => new THREE.Vector3(floorBounds.centerX, 0, floorBounds.centerZ),
+    [floorBounds.centerX, floorBounds.centerZ]
+  );
   // 室内仕上げ床のレベル。土間(FloorZone)が地面(Y=0)より下に潜らないよう室内全体を持ち上げる。
   // 未設定(=0)なら translate ゼロで従来とピクセル等価。
   const floorLevelM = project.room.floorLevelM ?? 0;
@@ -1800,7 +1805,7 @@ const RoomShell = ({
           walls={project.walls}
           windows={project.windows.filter((windowItem) => windowItem.wallId === wall.id)}
           material={materialMap.get(wall.materialId) ?? ceilingMaterial}
-          roomCenter={new THREE.Vector3(0, 0, 0)}
+          roomCenter={roomCenter}
           selected={canEditWalls && selection?.kind === "wall" && selection.id === wall.id}
           onSelect={onSelect}
           debugMode={debugMode}
@@ -2295,19 +2300,30 @@ const WallPanel = ({
     );
     return clone;
   }, [wallpaper, rect.w, rect.h, tile.w, tile.h]);
+  const wallColor = debugColorForRole("wall", debugMode, material.baseColor);
 
   return (
-    // 平面ではなく depth(壁厚)を持つ箱にする。芯線(z=0)中心で対称＝innerSide非依存。
-    // 厚みで両面が立つため side は FrontSide で足り、抜けは起きない。
     <mesh position={[rect.cx, rect.cy - wallHeight / 2, 0]} receiveShadow castShadow>
       <boxGeometry args={[rect.w, rect.h, depth]} />
-      <meshStandardMaterial
-        map={map ?? undefined}
-        color={map ? "#ffffff" : debugColorForRole("wall", debugMode, material.baseColor)}
-        roughness={material.roughness}
-        metalness={material.metalness}
-        emissive={material.emissiveColor}
-        emissiveIntensity={debugMode === "beauty" ? material.emissiveIntensity : 0}
+      {[0, 1, 2, 3, 4].map((index) => (
+        <meshStandardMaterial
+          key={index}
+          attach={`material-${index}`}
+          map={map ?? undefined}
+          color={map ? "#ffffff" : wallColor}
+          roughness={material.roughness}
+          metalness={material.metalness}
+          emissive={material.emissiveColor}
+          emissiveIntensity={debugMode === "beauty" ? material.emissiveIntensity : 0}
+        />
+      ))}
+      {/* BoxGeometry material-5 is local -Z; group local +Z faces the room, so -Z is the exterior skin. */}
+      <meshBasicMaterial
+        attach="material-5"
+        transparent
+        opacity={0}
+        depthWrite={false}
+        colorWrite={false}
       />
     </mesh>
   );
@@ -2372,10 +2388,8 @@ const WallMesh = ({
   const dz = ext.end.z - ext.start.z;
   const length = Math.hypot(dx, dz);
   const midpointVector = new THREE.Vector3((ext.start.x + ext.end.x) / 2, wall.heightM / 2, (ext.start.z + ext.end.z) / 2);
-  const normalA = new THREE.Vector3(-dz / length, 0, dx / length);
-  const normalB = normalA.clone().multiplyScalar(-1);
-  const toCenter = roomCenter.clone().sub(midpointVector);
-  const inwardNormal = normalA.dot(toCenter) >= normalB.dot(toCenter) ? normalA : normalB;
+  const inward = wallInwardNormal(wall, { x: roomCenter.x, z: roomCenter.z });
+  const inwardNormal = new THREE.Vector3(inward.x, 0, inward.z);
   const rotationY = Math.atan2(inwardNormal.x, inwardNormal.z);
   const pathTraced = usePathTraced();
   const placement = usePlacement();
@@ -2531,7 +2545,7 @@ const WallMesh = ({
       {selected && !pathTraced && (
         <mesh>
           <planeGeometry args={[length + 0.03, wall.heightM + 0.03]} />
-          <meshBasicMaterial color="#f5c64d" wireframe transparent opacity={0.85} />
+          <meshBasicMaterial color="#f5c64d" wireframe transparent opacity={0.85} side={THREE.DoubleSide} />
         </mesh>
       )}
     </group>
@@ -3835,9 +3849,8 @@ const NormalDebugHelpers = ({ project }: { project: Project }) => {
     const length = Math.hypot(dx, dz);
     const midpoint = new THREE.Vector3((wall.start.x + wall.end.x) / 2, wall.heightM / 2, (wall.start.z + wall.end.z) / 2);
     if (length <= 0.001) return null;
-    const normalA = new THREE.Vector3(-dz / length, 0, dx / length);
-    const normalB = normalA.clone().multiplyScalar(-1);
-    const normal = normalA.dot(midpoint.clone().multiplyScalar(-1)) >= normalB.dot(midpoint.clone().multiplyScalar(-1)) ? normalA : normalB;
+    const inward = wallInwardNormal(wall, { x: 0, z: 0 });
+    const normal = new THREE.Vector3(inward.x, 0, inward.z);
     const to = midpoint.clone().add(normal.multiplyScalar(0.45));
     return (
       <DebugLine
