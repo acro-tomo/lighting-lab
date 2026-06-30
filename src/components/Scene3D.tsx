@@ -3505,12 +3505,15 @@ const LightAimHandle = ({ fixture }: { fixture: LightFixture }) => {
     if (event.pointerType === "touch" && touchGuard.hasMultiTouch()) return;
     event.stopPropagation();
     horizontalPlane.constant = -(floorLevelM + target.y);
-    if (!event.ray.intersectPlane(horizontalPlane, hit)) return;
+    // レイが水平面とほぼ平行(カメラが面と同高)だと intersectPlane が外れるが、
+    // ここで return するとドラッグが起動しない。掴みオフセット0でモードだけ確定し、
+    // 以降の move で面ヒットが取れた時点から追従を開始する（信頼性優先）。
+    const grabbed = event.ray.intersectPlane(horizontalPlane, hit);
     dragRef.current = {
       mode: "plane",
-      grabX: target.x - hit.x,
+      grabX: grabbed ? target.x - hit.x : 0,
       grabY: 0,
-      grabZ: target.z - hit.z
+      grabZ: grabbed ? target.z - hit.z : 0
     };
     (event.target as Element | null)?.setPointerCapture?.(event.pointerId);
     if (controls) controls.enabled = false;
@@ -3566,8 +3569,18 @@ const LightAimHandle = ({ fixture }: { fixture: LightFixture }) => {
     if (controls) controls.enabled = true;
   };
 
+  // setPointerCapture は event.target（＝onPointerDown を持つグリップmesh）に掛かるため、
+  // 追従/終了ハンドラも同じmeshに置かないと move が親グループに届かず即ドロップする。
+  // useFloorDrag と同じく capture 先とハンドラ所有者を一致させる。
+  const gripDragHandlers = {
+    onPointerMove: handlePointerMove,
+    onPointerUp: stopDrag,
+    onPointerCancel: stopDrag,
+    onLostPointerCapture: stopDrag
+  };
+
   return (
-    <group onPointerMove={handlePointerMove} onPointerUp={stopDrag} onPointerCancel={stopDrag} renderOrder={40}>
+    <group renderOrder={40}>
       <DebugLine from={[0, 0, 0]} to={[localOffset.x, localOffset.y, localOffset.z]} color="#ffd34f" />
       <DebugLine
         from={[localOffset.x + heightGripOffsetX, minTargetY - fixture.position.y, localOffset.z]}
@@ -3575,23 +3588,29 @@ const LightAimHandle = ({ fixture }: { fixture: LightFixture }) => {
         color="#ffe38a"
       />
       <group position={[localOffset.x, localOffset.y, localOffset.z]}>
-        <mesh rotation-x={Math.PI / 2} onPointerDown={startHorizontalDrag} renderOrder={42}>
-          <torusGeometry args={[0.17, 0.012, 8, 40]} />
+        {/* 当たり判定プロキシ: リング内側まで掴める不可視ディスク（colorWrite=false で
+            描画されないが raycast 対象）。極小グリップのヒット面積不足を補う。 */}
+        <mesh onPointerDown={startHorizontalDrag} {...gripDragHandlers} renderOrder={41}>
+          <cylinderGeometry args={[0.2, 0.2, 0.04, 24]} />
+          <meshBasicMaterial colorWrite={false} depthWrite={false} depthTest={false} transparent opacity={0} />
+        </mesh>
+        <mesh rotation-x={Math.PI / 2} onPointerDown={startHorizontalDrag} {...gripDragHandlers} renderOrder={42}>
+          <torusGeometry args={[0.17, 0.02, 8, 40]} />
           <meshBasicMaterial color="#ffd34f" transparent opacity={0.95} depthTest={false} />
         </mesh>
-        <mesh onPointerDown={startHorizontalDrag} renderOrder={43}>
+        <mesh onPointerDown={startHorizontalDrag} {...gripDragHandlers} renderOrder={43}>
           <sphereGeometry args={[0.06, 18, 12]} />
           <meshBasicMaterial color="#fff2a8" transparent opacity={0.95} depthTest={false} />
         </mesh>
-        <mesh position={[heightGripOffsetX, 0, 0]} onPointerDown={startHeightDrag} renderOrder={44}>
+        <mesh position={[heightGripOffsetX, 0, 0]} onPointerDown={startHeightDrag} {...gripDragHandlers} renderOrder={44}>
           <sphereGeometry args={[0.055, 18, 12]} />
           <meshBasicMaterial color="#ffb347" transparent opacity={0.95} depthTest={false} />
         </mesh>
-        <mesh position={[heightGripOffsetX, 0.12, 0]} onPointerDown={startHeightDrag} renderOrder={44}>
+        <mesh position={[heightGripOffsetX, 0.12, 0]} onPointerDown={startHeightDrag} {...gripDragHandlers} renderOrder={44}>
           <coneGeometry args={[0.045, 0.09, 18]} />
           <meshBasicMaterial color="#ffb347" transparent opacity={0.85} depthTest={false} />
         </mesh>
-        <mesh position={[heightGripOffsetX, -0.12, 0]} rotation-x={Math.PI} onPointerDown={startHeightDrag} renderOrder={44}>
+        <mesh position={[heightGripOffsetX, -0.12, 0]} rotation-x={Math.PI} onPointerDown={startHeightDrag} {...gripDragHandlers} renderOrder={44}>
           <coneGeometry args={[0.045, 0.09, 18]} />
           <meshBasicMaterial color="#ffb347" transparent opacity={0.85} depthTest={false} />
         </mesh>
