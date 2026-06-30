@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent, type ReactNode } from "react";
+import { useState, useRef, type ChangeEvent, type ReactNode } from "react";
 import type { CeilingZone, FloorZone, FurnitureItem, LightFixture, LightType, MaterialPreset, Project, Selection, VoidArea, VoidSide, WallSegment, WindowOpening } from "../types";
 import { useProjectStore } from "../store/projectStore";
 import { applyFixtureModel, fixtureCatalog, getFixtureModel } from "../data/fixtureCatalog";
@@ -54,6 +54,107 @@ const voidSideLabels: { side: VoidSide; label: string }[] = [
   { side: "east", label: "東" }
 ];
 
+// 方位角ダイヤル。器具位置を上から見た水平向きをドラッグで変更する。
+const AimAzimuthDial = ({
+  light,
+  aim,
+  onChange
+}: {
+  light: LightFixture;
+  aim: LightFixture["target"];
+  onChange: (target: NonNullable<LightFixture["target"]>) => void;
+}) => {
+  const currentAim = aim ?? { x: light.position.x, y: 0, z: light.position.z };
+  const dx = currentAim.x - light.position.x;
+  const dz = currentAim.z - light.position.z;
+  const r = Math.hypot(dx, dz);
+  // r がほぼ0のとき（真下向き）は水平距離 1m を仮定して方位だけ変えられるようにする。
+  const effectiveR = r < 0.02 ? 1.0 : r;
+  const azRad = r < 0.02 ? 0 : Math.atan2(dz, dx);
+
+  const SIZE = 80;
+  const CX = SIZE / 2;
+  const CY = SIZE / 2;
+  const RING_R = 30;
+
+  const needleX = CX + RING_R * Math.cos(azRad);
+  const needleY = CY + RING_R * Math.sin(azRad);
+
+  const svgRef = useRef<SVGSVGElement>(null);
+  // ドラッグ中かどうかは ref で管理して余計な再レンダーを避ける。
+  const draggingRef = useRef(false);
+
+  const getAngle = (clientX: number, clientY: number): number => {
+    const svg = svgRef.current;
+    if (!svg) return azRad;
+    const rect = svg.getBoundingClientRect();
+    return Math.atan2(clientY - rect.top - rect.height / 2, clientX - rect.left - rect.width / 2);
+  };
+
+  const applyAngle = (az: number) => {
+    onChange({
+      ...currentAim,
+      x: light.position.x + effectiveR * Math.cos(az),
+      z: light.position.z + effectiveR * Math.sin(az)
+    });
+  };
+
+  const cardinalAngles = [0, Math.PI / 2, Math.PI, -Math.PI / 2];
+
+  return (
+    <div className="aim-dial-wrap">
+      <svg
+        ref={svgRef}
+        width={SIZE}
+        height={SIZE}
+        className="aim-dial"
+        onPointerDown={(e) => {
+          e.currentTarget.setPointerCapture(e.pointerId);
+          draggingRef.current = true;
+          applyAngle(getAngle(e.clientX, e.clientY));
+        }}
+        onPointerMove={(e) => {
+          if (!draggingRef.current) return;
+          applyAngle(getAngle(e.clientX, e.clientY));
+        }}
+        onPointerUp={(e) => {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+          draggingRef.current = false;
+        }}
+      >
+        <circle cx={CX} cy={CY} r={RING_R} className="aim-dial-ring" />
+        {cardinalAngles.map((t) => (
+          <line
+            key={t}
+            x1={CX + (RING_R - 6) * Math.cos(t)}
+            y1={CY + (RING_R - 6) * Math.sin(t)}
+            x2={CX + RING_R * Math.cos(t)}
+            y2={CY + RING_R * Math.sin(t)}
+            className="aim-dial-tick"
+          />
+        ))}
+        <line x1={CX} y1={CY} x2={needleX} y2={needleY} className="aim-dial-needle" />
+        <circle cx={CX} cy={CY} r={3} className="aim-dial-center" />
+        <circle cx={needleX} cy={needleY} r={4.5} className="aim-dial-tip" />
+      </svg>
+      <label className="aim-dial-deg field">
+        <span>方位角</span>
+        <div className="number-input">
+          <input
+            type="number"
+            value={Math.round(azRad * (180 / Math.PI))}
+            min={-180}
+            max={180}
+            step={5}
+            onChange={(e) => applyAngle(Number(e.target.value) * (Math.PI / 180))}
+          />
+          <em>°</em>
+        </div>
+      </label>
+    </div>
+  );
+};
+
 const AimTargetPresets = ({
   light,
   aim,
@@ -92,7 +193,8 @@ const AimTargetPresets = ({
           </button>
         ))}
       </div>
-      <p className="field-hint">黄色の照射ポイントを3Dビュー上で調整</p>
+      <AimAzimuthDial light={light} aim={aim} onChange={onChange} />
+      <p className="field-hint">黄色の照射ポイントを3Dビュー上でも調整できます</p>
     </div>
   );
 };
