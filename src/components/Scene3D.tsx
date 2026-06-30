@@ -2315,7 +2315,8 @@ const WallPanel = ({
   wallpaper,
   tile,
   material,
-  debugMode
+  debugMode,
+  seeThrough
 }: {
   rect: WallPanelRect;
   wallHeight: number;
@@ -2324,6 +2325,9 @@ const WallPanel = ({
   tile: { w: number; h: number };
   material: MaterialPreset;
   debugMode: RenderDebugMode;
+  // カメラがこの壁の外側にいるとき true。外壁スキン(material-5)を薄く透かして
+  // 室外から室内を覗けるようにする。mesh 自体は raycast 対象のまま残す。
+  seeThrough: boolean;
 }) => {
   const map = useMemo(() => {
     if (!wallpaper) return null;
@@ -2352,7 +2356,8 @@ const WallPanel = ({
           emissiveIntensity={debugMode === "beauty" ? material.emissiveIntensity : 0}
         />
       ))}
-      {/* BoxGeometry material-5 is local -Z; keep the exterior skin visible through window openings. */}
+      {/* BoxGeometry material-5 is local -Z = 外壁スキン。室内側から見るときは不透明にして
+          窓越しの見え方を正す(f80ab97)。室外側から覗くときは薄く透かして室内が見えるようにする。 */}
       <meshStandardMaterial
         attach="material-5"
         map={map ?? undefined}
@@ -2362,6 +2367,9 @@ const WallPanel = ({
         emissive={material.emissiveColor}
         emissiveIntensity={debugMode === "beauty" ? material.emissiveIntensity : 0}
         side={THREE.DoubleSide}
+        transparent={seeThrough}
+        opacity={seeThrough ? (debugMode === "beauty" ? 0.08 : 0.16) : 1}
+        depthWrite={!seeThrough}
       />
     </mesh>
   );
@@ -2397,6 +2405,20 @@ const cornerExtendedWall = (wall: WallSegment, walls: WallSegment[]): { start: {
   };
 };
 
+// 距離ソート済みの event.intersections に、壁以外の選択可能オブジェクト
+// （userData.selectable を持つ照明/家具ルート）が含まれるか。raycast は
+// opacity/transparent を無視するため外壁面も手前ヒットになる。室外から
+// 外壁面をクリックした時、奥に選択対象があれば壁が手前でも選択を譲るための判定。
+const eventHitsSelectable = (event: ThreeEvent<PointerEvent>): boolean =>
+  event.intersections.some((intersection) => {
+    let object: THREE.Object3D | null = intersection.object;
+    while (object) {
+      if (object.userData?.selectable) return true;
+      object = object.parent;
+    }
+    return false;
+  });
+
 const WallMesh = ({
   wall,
   walls,
@@ -2431,8 +2453,26 @@ const WallMesh = ({
   const rotationY = Math.atan2(inwardNormal.x, inwardNormal.z);
   const pathTraced = usePathTraced();
   const placement = usePlacement();
+  const camera = useThree((state) => state.camera);
   const tile = material.textureSizeM ?? { w: 0.92, h: 0.92 };
   const groupRef = useRef<THREE.Group>(null);
+
+  // 外壁スキンの外向き法線(=inwardの逆)。カメラがこの側にいる=室外から覗いている。
+  const exteriorNormal = useMemo(
+    () => new THREE.Vector3(-inwardNormal.x, 0, -inwardNormal.z),
+    [inwardNormal.x, inwardNormal.z]
+  );
+  // カメラが壁の外側にいるか。状態が反転したときだけ再描画する（毎フレームの dot は安価）。
+  const [cameraOutside, setCameraOutside] = useState(false);
+  useFrame(() => {
+    // 常駐パストレ時は f80ab97 の不透明挙動を維持（編集ビュー専用の可視化）。
+    if (pathTraced) return;
+    const outside =
+      (camera.position.x - midpointVector.x) * exteriorNormal.x +
+        (camera.position.z - midpointVector.z) * exteriorNormal.z >
+      0;
+    setCameraOutside((prev) => (prev === outside ? prev : outside));
+  });
 
   const wallHitFromEvent = (event: ThreeEvent<PointerEvent>) => {
     const group = groupRef.current;
@@ -2520,10 +2560,10 @@ const WallMesh = ({
           : undefined
       }
       onPointerDown={(event: ThreeEvent<PointerEvent>) => {
-        event.stopPropagation();
         // 壁物（窓・扉・壁ライト）の配置中は、選択ではなくクリックした壁自身へ設置する。
         // クリック点(x,z)をこの壁に射影して比率を求める（最寄り壁＝クリック壁）。
         if (isWallPending(placement.pendingAdd)) {
+          event.stopPropagation();
           const hit = wallHitFromEvent(event);
           // 壁ライトはカーソルの壁上ワールドYをそのまま高さに渡す（壁面に吸い付かせる）。
           // 窓/扉は heightM 省略で種別既定の高さに任せる。
@@ -2531,6 +2571,13 @@ const WallMesh = ({
           placement.onPlaceOnWall?.(wall.id, hit.ratio, heightM);
           return;
         }
+        // 外壁スキン(local -Z = exterior, material-5)を室外からクリックした
+        // 場合のみ、奥にライト/家具があれば壁を奪わず伝播させ奥を選ばせる。室内側の不透明
+        // 面(+Z)クリックは従来どおり壁を選択する（壁裏の不可視オブジェクトを誤選択しない）。
+        // 手前に選択可能物がある場合は相手が先に stopPropagation するため、ここに来る時点で
+        // 選択可能物は常に壁より奥のケースに限られる。
+        if ((event.face?.normal.z ?? 0) < 0 && eventHitsSelectable(event)) return;
+        event.stopPropagation();
         if (!canEditWalls) return;
         onSelect({ kind: "wall", id: wall.id });
       }}
@@ -2547,6 +2594,7 @@ const WallMesh = ({
           tile={tile}
           material={material}
           debugMode={debugMode}
+          seeThrough={cameraOutside && !pathTraced}
         />
       ))}
       {isRailing && (
@@ -2886,6 +2934,8 @@ const FurnitureMesh = ({
     <group
       position={[item.position.x, item.position.y, item.position.z]}
       rotation={[0, degToRad(item.rotationYDeg), 0]}
+      // 外壁越しに奥のこのオブジェクトを選べるよう、選択可能マーカーを付与。
+      userData={{ selectable: true }}
       onPointerDown={(event: ThreeEvent<PointerEvent>) => {
         // 配置中は家具の上に重ねて置けるよう、床キャッチャーへ素通りさせる。
         if (placement.pendingAdd) return;
@@ -3389,6 +3439,8 @@ const FixtureMesh = ({
   return (
     <group
       position={[fixture.position.x, fixture.position.y, fixture.position.z]}
+      // 外壁越しに奥のこの照明を選べるよう、選択可能マーカーを付与。
+      userData={{ selectable: true }}
       onPointerDown={(event: ThreeEvent<PointerEvent>) => {
         // 配置中は照明の上に重ねて置けるよう、床キャッチャーへ素通りさせる。
         if (placement.pendingAdd) return;
