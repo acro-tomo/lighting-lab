@@ -75,15 +75,15 @@ const closeIntroIfVisible = async () => {
   }
 };
 
-const assertOperationModeOptions = async () => {
-  const values = await page.locator(".edit-toolbar-mode select").evaluate((select) => {
-    return Array.from(select.options).map((option) => option.value);
-  });
-  for (const expected of ["select", "move", "wall"]) {
-    if (!values.includes(expected)) {
-      throw new Error(`operation mode option is missing: ${expected}`);
-    }
+const assertCompactPlanEditControls = async () => {
+  if (await page.locator(".edit-toolbar-mode select").count() > 0) {
+    throw new Error("legacy operation mode select should not be rendered");
   }
+  await page.getByRole("button", { name: "間取り編集" }).waitFor({ state: "visible", timeout: interactionTimeoutMs });
+  await activate(page.getByRole("button", { name: "間取り編集" }));
+  await page.getByRole("button", { name: "壁を引く" }).waitFor({ state: "visible", timeout: interactionTimeoutMs });
+  await activate(page.getByRole("button", { name: "間取り編集" }));
+  await page.getByRole("button", { name: "壁を引く" }).waitFor({ state: "hidden", timeout: interactionTimeoutMs });
 };
 
 const assertTextVisible = async (textOrRegex, timeout = interactionTimeoutMs) => {
@@ -167,8 +167,8 @@ try {
     console.log(`initialCanvasNonDarkPixels=${canvasCheck.nonDarkPixels}`);
   });
 
-  await step("verify edit operation modes", async () => {
-    await assertOperationModeOptions();
+  await step("verify compact plan edit controls", async () => {
+    await assertCompactPlanEditControls();
   });
 
   if (!shouldSmoke) {
