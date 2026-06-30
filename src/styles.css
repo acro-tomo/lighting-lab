@@ -2344,16 +2344,36 @@ h2 {
   }
 
   .add-modal-backdrop {
-    align-items: flex-end;
-    padding: 10px;
+    display: block;
+    padding: 0;
   }
 
   .add-modal {
-    width: 100%;
+    position: fixed;
+    right: 10px;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    left: 10px;
+    display: flex;
+    flex-direction: column;
+    width: auto;
+    max-height: 620px;
+    max-height: min(78vh, 620px);
+    max-height: min(78svh, 620px);
     max-height: min(78dvh, 620px);
     overflow: hidden;
     padding: 14px;
     border-radius: 13px;
+  }
+
+  .add-group-list,
+  .add-modal-scroll {
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .add-modal-scroll {
+    flex: 1 1 auto;
+    max-height: none;
   }
 
   .add-group-item {
