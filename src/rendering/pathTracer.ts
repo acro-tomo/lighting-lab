@@ -243,7 +243,7 @@ const addInteriorWallPanel = (
     const localY = rect.cy - height / 2;
     const pos = midpoint.clone().add(localXAxis.clone().multiplyScalar(localX));
     pos.y = midpoint.y + localY;
-    addPanel(scene, rect.w, rect.h, pos, normal, material, "wall", debugMode, THREE.FrontSide);
+    addPanel(scene, rect.w, rect.h, pos, normal, material, "wall", debugMode, THREE.DoubleSide);
   });
   return null;
 };

@@ -2352,13 +2352,16 @@ const WallPanel = ({
           emissiveIntensity={debugMode === "beauty" ? material.emissiveIntensity : 0}
         />
       ))}
-      {/* BoxGeometry material-5 is local -Z; group local +Z faces the room, so -Z is the exterior skin. */}
-      <meshBasicMaterial
+      {/* BoxGeometry material-5 is local -Z; keep the exterior skin visible through window openings. */}
+      <meshStandardMaterial
         attach="material-5"
-        transparent
-        opacity={0}
-        depthWrite={false}
-        colorWrite={false}
+        map={map ?? undefined}
+        color={map ? "#ffffff" : wallColor}
+        roughness={material.roughness}
+        metalness={material.metalness}
+        emissive={material.emissiveColor}
+        emissiveIntensity={debugMode === "beauty" ? material.emissiveIntensity : 0}
+        side={THREE.DoubleSide}
       />
     </mesh>
   );
