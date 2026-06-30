@@ -2204,6 +2204,10 @@ h2 {
     height: 100%;
   }
 
+  .plan-label {
+    display: none;
+  }
+
   .viewport-panel {
     grid-template-rows: auto minmax(0, 1fr);
   }
