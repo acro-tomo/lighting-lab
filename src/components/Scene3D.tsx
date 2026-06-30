@@ -37,7 +37,7 @@ import { useProjectStore } from "../store/projectStore";
 import { degToRad } from "../utils/units";
 import { DEFAULT_DAYLIGHT, sunVector } from "../utils/sun";
 import { ceilingMountHeightAt } from "../utils/ceiling";
-import { isWallMountedFixture, wallMountedLightPlacementAt } from "../utils/fixtureMounting";
+import { isWallMountedFixture, visibleVoidSides, wallMountedLightPlacementAt } from "../utils/fixtureMounting";
 import { wallInwardNormal } from "../utils/wallGeometry";
 
 export type ViewMode = "raster" | "realistic";
@@ -974,7 +974,7 @@ const pathTraceSceneKey = (project: Project, debugMode: RenderDebugMode) =>
       cordLengthM,
       floor
     })),
-    voids: project.voids.map(({ id, center, size, floor }) => ({ id, center, size, floor })),
+    voids: project.voids.map(({ id, center, size, openSides, floor }) => ({ id, center, size, openSides, floor })),
     ceilingZones: (project.ceilingZones ?? []).map(({ id, center, size, dropM, floor }) => ({ id, center, size, dropM, floor })),
     floorZones: (project.floorZones ?? []).map(({ id, center, size, dropM, floor }) => ({ id, center, size, dropM, floor }))
   });
@@ -2114,6 +2114,22 @@ const VoidWell = ({
   const { center, size } = voidArea;
   const placement = usePlacement();
   const color = debugColorForRole("ceiling", debugMode, material.baseColor);
+  const sideConfigs = visibleVoidSides(voidArea).map((sideName) => ({
+    sideName,
+    position:
+      sideName === "north"
+        ? [center.x, midY, center.z - size.z / 2]
+        : sideName === "south"
+          ? [center.x, midY, center.z + size.z / 2]
+          : sideName === "west"
+            ? [center.x - size.x / 2, midY, center.z]
+            : [center.x + size.x / 2, midY, center.z],
+    args: sideName === "north" || sideName === "south" ? [size.x, height, 0.04] : [0.04, height, size.z]
+  })) as {
+    sideName: "north" | "south" | "west" | "east";
+    position: [number, number, number];
+    args: [number, number, number];
+  }[];
   const resolveVoidHitPoint = (sideName: "north" | "south" | "west" | "east", event: ThreeEvent<PointerEvent>) => {
     const candidates = [event.point.clone()];
     if (event.object) candidates.push(event.object.localToWorld(event.point.clone()));
@@ -2183,32 +2199,28 @@ const VoidWell = ({
         }
       : undefined
   });
-  const side = (
-    <meshStandardMaterial
-      color={color}
-      roughness={material.roughness}
-      metalness={material.metalness}
-      side={THREE.DoubleSide}
-    />
-  );
   return (
     <group>
-      <mesh position={[center.x, midY, center.z - size.z / 2]} receiveShadow castShadow {...voidWallHandlers("north")}>
-        <boxGeometry args={[size.x, height, 0.04]} />
-        {side}
-      </mesh>
-      <mesh position={[center.x, midY, center.z + size.z / 2]} receiveShadow castShadow {...voidWallHandlers("south")}>
-        <boxGeometry args={[size.x, height, 0.04]} />
-        {side}
-      </mesh>
-      <mesh position={[center.x - size.x / 2, midY, center.z]} receiveShadow castShadow {...voidWallHandlers("west")}>
-        <boxGeometry args={[0.04, height, size.z]} />
-        {side}
-      </mesh>
-      <mesh position={[center.x + size.x / 2, midY, center.z]} receiveShadow castShadow {...voidWallHandlers("east")}>
-        <boxGeometry args={[0.04, height, size.z]} />
-        {side}
-      </mesh>
+      {sideConfigs.map((config) => (
+        <mesh
+          key={config.sideName}
+          position={config.position}
+          receiveShadow
+          castShadow={false}
+          {...voidWallHandlers(config.sideName)}
+        >
+          <boxGeometry args={config.args} />
+          <meshStandardMaterial
+            color={color}
+            roughness={material.roughness}
+            metalness={material.metalness}
+            side={THREE.DoubleSide}
+            transparent
+            opacity={debugMode === "beauty" ? 0.36 : 0.62}
+            depthWrite={false}
+          />
+        </mesh>
+      ))}
       {showLid && (
         <mesh position={[center.x, upperY, center.z]} rotation-x={Math.PI / 2} receiveShadow castShadow>
           <planeGeometry args={[size.x, size.z]} />

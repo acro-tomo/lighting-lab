@@ -23,7 +23,7 @@ import { FeedbackForm } from "./components/FeedbackForm";
 import { APP_NAME, getAppDisplayUrl } from "./config/appMeta";
 import { fixtureModelMap } from "./data/fixtureCatalog";
 import { ceilingMountHeightAt } from "./utils/ceiling";
-import { wallMountedLightPlacementOnWall } from "./utils/fixtureMounting";
+import { wallMountedLightPlacementOnSurface } from "./utils/fixtureMounting";
 
 const withWatermark = (dataUrl: string): Promise<string> =>
   new Promise((resolve) => {
@@ -487,44 +487,6 @@ export const App = () => {
     return Number.isFinite(dropM) && dropM > 0 ? dropM : undefined;
   };
 
-  const wallLightPlacement = (wallId: string, centerRatio: number, heightM: number) => {
-    if (wallId.startsWith("void:")) {
-      const [, voidId, side] = wallId.split(":");
-      const voidArea = project.voids.find((candidate) => candidate.id === voidId);
-      if (!voidArea) return null;
-      const x =
-        side === "west"
-          ? voidArea.center.x - voidArea.size.x / 2
-          : side === "east"
-            ? voidArea.center.x + voidArea.size.x / 2
-            : voidArea.center.x + (centerRatio - 0.5) * voidArea.size.x;
-      const z =
-        side === "north"
-          ? voidArea.center.z - voidArea.size.z / 2
-          : side === "south"
-            ? voidArea.center.z + voidArea.size.z / 2
-            : voidArea.center.z + (centerRatio - 0.5) * voidArea.size.z;
-      const target = { x: voidArea.center.x, y: Math.max(0.6, heightM - 0.7), z: voidArea.center.z };
-      return {
-        x,
-        y: heightM,
-        z,
-        target,
-        rotationYDeg: (Math.atan2(target.x - x, target.z - z) * 180) / Math.PI
-      };
-    }
-
-    const placement = wallMountedLightPlacementOnWall(project, wallId, centerRatio, heightM);
-    if (!placement) return null;
-    return {
-      x: placement.position.x,
-      y: placement.position.y,
-      z: placement.position.z,
-      target: placement.target,
-      rotationYDeg: placement.rotationYDeg
-    };
-  };
-
   const handleAddObject = useCallback(
     (kind: string, opts: PlaceOpts = {}) => {
       const { at, wallId, centerRatio } = opts;
@@ -635,8 +597,20 @@ export const App = () => {
       if (!pendingAdd) return;
       if (isWallLightAddKind(pendingAdd)) {
         const model = fixtureModelFromAddKind(pendingAdd) ?? fixtureModelMap.get("sp-wall");
-        const placement = wallLightPlacement(wallId, centerRatio, heightM ?? 1.9);
-        if (model && placement) addLight(newFixtureFromModel(project, model, undefined, { wall: placement }));
+        const placement = wallMountedLightPlacementOnSurface(project, wallId, centerRatio, heightM ?? 1.9);
+        if (model && placement) {
+          addLight(
+            newFixtureFromModel(project, model, undefined, {
+              wall: {
+                x: placement.position.x,
+                y: placement.position.y,
+                z: placement.position.z,
+                target: placement.target,
+                rotationYDeg: placement.rotationYDeg
+              }
+            })
+          );
+        }
         setPendingAdd(null);
         setMode("select");
         setNotice("壁に設置しました。選択してCmd+C / Cmd+Vで複製できます。");

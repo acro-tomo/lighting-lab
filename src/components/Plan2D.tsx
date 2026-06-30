@@ -6,6 +6,7 @@ import type {
   Project,
   Selection,
   Vec2M,
+  VoidSide,
   WallSegment,
   WindowOpening
 } from "../types";
@@ -14,7 +15,14 @@ import { DEFAULT_DAYLIGHT } from "../utils/sun";
 import { ScaleCalibrationModal } from "./ScaleCalibrationModal";
 import type { EditMode } from "./EditToolbar";
 import { isWallLightAddKind } from "../data/fixtureAddKinds";
-import { isWallMountedFixture, wallMountedLightPlacementAt } from "../utils/fixtureMounting";
+import {
+  isWallMountedFixture,
+  WALL_MOUNT_SNAP_M,
+  nearestWallMountSurfaceAt,
+  parseVoidWallId,
+  visibleVoidSides,
+  wallMountedLightPlacementAt
+} from "../utils/fixtureMounting";
 
 type Plan2DProps = {
   project: Project;
@@ -129,6 +137,23 @@ const nearestWall = (p: Vec2M, walls: WallSegment[]) => {
     if (!best || dist < best.dist) best = { wallId: wall.id, ratio, dist };
   }
   return best;
+};
+
+const voidSideLine = (voidArea: Project["voids"][number], side: VoidSide) => {
+  const minX = voidArea.center.x - voidArea.size.x / 2;
+  const maxX = voidArea.center.x + voidArea.size.x / 2;
+  const minZ = voidArea.center.z - voidArea.size.z / 2;
+  const maxZ = voidArea.center.z + voidArea.size.z / 2;
+  switch (side) {
+    case "north":
+      return { start: { x: minX, z: minZ }, end: { x: maxX, z: minZ } };
+    case "south":
+      return { start: { x: minX, z: maxZ }, end: { x: maxX, z: maxZ } };
+    case "west":
+      return { start: { x: minX, z: minZ }, end: { x: minX, z: maxZ } };
+    case "east":
+      return { start: { x: maxX, z: minZ }, end: { x: maxX, z: maxZ } };
+  }
 };
 
 // 矩形(中心center/幅x・奥行z/回転deg)の1辺をカーソルまで動かしてリサイズする。
@@ -671,13 +696,16 @@ export const Plan2D = ({
     // pendingAdd 中はクリック位置にオブジェクトを配置（生成はApp側）。
     if (pendingAdd) {
       const world = svgToWorld(clientX, clientY);
-      // 窓/扉は「クリックした壁」に付ける。壁の近く(0.7m以内)を押したときだけ設置し、
+      // 窓/扉/壁付ライトは「クリックした壁」に付ける。壁の近くを押したときだけ設置し、
       // 室内の何もない所では設置しない（遠い壁へ勝手に付くのを防ぐ＝要望: 壁を自分で選ぶ）。
       if (isWallOpening(pendingAdd)) {
-        const hit = nearestWall(world, activeWalls);
+        const isWallLight = isWallLightAddKind(pendingAdd);
+        const hit = isWallLight
+          ? nearestWallMountSurfaceAt(project, world.x, world.z, activeFloor, { maxDistM: WALL_MOUNT_SNAP_M })
+          : nearestWall(world, activeWalls);
         // 1.2m まで許容して取りこぼしを減らす。クリック前に対象壁を青くハイライト
         // しているので、どこに付くかは見て分かる。離れすぎなら維持して再クリックさせる。
-        if (hit && hit.dist <= WALL_SNAP_M) {
+        if (hit && hit.dist <= (isWallLight ? WALL_MOUNT_SNAP_M : WALL_SNAP_M)) {
           setWallTarget(null);
           onPlaceOnWall(hit.wallId, hit.ratio);
         }
@@ -761,10 +789,14 @@ export const Plan2D = ({
       setWallCursor(snapToShakuModule(angleSnap(prev, svgToWorld(event.clientX, event.clientY)), origin));
     }
 
-    // 窓/扉の追加待ち中: カーソル直下の最寄り壁を設置先候補としてハイライト。
+    // 窓/扉/壁付ライトの追加待ち中: カーソル直下の最寄り壁を設置先候補としてハイライト。
     if (isWallOpening(pendingAdd)) {
-      const hit = nearestWall(svgToWorld(event.clientX, event.clientY), activeWalls);
-      setWallTarget(hit && hit.dist <= WALL_SNAP_M ? { wallId: hit.wallId, ratio: hit.ratio } : null);
+      const world = svgToWorld(event.clientX, event.clientY);
+      const isWallLight = isWallLightAddKind(pendingAdd);
+      const hit = isWallLight
+        ? nearestWallMountSurfaceAt(project, world.x, world.z, activeFloor, { maxDistM: WALL_MOUNT_SNAP_M })
+        : nearestWall(world, activeWalls);
+      setWallTarget(hit && hit.dist <= (isWallLight ? WALL_MOUNT_SNAP_M : WALL_SNAP_M) ? { wallId: hit.wallId, ratio: hit.ratio } : null);
     }
 
     // 辺ドラッグによるリサイズ（3Dへ即連動）。
@@ -1084,7 +1116,8 @@ export const Plan2D = ({
       </div>
 
       <p className="tool-help">
-        {isWallOpening(pendingAdd) && "壁に近づけると青くハイライト。その壁をクリックで設置。設置後は壁上をドラッグで位置調整。"}
+        {isWallLightAddKind(pendingAdd) && "壁または吹き抜け内周に近づけると青くハイライト。クリックで壁付け照明を設置。"}
+        {isWallOpening(pendingAdd) && !isWallLightAddKind(pendingAdd) && "壁に近づけると青くハイライト。その壁をクリックで設置。設置後は壁上をドラッグで位置調整。"}
         {pendingAdd && !isWallOpening(pendingAdd) && "クリックした位置にオブジェクトを配置します。"}
         {!pendingAdd && mode === "select" && !canEditWalls && "オブジェクトをクリックで選択、ドラッグで移動。何もない所のドラッグで平面図をパン。Deleteで削除。"}
         {!pendingAdd && mode === "select" && canEditWalls && "壁をクリックで選択、ドラッグで移動。Deleteで削除。何もない所のドラッグで平面図をパン。"}
@@ -1337,8 +1370,29 @@ export const Plan2D = ({
             />
           )}
 
-          {/* 窓/扉の設置先になる壁のハイライト（最前面・クリック非対象）。 */}
+          {/* 窓/扉/壁付ライトの設置先になる壁のハイライト（最前面・クリック非対象）。 */}
           {isWallOpening(pendingAdd) && wallTarget && (() => {
+            const voidTarget = parseVoidWallId(wallTarget.wallId);
+            if (voidTarget) {
+              const voidArea = project.voids.find((candidate) => candidate.id === voidTarget.voidId);
+              if (!voidArea) return null;
+              const line = voidSideLine(voidArea, voidTarget.side);
+              const s = worldToSvg(line.start);
+              const e = worldToSvg(line.end);
+              return (
+                <line
+                  x1={s.x}
+                  y1={s.y}
+                  x2={e.x}
+                  y2={e.y}
+                  stroke="#7fd1ff"
+                  strokeWidth={Math.max(10, 0.12 * planSize.pxPerM + 6)}
+                  strokeOpacity={0.55}
+                  strokeLinecap="round"
+                  style={{ pointerEvents: "none" }}
+                />
+              );
+            }
             const wall = project.walls.find((candidate) => candidate.id === wallTarget.wallId);
             if (!wall) return null;
             const s = worldToSvg(wall.start);
@@ -1631,6 +1685,8 @@ const VoidPlanItem = ({
     x: voidArea.center.x - voidArea.size.x / 2,
     z: voidArea.center.z - voidArea.size.z / 2
   });
+  const sides = visibleVoidSides(voidArea);
+  const openSides = (["north", "south", "west", "east"] as VoidSide[]).filter((side) => !sides.includes(side));
 
   const handlePointerDown = (event: React.PointerEvent<SVGGElement>) => {
     event.stopPropagation();
@@ -1650,8 +1706,39 @@ const VoidPlanItem = ({
         y={topLeft.y}
         width={voidArea.size.x * planSize.pxPerM}
         height={voidArea.size.z * planSize.pxPerM}
-        className={selected ? "plan-void is-selected" : "plan-void"}
+        className="plan-void-fill"
+        stroke="none"
       />
+      {sides.map((side) => {
+        const line = voidSideLine(voidArea, side);
+        const s = worldToSvg(line.start);
+        const e = worldToSvg(line.end);
+        return (
+          <line
+            key={side}
+            x1={s.x}
+            y1={s.y}
+            x2={e.x}
+            y2={e.y}
+            className={selected ? "plan-void-wall is-selected" : "plan-void-wall"}
+          />
+        );
+      })}
+      {selected && openSides.map((side) => {
+        const line = voidSideLine(voidArea, side);
+        const s = worldToSvg(line.start);
+        const e = worldToSvg(line.end);
+        return (
+          <line
+            key={`open-${side}`}
+            x1={s.x}
+            y1={s.y}
+            x2={e.x}
+            y2={e.y}
+            className="plan-void-wall is-open"
+          />
+        );
+      })}
       <text x={topLeft.x + 12} y={topLeft.y + 24} className="plan-label">
         {voidArea.name}
       </text>

@@ -633,8 +633,12 @@ h2 {
   stroke: #f5c64d;
 }
 
-.plan-void {
+.plan-void,
+.plan-void-fill {
   fill: rgba(76, 97, 114, 0.25);
+}
+
+.plan-void {
   stroke: rgba(177, 204, 222, 0.8);
   stroke-dasharray: 10 8;
   stroke-width: 2;
@@ -642,6 +646,23 @@ h2 {
 
 .plan-void.is-selected {
   stroke: #f5c64d;
+}
+
+.plan-void-wall {
+  stroke: rgba(177, 204, 222, 0.92);
+  stroke-linecap: round;
+  stroke-width: 3;
+}
+
+.plan-void-wall.is-selected {
+  stroke: #f5c64d;
+  stroke-width: 4;
+}
+
+.plan-void-wall.is-open {
+  stroke: rgba(245, 110, 94, 0.65);
+  stroke-dasharray: 8 7;
+  stroke-width: 3;
 }
 
 .plan-ceiling {

@@ -1,11 +1,27 @@
 import { fixtureModelMap } from "../data/fixtureCatalog";
-import type { LightFixture, Project, WallSegment } from "../types";
+import type { LightFixture, Project, VoidArea, VoidSide, WallSegment } from "../types";
 import { ceilingMountHeightAt } from "./ceiling";
 
 type WallMountedPlacement = {
   position: { x: number; y: number; z: number };
   target: { x: number; y: number; z: number };
   rotationYDeg: number;
+};
+
+type WallMountSurface = { wallId: string; ratio: number; dist: number };
+
+export const VOID_WALL_SIDES: VoidSide[] = ["north", "south", "west", "east"];
+export const WALL_MOUNT_SNAP_M = 0.6;
+
+export const visibleVoidSides = (voidArea: Pick<VoidArea, "openSides">): VoidSide[] =>
+  VOID_WALL_SIDES.filter((side) => !(voidArea.openSides ?? []).includes(side));
+
+export const voidWallId = (voidId: string, side: VoidSide) => `void:${voidId}:${side}`;
+
+export const parseVoidWallId = (wallId: string): { voidId: string; side: VoidSide } | null => {
+  const [, voidId, side] = wallId.split(":");
+  if (!wallId.startsWith("void:") || !voidId || !VOID_WALL_SIDES.includes(side as VoidSide)) return null;
+  return { voidId, side: side as VoidSide };
 };
 
 export const isCeilingMountedFixture = (fixture: Pick<LightFixture, "model" | "type">): boolean => {
@@ -48,6 +64,23 @@ const projectPointOntoWall = (x: number, z: number, wall: WallSegment) => {
   const ratio = Math.max(0, Math.min(1, t));
   const dist = Math.hypot(x - (wall.start.x + dx * ratio), z - (wall.start.z + dz * ratio));
   return { ratio, dist };
+};
+
+const projectPointOntoVoidSide = (x: number, z: number, voidArea: VoidArea, side: VoidSide) => {
+  const minX = voidArea.center.x - voidArea.size.x / 2;
+  const maxX = voidArea.center.x + voidArea.size.x / 2;
+  const minZ = voidArea.center.z - voidArea.size.z / 2;
+  const maxZ = voidArea.center.z + voidArea.size.z / 2;
+  if (side === "north" || side === "south") {
+    const ratio = Math.max(0, Math.min(1, (x - minX) / voidArea.size.x));
+    const px = minX + voidArea.size.x * ratio;
+    const pz = side === "north" ? minZ : maxZ;
+    return { ratio, dist: Math.hypot(x - px, z - pz) };
+  }
+  const ratio = Math.max(0, Math.min(1, (z - minZ) / voidArea.size.z));
+  const px = side === "west" ? minX : maxX;
+  const pz = minZ + voidArea.size.z * ratio;
+  return { ratio, dist: Math.hypot(x - px, z - pz) };
 };
 
 const wallsCenter = (walls: WallSegment[]) => {
@@ -111,18 +144,93 @@ export const wallMountedLightPlacementOnWall = (
   };
 };
 
+const voidSideNormal = (side: VoidSide) => {
+  switch (side) {
+    case "north":
+      return { x: 0, z: 1 };
+    case "south":
+      return { x: 0, z: -1 };
+    case "west":
+      return { x: 1, z: 0 };
+    case "east":
+      return { x: -1, z: 0 };
+  }
+};
+
+const wallMountedLightPlacementOnVoid = (
+  project: Project,
+  voidId: string,
+  side: VoidSide,
+  centerRatio: number,
+  heightM: number
+): WallMountedPlacement | null => {
+  const voidArea = project.voids.find((candidate) => candidate.id === voidId);
+  if (!voidArea || (voidArea.openSides ?? []).includes(side)) return null;
+  const ratio = Math.max(0, Math.min(1, centerRatio));
+  const minX = voidArea.center.x - voidArea.size.x / 2;
+  const maxX = voidArea.center.x + voidArea.size.x / 2;
+  const minZ = voidArea.center.z - voidArea.size.z / 2;
+  const maxZ = voidArea.center.z + voidArea.size.z / 2;
+  const x = side === "west" ? minX : side === "east" ? maxX : minX + voidArea.size.x * ratio;
+  const z = side === "north" ? minZ : side === "south" ? maxZ : minZ + voidArea.size.z * ratio;
+  const normal = voidSideNormal(side);
+  const position = {
+    x: x + normal.x * 0.04,
+    y: heightM,
+    z: z + normal.z * 0.04
+  };
+  return {
+    position,
+    target: {
+      x: position.x + normal.x,
+      y: Math.max(0.6, heightM - 0.7),
+      z: position.z + normal.z
+    },
+    rotationYDeg: (Math.atan2(normal.x, normal.z) * 180) / Math.PI
+  };
+};
+
+export const wallMountedLightPlacementOnSurface = (
+  project: Project,
+  wallId: string,
+  centerRatio: number,
+  heightM: number
+): WallMountedPlacement | null => {
+  const voidWall = parseVoidWallId(wallId);
+  if (voidWall) return wallMountedLightPlacementOnVoid(project, voidWall.voidId, voidWall.side, centerRatio, heightM);
+  return wallMountedLightPlacementOnWall(project, wallId, centerRatio, heightM);
+};
+
+export const nearestWallMountSurfaceAt = (
+  project: Project,
+  x: number,
+  z: number,
+  floor: number = project.activeFloor ?? 1,
+  options: { maxDistM?: number } = {}
+): WallMountSurface | null => {
+  let best: WallMountSurface | null = null;
+  for (const wall of project.walls.filter((candidate) => (candidate.floor ?? 1) === floor)) {
+    const { ratio, dist } = projectPointOntoWall(x, z, wall);
+    if (!best || dist < best.dist) best = { wallId: wall.id, ratio, dist };
+  }
+  for (const voidArea of project.voids.filter((candidate) => (candidate.floor ?? 1) === floor)) {
+    for (const side of visibleVoidSides(voidArea)) {
+      const { ratio, dist } = projectPointOntoVoidSide(x, z, voidArea, side);
+      if (!best || dist < best.dist) best = { wallId: voidWallId(voidArea.id, side), ratio, dist };
+    }
+  }
+  if (best && options.maxDistM !== undefined && best.dist > options.maxDistM) return null;
+  return best;
+};
+
 export const wallMountedLightPlacementAt = (
   project: Project,
   x: number,
   z: number,
   heightM: number,
-  floor: number = project.activeFloor ?? 1
+  floor: number = project.activeFloor ?? 1,
+  maxDistM: number = WALL_MOUNT_SNAP_M
 ): WallMountedPlacement | null => {
-  const walls = project.walls.filter((wall) => (wall.floor ?? 1) === floor);
-  let best: { wall: WallSegment; ratio: number; dist: number } | null = null;
-  for (const wall of walls) {
-    const { ratio, dist } = projectPointOntoWall(x, z, wall);
-    if (!best || dist < best.dist) best = { wall, ratio, dist };
-  }
-  return best ? wallMountedLightPlacementOnWall(project, best.wall.id, best.ratio, heightM) : null;
+  const best = nearestWallMountSurfaceAt(project, x, z, floor, { maxDistM });
+  return best ? wallMountedLightPlacementOnSurface(project, best.wallId, best.ratio, heightM) : null;
 };

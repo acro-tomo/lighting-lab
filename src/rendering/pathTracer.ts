@@ -12,6 +12,7 @@ import {
   type SkyEnvironment
 } from "./skyEnvironment";
 import type { RenderContext } from "./renderContext";
+import { visibleVoidSides } from "../utils/fixtureMounting";
 
 // 太陽高度から太陽光色を補間する。Scene3D の挙動に合わせる。
 const sunColorForAltitude = (altitudeDeg: number): THREE.Color => {
@@ -95,6 +96,14 @@ const makeMaterial = (preset?: MaterialPreset, fallback = "#8c877d") =>
     emissive: preset?.emissiveColor ?? "#000000",
     emissiveIntensity: preset?.emissiveIntensity ?? 0
   });
+
+const makeTransparentMaterial = (material: THREE.Material, opacity: number) => {
+  const next = material.clone();
+  next.transparent = true;
+  next.opacity = opacity;
+  next.depthWrite = false;
+  return next;
+};
 
 const diagnosticMaterial = (role: string, debugMode: RenderDebugMode, fallback: THREE.Material) => {
   if (debugMode === "beauty") return fallback;
@@ -475,10 +484,18 @@ const buildPathTraceScene = (
     if (height <= 0.02) return;
     const midY = (lowerY + upperCeilingHeight) / 2;
     const { center, size } = voidArea;
-    addBox(scene, [size.x, height, 0.04], [center.x, midY, center.z - size.z / 2], ceilingMaterial, 0, "ceiling", debugMode);
-    addBox(scene, [size.x, height, 0.04], [center.x, midY, center.z + size.z / 2], ceilingMaterial, 0, "ceiling", debugMode);
-    addBox(scene, [0.04, height, size.z], [center.x - size.x / 2, midY, center.z], ceilingMaterial, 0, "ceiling", debugMode);
-    addBox(scene, [0.04, height, size.z], [center.x + size.x / 2, midY, center.z], ceilingMaterial, 0, "ceiling", debugMode);
+    const voidWallMaterial = makeTransparentMaterial(ceilingMaterial, 0.36);
+    for (const side of visibleVoidSides(voidArea)) {
+      const mesh =
+        side === "north"
+          ? addBox(scene, [size.x, height, 0.04], [center.x, midY, center.z - size.z / 2], voidWallMaterial, 0, "ceiling", debugMode)
+          : side === "south"
+            ? addBox(scene, [size.x, height, 0.04], [center.x, midY, center.z + size.z / 2], voidWallMaterial, 0, "ceiling", debugMode)
+            : side === "west"
+              ? addBox(scene, [0.04, height, size.z], [center.x - size.x / 2, midY, center.z], voidWallMaterial, 0, "ceiling", debugMode)
+              : addBox(scene, [0.04, height, size.z], [center.x + size.x / 2, midY, center.z], voidWallMaterial, 0, "ceiling", debugMode);
+      mesh.castShadow = false;
+    }
     addHorizontalPanel(scene, size.x, size.z, upperCeilingHeight, -1, ceilingMaterial, "ceiling", debugMode, center.x, center.z);
   });
 

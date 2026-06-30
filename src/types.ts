@@ -93,11 +93,15 @@ export type WindowOpening = {
   floor?: FloorTag;
 };
 
+export type VoidSide = "north" | "south" | "west" | "east";
+
 export type VoidArea = {
   id: string;
   name: string;
   center: Vec2M;
   size: Vec2M;
+  /** 吹き抜け内周で壁を作らない辺。undefined = 4辺すべて壁あり。 */
+  openSides?: VoidSide[];
   /** 所属階。undefined = 1階。 */
   floor?: FloorTag;
 };

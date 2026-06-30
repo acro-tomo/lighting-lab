@@ -16,6 +16,7 @@ const vec3Schema = z.object({
 
 // 階タグ。undefined = 1階（後方互換）。
 const floorSchema = z.union([z.literal(1), z.literal(2)]).optional();
+const voidSideSchema = z.enum(["north", "south", "west", "east"]);
 
 const backgroundPlanSchema = z
   .object({
@@ -39,6 +40,17 @@ const zoneSchema = z
 
 const ceilingZoneSchema = zoneSchema;
 const floorZoneSchema = zoneSchema;
+
+const voidSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    center: vec2Schema,
+    size: vec2Schema,
+    openSides: z.array(voidSideSchema).optional(),
+    floor: floorSchema
+  })
+  .passthrough();
 
 const cameraSchema = z
   .object({
@@ -110,6 +122,7 @@ const baseProjectSchema = z
     furniture: z.array(
       z.object({ id: z.string(), position: vec3Schema, size: vec3Schema, floor: floorSchema }).passthrough()
     ),
+    voids: z.array(voidSchema),
     lights: z.array(
       z.object({ id: z.string(), position: vec3Schema, lumens: z.number(), floor: floorSchema }).passthrough()
     ),
