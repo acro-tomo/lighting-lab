@@ -1695,6 +1695,15 @@ const UpperVoidLevel = ({
   const floorGeo = useMemo(() => buildUpperSlabGeometry(region, true, true), [region]);
   const ceilingGeo = useMemo(() => buildUpperSlabGeometry(region, false, false), [region]);
   const boundaryWalls = useMemo(() => upperBoundaryWalls(region, upperWalls), [region, upperWalls]);
+  const upperFloorBounds = useMemo(
+    () => ({
+      centerX: region.originX + (region.cols * region.cell) / 2,
+      centerZ: region.originZ + (region.rows * region.cell) / 2,
+      sizeX: region.cols * region.cell,
+      sizeZ: region.rows * region.cell
+    }),
+    [region]
+  );
   useEffect(() => () => floorGeo?.dispose(), [floorGeo]);
   useEffect(() => () => ceilingGeo?.dispose(), [ceilingGeo]);
 
@@ -1734,6 +1743,7 @@ const UpperVoidLevel = ({
             windows={[]}
             material={materialMap.get(wall.materialId) ?? ceilingMaterial}
             roomCenter={new THREE.Vector3(region.originX + (region.cols * region.cell) / 2, 0, region.originZ + (region.rows * region.cell) / 2)}
+            floorBounds={upperFloorBounds}
             selected={false}
             onSelect={() => {}}
             debugMode={debugMode}
@@ -1844,6 +1854,7 @@ const RoomShell = ({
           windows={project.windows.filter((windowItem) => windowItem.wallId === wall.id)}
           material={materialMap.get(wall.materialId) ?? ceilingMaterial}
           roomCenter={roomCenter}
+          floorBounds={floorBounds}
           selected={canEditWalls && selection?.kind === "wall" && selection.id === wall.id}
           onSelect={onSelect}
           debugMode={debugMode}
@@ -2488,6 +2499,7 @@ const WallMesh = ({
   windows,
   material,
   roomCenter,
+  floorBounds,
   selected,
   onSelect,
   debugMode,
@@ -2498,6 +2510,7 @@ const WallMesh = ({
   windows: WindowOpening[];
   material: MaterialPreset;
   roomCenter: THREE.Vector3;
+  floorBounds: FloorBounds;
   selected: boolean;
   onSelect: (selection: Selection) => void;
   debugMode: RenderDebugMode;
@@ -2525,16 +2538,25 @@ const WallMesh = ({
     () => new THREE.Vector3(-inwardNormal.x, 0, -inwardNormal.z),
     [inwardNormal.x, inwardNormal.z]
   );
-  // カメラが壁の外側にいるか。状態が反転したときだけ再描画する（毎フレームの dot は安価）。
-  const [cameraOutside, setCameraOutside] = useState(false);
+  // 外壁を透かすのは、カメラが建物外形の外から覗いている時だけ。
+  // 壁単体の外側判定だけだと、室内から窓越しに見た別壁の外側面まで透ける。
+  const [exteriorSeeThrough, setExteriorSeeThrough] = useState(false);
   useFrame(() => {
     // 常駐パストレ時は f80ab97 の不透明挙動を維持（編集ビュー専用の可視化）。
     if (pathTraced) return;
-    const outside =
+    const outsideWall =
       (camera.position.x - midpointVector.x) * exteriorNormal.x +
         (camera.position.z - midpointVector.z) * exteriorNormal.z >
       0;
-    setCameraOutside((prev) => (prev === outside ? prev : outside));
+    const halfX = floorBounds.sizeX / 2;
+    const halfZ = floorBounds.sizeZ / 2;
+    const insideFloorBounds =
+      camera.position.x >= floorBounds.centerX - halfX &&
+      camera.position.x <= floorBounds.centerX + halfX &&
+      camera.position.z >= floorBounds.centerZ - halfZ &&
+      camera.position.z <= floorBounds.centerZ + halfZ;
+    const next = outsideWall && !insideFloorBounds;
+    setExteriorSeeThrough((prev) => (prev === next ? prev : next));
   });
 
   const wallHitFromEvent = (event: ThreeEvent<PointerEvent>) => {
@@ -2667,7 +2689,7 @@ const WallMesh = ({
           tile={tile}
           material={material}
           debugMode={debugMode}
-          seeThrough={cameraOutside && !pathTraced}
+          seeThrough={exteriorSeeThrough && !pathTraced}
         />
       ))}
       {isRailing && (
