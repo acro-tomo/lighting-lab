@@ -38,17 +38,49 @@ await step("import project", () =>
 await page.getByRole("status").waitFor({ state: "visible", timeout: 5000 }).catch(() => {});
 await page.waitForTimeout(2600); // 2D+3D+Inspectorが揃った状態を見せる
 
-// 「全照明の色温度を一括変更」の chip は [電球色2700K, 温白色3500K, 昼白色5000K, 昼光色6500K] の固定順。
-const bulkChips = page.locator("label.field", { hasText: "全照明の色温度を一括変更" }).locator("button.chip");
+// 色温度プリセットの chip は [電球色2700K, 温白色3500K, 昼白色5000K, 昼光色6500K] の固定順。
+// TVまわり(リビングダウンライト1-3 + TV背面テープ)を shift+クリックで複数選択し、暖色でつける。
+const tvGroupLabels = [
+  "リビングダウンライト 1",
+  "リビングダウンライト 2",
+  "リビングダウンライト 3",
+  "TV背面間接テープライト"
+];
+// 2D平面図では照明アイコンの上に家具の透明な当たり判定が重なることがあるため、
+// 実クリックではなく pointerdown を直接ディスパッチしてスタッキング順の影響を避ける。
+for (const label of tvGroupLabels) {
+  await step(`select ${label}`, () =>
+    page.locator(".plan-light", { hasText: label }).dispatchEvent("pointerdown", {
+      bubbles: true,
+      cancelable: true,
+      shiftKey: true,
+      button: 0,
+      pointerId: 1
+    })
+  );
+}
+await page.waitForTimeout(400);
 
-await step("daylight color", () => bulkChips.nth(3).click());
-await page.waitForTimeout(2600); // 寒色寄りの雰囲気
+const bulkColorChips = page.locator("label.field", { hasText: "色温度プリセット" }).locator("button.chip");
+await step("tv group warm color", () => bulkColorChips.nth(0).click()); // 電球色 2700K
+await page.getByLabel("調光").fill("92");
+await page.getByLabel("調光").press("Tab");
+await page.waitForTimeout(2800); // TVまわりが暖色で灯る様子を見せる
 
-await step("warm color", () => bulkChips.nth(0).click());
-await page.waitForTimeout(2600); // 暖色でくつろぎの雰囲気に戻す
+// ダイニングペンダントだけ昼白色(5000K)に切り替えて団欒感を出す。
+await step("select dining pendant", () =>
+  page.getByLabel("照明を選択").selectOption("light-dining-pendant")
+);
+const singleColorChips = page.locator("label.field", { hasText: "色温度プリセット" }).locator("button.chip");
+await step("dining daylight white", () => singleColorChips.nth(2).click()); // 昼白色 5000K
+await page.waitForTimeout(2800); // ダイニングだけ明るい白色に変わる様子を見せる
+
+// 最終カットに選択枠が映り込まないよう選択解除してから最大化する。
+await step("deselect", () => page.getByLabel("照明を選択").selectOption(""));
+await page.waitForTimeout(300);
 
 await step("maximize 3d", () => page.getByRole("button", { name: "3Dを最大化" }).click());
-await page.waitForTimeout(3500); // 暖色でくつろぐ最終カットとして少し長めに保持
+await page.waitForTimeout(3500); // 2ゾーンの雰囲気差が揃った最終カットを保持
 
 await step("close", async () => {
   await page.waitForTimeout(500);
