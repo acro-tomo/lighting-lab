@@ -37,8 +37,15 @@ import { isAimable } from "../data/fixtureCatalog";
 import { useProjectStore } from "../store/projectStore";
 import { degToRad } from "../utils/units";
 import { DEFAULT_DAYLIGHT, sunVector } from "../utils/sun";
-import { ceilingMountHeightAt } from "../utils/ceiling";
-import { isWallMountedFixture, visibleVoidSides, wallMountedLightPlacementAt } from "../utils/fixtureMounting";
+import { ceilingMountHeightAt, voidCeilingHeightAt } from "../utils/ceiling";
+import {
+  isWallMountedFixture,
+  nearestWallMountSurfaceAt,
+  parseVoidWallId,
+  visibleVoidSides,
+  voidWallId,
+  wallMountedLightPlacementAt
+} from "../utils/fixtureMounting";
 import { wallInwardNormal } from "../utils/wallGeometry";
 
 export type ViewMode = "raster" | "realistic";
@@ -1732,9 +1739,8 @@ const RoomShell = ({
   const ceilingMaterial = materialMap.get("cal-ceiling-white") ?? materialMap.get("wall-white") ?? project.materials[0];
   // 吹き抜けは下階天井を開口するだけだと黒背景に抜けて「穴」に見える。
   // 上階天井の高さまで側面と上蓋で囲い、二層分の吹き抜けとして閉じる。
-  const wallMaxHeight = project.walls.reduce((max, wall) => Math.max(max, wall.heightM), project.room.ceilingHeightM);
-  const upperCeilingHeight =
-    wallMaxHeight > project.room.ceilingHeightM + 0.05 ? wallMaxHeight : project.room.ceilingHeightM + 1.4;
+  // 天井付け照明の設置高さ(ceilingMountHeightAt)と同じ式を使い、見た目と設置高さを揃える。
+  const upperCeilingHeight = voidCeilingHeightAt(project, project.activeFloor ?? 1);
   const floorBounds = computeFloorBounds(project);
   const roomCenter = useMemo(
     () => new THREE.Vector3(floorBounds.centerX, 0, floorBounds.centerZ),
@@ -2017,7 +2023,8 @@ const FloorZoneMesh = ({
           deleteSelection({ kind: "floorZone", id: zone.id });
           return;
         }
-        onSelect({ kind: "floorZone", id: zone.id });
+        // 選択中の下げ床を再クリックしたら選択解除（手軽に解除できるように）。
+        onSelect(selected ? null : { kind: "floorZone", id: zone.id });
       }}
     >
       {/* 下げパネル（ピット底） */}
@@ -2192,7 +2199,7 @@ const VoidWell = ({
         : center.z + size.z / 2
       : center.z + (ratio - 0.5) * size.z;
     return {
-      wallId: `void:${voidArea.id}:${sideName}`,
+      wallId: voidWallId(voidArea.id, sideName),
       ratio,
       x,
       y: point.y,
@@ -2209,8 +2216,10 @@ const VoidWell = ({
       : undefined,
     onPointerDown: isWallLightAddKind(placement.pendingAdd)
       ? (event: ThreeEvent<PointerEvent>) => {
-          event.stopPropagation();
           const hit = voidWallHit(sideName, resolveVoidHitPoint(sideName, event));
+          // グリップや奥の別の壁/吹き抜け壁があれば、この面より優先して譲る。
+          if (eventHitsDragHandle(event) || eventHitsOtherWall(event, hit.wallId)) return;
+          event.stopPropagation();
           placement.onPlaceOnWall?.(hit.wallId, hit.ratio, hit.y);
         }
       : undefined
@@ -2224,6 +2233,7 @@ const VoidWell = ({
           position={config.position}
           receiveShadow
           castShadow
+          userData={{ wallId: voidWallId(voidArea.id, config.sideName) }}
           {...voidWallHandlers(config.sideName)}
         >
           <boxGeometry args={config.args} />
@@ -2405,15 +2415,37 @@ const cornerExtendedWall = (wall: WallSegment, walls: WallSegment[]): { start: {
   };
 };
 
+// event.intersections の各ヒットの祖先を辿り、指定した userData キーを持つオブジェクトが
+// 含まれるか調べる。壁/吹き抜けの見た目上の奥にある要素を優先させたい判定の共通処理。
+const eventHitsMarker = (event: ThreeEvent<PointerEvent>, key: string): boolean =>
+  event.intersections.some((intersection) => {
+    let object: THREE.Object3D | null = intersection.object;
+    while (object) {
+      if (object.userData?.[key]) return true;
+      object = object.parent;
+    }
+    return false;
+  });
+
 // 距離ソート済みの event.intersections に、壁以外の選択可能オブジェクト
 // （userData.selectable を持つ照明/家具ルート）が含まれるか。raycast は
 // opacity/transparent を無視するため外壁面も手前ヒットになる。室外から
 // 外壁面をクリックした時、奥に選択対象があれば壁が手前でも選択を譲るための判定。
-const eventHitsSelectable = (event: ThreeEvent<PointerEvent>): boolean =>
+const eventHitsSelectable = (event: ThreeEvent<PointerEvent>): boolean => eventHitsMarker(event, "selectable");
+
+// ドラッグハンドル(グリップ)は depthTest 無効で常に手前に見えるよう描くため、raycast上は
+// 奥の壁/吹き抜けに負けることがある。見た目どおりグリップを優先して掴めるようにする判定。
+const eventHitsDragHandle = (event: ThreeEvent<PointerEvent>): boolean => eventHitsMarker(event, "dragHandle");
+
+// event.intersections に、自分(ownWallId)以外の壁面/吹き抜け壁面(userData.wallId)が
+// 含まれるか。外壁の外側からその奥の壁/吹き抜け壁へ窓・扉・壁ライトを置きたい時、
+// 手前の外壁ではなく奥の壁を優先させるための判定。
+const eventHitsOtherWall = (event: ThreeEvent<PointerEvent>, ownWallId: string): boolean =>
   event.intersections.some((intersection) => {
     let object: THREE.Object3D | null = intersection.object;
     while (object) {
-      if (object.userData?.selectable) return true;
+      const id = object.userData?.wallId;
+      if (typeof id === "string" && id !== ownWallId) return true;
       object = object.parent;
     }
     return false;
@@ -2547,6 +2579,9 @@ const WallMesh = ({
       ref={groupRef}
       position={[midpointVector.x, midpointVector.y, midpointVector.z]}
       rotation={[0, rotationY, 0]}
+      // canEditWalls=false の壁（吹き抜け上部の2階echo壁など、UpperVoidLevel由来の非編集複製）は
+      // 実際のクリック対象ではないため wallId を持たせず、eventHitsOtherWall の誤判定を避ける。
+      userData={canEditWalls ? { wallId: wall.id } : undefined}
       // 選択は onPointerDown で確定する。手前の家具/照明は同じ pointerdown で
       // stopPropagation するため、onClick だと手前を選んでも click が壁へ伝播して
       // 選択が壁に転写される再発バグになる。pointer 系で統一して伝播を断つ。
@@ -2563,6 +2598,9 @@ const WallMesh = ({
         // 壁物（窓・扉・壁ライト）の配置中は、選択ではなくクリックした壁自身へ設置する。
         // クリック点(x,z)をこの壁に射影して比率を求める（最寄り壁＝クリック壁）。
         if (isWallPending(placement.pendingAdd)) {
+          // 外壁の外側面をクリックした時、奥に別の壁/吹き抜け壁があればそちらを優先する
+          // （外から窓/壁ライト等を置こうとすると手前の外壁に置かれてしまう問題への対処）。
+          if ((event.face?.normal.z ?? 0) < 0 && eventHitsOtherWall(event, wall.id)) return;
           event.stopPropagation();
           const hit = wallHitFromEvent(event);
           // 壁ライトはカーソルの壁上ワールドYをそのまま高さに渡す（壁面に吸い付かせる）。
@@ -2571,6 +2609,9 @@ const WallMesh = ({
           placement.onPlaceOnWall?.(wall.id, hit.ratio, heightM);
           return;
         }
+        // ドラッグハンドル(グリップ)は depthTest 無効で常に手前に見えるため、
+        // 見た目どおりグリップを優先して掴めるようにする（奥の壁に負けない）。
+        if (eventHitsDragHandle(event)) return;
         // 外壁スキン(local -Z = exterior, material-5)を室外からクリックした
         // 場合のみ、奥にライト/家具があれば壁を奪わず伝播させ奥を選ばせる。室内側の不透明
         // 面(+Z)クリックは従来どおり壁を選択する（壁裏の不可視オブジェクトを誤選択しない）。
@@ -2579,7 +2620,8 @@ const WallMesh = ({
         if ((event.face?.normal.z ?? 0) < 0 && eventHitsSelectable(event)) return;
         event.stopPropagation();
         if (!canEditWalls) return;
-        onSelect({ kind: "wall", id: wall.id });
+        // 選択中の壁を再クリックしたら選択解除（手軽に解除できるように）。
+        onSelect(selected ? null : { kind: "wall", id: wall.id });
       }}
     >
       {/* 壁を開口でくり抜いた残りパネル群。castShadow で窓開口を通る日光が
@@ -2686,11 +2728,16 @@ const WindowMesh = ({
   const centerZ = wall ? wall.start.z + (wall.end.z - wall.start.z) * windowItem.centerRatio : 0;
   // 窓は壁に拘束されるので、床平面ヒット(x,z)を所属壁へ射影し centerRatio を再計算する。
   // x,z は平面のY高さに依存しないため、平面Yは floorLevelM(室内床)に揃えれば十分。
+  // 選択済みオブジェクトの再クリックで選択解除するトグル判定用。実際にドラッグが
+  // 発生した場合（=移動操作）は解除しない、クリックのみ(移動なし)の時だけ解除する。
+  const wasSelectedRef = useRef(false);
+  const movedRef = useRef(false);
   const drag = useFloorDrag(
     { x: centerX, z: centerZ },
     floorLevelM,
     (x, z) => {
       if (!wall) return;
+      movedRef.current = true;
       const { ratio } = projectPointOntoWall(x, z, wall);
       updateWindow(windowItem.id, { centerRatio: Math.max(0, Math.min(1, ratio)) });
     }
@@ -2720,13 +2767,31 @@ const WindowMesh = ({
         // 配置中は既存の窓/扉の上に重ねて置けるよう、壁メッシュへ素通りさせる。
         if (placement.pendingAdd) return;
         event.stopPropagation();
-        onSelect({ kind, id: windowItem.id });
+        wasSelectedRef.current = selected;
+        movedRef.current = false;
+        if (!selected) onSelect({ kind, id: windowItem.id });
         // 通常操作では壁沿いの水平移動ドラッグを開始（高さ変更は矢印キーに任せる）。
         if (editMode === "select" && selected) drag.onPointerDown(event);
       }}
       onPointerMove={editMode === "select" ? drag.onPointerMove : undefined}
-      onPointerUp={editMode === "select" ? drag.onPointerUp : undefined}
-      onPointerCancel={editMode === "select" ? drag.onPointerCancel : undefined}
+      onPointerUp={
+        editMode === "select"
+          ? (event: ThreeEvent<PointerEvent>) => {
+              drag.onPointerUp(event);
+              // 移動を伴わないクリックで、既に選択中の窓/扉を再選択しようとした場合のみ解除する。
+              if (wasSelectedRef.current && !movedRef.current) onSelect(null);
+              wasSelectedRef.current = false;
+            }
+          : undefined
+      }
+      onPointerCancel={
+        editMode === "select"
+          ? (event: ThreeEvent<PointerEvent>) => {
+              drag.onPointerCancel(event);
+              wasSelectedRef.current = false;
+            }
+          : undefined
+      }
     >
       {/* 枠（窓・扉とも周囲に回す） */}
       {style !== "opening" && (
@@ -2825,8 +2890,12 @@ const VoidMarker = ({
     onPointerDown={(event: ThreeEvent<PointerEvent>) => {
       // 配置中はクリックを床キャッチャーへ素通りさせる（選択も伝播停止もしない）。
       if (placement.pendingAdd) return;
+      // ドラッグハンドル(グリップ)は常に手前に見えるため、覆いかぶさるこのマーカーより
+      // 優先して掴めるようにする（吹き抜け際の照明グリップを掴みにくい問題への対処）。
+      if (eventHitsDragHandle(event)) return;
       event.stopPropagation();
-      onSelect({ kind: "void", id: voidArea.id });
+      // 選択中の吹き抜けを再クリックしたら選択解除（手軽に解除できるように）。
+      onSelect(selected ? null : { kind: "void", id: voidArea.id });
     }}
   >
     {selected && (
@@ -2923,11 +2992,18 @@ const FurnitureMesh = ({
   const updateFurniture = useProjectStore((state) => state.updateFurniture);
   const deleteSelection = useProjectStore((state) => state.deleteSelection);
   const floorLevelM = useProjectStore((state) => state.project.room.floorLevelM ?? 0);
+  // 選択済みオブジェクトの再クリックで選択解除するトグル判定用。実際にドラッグが
+  // 発生した場合（=移動操作）は解除しない、クリックのみ(移動なし)の時だけ解除する。
+  const wasSelectedRef = useRef(false);
+  const movedRef = useRef(false);
   const drag = useFloorDrag(
     { x: item.position.x, z: item.position.z },
     // 家具は floorLevelM 群に乗るのでドラッグ平面も同量持ち上げる（floorLevelM=0で従来同一）。
     floorLevelM + item.position.y,
-    (x, z) => updateFurniture(item.id, { position: { ...item.position, x, z } })
+    (x, z) => {
+      movedRef.current = true;
+      updateFurniture(item.id, { position: { ...item.position, x, z } });
+    }
   );
 
   return (
@@ -2945,12 +3021,30 @@ const FurnitureMesh = ({
           deleteSelection({ kind: "furniture", id: item.id });
           return;
         }
-        onSelect({ kind: "furniture", id: item.id });
+        wasSelectedRef.current = selected;
+        movedRef.current = false;
+        if (!selected) onSelect({ kind: "furniture", id: item.id });
         if (editMode === "select" && selected) drag.onPointerDown(event);
       }}
       onPointerMove={editMode === "select" ? drag.onPointerMove : undefined}
-      onPointerUp={editMode === "select" ? drag.onPointerUp : undefined}
-      onPointerCancel={editMode === "select" ? drag.onPointerCancel : undefined}
+      onPointerUp={
+        editMode === "select"
+          ? (event: ThreeEvent<PointerEvent>) => {
+              drag.onPointerUp(event);
+              // 移動を伴わないクリックで、既に選択中の家具を再選択しようとした場合のみ解除する。
+              if (wasSelectedRef.current && !movedRef.current) onSelect(null);
+              wasSelectedRef.current = false;
+            }
+          : undefined
+      }
+      onPointerCancel={
+        editMode === "select"
+          ? (event: ThreeEvent<PointerEvent>) => {
+              drag.onPointerCancel(event);
+              wasSelectedRef.current = false;
+            }
+          : undefined
+      }
     >
       <FurniturePrimitive
         item={item}
@@ -3394,11 +3488,16 @@ const FixtureMesh = ({
   const wallMounted = isWallMountedFixture(fixture);
   // ドラッグ中に効いている整列軸のガイド位置（編集時のみ描画）。
   const [dragSnap, setDragSnap] = useState<{ snapX: number | null; snapZ: number | null } | null>(null);
+  // 選択済みオブジェクトの再クリックで選択解除するトグル判定用。実際にドラッグが
+  // 発生した場合（=移動操作）は解除しない、クリックのみ(移動なし)の時だけ解除する。
+  const wasSelectedRef = useRef(false);
+  const movedRef = useRef(false);
   const drag = useFloorDrag(
     { x: fixture.position.x, z: fixture.position.z },
     // 照明も floorLevelM 群に乗るのでドラッグ平面も同量持ち上げる（floorLevelM=0で従来同一）。
     floorLevelM + fixture.position.y,
     (rawX, rawZ) => {
+      movedRef.current = true;
       if (wallMounted) {
         const placement = wallMountedLightPlacementAt(
           project,
@@ -3455,7 +3554,9 @@ const FixtureMesh = ({
           toggleLightSelection(fixture.id);
           return;
         }
-        onSelect({ kind: "light", id: fixture.id });
+        wasSelectedRef.current = selected;
+        movedRef.current = false;
+        if (!selected) onSelect({ kind: "light", id: fixture.id });
         if (editMode === "select" && (selected || multiSelected)) drag.onPointerDown(event);
       }}
       onPointerMove={editMode === "select" ? drag.onPointerMove : undefined}
@@ -3464,6 +3565,9 @@ const FixtureMesh = ({
           ? (event: ThreeEvent<PointerEvent>) => {
               drag.onPointerUp(event);
               setDragSnap(null);
+              // 移動を伴わないクリックで、既に選択中の照明を再選択しようとした場合のみ解除する。
+              if (wasSelectedRef.current && !movedRef.current) onSelect(null);
+              wasSelectedRef.current = false;
             }
           : undefined
       }
@@ -3472,6 +3576,7 @@ const FixtureMesh = ({
           ? (event: ThreeEvent<PointerEvent>) => {
               drag.onPointerCancel(event);
               setDragSnap(null);
+              wasSelectedRef.current = false;
             }
           : undefined
       }
@@ -3511,6 +3616,9 @@ const FixtureMesh = ({
       {!showAimEditor && debugMode !== "beauty" && fixture.target && (
         <LightDirectionLine fixture={fixture} />
       )}
+      {/* 壁付き照明は設置高さ(position.y)自体を上下ドラッグできる専用グリップを出す
+          （狙い先=targetの高さドラッグとは別物。壁面のx,z拘束は維持したまま高さだけ動かす）。 */}
+      {wallMounted && selected && !pathTraced && editMode !== "delete" && <FixtureHeightHandle fixture={fixture} />}
     </group>
   );
 };
@@ -3639,7 +3747,9 @@ const LightAimHandle = ({ fixture }: { fixture: LightFixture }) => {
         to={[localOffset.x + heightGripOffsetX, maxTargetY - fixture.position.y, localOffset.z]}
         color="#ffe38a"
       />
-      <group position={[localOffset.x, localOffset.y, localOffset.z]}>
+      {/* depthTest 無効で常に手前に描く=見た目は最優先のため、raycast上も奥の壁/吹き抜けに
+          負けないよう userData.dragHandle を付与する（WallMesh/VoidMarker側が優先譲歩する）。 */}
+      <group position={[localOffset.x, localOffset.y, localOffset.z]} userData={{ dragHandle: true }}>
         {/* 当たり判定プロキシ: リング内側まで掴める不可視ディスク（colorWrite=false で
             描画されないが raycast 対象）。極小グリップのヒット面積不足を補う。 */}
         <mesh onPointerDown={startHorizontalDrag} {...gripDragHandlers} renderOrder={41}>
@@ -3665,6 +3775,106 @@ const LightAimHandle = ({ fixture }: { fixture: LightFixture }) => {
         <mesh position={[heightGripOffsetX, -0.12, 0]} rotation-x={Math.PI} onPointerDown={startHeightDrag} {...gripDragHandlers} renderOrder={44}>
           <coneGeometry args={[0.045, 0.09, 18]} />
           <meshBasicMaterial color="#ffb347" transparent opacity={0.85} depthTest={false} />
+        </mesh>
+      </group>
+    </group>
+  );
+};
+
+// 壁付き照明の可動域上限の目安。所属する壁の高さ（吹き抜け壁なら吹き抜け上部の高さ）を使い、
+// 見つからなければ通常天井高さにフォールバックする。
+const wallMountHeightLimit = (project: Project, fixture: LightFixture): number => {
+  const floor = fixture.floor ?? project.activeFloor ?? 1;
+  const surface = nearestWallMountSurfaceAt(project, fixture.position.x, fixture.position.z, floor);
+  if (!surface) return project.room.ceilingHeightM;
+  if (parseVoidWallId(surface.wallId)) return voidCeilingHeightAt(project, floor);
+  const wall = project.walls.find((candidate) => candidate.id === surface.wallId);
+  return wall?.heightM ?? project.room.ceilingHeightM;
+};
+
+// 壁付き照明の設置高さ(position.y)を直接ドラッグするグリップ。壁面へのx,z拘束は保ったまま
+// 高さだけ動かす（狙い先=targetの高さドラッグ(startHeightDrag/LightAimHandle)とは別物）。
+const FixtureHeightHandle = ({ fixture }: { fixture: LightFixture }) => {
+  const controls = useThree((state) => state.controls) as { enabled: boolean } | null;
+  const touchGuard = useTouchDragGuard();
+  const updateLight = useProjectStore((store) => store.updateLight);
+  const project = useProjectStore((store) => store.project);
+  const floorLevelM = useProjectStore((store) => store.project.room.floorLevelM ?? 0);
+  const minY = 0.3;
+  const maxY = Math.max(minY + 0.2, wallMountHeightLimit(project, fixture) - 0.05);
+  const gripOffsetX = -0.26;
+  const dragging = useRef(false);
+  const grabY = useRef(0);
+  const hit = useMemo(() => new THREE.Vector3(), []);
+
+  useEffect(() => {
+    return () => {
+      if (controls) controls.enabled = true;
+    };
+  }, [controls]);
+
+  const heightFromRay = (event: ThreeEvent<PointerEvent>) => {
+    const start = new THREE.Vector3(fixture.position.x + gripOffsetX, floorLevelM + minY, fixture.position.z);
+    const end = new THREE.Vector3(fixture.position.x + gripOffsetX, floorLevelM + maxY, fixture.position.z);
+    event.ray.distanceSqToSegment(start, end, undefined, hit);
+    return hit.y - floorLevelM;
+  };
+
+  const startDrag = (event: ThreeEvent<PointerEvent>) => {
+    if (event.button !== 0) return;
+    if (event.pointerType === "touch" && touchGuard.hasMultiTouch()) return;
+    event.stopPropagation();
+    dragging.current = true;
+    grabY.current = fixture.position.y - heightFromRay(event);
+    (event.target as Element | null)?.setPointerCapture?.(event.pointerId);
+    if (controls) controls.enabled = false;
+  };
+
+  const stopDrag = (event: ThreeEvent<PointerEvent>) => {
+    if (!dragging.current) return;
+    dragging.current = false;
+    (event.target as Element | null)?.releasePointerCapture?.(event.pointerId);
+    if (controls) controls.enabled = true;
+  };
+
+  const handlePointerMove = (event: ThreeEvent<PointerEvent>) => {
+    if (!dragging.current) return;
+    if (event.pointerType === "touch" && touchGuard.hasMultiTouch()) {
+      stopDrag(event);
+      return;
+    }
+    event.stopPropagation();
+    const y = THREE.MathUtils.clamp(heightFromRay(event) + grabY.current, minY, maxY);
+    updateLight(fixture.id, { position: { ...fixture.position, y }, mountHeightM: y });
+  };
+
+  const gripDragHandlers = {
+    onPointerMove: handlePointerMove,
+    onPointerUp: stopDrag,
+    onPointerCancel: stopDrag,
+    onLostPointerCapture: stopDrag
+  };
+
+  return (
+    <group renderOrder={40}>
+      <DebugLine
+        from={[gripOffsetX, minY - fixture.position.y, 0]}
+        to={[gripOffsetX, maxY - fixture.position.y, 0]}
+        color="#7fd6ff"
+      />
+      {/* WallMesh/VoidMarker側が奥の壁より優先して譲るための目印(LightAimHandleと同じ仕組み)。 */}
+      <group position={[gripOffsetX, 0, 0]} userData={{ dragHandle: true }}>
+        <mesh onPointerDown={startDrag} {...gripDragHandlers} renderOrder={41}>
+          <sphereGeometry args={[0.06, 18, 12]} />
+          <meshBasicMaterial color="#7fd6ff" transparent opacity={0.95} depthTest={false} />
+        </mesh>
+        <mesh position={[0, 0.11, 0]} onPointerDown={startDrag} {...gripDragHandlers} renderOrder={41}>
+          <coneGeometry args={[0.045, 0.09, 18]} />
+          <meshBasicMaterial color="#7fd6ff" transparent opacity={0.85} depthTest={false} />
+        </mesh>
+        <mesh position={[0, -0.11, 0]} rotation-x={Math.PI} onPointerDown={startDrag} {...gripDragHandlers} renderOrder={41}>
+          <coneGeometry args={[0.045, 0.09, 18]} />
+          <meshBasicMaterial color="#7fd6ff" transparent opacity={0.85} depthTest={false} />
         </mesh>
       </group>
     </group>
