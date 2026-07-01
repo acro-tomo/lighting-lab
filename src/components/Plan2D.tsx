@@ -46,7 +46,7 @@ type DragState =
   | { kind: "floorZone"; id: string; offset: Vec2M }
   | { kind: "window"; id: string }
   | { kind: "wall"; id: string; pointerStart: Vec2M; start: Vec2M; end: Vec2M }
-  | { kind: "pan"; clientStart: { x: number; y: number }; panStart: { x: number; y: number } }
+  | { kind: "pan"; clientStart: { x: number; y: number }; panStart: { x: number; y: number }; sensitivity: number }
   | null;
 
 // パワポ風の辺ドラッグリサイズ対象。矩形フットプリント(幅x・奥行z)を持つ物のみ。
@@ -70,6 +70,8 @@ const MIN_SIZE_M = 0.2;
 const WALL_SNAP_M = 1.2;
 // ライトをドラッグ移動するとき、他ライトの x/z にこの距離(m)以内なら整列スナップする。
 const SNAP_M = 0.12;
+const TOUCH_PAN_SENSITIVITY = 0.72;
+const TOUCH_PINCH_ZOOM_EXPONENT = 0.65;
 
 // 壁に付く追加物（窓カタログ "window:<id>" / 扉 "door" / 壁付スポット "wallspot"）の判定。
 const isWallOpening = (kind: string | null): boolean =>
@@ -747,7 +749,12 @@ export const Plan2D = ({
     }
 
     if (event.button === 1) {
-      setDragging({ kind: "pan", clientStart: { x: event.clientX, y: event.clientY }, panStart: pan });
+      setDragging({
+        kind: "pan",
+        clientStart: { x: event.clientX, y: event.clientY },
+        panStart: pan,
+        sensitivity: 1
+      });
       return;
     }
 
@@ -755,7 +762,12 @@ export const Plan2D = ({
     if (handleCanvasPlacement(event.clientX, event.clientY)) return;
 
     // 通常操作で何も無い背景を掴んだら平面図をパンする（要望: 空白ドラッグでパン）。
-    setDragging({ kind: "pan", clientStart: { x: event.clientX, y: event.clientY }, panStart: pan });
+    setDragging({
+      kind: "pan",
+      clientStart: { x: event.clientX, y: event.clientY },
+      panStart: pan,
+      sensitivity: event.pointerType === "touch" ? TOUCH_PAN_SENSITIVITY : 1
+    });
   };
 
   const onPointerMove = (event: React.PointerEvent<SVGSVGElement>) => {
@@ -775,7 +787,12 @@ export const Plan2D = ({
         const [a, b] = points;
         const nextDistance = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
         if (pinch.distance > 4) {
-          zoomAtUserPoint(pinch.zoom * (nextDistance / pinch.distance), pinch.anchor.x, pinch.anchor.y);
+          const ratio = nextDistance / pinch.distance;
+          zoomAtUserPoint(
+            pinch.zoom * Math.pow(ratio, TOUCH_PINCH_ZOOM_EXPONENT),
+            pinch.anchor.x,
+            pinch.anchor.y
+          );
         }
         return;
       }
@@ -836,8 +853,8 @@ export const Plan2D = ({
     if (dragging.kind === "pan") {
       const rect = svgRef.current?.getBoundingClientRect();
       if (!rect) return;
-      const dx = ((event.clientX - dragging.clientStart.x) / rect.width) * viewBox.width;
-      const dy = ((event.clientY - dragging.clientStart.y) / rect.height) * viewBox.height;
+      const dx = ((event.clientX - dragging.clientStart.x) / rect.width) * viewBox.width * dragging.sensitivity;
+      const dy = ((event.clientY - dragging.clientStart.y) / rect.height) * viewBox.height * dragging.sensitivity;
       setPan({ x: dragging.panStart.x - dx, y: dragging.panStart.y - dy });
       return;
     }

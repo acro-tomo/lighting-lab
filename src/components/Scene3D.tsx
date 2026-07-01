@@ -83,6 +83,32 @@ type TouchDragGuard = { hasMultiTouch: () => boolean };
 const TouchDragGuardContext = createContext<TouchDragGuard>({ hasMultiTouch: () => false });
 const useTouchDragGuard = () => useContext(TouchDragGuardContext);
 
+const TOUCH_ORBIT_SPEED = {
+  rotate: 0.45,
+  zoom: 0.6,
+  pan: 0.55
+};
+
+const DESKTOP_ORBIT_SPEED = {
+  rotate: 1,
+  zoom: 1,
+  pan: 1
+};
+
+const usePrefersTouchControls = () => {
+  const [prefersTouchControls, setPrefersTouchControls] = useState(false);
+
+  useEffect(() => {
+    const query = window.matchMedia("(pointer: coarse)");
+    const update = () => setPrefersTouchControls(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+
+  return prefersTouchControls;
+};
+
 const TouchDragGuardProvider = ({ children }: { children: ReactNode }) => {
   const gl = useThree((state) => state.gl);
   const touchPointerIds = useRef(new Set<number>());
@@ -701,6 +727,8 @@ const SceneRoot = ({
   canEditWalls
 }: Scene3DProps) => {
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
+  const prefersTouchControls = usePrefersTouchControls();
+  const orbitSpeed = prefersTouchControls ? TOUCH_ORBIT_SPEED : DESKTOP_ORBIT_SPEED;
   // 壁ライト(wallspot)配置中の壁上カーソル。壁メッシュが onWallHover で更新する。
   const [wallCursor, setWallCursor] = useState<WallHover>(null);
   const materialMap = useMemo(() => materialById(project.materials), [project.materials]);
@@ -905,6 +933,9 @@ const SceneRoot = ({
         screenSpacePanning
         keyEvents={false}
         touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }}
+        rotateSpeed={orbitSpeed.rotate}
+        zoomSpeed={orbitSpeed.zoom}
+        panSpeed={orbitSpeed.pan}
         dampingFactor={0.08}
         minDistance={1.2}
         maxDistance={12}
