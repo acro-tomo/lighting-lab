@@ -169,6 +169,7 @@ const AimTargetPresets = ({
     Math.abs(currentAim.x - light.position.x) < 0.02 &&
     Math.abs(currentAim.z - light.position.z) < 0.02 &&
     Math.abs(currentAim.y) < 0.02;
+  const isUpward = currentAim.y > light.position.y + 0.08;
 
   return (
     <div className="aim-control">
@@ -192,6 +193,14 @@ const AimTargetPresets = ({
             <span>{Math.round(preset.heightM * 1000)}mm</span>
           </button>
         ))}
+        <button
+          type="button"
+          className={isUpward ? "chip is-active" : "chip"}
+          onClick={() => onChange({ ...currentAim, y: light.position.y + 0.8 })}
+        >
+          上向き
+          <span>+800mm</span>
+        </button>
       </div>
       <AimAzimuthDial light={light} aim={aim} onChange={onChange} />
       <p className="field-hint">黄色の照射ポイントを3Dビュー上でも調整できます</p>

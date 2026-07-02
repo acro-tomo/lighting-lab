@@ -2461,13 +2461,20 @@ const cornerExtendedWall = (wall: WallSegment, walls: WallSegment[]): { start: {
 // 含まれるか調べる。壁/吹き抜けの見た目上の奥にある要素を優先させたい判定の共通処理。
 const eventHitsMarker = (event: ThreeEvent<PointerEvent>, key: string): boolean =>
   event.intersections.some((intersection) => {
-    let object: THREE.Object3D | null = intersection.object;
-    while (object) {
-      if (object.userData?.[key]) return true;
-      object = object.parent;
-    }
-    return false;
+    return objectHasMarker(intersection.object, key);
   });
+
+const objectHasMarker = (object: THREE.Object3D | null | undefined, key: string): boolean => {
+  let current = object ?? null;
+  while (current) {
+    if (current.userData?.[key]) return true;
+    current = current.parent;
+  }
+  return false;
+};
+
+const eventObjectHasMarker = (event: { object: THREE.Object3D }, key: string): boolean =>
+  objectHasMarker(event.object, key);
 
 // 距離ソート済みの event.intersections に、壁以外の選択可能オブジェクト
 // （userData.selectable を持つ照明/家具ルート）が含まれるか。raycast は
@@ -3066,6 +3073,7 @@ const FurnitureMesh = ({
       // 外壁越しに奥のこのオブジェクトを選べるよう、選択可能マーカーを付与。
       userData={{ selectable: true }}
       onPointerDown={(event: ThreeEvent<PointerEvent>) => {
+        const hitFurnitureBody = eventObjectHasMarker(event, "furnitureBody");
         // 配置中は家具の上に重ねて置けるよう、床キャッチャーへ素通りさせる。
         if (placement.pendingAdd) return;
         // 手前の家具をクリックしたら確定（背後の壁へ選択が伝播するのを止める）。
@@ -3077,7 +3085,7 @@ const FurnitureMesh = ({
         wasSelectedRef.current = selected;
         movedRef.current = false;
         if (!selected) onSelect({ kind: "furniture", id: item.id });
-        if (editMode === "select" && selected) drag.onPointerDown(event);
+        if (editMode === "select" && selected && hitFurnitureBody) drag.onPointerDown(event);
       }}
       onPointerMove={editMode === "select" ? drag.onPointerMove : undefined}
       onPointerUp={
@@ -3099,12 +3107,14 @@ const FurnitureMesh = ({
           : undefined
       }
     >
-      <FurniturePrimitive
-        item={item}
-        color={debugColorForRole("furniture", debugMode, color)}
-        roughness={roughness}
-        metalness={debugMode === "beauty" ? metalness : 0}
-      />
+      <group userData={{ furnitureBody: true }}>
+        <FurniturePrimitive
+          item={item}
+          color={debugColorForRole("furniture", debugMode, color)}
+          roughness={roughness}
+          metalness={debugMode === "beauty" ? metalness : 0}
+        />
+      </group>
       {selected && !pathTraced && (
         <>
           <mesh>
@@ -3512,6 +3522,8 @@ const snapDragToLightAxes = (
   return { x: snapX ?? x, z: snapZ ?? z, snapX, snapZ };
 };
 
+type FixtureMoveMode = "horizontal" | "vertical";
+
 const FixtureMesh = ({
   fixture,
   emitsLight,
@@ -3528,6 +3540,8 @@ const FixtureMesh = ({
   debugMode: RenderDebugMode;
 }) => {
   const lightColor = colorTemperatureToHex(fixture.colorTemperatureK);
+  const controls = useThree((state) => state.controls) as { enabled: boolean } | null;
+  const touchGuard = useTouchDragGuard();
   const pathTraced = usePathTraced();
   const editMode = useEditMode();
   const placement = usePlacement();
@@ -3539,18 +3553,24 @@ const FixtureMesh = ({
   const toggleLightSelection = useProjectStore((store) => store.toggleLightSelection);
   const multiSelected = useProjectStore((store) => store.selectedLightIds.includes(fixture.id));
   const wallMounted = isWallMountedFixture(fixture);
+  const [moveMode, setMoveMode] = useState<FixtureMoveMode>("horizontal");
   // ドラッグ中に効いている整列軸のガイド位置（編集時のみ描画）。
   const [dragSnap, setDragSnap] = useState<{ snapX: number | null; snapZ: number | null } | null>(null);
-  // 選択済みオブジェクトの再クリックで選択解除するトグル判定用。実際にドラッグが
-  // 発生した場合（=移動操作）は解除しない、クリックのみ(移動なし)の時だけ解除する。
-  const wasSelectedRef = useRef(false);
-  const movedRef = useRef(false);
+  const heightDragging = useRef(false);
+  const heightGrabY = useRef(0);
+  const heightHit = useMemo(() => new THREE.Vector3(), []);
+  const minMoveY = wallMounted ? 0.3 : 0.08;
+  const maxMoveY = Math.max(
+    minMoveY + 0.2,
+    wallMounted
+      ? wallMountHeightLimit(project, fixture) - 0.05
+      : ceilingMountHeightAt(project, { x: fixture.position.x, z: fixture.position.z }) - 0.02
+  );
   const drag = useFloorDrag(
     { x: fixture.position.x, z: fixture.position.z },
     // 照明も floorLevelM 群に乗るのでドラッグ平面も同量持ち上げる（floorLevelM=0で従来同一）。
     floorLevelM + fixture.position.y,
     (rawX, rawZ) => {
-      movedRef.current = true;
       if (wallMounted) {
         const placement = wallMountedLightPlacementAt(
           project,
@@ -3582,6 +3602,47 @@ const FixtureMesh = ({
     }
   );
 
+  useEffect(() => {
+    return () => {
+      if (controls) controls.enabled = true;
+    };
+  }, [controls]);
+
+  const heightFromRay = (event: ThreeEvent<PointerEvent>) => {
+    const start = new THREE.Vector3(fixture.position.x, floorLevelM + minMoveY, fixture.position.z);
+    const end = new THREE.Vector3(fixture.position.x, floorLevelM + maxMoveY, fixture.position.z);
+    event.ray.distanceSqToSegment(start, end, undefined, heightHit);
+    return heightHit.y - floorLevelM;
+  };
+
+  const startHeightDrag = (event: ThreeEvent<PointerEvent>) => {
+    if (event.button !== 0) return;
+    if (event.pointerType === "touch" && touchGuard.hasMultiTouch()) return;
+    event.stopPropagation();
+    heightDragging.current = true;
+    heightGrabY.current = fixture.position.y - heightFromRay(event);
+    (event.target as Element | null)?.setPointerCapture?.(event.pointerId);
+    if (controls) controls.enabled = false;
+  };
+
+  const stopHeightDrag = (event: ThreeEvent<PointerEvent>) => {
+    if (!heightDragging.current) return;
+    heightDragging.current = false;
+    (event.target as Element | null)?.releasePointerCapture?.(event.pointerId);
+    if (controls) controls.enabled = true;
+  };
+
+  const handleHeightDragMove = (event: ThreeEvent<PointerEvent>) => {
+    if (!heightDragging.current) return;
+    if (event.pointerType === "touch" && touchGuard.hasMultiTouch()) {
+      stopHeightDrag(event);
+      return;
+    }
+    event.stopPropagation();
+    const y = THREE.MathUtils.clamp(heightFromRay(event) + heightGrabY.current, minMoveY, maxMoveY);
+    updateLight(fixture.id, { position: { ...fixture.position, y }, mountHeightM: y });
+  };
+
   const showOutline = (selected || multiSelected) && !pathTraced;
   const showAimEditor = selected && isAimable(fixture) && !pathTraced && editMode !== "delete";
   // ガイド線は非物理の編集補助なので常駐パストレ時は出さない（WYSIWYG不変条件）。
@@ -3594,6 +3655,7 @@ const FixtureMesh = ({
       // 外壁越しに奥のこの照明を選べるよう、選択可能マーカーを付与。
       userData={{ selectable: true }}
       onPointerDown={(event: ThreeEvent<PointerEvent>) => {
+        const hitFixtureBody = eventObjectHasMarker(event, "fixtureBody");
         // 配置中は照明の上に重ねて置けるよう、床キャッチャーへ素通りさせる。
         if (placement.pendingAdd) return;
         // 手前の照明をクリックしたら確定（背後の壁へ選択が伝播するのを止める）。
@@ -3607,20 +3669,32 @@ const FixtureMesh = ({
           toggleLightSelection(fixture.id);
           return;
         }
-        wasSelectedRef.current = selected;
-        movedRef.current = false;
         if (!selected) onSelect({ kind: "light", id: fixture.id });
-        if (editMode === "select" && (selected || multiSelected)) drag.onPointerDown(event);
+        if (editMode === "select" && hitFixtureBody && (selected || multiSelected)) {
+          if (moveMode === "vertical") startHeightDrag(event);
+          else drag.onPointerDown(event);
+        }
       }}
-      onPointerMove={editMode === "select" ? drag.onPointerMove : undefined}
+      onDoubleClick={(event: ThreeEvent<MouseEvent>) => {
+        if (placement.pendingAdd || !eventObjectHasMarker(event, "fixtureBody")) return;
+        event.stopPropagation();
+        if (!selected) onSelect({ kind: "light", id: fixture.id });
+        setMoveMode((current) => (current === "horizontal" ? "vertical" : "horizontal"));
+      }}
+      onPointerMove={
+        editMode === "select"
+          ? (event: ThreeEvent<PointerEvent>) => {
+              drag.onPointerMove(event);
+              handleHeightDragMove(event);
+            }
+          : undefined
+      }
       onPointerUp={
         editMode === "select"
           ? (event: ThreeEvent<PointerEvent>) => {
               drag.onPointerUp(event);
+              stopHeightDrag(event);
               setDragSnap(null);
-              // 移動を伴わないクリックで、既に選択中の照明を再選択しようとした場合のみ解除する。
-              if (wasSelectedRef.current && !movedRef.current) onSelect(null);
-              wasSelectedRef.current = false;
             }
           : undefined
       }
@@ -3628,19 +3702,24 @@ const FixtureMesh = ({
         editMode === "select"
           ? (event: ThreeEvent<PointerEvent>) => {
               drag.onPointerCancel(event);
+              stopHeightDrag(event);
               setDragSnap(null);
-              wasSelectedRef.current = false;
             }
           : undefined
       }
     >
-      <FixtureBody fixture={fixture} color={lightColor} active={emitsLight} debugMode={debugMode} />
-      {emitsLight && <PhysicalLight fixture={fixture} castsRealtimeShadow={castsRealtimeShadow} debugMode={debugMode} />}
+      <group userData={{ fixtureBody: true }}>
+        <FixtureBody fixture={fixture} color={lightColor} active={emitsLight} debugMode={debugMode} />
+        {emitsLight && <PhysicalLight fixture={fixture} castsRealtimeShadow={castsRealtimeShadow} debugMode={debugMode} />}
+      </group>
       {showOutline && (
-        <mesh>
-          <sphereGeometry args={[0.18, 24, 16]} />
-          <meshBasicMaterial color="#f5c64d" wireframe transparent opacity={0.95} />
-        </mesh>
+        <>
+          <mesh>
+            <sphereGeometry args={[0.18, 24, 16]} />
+            <meshBasicMaterial color="#f5c64d" wireframe transparent opacity={0.95} />
+          </mesh>
+          <FixtureMoveModeCue mode={moveMode} minY={minMoveY} maxY={maxMoveY} currentY={fixture.position.y} />
+        </>
       )}
       {!pathTraced && dragSnap?.snapX != null && (
         // group はライト中心に乗っているのでローカル座標へ戻して水平方向に描く。
@@ -3676,14 +3755,58 @@ const FixtureMesh = ({
   );
 };
 
+const FixtureMoveModeCue = ({
+  mode,
+  minY,
+  maxY,
+  currentY
+}: {
+  mode: FixtureMoveMode;
+  minY: number;
+  maxY: number;
+  currentY: number;
+}) => {
+  if (mode === "vertical") {
+    const x = 0.32;
+    const low = minY - currentY;
+    const high = maxY - currentY;
+    return (
+      <group renderOrder={39}>
+        <DebugLine from={[x, low, 0]} to={[x, high, 0]} color="#7fd6ff" />
+        <mesh position={[x, Math.min(high, 0.42), 0]} renderOrder={39}>
+          <coneGeometry args={[0.04, 0.1, 18]} />
+          <meshBasicMaterial color="#7fd6ff" transparent opacity={0.88} depthTest={false} />
+        </mesh>
+        <mesh position={[x, Math.max(low, -0.42), 0]} rotation-x={Math.PI} renderOrder={39}>
+          <coneGeometry args={[0.04, 0.1, 18]} />
+          <meshBasicMaterial color="#7fd6ff" transparent opacity={0.88} depthTest={false} />
+        </mesh>
+      </group>
+    );
+  }
+
+  return (
+    <mesh rotation-x={Math.PI / 2} renderOrder={39}>
+      <torusGeometry args={[0.28, 0.01, 8, 48]} />
+      <meshBasicMaterial color="#f5c64d" transparent opacity={0.78} depthTest={false} />
+    </mesh>
+  );
+};
+
 const LightAimHandle = ({ fixture }: { fixture: LightFixture }) => {
   const controls = useThree((state) => state.controls) as { enabled: boolean } | null;
   const touchGuard = useTouchDragGuard();
   const updateLight = useProjectStore((store) => store.updateLight);
+  const project = useProjectStore((store) => store.project);
   const floorLevelM = useProjectStore((store) => store.project.room.floorLevelM ?? 0);
   const target = fixture.target ?? { x: fixture.position.x, y: 0, z: fixture.position.z };
   const minTargetY = 0;
-  const maxTargetY = Math.max(minTargetY + 0.2, fixture.position.y - 0.08);
+  const maxTargetY = Math.max(
+    minTargetY + 0.2,
+    fixture.position.y + 1.2,
+    wallMountHeightLimit(project, fixture),
+    project.room.ceilingHeightM + 0.8
+  );
   const localOffset = {
     x: target.x - fixture.position.x,
     y: target.y - fixture.position.y,
