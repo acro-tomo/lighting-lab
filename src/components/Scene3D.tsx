@@ -279,6 +279,70 @@ const useFloorDrag = (
   };
 };
 
+// 天井照明のように視点とほぼ同じ高さの物体は、水平面レイ交差だと
+// 平行に近くなって飛びやすい。カメラ方向に向いた縦平面で掴み、
+// x/z だけを移動量として使う。
+const useViewPlaneDrag = (
+  current: { x: number; z: number },
+  anchorY: number,
+  onMove: (x: number, z: number) => void
+) => {
+  const camera = useThree((state) => state.camera);
+  const controls = useThree((state) => state.controls) as { enabled: boolean } | null;
+  const touchGuard = useTouchDragGuard();
+  const dragging = useRef(false);
+  const grab = useRef({ x: 0, z: 0 });
+  const plane = useMemo(() => new THREE.Plane(), []);
+  const hit = useMemo(() => new THREE.Vector3(), []);
+  const anchor = useMemo(() => new THREE.Vector3(), []);
+  const normal = useMemo(() => new THREE.Vector3(), []);
+
+  const setDragPlane = () => {
+    anchor.set(current.x, anchorY, current.z);
+    normal.set(camera.position.x - current.x, 0, camera.position.z - current.z);
+    if (normal.lengthSq() < 1e-6) normal.set(0, 0, 1);
+    normal.normalize();
+    plane.setFromNormalAndCoplanarPoint(normal, anchor);
+  };
+
+  const stopDrag = (event: ThreeEvent<PointerEvent>) => {
+    if (!dragging.current) return;
+    dragging.current = false;
+    (event.target as Element | null)?.releasePointerCapture?.(event.pointerId);
+    if (controls) controls.enabled = true;
+  };
+
+  return {
+    onPointerDown: (event: ThreeEvent<PointerEvent>) => {
+      if (event.button !== 0) return;
+      if (event.pointerType === "touch" && touchGuard.hasMultiTouch()) return;
+      event.stopPropagation();
+      setDragPlane();
+      if (!event.ray.intersectPlane(plane, hit)) return;
+      grab.current = { x: current.x - hit.x, z: current.z - hit.z };
+      dragging.current = true;
+      (event.target as Element | null)?.setPointerCapture?.(event.pointerId);
+      if (controls) controls.enabled = false;
+    },
+    onPointerMove: (event: ThreeEvent<PointerEvent>) => {
+      if (!dragging.current) return;
+      if (event.pointerType === "touch" && touchGuard.hasMultiTouch()) {
+        stopDrag(event);
+        return;
+      }
+      if (event.ray.intersectPlane(plane, hit)) {
+        onMove(hit.x + grab.current.x, hit.z + grab.current.z);
+      }
+    },
+    onPointerUp: (event: ThreeEvent<PointerEvent>) => {
+      stopDrag(event);
+    },
+    onPointerCancel: (event: ThreeEvent<PointerEvent>) => {
+      stopDrag(event);
+    }
+  };
+};
+
 // 3Dビュー上で平面ヒットを取りながらドラッグするための汎用ハンドラ（リサイズハンドル用）。
 const useHandleDrag = (getPlane: () => THREE.Plane, onHit: (point: THREE.Vector3) => void) => {
   const controls = useThree((state) => state.controls) as { enabled: boolean } | null;
@@ -2476,6 +2540,8 @@ const objectHasMarker = (object: THREE.Object3D | null | undefined, key: string)
 const eventObjectHasMarker = (event: { object: THREE.Object3D }, key: string): boolean =>
   objectHasMarker(event.object, key);
 
+const ignoreRaycast: THREE.Object3D["raycast"] = () => {};
+
 // 距離ソート済みの event.intersections に、壁以外の選択可能オブジェクト
 // （userData.selectable を持つ照明/家具ルート）が含まれるか。raycast は
 // opacity/transparent を無視するため外壁面も手前ヒットになる。室外から
@@ -3117,7 +3183,7 @@ const FurnitureMesh = ({
       </group>
       {selected && !pathTraced && (
         <>
-          <mesh>
+          <mesh raycast={ignoreRaycast}>
             <boxGeometry args={[item.size.x + 0.08, item.size.y + 0.08, item.size.z + 0.08]} />
             <meshBasicMaterial color="#f5c64d" wireframe transparent opacity={0.9} />
           </mesh>
@@ -3566,9 +3632,8 @@ const FixtureMesh = ({
       ? wallMountHeightLimit(project, fixture) - 0.05
       : ceilingMountHeightAt(project, { x: fixture.position.x, z: fixture.position.z }) - 0.02
   );
-  const drag = useFloorDrag(
+  const drag = useViewPlaneDrag(
     { x: fixture.position.x, z: fixture.position.z },
-    // 照明も floorLevelM 群に乗るのでドラッグ平面も同量持ち上げる（floorLevelM=0で従来同一）。
     floorLevelM + fixture.position.y,
     (rawX, rawZ) => {
       if (wallMounted) {
@@ -3655,7 +3720,7 @@ const FixtureMesh = ({
       // 外壁越しに奥のこの照明を選べるよう、選択可能マーカーを付与。
       userData={{ selectable: true }}
       onPointerDown={(event: ThreeEvent<PointerEvent>) => {
-        const hitFixtureBody = eventObjectHasMarker(event, "fixtureBody");
+        const canDragFixture = !eventHitsDragHandle(event);
         // 配置中は照明の上に重ねて置けるよう、床キャッチャーへ素通りさせる。
         if (placement.pendingAdd) return;
         // 手前の照明をクリックしたら確定（背後の壁へ選択が伝播するのを止める）。
@@ -3670,7 +3735,7 @@ const FixtureMesh = ({
           return;
         }
         if (!selected) onSelect({ kind: "light", id: fixture.id });
-        if (editMode === "select" && hitFixtureBody && (selected || multiSelected)) {
+        if (editMode === "select" && canDragFixture && (selected || multiSelected)) {
           if (moveMode === "vertical") startHeightDrag(event);
           else drag.onPointerDown(event);
         }
@@ -3709,12 +3774,13 @@ const FixtureMesh = ({
       }
     >
       <group userData={{ fixtureBody: true }}>
+        {!pathTraced && <FixtureDragHitTarget fixture={fixture} />}
         <FixtureBody fixture={fixture} color={lightColor} active={emitsLight} debugMode={debugMode} />
         {emitsLight && <PhysicalLight fixture={fixture} castsRealtimeShadow={castsRealtimeShadow} debugMode={debugMode} />}
       </group>
       {showOutline && (
         <>
-          <mesh>
+          <mesh raycast={ignoreRaycast}>
             <sphereGeometry args={[0.18, 24, 16]} />
             <meshBasicMaterial color="#f5c64d" wireframe transparent opacity={0.95} />
           </mesh>
@@ -3755,6 +3821,28 @@ const FixtureMesh = ({
   );
 };
 
+const InvisibleHitMaterial = () => (
+  <meshBasicMaterial colorWrite={false} depthWrite={false} transparent opacity={0} />
+);
+
+const FixtureDragHitTarget = ({ fixture }: { fixture: LightFixture }) => {
+  if (fixture.type === "tape") {
+    return (
+      <mesh>
+        <boxGeometry args={[Math.max(fixture.lengthM ?? 1.2, 0.5), 0.36, 0.36]} />
+        <InvisibleHitMaterial />
+      </mesh>
+    );
+  }
+
+  return (
+    <mesh>
+      <sphereGeometry args={[0.42, 18, 12]} />
+      <InvisibleHitMaterial />
+    </mesh>
+  );
+};
+
 const FixtureMoveModeCue = ({
   mode,
   minY,
@@ -3773,11 +3861,11 @@ const FixtureMoveModeCue = ({
     return (
       <group renderOrder={39}>
         <DebugLine from={[x, low, 0]} to={[x, high, 0]} color="#7fd6ff" />
-        <mesh position={[x, Math.min(high, 0.42), 0]} renderOrder={39}>
+        <mesh position={[x, Math.min(high, 0.42), 0]} renderOrder={39} raycast={ignoreRaycast}>
           <coneGeometry args={[0.04, 0.1, 18]} />
           <meshBasicMaterial color="#7fd6ff" transparent opacity={0.88} depthTest={false} />
         </mesh>
-        <mesh position={[x, Math.max(low, -0.42), 0]} rotation-x={Math.PI} renderOrder={39}>
+        <mesh position={[x, Math.max(low, -0.42), 0]} rotation-x={Math.PI} renderOrder={39} raycast={ignoreRaycast}>
           <coneGeometry args={[0.04, 0.1, 18]} />
           <meshBasicMaterial color="#7fd6ff" transparent opacity={0.88} depthTest={false} />
         </mesh>
@@ -3786,7 +3874,7 @@ const FixtureMoveModeCue = ({
   }
 
   return (
-    <mesh rotation-x={Math.PI / 2} renderOrder={39}>
+    <mesh rotation-x={Math.PI / 2} renderOrder={39} raycast={ignoreRaycast}>
       <torusGeometry args={[0.28, 0.01, 8, 48]} />
       <meshBasicMaterial color="#f5c64d" transparent opacity={0.78} depthTest={false} />
     </mesh>
