@@ -256,6 +256,7 @@ export const Plan2D = ({
   onToggleFocusPlan
 }: Plan2DProps) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const viewportLayerRef = useRef<SVGGElement | null>(null);
   const touchPointersRef = useRef<Map<number, TouchPoint>>(new Map());
   const pinchRef = useRef<PinchState | null>(null);
   const touchTapRef = useRef<TouchTapState>(null);
@@ -518,25 +519,34 @@ export const Plan2D = ({
   // worldToSvg/svgPointToWorld は viewBox(pad) の影響を受けない。
   const VIEW_PAD = 60;
   const viewBoxFor = (viewZoom: number, viewPan: { x: number; y: number }) => ({
-    x: viewPan.x - VIEW_PAD,
-    y: viewPan.y - VIEW_PAD,
-    width: planSize.width / viewZoom + VIEW_PAD * 2,
-    height: planSize.height / viewZoom + VIEW_PAD * 2
+    x: -VIEW_PAD + viewPan.x,
+    y: -VIEW_PAD + viewPan.y,
+    width: (planSize.width + VIEW_PAD * 2) / viewZoom,
+    height: (planSize.height + VIEW_PAD * 2) / viewZoom
   });
   const viewBoxStringFor = (viewZoom: number, viewPan: { x: number; y: number }) => {
     const box = viewBoxFor(viewZoom, viewPan);
     return `${box.x} ${box.y} ${box.width} ${box.height}`;
   };
+  const baseViewBox = viewBoxFor(1, { x: 0, y: 0 });
   const viewBox = viewBoxFor(zoom, pan);
+  const viewportTransformFor = (view: ViewState) => {
+    const current = viewBoxFor(view.zoom, view.pan);
+    const scaleX = baseViewBox.width / current.width;
+    const scaleY = baseViewBox.height / current.height;
+    const translateX = baseViewBox.x - scaleX * current.x;
+    const translateY = baseViewBox.y - scaleY * current.y;
+    return `matrix(${scaleX} 0 0 ${scaleY} ${translateX} ${translateY})`;
+  };
 
   const applySvgViewport = (view: ViewState) => {
-    svgRef.current?.setAttribute("viewBox", viewBoxStringFor(view.zoom, view.pan));
+    viewportLayerRef.current?.setAttribute("transform", viewportTransformFor(view));
   };
 
   useEffect(() => {
     viewportRef.current = { zoom, pan };
     applySvgViewport(viewportRef.current);
-  }, [zoom, pan]);
+  }, [zoom, pan, planSize.width, planSize.height]);
 
   useEffect(() => () => {
     if (viewportFrameRef.current !== null) cancelAnimationFrame(viewportFrameRef.current);
@@ -586,7 +596,8 @@ export const Plan2D = ({
   // 比例計算ではなくCTM逆行列を使う（要素のアスペクト不一致でもズレない）。
   const clientToSvgPoint = (clientX: number, clientY: number) => {
     const svg = svgRef.current;
-    const ctm = svg?.getScreenCTM();
+    const target = viewportLayerRef.current ?? svg;
+    const ctm = target?.getScreenCTM();
     if (!svg || !ctm) return { x: 0, y: 0 };
     const point = svg.createSVGPoint();
     point.x = clientX;
@@ -1375,7 +1386,7 @@ export const Plan2D = ({
           className="plan-canvas"
           tabIndex={0}
           style={{ cursor: mode === "wall" || pendingAdd ? "crosshair" : undefined, outline: "none" }}
-          viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
+          viewBox={viewBoxStringFor(1, { x: 0, y: 0 })}
           onPointerDown={handleCanvasPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={handleCanvasPointerEnd}
@@ -1394,6 +1405,14 @@ export const Plan2D = ({
               <path d={`M ${planSize.pxPerM} 0 L 0 0 0 ${planSize.pxPerM}`} fill="none" stroke="rgba(255,255,255,.16)" strokeWidth="1.4" />
             </pattern>
           </defs>
+          <rect
+            x={baseViewBox.x}
+            y={baseViewBox.y}
+            width={baseViewBox.width}
+            height={baseViewBox.height}
+            fill="#141414"
+          />
+          <g ref={viewportLayerRef} transform={viewportTransformFor({ zoom, pan })}>
           <rect
             x={-VIEW_PAD}
             y={-VIEW_PAD}
@@ -1714,6 +1733,7 @@ export const Plan2D = ({
               </g>
             );
           })()}
+          </g>
         </svg>
 
       </div>
