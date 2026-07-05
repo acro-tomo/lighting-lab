@@ -46,7 +46,7 @@ type DragState =
   | { kind: "floorZone"; id: string; offset: Vec2M }
   | { kind: "window"; id: string }
   | { kind: "wall"; id: string; pointerStart: Vec2M; start: Vec2M; end: Vec2M }
-  | { kind: "pan"; clientStart: { x: number; y: number }; panStart: { x: number; y: number }; sensitivity: number }
+  | { kind: "pan"; clientStart: { x: number; y: number }; panStart: { x: number; y: number }; viewBoxStart: { width: number; height: number }; sensitivity: number }
   | null;
 
 // パワポ風の辺ドラッグリサイズ対象。矩形フットプリント(幅x・奥行z)を持つ物のみ。
@@ -71,6 +71,7 @@ type TouchWallTraceState = {
   start: Vec2M;
   isDrawing: boolean;
 } | null;
+type ViewState = { zoom: number; pan: { x: number; y: number } };
 
 const MIN_SIZE_M = 0.2;
 // 窓/扉をクリックで壁に設置するときの許容距離(m)。これ以内の最寄り壁に付く。
@@ -259,6 +260,8 @@ export const Plan2D = ({
   const pinchRef = useRef<PinchState | null>(null);
   const touchTapRef = useRef<TouchTapState>(null);
   const touchWallTraceRef = useRef<TouchWallTraceState>(null);
+  const viewportRef = useRef<ViewState>({ zoom: 1, pan: { x: 0, y: 0 } });
+  const viewportFrameRef = useRef<number | null>(null);
   const [dragging, setDragging] = useState<DragState>(null);
   // ライトのドラッグ整列スナップが効いた軸のワールド座標。x/z それぞれ吸着先(m)。
   // null のとき非表示。worldToSvg を通してガイド線を描く。
@@ -513,11 +516,31 @@ export const Plan2D = ({
   // 表示用の余白ぶん広げる。座標系は getScreenCTM 逆行列で扱うため
   // worldToSvg/svgPointToWorld は viewBox(pad) の影響を受けない。
   const VIEW_PAD = 60;
-  const viewBox = {
-    x: pan.x - VIEW_PAD,
-    y: pan.y - VIEW_PAD,
-    width: planSize.width / zoom + VIEW_PAD * 2,
-    height: planSize.height / zoom + VIEW_PAD * 2
+  const viewBoxFor = (viewZoom: number, viewPan: { x: number; y: number }) => ({
+    x: viewPan.x - VIEW_PAD,
+    y: viewPan.y - VIEW_PAD,
+    width: planSize.width / viewZoom + VIEW_PAD * 2,
+    height: planSize.height / viewZoom + VIEW_PAD * 2
+  });
+  const viewBox = viewBoxFor(zoom, pan);
+
+  useEffect(() => {
+    viewportRef.current = { zoom, pan };
+  }, [zoom, pan]);
+
+  useEffect(() => () => {
+    if (viewportFrameRef.current !== null) cancelAnimationFrame(viewportFrameRef.current);
+  }, []);
+
+  const scheduleViewport = (nextZoom: number, nextPan: { x: number; y: number }) => {
+    viewportRef.current = { zoom: nextZoom, pan: nextPan };
+    if (viewportFrameRef.current !== null) return;
+    viewportFrameRef.current = requestAnimationFrame(() => {
+      viewportFrameRef.current = null;
+      const next = viewportRef.current;
+      setZoom(next.zoom);
+      setPan(next.pan);
+    });
   };
 
   const worldToSvg = (point: Vec2M) => ({
@@ -590,7 +613,7 @@ export const Plan2D = ({
     const center = clientToSvgPoint((a.clientX + b.clientX) / 2, (a.clientY + b.clientY) / 2);
     pinchRef.current = {
       distance: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY),
-      zoom,
+      zoom: viewportRef.current.zoom,
       anchor: center
     };
     touchTapRef.current = null;
@@ -816,10 +839,12 @@ export const Plan2D = ({
     }
 
     if (event.button === 1) {
+      const currentViewBox = viewBoxFor(viewportRef.current.zoom, viewportRef.current.pan);
       setDragging({
         kind: "pan",
         clientStart: { x: event.clientX, y: event.clientY },
-        panStart: pan,
+        panStart: viewportRef.current.pan,
+        viewBoxStart: { width: currentViewBox.width, height: currentViewBox.height },
         sensitivity: 1
       });
       return;
@@ -829,10 +854,12 @@ export const Plan2D = ({
     if (handleCanvasPlacement(event.clientX, event.clientY)) return;
 
     // 通常操作で何も無い背景を掴んだら平面図をパンする（要望: 空白ドラッグでパン）。
+    const currentViewBox = viewBoxFor(viewportRef.current.zoom, viewportRef.current.pan);
     setDragging({
       kind: "pan",
       clientStart: { x: event.clientX, y: event.clientY },
-      panStart: pan,
+      panStart: viewportRef.current.pan,
+      viewBoxStart: { width: currentViewBox.width, height: currentViewBox.height },
       sensitivity: event.pointerType === "touch" ? TOUCH_PAN_SENSITIVITY : 1
     });
   };
@@ -855,11 +882,20 @@ export const Plan2D = ({
         const nextDistance = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
         if (pinch.distance > 4) {
           const ratio = nextDistance / pinch.distance;
-          zoomAtUserPoint(
-            pinch.zoom * Math.pow(ratio, TOUCH_PINCH_ZOOM_EXPONENT),
-            pinch.anchor.x,
-            pinch.anchor.y
-          );
+          const nextZoom = Math.min(8, Math.max(0.2, pinch.zoom * Math.pow(ratio, TOUCH_PINCH_ZOOM_EXPONENT)));
+          const rect = svgRef.current?.getBoundingClientRect();
+          if (rect) {
+            const centerX = (a.clientX + b.clientX) / 2;
+            const centerY = (a.clientY + b.clientY) / 2;
+            const fracX = (centerX - rect.left) / rect.width;
+            const fracY = (centerY - rect.top) / rect.height;
+            const nextWidth = planSize.width / nextZoom + VIEW_PAD * 2;
+            const nextHeight = planSize.height / nextZoom + VIEW_PAD * 2;
+            scheduleViewport(nextZoom, {
+              x: pinch.anchor.x - fracX * nextWidth + VIEW_PAD,
+              y: pinch.anchor.y - fracY * nextHeight + VIEW_PAD
+            });
+          }
         }
         return;
       }
@@ -944,9 +980,9 @@ export const Plan2D = ({
     if (dragging.kind === "pan") {
       const rect = svgRef.current?.getBoundingClientRect();
       if (!rect) return;
-      const dx = ((event.clientX - dragging.clientStart.x) / rect.width) * viewBox.width * dragging.sensitivity;
-      const dy = ((event.clientY - dragging.clientStart.y) / rect.height) * viewBox.height * dragging.sensitivity;
-      setPan({ x: dragging.panStart.x - dx, y: dragging.panStart.y - dy });
+      const dx = ((event.clientX - dragging.clientStart.x) / rect.width) * dragging.viewBoxStart.width * dragging.sensitivity;
+      const dy = ((event.clientY - dragging.clientStart.y) / rect.height) * dragging.viewBoxStart.height * dragging.sensitivity;
+      scheduleViewport(viewportRef.current.zoom, { x: dragging.panStart.x - dx, y: dragging.panStart.y - dy });
       return;
     }
 
@@ -1096,17 +1132,18 @@ export const Plan2D = ({
   // u = viewBox.x + frac*viewBox.width（frac=アンカーの viewBox 内相対位置）を不変に保つ。
   // → 新 viewBox.x = u - frac*newWidth、新 pan = viewBox.x + VIEW_PAD。
   const zoomAtUserPoint = (nextZoom: number, anchorX: number, anchorY: number) => {
+    const current = viewportRef.current;
+    const currentViewBox = viewBoxFor(current.zoom, current.pan);
     const clamped = Math.min(8, Math.max(0.2, nextZoom));
-    if (clamped === zoom) return;
+    if (clamped === current.zoom) return;
     const newWidth = planSize.width / clamped + VIEW_PAD * 2;
     const newHeight = planSize.height / clamped + VIEW_PAD * 2;
-    const fracX = (anchorX - viewBox.x) / viewBox.width;
-    const fracY = (anchorY - viewBox.y) / viewBox.height;
-    setPan({
+    const fracX = (anchorX - currentViewBox.x) / currentViewBox.width;
+    const fracY = (anchorY - currentViewBox.y) / currentViewBox.height;
+    scheduleViewport(clamped, {
       x: anchorX - fracX * newWidth + VIEW_PAD,
       y: anchorY - fracY * newHeight + VIEW_PAD
     });
-    setZoom(clamped);
   };
 
   // ホイール/トラックパッドでカーソル位置を中心にズーム。
@@ -1120,7 +1157,7 @@ export const Plan2D = ({
     // ピンチ(ctrlKey)は感度を上げる。指数で倍率化すると方向反転や大きなdeltaでも破綻しない。
     const intensity = event.ctrlKey ? 0.01 : 0.0015;
     const factor = Math.exp(-event.deltaY * intensity);
-    zoomAtUserPoint(zoom * factor, anchor.x, anchor.y);
+    zoomAtUserPoint(viewportRef.current.zoom * factor, anchor.x, anchor.y);
   };
 
   // wheel は passive 既定だと preventDefault が効かずページスクロールを誘発する。
@@ -1138,7 +1175,7 @@ export const Plan2D = ({
 
   // ＋/－ボタンはカーソルが無いため平面図の中心をアンカーにズームする。
   const zoomAtCenter = (factor: number) => {
-    zoomAtUserPoint(zoom * factor, planSize.width / 2, planSize.height / 2);
+    zoomAtUserPoint(viewportRef.current.zoom * factor, planSize.width / 2, planSize.height / 2);
   };
 
   // 背景画像を placement に従って SVG ユーザー空間へ配置する transform。
@@ -1215,7 +1252,7 @@ export const Plan2D = ({
         <button type="button" onClick={() => zoomAtCenter(1.2)} aria-label="拡大">+</button>
         <button type="button" onClick={() => zoomAtCenter(1 / 1.2)} aria-label="縮小">-</button>
         {/* zoom=1/pan=0 がコンテンツbbox全体のフィット表示（座標系をbbox基準にしたため）。 */}
-        <button type="button" onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }}>全体表示</button>
+        <button type="button" onClick={() => scheduleViewport(1, { x: 0, y: 0 })}>全体表示</button>
         {/* 縮尺合わせは専用モーダルで実施。背景画像があるときだけ押せる。 */}
         {activeBackground && (
           <button type="button" onClick={() => setScaleModalOpen(true)}>
