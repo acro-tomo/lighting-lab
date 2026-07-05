@@ -1154,6 +1154,7 @@ h2 {
   transform-origin: 0 0;
   pointer-events: none;
   user-select: none;
+  will-change: transform;
 }
 
 .scale-modal-overlay {
@@ -1219,8 +1220,7 @@ h2 {
   min-width: 230px;
 }
 
-.scale-modal-toggle,
-.scale-modal-zoom-buttons {
+.scale-modal-toggle {
   display: flex;
   align-items: center;
   overflow: hidden;
@@ -1229,7 +1229,6 @@ h2 {
 }
 
 .scale-modal-toggle button,
-.scale-modal-zoom-buttons button,
 .scale-modal-actions button {
   min-height: 34px;
   border: 0;
@@ -1240,8 +1239,7 @@ h2 {
   font-size: 12px;
 }
 
-.scale-modal-toggle button + button,
-.scale-modal-zoom-buttons button + button {
+.scale-modal-toggle button + button {
   border-left: 1px solid rgba(255, 255, 255, 0.16);
 }
 

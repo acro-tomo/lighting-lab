@@ -8,6 +8,13 @@ type DragState = {
   clientY: number;
   offset: { x: number; y: number };
 } | null;
+type TouchPoint = { clientX: number; clientY: number };
+type PinchState = {
+  pointerIds: [number, number];
+  distance: number;
+  imageScale: number;
+  anchorPixel: Pixel;
+} | null;
 
 type ScaleCalibrationModalProps = {
   imageUrl: string;
@@ -26,6 +33,8 @@ export const ScaleCalibrationModal = ({
 }: ScaleCalibrationModalProps) => {
   const stageRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<DragState>(null);
+  const pointersRef = useRef<Map<number, TouchPoint>>(new Map());
+  const pinchRef = useRef<PinchState>(null);
   const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
   const [millimeters, setMillimeters] = useState("3640");
   const [orientation, setOrientation] = useState<Orientation>("horizontal");
@@ -78,6 +87,11 @@ export const ScaleCalibrationModal = ({
     x: (point.x - imageLeft) / displayScale,
     y: (point.y - imageTop) / displayScale
   });
+  const clientPointToStage = (clientX: number, clientY: number) => {
+    const rect = stageRef.current?.getBoundingClientRect();
+    if (!rect) return { x: 0, y: 0 };
+    return { x: clientX - rect.left, y: clientY - rect.top };
+  };
   const referencePix1 = stagePointToImagePixel(referenceStart);
   const referencePix2 = stagePointToImagePixel(referenceEnd);
   const referencePixels = Math.hypot(referencePix2.x - referencePix1.x, referencePix2.y - referencePix1.y);
@@ -97,6 +111,21 @@ export const ScaleCalibrationModal = ({
   const handleStagePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
+    pointersRef.current.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
+    if (pointersRef.current.size >= 2) {
+      const entries = Array.from(pointersRef.current.entries()).slice(0, 2);
+      const [aId, a] = entries[0];
+      const [bId, b] = entries[1];
+      const center = clientPointToStage((a.clientX + b.clientX) / 2, (a.clientY + b.clientY) / 2);
+      pinchRef.current = {
+        pointerIds: [aId, bId],
+        distance: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY),
+        imageScale,
+        anchorPixel: stagePointToImagePixel(center)
+      };
+      dragRef.current = null;
+      return;
+    }
     dragRef.current = {
       pointerId: event.pointerId,
       clientX: event.clientX,
@@ -106,6 +135,28 @@ export const ScaleCalibrationModal = ({
   };
 
   const handleStagePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (pointersRef.current.has(event.pointerId)) {
+      pointersRef.current.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
+    }
+    const pinch = pinchRef.current;
+    if (pinch) {
+      const a = pointersRef.current.get(pinch.pointerIds[0]);
+      const b = pointersRef.current.get(pinch.pointerIds[1]);
+      if (!a || !b || pinch.distance <= 1) return;
+      const center = clientPointToStage((a.clientX + b.clientX) / 2, (a.clientY + b.clientY) / 2);
+      const nextScale = clamp(
+        pinch.imageScale * (Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) / pinch.distance),
+        0.25,
+        6
+      );
+      const nextDisplayScale = baseScale * nextScale;
+      setImageScale(nextScale);
+      setImageOffset({
+        x: center.x - pinch.anchorPixel.x * nextDisplayScale - (stageSize.width - naturalSize.width * nextDisplayScale) / 2,
+        y: center.y - pinch.anchorPixel.y * nextDisplayScale - (stageSize.height - naturalSize.height * nextDisplayScale) / 2
+      });
+      return;
+    }
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
     setImageOffset({
@@ -115,6 +166,8 @@ export const ScaleCalibrationModal = ({
   };
 
   const handleStagePointerEnd = (event: React.PointerEvent<HTMLDivElement>) => {
+    pointersRef.current.delete(event.pointerId);
+    if (pinchRef.current?.pointerIds.includes(event.pointerId)) pinchRef.current = null;
     if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
@@ -128,6 +181,9 @@ export const ScaleCalibrationModal = ({
   const resetImageTransform = () => {
     setImageScale(1);
     setImageOffset({ x: 0, y: 0 });
+    pointersRef.current.clear();
+    pinchRef.current = null;
+    dragRef.current = null;
   };
 
   return (
@@ -136,7 +192,7 @@ export const ScaleCalibrationModal = ({
         <div className="scale-modal-header">
           <h2>縮尺合わせ</h2>
           <p className="scale-modal-help">
-            実距離を入力し、表示された線に間取り図の同じ長さの部分を合わせてください。
+            実距離を入力し、表示された線に間取り図の同じ長さの部分を合わせてください。画像はドラッグ、二本指ピンチで調整できます。
           </p>
         </div>
 
@@ -232,10 +288,6 @@ export const ScaleCalibrationModal = ({
               onChange={(event) => setImageScale(Number(event.target.value))}
             />
           </label>
-          <div className="scale-modal-zoom-buttons">
-            <button type="button" onClick={() => zoomBy(1 / 1.12)} aria-label="画像を縮小">-</button>
-            <button type="button" onClick={() => zoomBy(1.12)} aria-label="画像を拡大">+</button>
-          </div>
           <span className="scale-modal-status">
             {referenceWithinImage ? `画像上 ${Math.round(referencePixels)}px` : "線が画像から外れています"}
           </span>
