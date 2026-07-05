@@ -64,6 +64,13 @@ type ResizeState = { kind: ResizeKind; id: string; edge: ResizeEdge } | null;
 type TouchPoint = { clientX: number; clientY: number };
 type PinchState = { distance: number; zoom: number; anchor: { x: number; y: number } };
 type TouchTapState = { pointerId: number; clientX: number; clientY: number } | null;
+type TouchWallTraceState = {
+  pointerId: number;
+  startClientX: number;
+  startClientY: number;
+  start: Vec2M;
+  isDrawing: boolean;
+} | null;
 
 const MIN_SIZE_M = 0.2;
 // 窓/扉をクリックで壁に設置するときの許容距離(m)。これ以内の最寄り壁に付く。
@@ -72,6 +79,10 @@ const WALL_SNAP_M = 1.2;
 const SNAP_M = 0.12;
 const TOUCH_PAN_SENSITIVITY = 0.72;
 const TOUCH_PINCH_ZOOM_EXPONENT = 0.65;
+const TOUCH_TAP_MAX_MOVE_PX = 10;
+const TOUCH_WALL_DRAW_START_PX = 12;
+const WALL_VERTEX_SNAP_PX = 30;
+const MIN_WALL_SEGMENT_M = 0.03;
 
 // 壁に付く追加物（窓カタログ "window:<id>" / 扉 "door" / 壁付スポット "wallspot"）の判定。
 const isWallOpening = (kind: string | null): boolean =>
@@ -119,6 +130,11 @@ const angleSnap = (prev: Vec2M, raw: Vec2M): Vec2M => {
   if (a > (75 * Math.PI) / 180) return { x: prev.x, z: raw.z }; // 垂直
   return raw;
 };
+
+const orthogonalSnap = (prev: Vec2M, raw: Vec2M): Vec2M =>
+  Math.abs(raw.x - prev.x) >= Math.abs(raw.z - prev.z)
+    ? { x: raw.x, z: prev.z }
+    : { x: prev.x, z: raw.z };
 
 // 点 p を壁線分に射影した壁上比率(0..1)と垂直距離(m)を返す。窓/扉のクリック配置に使う。
 const projectOntoWall = (p: Vec2M, wall: WallSegment) => {
@@ -242,6 +258,7 @@ export const Plan2D = ({
   const touchPointersRef = useRef<Map<number, TouchPoint>>(new Map());
   const pinchRef = useRef<PinchState | null>(null);
   const touchTapRef = useRef<TouchTapState>(null);
+  const touchWallTraceRef = useRef<TouchWallTraceState>(null);
   const [dragging, setDragging] = useState<DragState>(null);
   // ライトのドラッグ整列スナップが効いた軸のワールド座標。x/z それぞれ吸着先(m)。
   // null のとき非表示。worldToSvg を通してガイド線を描く。
@@ -346,6 +363,7 @@ export const Plan2D = ({
   // 壁モードを抜けたら下書きをクリア。
   useEffect(() => {
     if (mode !== "wall") {
+      touchWallTraceRef.current = null;
       setWallDraft([]);
       setWallCursor(null);
       setDraftInnerSide(undefined);
@@ -395,6 +413,7 @@ export const Plan2D = ({
   };
 
   const clearWallTrace = () => {
+    touchWallTraceRef.current = null;
     setWallDraft([]);
     setWallCursor(null);
     setDraftInnerSide(undefined);
@@ -528,6 +547,37 @@ export const Plan2D = ({
   const svgToWorld = (clientX: number, clientY: number): Vec2M =>
     svgPointToWorld(clientToSvgPoint(clientX, clientY));
 
+  const wallVertexSnapTolerance = () => {
+    const rect = svgRef.current?.getBoundingClientRect();
+    if (!rect?.width) return WALL_VERTEX_SNAP_PX;
+    return (WALL_VERTEX_SNAP_PX * viewBox.width) / rect.width;
+  };
+
+  const snapToWallVertex = (point: Vec2M): Vec2M => {
+    const candidates = [...activeWalls, ...ghostWalls].flatMap((wall) => [wall.start, wall.end]).concat(wallDraft);
+    if (candidates.length === 0) return point;
+    const target = worldToSvg(point);
+    const tolerance = wallVertexSnapTolerance();
+    let best: { point: Vec2M; dist: number } | null = null;
+    for (const candidate of candidates) {
+      const p = worldToSvg(candidate);
+      const dist = Math.hypot(p.x - target.x, p.y - target.y);
+      if (dist <= tolerance && (!best || dist < best.dist)) best = { point: candidate, dist };
+    }
+    return best ? { ...best.point } : point;
+  };
+
+  const wallTracePoint = (
+    raw: Vec2M,
+    prev: Vec2M | undefined,
+    origin: Vec2M | undefined,
+    forceOrthogonal: boolean
+  ): Vec2M => {
+    if (!prev || !origin) return snapToWallVertex(raw);
+    const aligned = forceOrthogonal ? orthogonalSnap(prev, raw) : angleSnap(prev, raw);
+    return snapToWallVertex(snapToShakuModule(aligned, origin));
+  };
+
   const getPinchPoints = (): [TouchPoint, TouchPoint] | null => {
     const points = Array.from(touchPointersRef.current.values());
     return points.length >= 2 ? [points[0], points[1]] : null;
@@ -544,8 +594,10 @@ export const Plan2D = ({
       anchor: center
     };
     touchTapRef.current = null;
+    touchWallTraceRef.current = null;
     setDragging(null);
     setResizing(null);
+    setWallCursor(null);
   };
 
   const clearTouchGesture = (pointerId?: number) => {
@@ -694,7 +746,7 @@ export const Plan2D = ({
     setResizeTarget({ kind, id });
   };
 
-  const handleCanvasPlacement = (clientX: number, clientY: number) => {
+  const handleCanvasPlacement = (clientX: number, clientY: number, forceOrthogonalWall = false) => {
     // pendingAdd 中はクリック位置にオブジェクトを配置（生成はApp側）。
     if (pendingAdd) {
       const world = svgToWorld(clientX, clientY);
@@ -724,8 +776,11 @@ export const Plan2D = ({
       const raw = svgToWorld(clientX, clientY);
       const prev = wallDraft[wallDraft.length - 1];
       const origin = wallDraft[0];
-      const v = prev ? snapToShakuModule(angleSnap(prev, raw), origin) : raw;
-      if (prev) commitWallSegment(prev, v, draftInnerSide);
+      const v = wallTracePoint(raw, prev, origin, forceOrthogonalWall);
+      if (prev) {
+        if (distance(prev, v) < MIN_WALL_SEGMENT_M) return true;
+        commitWallSegment(prev, v, draftInnerSide);
+      }
       setWallDraft([...wallDraft, v]);
       return true;
     }
@@ -742,7 +797,19 @@ export const Plan2D = ({
         startPinch();
         return;
       }
-      if (mode === "wall" || pendingAdd) {
+      if (mode === "wall") {
+        const rawStart = svgToWorld(event.clientX, event.clientY);
+        touchWallTraceRef.current = {
+          pointerId: event.pointerId,
+          startClientX: event.clientX,
+          startClientY: event.clientY,
+          start: wallDraft[wallDraft.length - 1] ?? wallTracePoint(rawStart, undefined, undefined, true),
+          isDrawing: false
+        };
+        touchTapRef.current = { pointerId: event.pointerId, clientX: event.clientX, clientY: event.clientY };
+        return;
+      }
+      if (pendingAdd) {
         touchTapRef.current = { pointerId: event.pointerId, clientX: event.clientX, clientY: event.clientY };
         return;
       }
@@ -776,7 +843,7 @@ export const Plan2D = ({
       const touchTap = touchTapRef.current;
       if (
         touchTap?.pointerId === event.pointerId &&
-        Math.hypot(event.clientX - touchTap.clientX, event.clientY - touchTap.clientY) > 10
+        Math.hypot(event.clientX - touchTap.clientX, event.clientY - touchTap.clientY) > TOUCH_TAP_MAX_MOVE_PX
       ) {
         touchTapRef.current = null;
       }
@@ -796,6 +863,30 @@ export const Plan2D = ({
         }
         return;
       }
+      const touchWallTrace = touchWallTraceRef.current;
+      if (mode === "wall" && touchWallTrace?.pointerId === event.pointerId) {
+        const movePx = Math.hypot(
+          event.clientX - touchWallTrace.startClientX,
+          event.clientY - touchWallTrace.startClientY
+        );
+        if (movePx >= TOUCH_WALL_DRAW_START_PX) {
+          event.preventDefault();
+          const origin = wallDraft[0] ?? touchWallTrace.start;
+          const next = wallTracePoint(
+            svgToWorld(event.clientX, event.clientY),
+            touchWallTrace.start,
+            origin,
+            true
+          );
+          if (!touchWallTrace.isDrawing) {
+            touchWallTrace.isDrawing = true;
+            touchTapRef.current = null;
+            setWallDraft((draft) => (draft.length === 0 ? [touchWallTrace.start] : draft));
+          }
+          setWallCursor(next);
+          return;
+        }
+      }
     }
 
     // 壁モードはドラッグでなくてもカーソル追従でラバーバンドを更新する。
@@ -803,7 +894,7 @@ export const Plan2D = ({
     if (mode === "wall" && wallDraft.length > 0) {
       const prev = wallDraft[wallDraft.length - 1];
       const origin = wallDraft[0];
-      setWallCursor(snapToShakuModule(angleSnap(prev, svgToWorld(event.clientX, event.clientY)), origin));
+      setWallCursor(wallTracePoint(svgToWorld(event.clientX, event.clientY), prev, origin, event.pointerType === "touch"));
     }
 
     // 窓/扉/壁付ライトの追加待ち中: カーソル直下の最寄り壁を設置先候補としてハイライト。
@@ -955,6 +1046,7 @@ export const Plan2D = ({
 
   const handleCanvasPointerEnd = (event: React.PointerEvent<SVGSVGElement>) => {
     const touchTap = touchTapRef.current;
+    const touchWallTrace = touchWallTraceRef.current;
     const wasPinching = !!pinchRef.current || touchPointersRef.current.size >= 2;
     if (event.pointerType === "touch") {
       clearTouchGesture(event.pointerId);
@@ -965,11 +1057,37 @@ export const Plan2D = ({
     setDragging(null);
     setResizing(null);
     setSnapGuides({ x: null, z: null });
+    if (event.pointerType === "touch" && mode === "wall" && touchWallTrace?.pointerId === event.pointerId) {
+      touchWallTraceRef.current = null;
+      if (event.type !== "pointerup" || wasPinching) {
+        setWallCursor(null);
+        return;
+      }
+      const movePx = Math.hypot(
+        event.clientX - touchWallTrace.startClientX,
+        event.clientY - touchWallTrace.startClientY
+      );
+      if (touchWallTrace.isDrawing || movePx >= TOUCH_WALL_DRAW_START_PX) {
+        const origin = wallDraft[0] ?? touchWallTrace.start;
+        const end = wallTracePoint(svgToWorld(event.clientX, event.clientY), touchWallTrace.start, origin, true);
+        setWallCursor(null);
+        if (distance(touchWallTrace.start, end) >= MIN_WALL_SEGMENT_M) {
+          commitWallSegment(touchWallTrace.start, end, draftInnerSide);
+          setWallDraft((draft) => {
+            const last = draft[draft.length - 1];
+            if (!last) return [touchWallTrace.start, end];
+            if (distance(last, touchWallTrace.start) < MIN_WALL_SEGMENT_M) return [...draft, end];
+            return [...draft, touchWallTrace.start, end];
+          });
+        }
+        return;
+      }
+    }
     if (touchTap?.pointerId !== event.pointerId) return;
     touchTapRef.current = null;
     if (event.type !== "pointerup" || wasPinching) return;
-    if (Math.hypot(event.clientX - touchTap.clientX, event.clientY - touchTap.clientY) <= 10) {
-      handleCanvasPlacement(event.clientX, event.clientY);
+    if (Math.hypot(event.clientX - touchTap.clientX, event.clientY - touchTap.clientY) <= TOUCH_TAP_MAX_MOVE_PX) {
+      handleCanvasPlacement(event.clientX, event.clientY, event.pointerType === "touch");
     }
   };
 
@@ -1138,7 +1256,7 @@ export const Plan2D = ({
         {pendingAdd && !isWallOpening(pendingAdd) && "クリックした位置にオブジェクトを配置します。"}
         {!pendingAdd && mode === "select" && !canEditWalls && "オブジェクトをクリックで選択、ドラッグで移動。何もない所のドラッグで平面図をパン。Deleteで削除。"}
         {!pendingAdd && mode === "select" && canEditWalls && "壁をクリックで選択、ドラッグで移動。Deleteで削除。何もない所のドラッグで平面図をパン。"}
-        {!pendingAdd && mode === "wall" && "タップで壁の頂点を連続配置。水平/垂直＋1/4尺（約75.8mm）間隔に自動スナップ。内側は下のボタンで指定できます。"}
+        {!pendingAdd && mode === "wall" && "角に近づけてタップ、または押して引いて離すと壁を作成。スマホは水平/垂直へ強めにスナップします。内側は下のボタンで指定できます。"}
       </p>
 
       {canEditWalls && mode === "wall" && !pendingAdd && (
