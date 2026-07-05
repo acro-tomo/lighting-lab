@@ -262,6 +262,7 @@ export const Plan2D = ({
   const touchWallTraceRef = useRef<TouchWallTraceState>(null);
   const viewportRef = useRef<ViewState>({ zoom: 1, pan: { x: 0, y: 0 } });
   const viewportFrameRef = useRef<number | null>(null);
+  const pendingViewportCommitRef = useRef(false);
   const [dragging, setDragging] = useState<DragState>(null);
   // ライトのドラッグ整列スナップが効いた軸のワールド座標。x/z それぞれ吸着先(m)。
   // null のとき非表示。worldToSvg を通してガイド線を描く。
@@ -522,24 +523,51 @@ export const Plan2D = ({
     width: planSize.width / viewZoom + VIEW_PAD * 2,
     height: planSize.height / viewZoom + VIEW_PAD * 2
   });
+  const viewBoxStringFor = (viewZoom: number, viewPan: { x: number; y: number }) => {
+    const box = viewBoxFor(viewZoom, viewPan);
+    return `${box.x} ${box.y} ${box.width} ${box.height}`;
+  };
   const viewBox = viewBoxFor(zoom, pan);
+
+  const applySvgViewport = (view: ViewState) => {
+    svgRef.current?.setAttribute("viewBox", viewBoxStringFor(view.zoom, view.pan));
+  };
 
   useEffect(() => {
     viewportRef.current = { zoom, pan };
+    applySvgViewport(viewportRef.current);
   }, [zoom, pan]);
 
   useEffect(() => () => {
     if (viewportFrameRef.current !== null) cancelAnimationFrame(viewportFrameRef.current);
   }, []);
 
-  const scheduleViewport = (nextZoom: number, nextPan: { x: number; y: number }) => {
+  const commitViewport = () => {
+    if (viewportFrameRef.current !== null) {
+      cancelAnimationFrame(viewportFrameRef.current);
+      viewportFrameRef.current = null;
+    }
+    pendingViewportCommitRef.current = false;
+    const next = viewportRef.current;
+    applySvgViewport(next);
+    setZoom(next.zoom);
+    setPan(next.pan);
+  };
+
+  const scheduleViewport = (nextZoom: number, nextPan: { x: number; y: number }, commit = false) => {
     viewportRef.current = { zoom: nextZoom, pan: nextPan };
+    pendingViewportCommitRef.current ||= commit;
     if (viewportFrameRef.current !== null) return;
     viewportFrameRef.current = requestAnimationFrame(() => {
       viewportFrameRef.current = null;
       const next = viewportRef.current;
-      setZoom(next.zoom);
-      setPan(next.pan);
+      const shouldCommit = pendingViewportCommitRef.current;
+      pendingViewportCommitRef.current = false;
+      applySvgViewport(next);
+      if (shouldCommit) {
+        setZoom(next.zoom);
+        setPan(next.pan);
+      }
     });
   };
 
@@ -891,10 +919,14 @@ export const Plan2D = ({
             const fracY = (centerY - rect.top) / rect.height;
             const nextWidth = planSize.width / nextZoom + VIEW_PAD * 2;
             const nextHeight = planSize.height / nextZoom + VIEW_PAD * 2;
-            scheduleViewport(nextZoom, {
-              x: pinch.anchor.x - fracX * nextWidth + VIEW_PAD,
-              y: pinch.anchor.y - fracY * nextHeight + VIEW_PAD
-            });
+            scheduleViewport(
+              nextZoom,
+              {
+                x: pinch.anchor.x - fracX * nextWidth + VIEW_PAD,
+                y: pinch.anchor.y - fracY * nextHeight + VIEW_PAD
+              },
+              false
+            );
           }
         }
         return;
@@ -975,14 +1007,16 @@ export const Plan2D = ({
 
     if (!dragging) return;
 
-    const point = snapPoint(svgToWorld(event.clientX, event.clientY));
-
     if (dragging.kind === "pan") {
       const rect = svgRef.current?.getBoundingClientRect();
       if (!rect) return;
       const dx = ((event.clientX - dragging.clientStart.x) / rect.width) * dragging.viewBoxStart.width * dragging.sensitivity;
       const dy = ((event.clientY - dragging.clientStart.y) / rect.height) * dragging.viewBoxStart.height * dragging.sensitivity;
-      scheduleViewport(viewportRef.current.zoom, { x: dragging.panStart.x - dx, y: dragging.panStart.y - dy });
+      scheduleViewport(
+        viewportRef.current.zoom,
+        { x: dragging.panStart.x - dx, y: dragging.panStart.y - dy },
+        false
+      );
       return;
     }
 
@@ -1007,6 +1041,8 @@ export const Plan2D = ({
       }
       return;
     }
+
+    const point = snapPoint(svgToWorld(event.clientX, event.clientY));
 
     const next = {
       x: point.x - dragging.offset.x,
@@ -1084,6 +1120,7 @@ export const Plan2D = ({
     const touchTap = touchTapRef.current;
     const touchWallTrace = touchWallTraceRef.current;
     const wasPinching = !!pinchRef.current || touchPointersRef.current.size >= 2;
+    const shouldCommitViewport = dragging?.kind === "pan" || wasPinching;
     if (event.pointerType === "touch") {
       clearTouchGesture(event.pointerId);
       if (event.currentTarget.hasPointerCapture(event.pointerId)) {
@@ -1093,6 +1130,7 @@ export const Plan2D = ({
     setDragging(null);
     setResizing(null);
     setSnapGuides({ x: null, z: null });
+    if (shouldCommitViewport) commitViewport();
     if (event.pointerType === "touch" && mode === "wall" && touchWallTrace?.pointerId === event.pointerId) {
       touchWallTraceRef.current = null;
       if (event.type !== "pointerup" || wasPinching) {
@@ -1131,7 +1169,7 @@ export const Plan2D = ({
   // viewBox.x = pan - VIEW_PAD, viewBox.width = planSize/zoom + VIEW_PAD*2 の関係から、
   // u = viewBox.x + frac*viewBox.width（frac=アンカーの viewBox 内相対位置）を不変に保つ。
   // → 新 viewBox.x = u - frac*newWidth、新 pan = viewBox.x + VIEW_PAD。
-  const zoomAtUserPoint = (nextZoom: number, anchorX: number, anchorY: number) => {
+  const zoomAtUserPoint = (nextZoom: number, anchorX: number, anchorY: number, commit = true) => {
     const current = viewportRef.current;
     const currentViewBox = viewBoxFor(current.zoom, current.pan);
     const clamped = Math.min(8, Math.max(0.2, nextZoom));
@@ -1140,10 +1178,14 @@ export const Plan2D = ({
     const newHeight = planSize.height / clamped + VIEW_PAD * 2;
     const fracX = (anchorX - currentViewBox.x) / currentViewBox.width;
     const fracY = (anchorY - currentViewBox.y) / currentViewBox.height;
-    scheduleViewport(clamped, {
-      x: anchorX - fracX * newWidth + VIEW_PAD,
-      y: anchorY - fracY * newHeight + VIEW_PAD
-    });
+    scheduleViewport(
+      clamped,
+      {
+        x: anchorX - fracX * newWidth + VIEW_PAD,
+        y: anchorY - fracY * newHeight + VIEW_PAD
+      },
+      commit
+    );
   };
 
   // ホイール/トラックパッドでカーソル位置を中心にズーム。
@@ -1252,7 +1294,7 @@ export const Plan2D = ({
         <button type="button" onClick={() => zoomAtCenter(1.2)} aria-label="拡大">+</button>
         <button type="button" onClick={() => zoomAtCenter(1 / 1.2)} aria-label="縮小">-</button>
         {/* zoom=1/pan=0 がコンテンツbbox全体のフィット表示（座標系をbbox基準にしたため）。 */}
-        <button type="button" onClick={() => scheduleViewport(1, { x: 0, y: 0 })}>全体表示</button>
+        <button type="button" onClick={() => scheduleViewport(1, { x: 0, y: 0 }, true)}>全体表示</button>
         {/* 縮尺合わせは専用モーダルで実施。背景画像があるときだけ押せる。 */}
         {activeBackground && (
           <button type="button" onClick={() => setScaleModalOpen(true)}>
