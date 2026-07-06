@@ -29,16 +29,16 @@ Vite + React 19 + TypeScript / Three.js + @react-three/fiber + @react-three/drei
 ### 領域別（コードの担当エリア — 編集の主力）
 | エージェント | 担当ファイル |
 |---|---|
-| `render-3d` | Scene3D.tsx, rendering/pathTracer.ts, renderContext.ts |
-| `plan-2d` | components/Plan2D.tsx, utils/floorplanImport.ts |
-| `state-data` | store/projectStore.ts, types.ts, schema/, storage/, data/ |
-| `lighting-domain` | utils/lighting.ts, data/calibrationProject.ts, 照明物理の数値マッピング |
+| `render-3d` | Scene3D.tsx, rendering/（pathTracer / renderContext / skyEnvironment）, utils/cameraFit.ts |
+| `plan-2d` | components/Plan2D.tsx, components/ScaleCalibrationModal.tsx, utils/floorplanImport.ts |
+| `state-data` | store/projectStore.ts, types.ts, schema/, storage/, data/（カタログ・objectFactory 含む） |
+| `lighting-domain` | utils/lighting.ts, utils/sun.ts, data/calibrationProject.ts, 照明物理の数値マッピング |
 
 ### 作業種別（横断 — 領域に属さない作業）
 | エージェント | 役割 |
 |---|---|
 | `code-explore` | 読み取り専用の横断探索。結論＋file:line引用だけ返す |
-| `implementer` | 領域に属さないUIシェル（App / Inspector / HeaderBar / SceneStrip / main）と横断編集 |
+| `implementer` | 領域に属さないUIシェル（App / Inspector / HeaderBar / EditToolbar / ガイド類 / main / config）と横断編集 |
 | `builder` | typecheck / build 実行とエラー診断 |
 | `visual-verify` | dev起動＋Playwrightで描画確認。PASS/FAILと観察だけ返す |
 | `reviewer` | 読み取り専用コードレビュー（重大度付き） |

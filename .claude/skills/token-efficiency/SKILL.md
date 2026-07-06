@@ -37,11 +37,11 @@ Strongly dependent changes go in one call. Truly independent changes can split o
 
 | Tier | Models | Use for |
 |------|--------|---------|
-| Low | `haiku` | `code-explore`, `session-summarizer`, `visual-verify`, simple read/list/summarize |
-| Mid | `sonnet` | `implementer`, `builder`, `reviewer`, `debugger`, `web-researcher` |
-| High | `opus` | The deep domain agents (`render-3d`, `plan-2d`, `state-data`, `lighting-domain`), ambiguous architecture decisions |
+| Low | `haiku` | `session-summarizer`, simple read/list/summarize |
+| Mid | `sonnet` | `code-explore`, `visual-verify`, `implementer`, `builder`, `reviewer`, `debugger`, `web-researcher` |
+| High | main-session model (inherited) | The deep domain agents (`render-3d`, `plan-2d`, `state-data`, `lighting-domain`), ambiguous architecture decisions |
 
-Default light/mechanical work to the cheaper tier. Escalate to `opus` only when you can articulate why `sonnet` won't do it. Domain agents inherit the main `/model` so they follow your session.
+These tiers match the `model:` frontmatter in `.claude/agents/*.md` — change both together or they drift. Default light/mechanical work to the cheaper tier; escalate only when you can articulate why the cheaper tier won't do it. Domain agents inherit the main `/model` so they follow your session.
 
 ## Output discipline
 
