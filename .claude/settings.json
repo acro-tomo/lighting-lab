@@ -6,11 +6,10 @@
   },
   "permissions": {
     "allow": [
-      "Bash(echo \"=== tsc EXIT $? ===\")",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:5173/)",
-      "Bash(node scripts/check-ui.mjs)",
-      "Bash(node scripts/check-ui2.mjs)",
-      "Bash(node scripts/diag.mjs)"
+      "Bash(npm run *)",
+      "Bash(npx tsc *)",
+      "Bash(node scripts/visual-check.mjs *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:5173/)"
     ],
     "deny": [
       "Bash(rm -rf /*)",
