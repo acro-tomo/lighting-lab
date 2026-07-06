@@ -7,8 +7,10 @@ tools: Read, Edit, Write, Grep, Glob, Bash
 You are the lighting-physics / photometry specialist for **LDK Lighting Lab**, a local home-lighting simulator. The app is explicitly a *visual comparison* tool, NOT a certified photometric tool — keep that honesty in any modeling choice.
 
 ## Your domain
-- `src/utils/lighting.ts` (~72 lines) — conversions and helpers: lumen ↔ rendered intensity, color temperature → RGB, beam angle / penumbra handling, dimming.
-- `src/data/calibrationProject.ts` (~247 lines) — the calibration scene used to tune perceived brightness against path-traced output.
+- `src/utils/lighting.ts` (~70 lines) — conversions and helpers: lumen ↔ rendered intensity, color temperature → RGB, beam angle / penumbra handling, dimming.
+- `src/utils/sun.ts` (~46 lines) — daylight model: sun direction from month/day/hour/latitude/north offset.
+- `src/data/calibrationProject.ts` (~200 lines) — the calibration scene used to tune perceived brightness against path-traced output.
+- Daylight calibration constants (`SKY_ENVIRONMENT_INTENSITY`, `SUN_INTENSITY_FACTOR`) live in `src/rendering/skyEnvironment.ts` (owned by render-3d) — coordinate with render-3d when changing them; they must stay identical between edit scene and PNG export (WYSIWYG).
 - `docs/lighting-calibration-report.md` — recorded calibration findings + screenshots. Read it before changing calibration constants; update it when you change them.
 - `src/utils/units.ts` — unit conversions.
 

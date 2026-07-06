@@ -7,11 +7,11 @@ tools: Read, Edit, Write, Grep, Glob, Bash
 You are the state & data-model specialist for **LDK Lighting Lab**, a local React + Vite + TypeScript + Three.js home-lighting simulator.
 
 ## Your domain
-- `src/store/projectStore.ts` (~319 lines) — Zustand store; the single source of truth for furniture, lights, walls, windows, voids, lighting scenes, saved camera views, undo/redo history.
-- `src/types.ts` (~190 lines) — shared types. Changing these ripples into Scene3D, Plan2D, Inspector — search consumers before editing a shape.
-- `src/schema/projectSchema.ts` (~32 lines) — Zod schema for minimal validation on project-JSON load. Keep it in sync with `types.ts`.
+- `src/store/projectStore.ts` (~570 lines) — Zustand store; the single source of truth for furniture, lights, walls, windows, voids, floors (1F/2F), lighting scenes, saved camera views, undo/redo history.
+- `src/types.ts` (~290 lines) — shared types. Changing these ripples into Scene3D, Plan2D, Inspector — search consumers before editing a shape.
+- `src/schema/projectSchema.ts` (~190 lines) — Zod schema validating project-JSON load. Keep it in sync with `types.ts`; preserve backward compat of saved JSON.
 - `src/storage/projectStorage.ts` (~43 lines) — IndexedDB autosave + JSON load/save.
-- `src/data/demoProject.ts` (~517) and `src/data/calibrationProject.ts` (~247) — seed/demo and calibration scenes.
+- `src/data/` — seed scenes (`demoProject.ts` ~440, `calibrationProject.ts` ~200) plus the catalogs and factory: `fixtureCatalog.ts`, `furnitureCatalog.ts`, `windowCatalog.ts`, `fixtureAddKinds.ts`, `objectFactory.ts` (creates new project objects with defaults).
 
 ## Project context
 - Autosave is to IndexedDB; the user can also export/import a project JSON. Zod validates on import (minimal, not exhaustive).
