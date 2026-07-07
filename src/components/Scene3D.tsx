@@ -851,6 +851,19 @@ const SceneRoot = ({
   );
   const roomSpan = Math.max(project.room.widthM, project.room.depthM);
 
+  // 昼光の空光フィル（ラスター用）。パストレでは Sky 環境が窓越しの拡散光と GI を
+  // 担って昼の室内は明るくなるが、ラスターにはその経路が無く昼でも夜のように沈む。
+  // 太陽高度に応じた空色ヘミライトで近似する（非物理・パストレ常駐時は使わない）。
+  const daylightFill = useMemo(() => {
+    if (!sunUp) return null;
+    const sinAlt = Math.max(0, Math.sin((sun.altitudeDeg * Math.PI) / 180));
+    return {
+      sky: skyColorForAltitude(sun.altitudeDeg).getStyle(),
+      ground: "#7d7568",
+      intensity: DAYLIGHT_FILL_BASE_INTENSITY + DAYLIGHT_FILL_ALTITUDE_GAIN * sinAlt
+    };
+  }, [sunUp, sun.altitudeDeg]);
+
   // 高速ラスター用の擬似間接光（バウンスフィル）。点いている照明の総光束と平均色温度に
   // 連動した暖色フィルで、直接ビームの外にある壁・天井もぼんやり持ち上がる＝反射の近似。
   // 物理ではないのでパストレ常駐時は使わない（本物のGIに置き換わる）。
@@ -898,8 +911,13 @@ const SceneRoot = ({
           パストレ常駐時は壁・天井・床の反射による本物の間接光に置き換える。 */}
       {!pathTraced && (
         <>
-          <fog attach="fog" args={["#060504", 8, 16]} />
-          <hemisphereLight args={[sunUp ? "#1f2530" : "#2b2a25", "#0a0805", sunUp ? 0.16 : 0.34]} />
+          {/* 霧は夜間の視認性・雰囲気用。昼はパストレ（空光で明るい）との乖離を生むため外す。 */}
+          {!sunUp && <fog attach="fog" args={["#060504", 8, 16]} />}
+          {daylightFill ? (
+            <hemisphereLight args={[daylightFill.sky, daylightFill.ground, daylightFill.intensity]} />
+          ) : (
+            <hemisphereLight args={["#2b2a25", "#0a0805", 0.34]} />
+          )}
           <directionalLight position={[-2, 4, 3]} intensity={sunUp ? 0.08 : 0.12} color="#c9d6ff" />
           {/* 照明量に連動した暖色バウンスフィル（疑似間接光）。skyColor=上向き面(床)に当たり、
               groundColor=下向き面(天井)に当たる。壁はその中間色になるため、直接光が外れた
@@ -1412,6 +1430,10 @@ type FloorBounds = ReturnType<typeof computeFloorBounds>;
 
 const LIGHT_EFFECT_MARGIN_M = 1.2;
 const REALTIME_SHADOW_LIGHT_LIMIT = 6;
+// 昼光ヘミライトの強度。パストレ（Sky環境 0.8 + GI）の昼の明るさに視覚合わせした値で、
+// 高度 sin に比例して正午前後が最も明るくなる。
+const DAYLIGHT_FILL_BASE_INTENSITY = 0.3;
+const DAYLIGHT_FILL_ALTITUDE_GAIN = 1.5;
 const RASTER_BOUNCE_LUMEN_KNEE = 5200;
 const RASTER_BOUNCE_BASE_INTENSITY = 0.06;
 const RASTER_BOUNCE_ADDED_INTENSITY = 0.46;
