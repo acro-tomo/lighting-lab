@@ -154,7 +154,8 @@ export const App = () => {
     loadProjectFromIndexedDb()
       .then((savedProject) => {
         if (savedProject) {
-          const parsed = projectSchema.parse(savedProject) as Project & { compareShots?: CompareShot[] };
+          // スキーマ検証は loadProjectFromIndexedDb 内で済んでいる（二重検証しない）。
+          const parsed = savedProject as Project & { compareShots?: CompareShot[] };
           setProject(parsed);
           if (Array.isArray(parsed.compareShots)) {
             setCompareShots(parsed.compareShots);

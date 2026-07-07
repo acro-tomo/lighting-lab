@@ -52,6 +52,116 @@ const voidSchema = z
   })
   .passthrough();
 
+// 幾何の根幹（id/start/end 等）以外は、過去JSONに無かった可能性を考えて default で埋める。
+const wallSchema = z
+  .object({
+    id: z.string(),
+    name: z.string().default("壁"),
+    start: vec2Schema,
+    end: vec2Schema,
+    thicknessM: z.number().default(0.12),
+    heightM: z.number().default(2.4),
+    materialId: z.string().default("wall-white"),
+    innerSide: z.enum(["left", "right"]).optional(),
+    kind: z.enum(["wall", "half", "railing"]).optional(),
+    floor: floorSchema
+  })
+  .passthrough();
+
+const windowSchema = z
+  .object({
+    id: z.string(),
+    name: z.string().default("窓"),
+    wallId: z.string(),
+    centerRatio: z.number(),
+    widthM: z.number(),
+    heightM: z.number(),
+    sillHeightM: z.number().default(0),
+    hasGlass: z.boolean().default(true),
+    style: z.enum(["window", "opening", "door"]).optional(),
+    floor: floorSchema
+  })
+  .passthrough();
+
+const furnitureTypeSchema = z.enum([
+  "roundTable",
+  "rectTable",
+  "chair",
+  "sofa",
+  "bed",
+  "kitchen",
+  "cupboard",
+  "fridge",
+  "tv",
+  "shelf",
+  "counter",
+  "rug",
+  "stair",
+  "washer",
+  "washstand",
+  "toilet",
+  "bathtub",
+  "desk",
+  "shoeCabinet",
+  "box"
+]);
+
+const furnitureSchema = z
+  .object({
+    id: z.string(),
+    name: z.string().default("家具"),
+    type: furnitureTypeSchema,
+    position: vec3Schema,
+    size: vec3Schema,
+    rotationYDeg: z.number().default(0),
+    materialId: z.string().default("fabric-warm-gray"),
+    color: z.string().optional(),
+    roughness: z.number().optional(),
+    metalness: z.number().optional(),
+    castsShadow: z.boolean().default(true),
+    floor: floorSchema
+  })
+  .passthrough();
+
+const lightTypeSchema = z.enum(["downlight", "spotlight", "pendant", "bracket", "tape"]);
+
+// 天井付器具の mountHeightM/position.y は transform 後に normalizeCeilingMountedFixture が再計算する。
+const lightSchema = z
+  .object({
+    id: z.string(),
+    name: z.string().default("照明"),
+    type: lightTypeSchema,
+    model: z.string().optional(),
+    position: vec3Schema,
+    mountHeightM: z.number().default(2.4),
+    rotationDeg: vec3Schema.default({ x: -90, y: 0, z: 0 }),
+    target: vec3Schema.optional(),
+    lumens: z.number(),
+    colorTemperatureK: z.number().default(2700),
+    dimmer: z.number().default(80),
+    enabled: z.boolean().default(true),
+    beamAngleDeg: z.number().default(60),
+    penumbra: z.number().default(0.6),
+    castsShadow: z.boolean().default(true),
+    note: z.string().default(""),
+    lengthM: z.number().optional(),
+    cordLengthM: z.number().optional(),
+    floor: floorSchema
+  })
+  .passthrough();
+
+// 既定値は store/projectStore.ts の DEFAULT_DAYLIGHT と一致させる。
+const daylightSchema = z
+  .object({
+    enabled: z.boolean().default(true),
+    month: z.number().default(10),
+    day: z.number().default(15),
+    hour: z.number().default(14),
+    northOffsetDeg: z.number().default(0),
+    latitudeDeg: z.number().default(35)
+  })
+  .passthrough();
+
 const cameraSchema = z
   .object({
     position: vec3Schema,
@@ -107,26 +217,14 @@ const baseProjectSchema = z
       })
       .passthrough(),
     materials: z.array(z.object({ id: z.string(), name: z.string() }).passthrough()).min(1),
-    walls: z.array(
-      z
-        .object({
-          id: z.string(),
-          start: vec2Schema,
-          end: vec2Schema,
-          innerSide: z.enum(["left", "right"]).optional(),
-          kind: z.enum(["wall", "half", "railing"]).optional(),
-          floor: floorSchema
-        })
-        .passthrough()
-    ),
-    furniture: z.array(
-      z.object({ id: z.string(), position: vec3Schema, size: vec3Schema, floor: floorSchema }).passthrough()
-    ),
+    walls: z.array(wallSchema),
+    // 旧JSONには windows が無いことがあるため default([])。
+    windows: z.array(windowSchema).default([]),
+    furniture: z.array(furnitureSchema),
     voids: z.array(voidSchema),
-    lights: z.array(
-      z.object({ id: z.string(), position: vec3Schema, lumens: z.number(), floor: floorSchema }).passthrough()
-    ),
+    lights: z.array(lightSchema),
     camera: cameraSchema.optional(),
+    daylight: daylightSchema.optional(),
     ceilingZones: z.array(ceilingZoneSchema).optional(),
     floorZones: z.array(floorZoneSchema).optional(),
     backgroundPlan: backgroundPlanSchema.optional(),

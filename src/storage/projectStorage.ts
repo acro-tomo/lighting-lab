@@ -1,3 +1,4 @@
+import { projectSchema } from "../schema/projectSchema";
 import type { Project } from "../types";
 
 const DB_NAME = "ldk-lighting-lab";
@@ -30,14 +31,21 @@ export const saveProjectToIndexedDb = async (project: Project) => {
   db.close();
 };
 
-export const loadProjectFromIndexedDb = async () => {
+// スキーマ検証込みで読み込む。壊れた保存データは undefined を返し、
+// 呼び出し側は初期（デモ）プロジェクトのまま起動する。
+// passthrough で保持される旧 compareShots も残す（App 側で拾う）。
+export const loadProjectFromIndexedDb = async (): Promise<
+  (Project & { compareShots?: unknown }) | undefined
+> => {
   const db = await openDatabase();
-  const project = await new Promise<Project | undefined>((resolve, reject) => {
+  const raw = await new Promise<unknown>((resolve, reject) => {
     const transaction = db.transaction(STORE_NAME, "readonly");
     const request = transaction.objectStore(STORE_NAME).get(CURRENT_PROJECT_KEY);
-    request.onsuccess = () => resolve(request.result as Project | undefined);
+    request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
   db.close();
-  return project;
+  if (raw === undefined || raw === null) return undefined;
+  const parsed = projectSchema.safeParse(raw);
+  return parsed.success ? (parsed.data as Project & { compareShots?: unknown }) : undefined;
 };
