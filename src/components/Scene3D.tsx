@@ -89,8 +89,8 @@ const TOUCH_ORBIT_SPEED = {
   pan: 0.55
 };
 
-const TOUCH_PINCH_DOLLY_M_PER_PX = 0.012;
-const TOUCH_PINCH_DOLLY_MAX_STEP_M = 0.35;
+const TOUCH_PINCH_DOLLY_M_PER_PX = 0.006;
+const TOUCH_PINCH_DOLLY_MAX_STEP_M = 0.2;
 
 const DESKTOP_ORBIT_SPEED = {
   rotate: 1,
@@ -3717,6 +3717,8 @@ const FixtureMesh = ({
   const [moveMode, setMoveMode] = useState<FixtureMoveMode>("horizontal");
   // ドラッグ中に効いている整列軸のガイド位置（編集時のみ描画）。
   const [dragSnap, setDragSnap] = useState<{ snapX: number | null; snapZ: number | null } | null>(null);
+  const wasSelectedRef = useRef(false);
+  const movedRef = useRef(false);
   const heightDragging = useRef(false);
   const heightGrabY = useRef(0);
   const heightHit = useMemo(() => new THREE.Vector3(), []);
@@ -3740,6 +3742,7 @@ const FixtureMesh = ({
           fixture.floor ?? project.activeFloor ?? 1
         );
         if (!placement) return;
+        movedRef.current = true;
         updateLight(fixture.id, {
           position: placement.position,
           mountHeightM: placement.position.y,
@@ -3751,6 +3754,7 @@ const FixtureMesh = ({
       // 生の(x,z)を他ライト軸へ吸着してから反映（掴み相対オフセットは useFloorDrag が保持済み）。
       const snap = snapDragToLightAxes(rawX, rawZ, lights, fixture.id);
       setDragSnap(snap.snapX !== null || snap.snapZ !== null ? { snapX: snap.snapX, snapZ: snap.snapZ } : null);
+      movedRef.current = true;
       const x = snap.x;
       const z = snap.z;
       const dx = x - fixture.position.x;
@@ -3800,6 +3804,7 @@ const FixtureMesh = ({
     }
     event.stopPropagation();
     const y = THREE.MathUtils.clamp(heightFromRay(event) + heightGrabY.current, minMoveY, maxMoveY);
+    movedRef.current = true;
     updateLight(fixture.id, { position: { ...fixture.position, y }, mountHeightM: y });
   };
 
@@ -3829,6 +3834,8 @@ const FixtureMesh = ({
           toggleLightSelection(fixture.id);
           return;
         }
+        wasSelectedRef.current = selected;
+        movedRef.current = false;
         if (!selected) onSelect({ kind: "light", id: fixture.id });
         if (editMode === "select" && canDragFixture && (selected || multiSelected)) {
           if (moveMode === "vertical") startHeightDrag(event);
@@ -3854,6 +3861,8 @@ const FixtureMesh = ({
           ? (event: ThreeEvent<PointerEvent>) => {
               drag.onPointerUp(event);
               stopHeightDrag(event);
+              if (wasSelectedRef.current && !movedRef.current) onSelect(null);
+              wasSelectedRef.current = false;
               setDragSnap(null);
             }
           : undefined
@@ -3863,6 +3872,7 @@ const FixtureMesh = ({
           ? (event: ThreeEvent<PointerEvent>) => {
               drag.onPointerCancel(event);
               stopHeightDrag(event);
+              wasSelectedRef.current = false;
               setDragSnap(null);
             }
           : undefined
