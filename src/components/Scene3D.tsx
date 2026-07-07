@@ -4,8 +4,9 @@ import type { MutableRefObject, ReactNode } from "react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { WebGLPathTracer } from "three-gpu-pathtracer";
+import { DenoiseMaterial, WebGLPathTracer } from "three-gpu-pathtracer";
 import { GenerateMeshBVHWorker } from "three-mesh-bvh/src/workers/index.js";
+import { FullScreenQuad } from "three/examples/jsm/postprocessing/Pass.js";
 import {
   buildSkyEnvironment,
   SKY_ENVIRONMENT_INTENSITY,
@@ -51,7 +52,7 @@ import { wallInwardNormal } from "../utils/wallGeometry";
 export type ViewMode = "raster" | "realistic";
 
 export type LiveTraceStatus = {
-  phase: "off" | "building" | "rendering";
+  phase: "off" | "building" | "rendering" | "converged";
   samples: number;
 };
 
@@ -1025,6 +1026,10 @@ const SceneRoot = ({
 // - カメラ移動中は dynamicLowRes が即時の低解像度像を出し、停止すると数秒で
 //   間接光込みの写実画像に収束する。
 // - mount/unmount で R3F の自動描画を奪う/返す（useFrame priority 1）。
+
+// これ以上サンプルしても視覚差がほぼ出ないため打ち切り、GPUを解放する。
+// カメラ操作やシーン編集で reset されると samples が 0 に戻り自動再開する。
+const LIVE_TRACE_TARGET_SAMPLES = 512;
 const pathTraceSceneKey = (project: Project, debugMode: RenderDebugMode) =>
   JSON.stringify({
     debugMode,
@@ -1227,9 +1232,11 @@ const PathTracerController = ({
     const tracer = new WebGLPathTracer(gl);
     tracer.setBVHWorker(worker);
     tracer.multipleImportanceSampling = true;
-    // 壁→床→壁…と多重に反射する間接光を厚めに拾う（要望: 反射がさらに反射していく見え方）。
-    tracer.bounces = 8;
-    tracer.transmissiveBounces = 5;
+    // 夜の室内GIは5バウンスでほぼ収束し、8比でサンプル/秒が大きく上がる（待ち時間優先）。
+    tracer.bounces = 5;
+    tracer.transmissiveBounces = 3;
+    // グロッシー反射のファイアフライを抑える（0=無効、大きいほどぼける）。
+    tracer.filterGlossyFactor = 0.25;
     tracer.renderScale = 1;
     tracer.dynamicLowRes = true;
     tracer.lowResScale = 0.3;
@@ -1237,6 +1244,26 @@ const PathTracerController = ({
     tracer.fadeDuration = 0;
     tracer.minSamples = 0;
     tracer.tiles.set(1, 1);
+    // 表示ブリットを smartDeNoise で置き換え、低サンプル時のノイズを均す。
+    // DenoiseMaterial は既定 quad と同様に tone mapping / colorspace を行うため
+    // 見た目の意味（ACES・固定露出）は変わらず、WYSIWYG を保つ。
+    const denoiseQuad = new FullScreenQuad(
+      new DenoiseMaterial({
+        premultipliedAlpha: gl.getContextAttributes().premultipliedAlpha,
+        // 上流サンプル(three-gpu-pathtracer example)の既定値。sigma が大きいほど強く均す。
+        sigma: 2.5,
+        threshold: 0.1,
+        kSigma: 1.0
+      })
+    );
+    tracer.renderToCanvasCallback = (target, renderer) => {
+      const material = denoiseQuad.material as DenoiseMaterial;
+      material.map = target.texture;
+      const currentAutoClear = renderer.autoClear;
+      renderer.autoClear = false;
+      denoiseQuad.render(renderer);
+      renderer.autoClear = currentAutoClear;
+    };
     tracerRef.current = tracer;
     workerRef.current = worker;
     readyRef.current = false;
@@ -1258,6 +1285,8 @@ const PathTracerController = ({
       workerRef.current = null;
       tracer.dispose();
       worker.dispose();
+      denoiseQuad.material.dispose();
+      denoiseQuad.dispose();
       onStatus?.({ phase: "off", samples: 0 });
     };
   }, [gl, rebuildScene]);
@@ -1297,6 +1326,15 @@ const PathTracerController = ({
     if (!lastMatrix.current.equals(camera.matrixWorld)) {
       lastMatrix.current.copy(camera.matrixWorld);
       tracer.updateCamera();
+    }
+    // 収束後は renderSample を止めてGPUを解放する（canvasは最終フレームを保持）。
+    // reset で samples が 0 に戻ると次フレームから自動再開する。
+    if (tracer.samples >= LIVE_TRACE_TARGET_SAMPLES) {
+      if (lastReported.current !== -2) {
+        lastReported.current = -2; // 収束報告済みの番兵
+        onStatus?.({ phase: "converged", samples: Math.floor(tracer.samples) });
+      }
+      return;
     }
     tracer.renderSample();
     const samples = Math.floor(tracer.samples);

@@ -750,7 +750,11 @@ export const App = () => {
             <div className="render-status">
               {viewMode === "realistic" ? (
                 <strong>
-                  {liveTrace.phase === "building" ? "BVH生成中…" : `間接光リアル描画 / ${liveTrace.samples} samples 収束中`}
+                  {liveTrace.phase === "building"
+                    ? "BVH生成中…"
+                    : liveTrace.phase === "converged"
+                      ? `間接光リアル描画 / ${liveTrace.samples} samples 収束済み`
+                      : `間接光リアル描画 / ${liveTrace.samples} samples 収束中`}
                 </strong>
               ) : (
                 <strong>編集プレビュー / 露出 {project.camera.exposure.toFixed(2)}</strong>

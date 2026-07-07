@@ -31,8 +31,9 @@ export const sampleCountByMode: Record<PathTraceMode, number> = {
 };
 
 // モード別の品質パラメータ。重い ultra のみタイル分割(2x2)でGPU負荷を分散。
+// standard の renderScale は 0.7 だとアップスケールでノイズが目立つため 0.85。
 const renderScaleByMode: Record<PathTraceMode, number> = {
-  standard: 0.7,
+  standard: 0.85,
   high: 0.9,
   ultra: 1.0
 };
