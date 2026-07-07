@@ -604,6 +604,8 @@ const buildPathTraceScene = (
 
   project.furniture.forEach((item) => addFurniture(scene, item, materials, debugMode));
 
+  // パストレーサは castShadow フラグを参照せず全光源が物理的に影を落とすため、
+  // 編集ビュー(Scene3D)と異なり本ファイルの光源には castShadow を設定しない。
   project.lights.forEach((fixture) => {
     const power = lumensToPhysicalPower(fixture);
     if (power <= 0) return;
