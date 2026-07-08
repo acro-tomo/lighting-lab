@@ -186,7 +186,6 @@ const TouchPinchDolly = ({
       const distanceDeltaPx = nextDistance - prevDistance;
       if (Math.abs(distanceDeltaPx) > 0.4) {
         event.preventDefault();
-        event.stopImmediatePropagation();
       }
 
       forward.copy(camera.getWorldDirection(forward));
@@ -1112,6 +1111,7 @@ const SceneRoot = ({
         makeDefault
         enableDamping
         enablePan
+        enableZoom={!prefersTouchControls}
         screenSpacePanning
         keyEvents={false}
         touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }}
