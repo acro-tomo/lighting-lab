@@ -47,6 +47,12 @@ type DragState =
   | { kind: "floorZone"; id: string; offset: Vec2M }
   | { kind: "window"; id: string }
   | { kind: "wall"; id: string; pointerStart: Vec2M; start: Vec2M; end: Vec2M }
+  | {
+      kind: "background";
+      pointerStartSvg: { x: number; y: number };
+      pxPerMStart: number;
+      placementStart: NonNullable<FloorPlanBackground["placement"]>;
+    }
   | { kind: "pan"; clientStart: { x: number; y: number }; panStart: { x: number; y: number }; viewBoxStart: { width: number; height: number }; sensitivity: number }
   | null;
 
@@ -279,6 +285,7 @@ export const Plan2D = ({
   const [resizeTarget, setResizeTarget] = useState<{ kind: ResizeKind; id: string } | null>(null);
   const [resizing, setResizing] = useState<ResizeState>(null);
   const [scaleModalOpen, setScaleModalOpen] = useState(false);
+  const [backgroundAlignMode, setBackgroundAlignMode] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [bgNaturalSize, setBgNaturalSize] = useState<{ width: number; height: number } | null>(null);
@@ -290,9 +297,9 @@ export const Plan2D = ({
   const [wallTarget, setWallTarget] = useState<{ wallId: string; ratio: number } | null>(null);
 
   // pendingAdd 中・wall モード中は背景SVGにクリックを通す（オブジェクトは pointerEvents:none）。
-  const canSelectObjects = !pendingAdd && mode === "select";
+  const canSelectObjects = !backgroundAlignMode && !pendingAdd && mode === "select";
   // 選択モードでもドラッグで動かせるほうが直感的。クリックのみなら移動は起きず選択だけ。
-  const canDragObjects = mode === "select";
+  const canDragObjects = !backgroundAlignMode && mode === "select";
 
   // 壁トレース中の内側(室内側)。start→end に対し左/右。undefined=未指定(中心対称)。
   const [draftInnerSide, setDraftInnerSide] = useState<"left" | "right" | undefined>(undefined);
@@ -322,6 +329,7 @@ export const Plan2D = ({
   const activeFloor = project.activeFloor ?? 1;
   // 活性階に紐づく背景（2階なら backgroundPlan2、1階なら backgroundPlan）。
   const activeBackground = activeFloor === 2 ? project.backgroundPlan2 : project.backgroundPlan;
+  const canAlignBackground = activeFloor === 2 && Boolean(activeBackground);
 
   // 活性階に属するオブジェクトだけを編集対象にする（floor 未指定は1階扱い）。
   const onActiveFloor = <T extends { floor?: number }>(obj: T) => (obj.floor ?? 1) === activeFloor;
@@ -346,6 +354,14 @@ export const Plan2D = ({
   );
 
   const backgroundUrl = activeBackground?.dataUrl;
+  useEffect(() => {
+    if (activeFloor !== 2 || !activeBackground) setBackgroundAlignMode(false);
+  }, [activeFloor, activeBackground]);
+
+  useEffect(() => {
+    if (activeFloor === 2 && activeBackground?.alignmentPending) setBackgroundAlignMode(true);
+  }, [activeFloor, activeBackground?.alignmentPending]);
+
   useEffect(() => {
     if (!backgroundUrl) {
       setBgNaturalSize(null);
@@ -797,6 +813,25 @@ export const Plan2D = ({
 
   const placement = activeBackground?.placement ?? defaultPlacement;
 
+  const confirmBackgroundAlignment = () => {
+    if (!activeBackground) return;
+    const { alignmentPending, ...confirmedBackground } = activeBackground;
+    void alignmentPending;
+    setBackgroundPlan(confirmedBackground);
+    setBackgroundAlignMode(false);
+  };
+
+  const resetBackgroundToFirstFloor = () => {
+    if (!activeBackground || !project.backgroundPlan?.placement) return;
+    setBackgroundPlan({
+      ...activeBackground,
+      placement: { ...project.backgroundPlan.placement },
+      scale: project.backgroundPlan.scale ? { ...project.backgroundPlan.scale } : activeBackground.scale,
+      alignmentPending: true
+    });
+    setBackgroundAlignMode(true);
+  };
+
   // 画像ピクセル座標 → ワールド座標(m)
   const imagePixelToWorld = (ipx: number, ipy: number): Vec2M | null => {
     if (!placement) return null;
@@ -824,8 +859,10 @@ export const Plan2D = ({
     const midWorld = imagePixelToWorld(midPix.x, midPix.y);
     if (!midWorld) return;
 
+    const { alignmentPending, ...confirmedBackground } = background;
+    void alignmentPending;
     setBackgroundPlan({
-      ...background,
+      ...confirmedBackground,
       scale: { pixels, millimeters },
       placement: {
         originXM: midWorld.x - midPix.x * metersPerPixel,
@@ -957,6 +994,18 @@ export const Plan2D = ({
 
     if (event.button !== 0) return;
     if (handleCanvasPlacement(event.clientX, event.clientY)) return;
+
+    if (backgroundAlignMode && activeBackground && placement) {
+      event.preventDefault();
+      event.currentTarget.setPointerCapture(event.pointerId);
+      setDragging({
+        kind: "background",
+        pointerStartSvg: clientToSvgPoint(event.clientX, event.clientY),
+        pxPerMStart: planSize.pxPerM,
+        placementStart: { ...placement }
+      });
+      return;
+    }
 
     // 通常操作で何も無い背景を掴んだら平面図をパンする（要望: 空白ドラッグでパン）。
     beginViewportGesture();
@@ -1091,6 +1140,21 @@ export const Plan2D = ({
 
     if (!dragging) return;
 
+    if (dragging.kind === "background") {
+      if (!activeBackground) return;
+      const cursor = clientToSvgPoint(event.clientX, event.clientY);
+      setBackgroundPlan({
+        ...activeBackground,
+        placement: {
+          ...dragging.placementStart,
+          originXM: dragging.placementStart.originXM + (cursor.x - dragging.pointerStartSvg.x) / dragging.pxPerMStart,
+          originZM: dragging.placementStart.originZM + (cursor.y - dragging.pointerStartSvg.y) / dragging.pxPerMStart
+        },
+        alignmentPending: true
+      });
+      return;
+    }
+
     if (dragging.kind === "pan") {
       // CSS transform適用中でも一定のレイアウト矩形（ジェスチャー開始時）を基準にする。
       const rect = gestureBaseRef.current?.rect ?? svgRef.current?.getBoundingClientRect();
@@ -1213,6 +1277,8 @@ export const Plan2D = ({
       if (event.currentTarget.hasPointerCapture(event.pointerId)) {
         event.currentTarget.releasePointerCapture(event.pointerId);
       }
+    } else if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
     }
     setDragging(null);
     setResizing(null);
@@ -1325,7 +1391,9 @@ export const Plan2D = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bgNaturalSize, placement, planSize.pxPerM, contentBox]);
 
-  const scaleLabel = activeBackground?.scale
+  const scaleLabel = activeBackground?.alignmentPending
+    ? "1階基準で仮合わせ（要確認）"
+    : activeBackground?.scale
     ? `実寸合わせ済み（${Math.round(activeBackground.scale.millimeters).toLocaleString("ja-JP")}mm基準）`
     : activeBackground
     ? "縮尺未設定（フィット表示）"
@@ -1388,6 +1456,27 @@ export const Plan2D = ({
             縮尺
           </button>
         )}
+        {canAlignBackground && (
+          <button
+            type="button"
+            className={backgroundAlignMode ? "is-active" : ""}
+            onClick={() => setBackgroundAlignMode((current) => !current)}
+          >
+            背景合わせ
+          </button>
+        )}
+        {backgroundAlignMode && (
+          <>
+            {project.backgroundPlan?.placement && (
+              <button type="button" onClick={resetBackgroundToFirstFloor}>
+                1階基準
+              </button>
+            )}
+            <button type="button" className="primary-action" onClick={confirmBackgroundAlignment}>
+              完了
+            </button>
+          </>
+        )}
 
         {/* 方位ダイヤル。N矢印をドラッグして実際の北に合わせる。
             図面上に被せると編集対象を隠すため、キャンバス外の操作列に置く。 */}
@@ -1417,12 +1506,13 @@ export const Plan2D = ({
       </div>
 
       <p className="tool-help">
-        {isWallLightAddKind(pendingAdd) && "壁または吹き抜け内周に近づけると青くハイライト。クリックで壁付け照明を設置。"}
-        {isWallOpening(pendingAdd) && !isWallLightAddKind(pendingAdd) && "壁に近づけると青くハイライト。その壁をクリックで設置。設置後は壁上をドラッグで位置調整。"}
-        {pendingAdd && !isWallOpening(pendingAdd) && "クリックした位置にオブジェクトを配置します。"}
-        {!pendingAdd && mode === "select" && !canEditWalls && "オブジェクトをクリックで選択、ドラッグで移動。何もない所のドラッグで平面図をパン。Deleteで削除。"}
-        {!pendingAdd && mode === "select" && canEditWalls && "壁をクリックで選択、ドラッグで移動。Deleteで削除。何もない所のドラッグで平面図をパン。"}
-        {!pendingAdd && mode === "wall" && "角に近づけてタップ、または押して引いて離すと壁を作成。スマホは水平/垂直へ強めにスナップします。内側は下のボタンで指定できます。"}
+        {backgroundAlignMode && "1階の薄い壁を目安に、二階の背景画像をドラッグして位置を合わせます。終わったら完了。"}
+        {!backgroundAlignMode && isWallLightAddKind(pendingAdd) && "壁または吹き抜け内周に近づけると青くハイライト。クリックで壁付け照明を設置。"}
+        {!backgroundAlignMode && isWallOpening(pendingAdd) && !isWallLightAddKind(pendingAdd) && "壁に近づけると青くハイライト。その壁をクリックで設置。設置後は壁上をドラッグで位置調整。"}
+        {!backgroundAlignMode && pendingAdd && !isWallOpening(pendingAdd) && "クリックした位置にオブジェクトを配置します。"}
+        {!backgroundAlignMode && !pendingAdd && mode === "select" && !canEditWalls && "オブジェクトをクリックで選択、ドラッグで移動。何もない所のドラッグで平面図をパン。Deleteで削除。"}
+        {!backgroundAlignMode && !pendingAdd && mode === "select" && canEditWalls && "壁をクリックで選択、ドラッグで移動。Deleteで削除。何もない所のドラッグで平面図をパン。"}
+        {!backgroundAlignMode && !pendingAdd && mode === "wall" && "角に近づけてタップ、または押して引いて離すと壁を作成。スマホは水平/垂直へ強めにスナップします。内側は下のボタンで指定できます。"}
       </p>
 
       {canEditWalls && mode === "wall" && !pendingAdd && (
@@ -1461,7 +1551,7 @@ export const Plan2D = ({
           ref={svgRef}
           className="plan-canvas"
           tabIndex={0}
-          style={{ cursor: mode === "wall" || pendingAdd ? "crosshair" : undefined, outline: "none" }}
+          style={{ cursor: backgroundAlignMode ? "move" : mode === "wall" || pendingAdd ? "crosshair" : undefined, outline: "none" }}
           viewBox={viewBoxStringFor(1, { x: 0, y: 0 })}
           onPointerDown={handleCanvasPointerDown}
           onPointerMove={onPointerMove}
@@ -1504,7 +1594,7 @@ export const Plan2D = ({
               width={bgRender.width}
               height={bgRender.height}
               transform={`translate(${bgRender.tx} ${bgRender.ty}) scale(${bgRender.scale})`}
-              opacity="0.42"
+              opacity={backgroundAlignMode ? "0.62" : "0.42"}
             />
           )}
           <rect

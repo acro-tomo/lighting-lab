@@ -8,7 +8,7 @@ import type { RenderContext } from "./rendering/renderContext";
 import { projectSchema } from "./schema/projectSchema";
 import { loadProjectFromIndexedDb, saveProjectToIndexedDb } from "./storage/projectStorage";
 import { useProjectStore } from "./store/projectStore";
-import type { CompareShot, Project, Selection } from "./types";
+import type { CompareShot, FloorPlanBackground, Project, Selection } from "./types";
 import { floorPlanFileToDataUrl, rasterizeSvgBackground } from "./utils/floorplanImport";
 import { DEFAULT_DAYLIGHT } from "./utils/sun";
 import { cloneProject } from "./utils/units";
@@ -110,7 +110,7 @@ export const App = () => {
   const setProject = useProjectStore((state) => state.setProject);
   const setCompareShots = useProjectStore((state) => state.setCompareShots);
   const setBackgroundPlan = useProjectStore((state) => state.setBackgroundPlan);
-  const clearGeometry = useProjectStore((state) => state.clearGeometry);
+  const clearActiveFloorGeometry = useProjectStore((state) => state.clearActiveFloorGeometry);
   const addCompareShot = useProjectStore((state) => state.addCompareShot);
   const undo = useProjectStore((state) => state.undo);
   const redo = useProjectStore((state) => state.redo);
@@ -328,11 +328,20 @@ export const App = () => {
   const handleImportFloorPlan = async (file: File) => {
     try {
       const result = await floorPlanFileToDataUrl(file);
-      setBackgroundPlan({
+      const activeFloor = project.activeFloor ?? 1;
+      const floorLabel = activeFloor === 2 ? "2階" : "1階";
+      const firstFloorPlan = project.backgroundPlan;
+      const backgroundPlan: FloorPlanBackground = {
         dataUrl: result.dataUrl,
         kind: result.kind,
         fileName: file.name
-      });
+      };
+      if (activeFloor === 2 && firstFloorPlan?.placement) {
+        backgroundPlan.placement = { ...firstFloorPlan.placement };
+        backgroundPlan.scale = firstFloorPlan.scale ? { ...firstFloorPlan.scale } : undefined;
+        backgroundPlan.alignmentPending = true;
+      }
+      setBackgroundPlan(backgroundPlan);
       const ceilingInput = window.prompt(
         "天井高をmmで入力してください。",
         String(Math.round(project.room.ceilingHeightM * 1000))
@@ -344,13 +353,16 @@ export const App = () => {
       // 間取り図に沿って一から壁を引けるよう、既存ジオメトリの一括削除を促す。
       // キャンセル時は背景だけ読み込み、既存オブジェクトは残す（誤消し防止）。
       const cleared = window.confirm(
-        "間取り図を読み込みました。既存の壁・窓・家具・照明・吹き抜けを削除して、まっさらな状態にしますか？\n（キャンセルすると既存のまま背景だけ読み込みます。Cmd+Zで元に戻せます）"
+        `${floorLabel}の間取り図を読み込みました。${floorLabel}の壁・窓・家具・照明・吹き抜けだけを削除して、まっさらな状態にしますか？\n（キャンセルすると既存のまま背景だけ読み込みます。Cmd+Zで元に戻せます）`
       );
-      if (cleared) clearGeometry();
+      if (cleared) clearActiveFloorGeometry();
+      const alignmentNotice = backgroundPlan.alignmentPending
+        ? " 1階基準で仮合わせしたので、背景合わせで位置を確認してください。"
+        : "";
       setNotice(
         cleared
-          ? `${file.name} を背景に読み込み、既存オブジェクトを削除しました。縮尺合わせ後に壁を引けます。`
-          : `${file.name} を平面図背景として読み込みました。`
+          ? `${file.name} を${floorLabel}背景に読み込み、${floorLabel}の既存オブジェクトを削除しました。${alignmentNotice}`
+          : `${file.name} を${floorLabel}の平面図背景として読み込みました。${alignmentNotice}`
       );
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "間取り図を読み込めませんでした。");

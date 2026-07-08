@@ -412,6 +412,12 @@ h2 {
   font-size: 12px;
 }
 
+.plan-meta button.is-active {
+  border-color: rgba(245, 198, 77, 0.55);
+  background: rgba(245, 198, 77, 0.16);
+  color: #fff5cc;
+}
+
 .wall-trace-controls {
   display: flex;
   align-items: center;

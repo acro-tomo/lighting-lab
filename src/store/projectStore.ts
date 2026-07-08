@@ -48,6 +48,7 @@ type ProjectStore = {
   setProject: (project: Project) => void;
   resetDemo: () => void;
   clearGeometry: () => void;
+  clearActiveFloorGeometry: () => void;
   undo: () => void;
   redo: () => void;
   select: (selection: Selection) => void;
@@ -134,6 +135,24 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       nextProject.floorZones = [];
       nextProject.furniture = [];
       nextProject.lights = [];
+      return { ...withHistory(state, nextProject), selection: null, selectedLightIds: [] };
+    }),
+  clearActiveFloorGeometry: () =>
+    set((state) => {
+      const floor = state.project.activeFloor ?? 1;
+      const nextProject = cloneProject(state.project);
+      const removedWallIds = new Set(
+        nextProject.walls.filter((wall) => (wall.floor ?? 1) === floor).map((wall) => wall.id)
+      );
+      nextProject.walls = nextProject.walls.filter((wall) => (wall.floor ?? 1) !== floor);
+      nextProject.windows = nextProject.windows.filter(
+        (windowItem) => (windowItem.floor ?? 1) !== floor && !removedWallIds.has(windowItem.wallId)
+      );
+      nextProject.voids = nextProject.voids.filter((voidArea) => (voidArea.floor ?? 1) !== floor);
+      nextProject.ceilingZones = (nextProject.ceilingZones ?? []).filter((zone) => (zone.floor ?? 1) !== floor);
+      nextProject.floorZones = (nextProject.floorZones ?? []).filter((zone) => (zone.floor ?? 1) !== floor);
+      nextProject.furniture = nextProject.furniture.filter((item) => (item.floor ?? 1) !== floor);
+      nextProject.lights = nextProject.lights.filter((light) => (light.floor ?? 1) !== floor);
       return { ...withHistory(state, nextProject), selection: null, selectedLightIds: [] };
     }),
   undo: () => {

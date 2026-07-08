@@ -214,6 +214,8 @@ export type FloorPlanBackground = {
   dataUrl: string;
   fileName: string;
   kind: "image" | "pdf";
+  /** 1階基準などで仮合わせ済みだが、ユーザー確認がまだ必要な背景。 */
+  alignmentPending?: boolean;
   scale?: {
     pixels: number;
     millimeters: number;
