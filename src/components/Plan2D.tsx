@@ -569,6 +569,10 @@ export const Plan2D = ({
       const k = m1.scale / m0.scale;
       const tx = (1 - k) * m1.offsetX + m1.scale * (m0.box.x - m1.box.x);
       const ty = (1 - k) * m1.offsetY + m1.scale * (m0.box.y - m1.box.y);
+      // transform-box を border-box に固定する。既定は WebKit だと outer <svg> で view-box に
+      // なり、transform-origin:0 0 が viewBox 原点（レターボックスでずれた位置）を指すため
+      // ズームが中央寄りにずれる。border-box なら全ブラウザで要素の左上基準に揃う。
+      svg.style.transformBox = "border-box";
       svg.style.transformOrigin = "0 0";
       svg.style.transform = `translate(${tx}px, ${ty}px) scale(${k})`;
       return;
