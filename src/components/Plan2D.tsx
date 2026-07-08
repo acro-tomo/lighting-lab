@@ -62,7 +62,7 @@ type ResizeEdge =
   | "bottomRight";
 type ResizeState = { kind: ResizeKind; id: string; edge: ResizeEdge } | null;
 type TouchPoint = { clientX: number; clientY: number };
-type PinchState = { distance: number; zoom: number; anchor: { x: number; y: number } };
+type PinchState = { distance: number };
 type TouchTapState = { pointerId: number; clientX: number; clientY: number } | null;
 type TouchWallTraceState = {
   pointerId: number;
@@ -78,8 +78,8 @@ const MIN_SIZE_M = 0.2;
 const WALL_SNAP_M = 1.2;
 // ライトをドラッグ移動するとき、他ライトの x/z にこの距離(m)以内なら整列スナップする。
 const SNAP_M = 0.12;
-const TOUCH_PAN_SENSITIVITY = 0.72;
-const TOUCH_PINCH_ZOOM_EXPONENT = 0.65;
+const TOUCH_PAN_SENSITIVITY = 0.5;
+const TOUCH_PINCH_ZOOM_EXPONENT = 0.35;
 const TOUCH_TAP_MAX_MOVE_PX = 10;
 const TOUCH_WALL_DRAW_START_PX = 12;
 const WALL_VERTEX_SNAP_PX = 30;
@@ -716,11 +716,8 @@ export const Plan2D = ({
     if (!points) return;
     beginViewportGesture();
     const [a, b] = points;
-    const center = gestureUserPoint((a.clientX + b.clientX) / 2, (a.clientY + b.clientY) / 2);
     pinchRef.current = {
-      distance: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY),
-      zoom: viewportRef.current.zoom,
-      anchor: center
+      distance: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY)
     };
     touchTapRef.current = null;
     touchWallTraceRef.current = null;
@@ -990,25 +987,30 @@ export const Plan2D = ({
         const nextDistance = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
         if (pinch.distance > 4) {
           const ratio = nextDistance / pinch.distance;
-          const nextZoom = Math.min(8, Math.max(0.2, pinch.zoom * Math.pow(ratio, TOUCH_PINCH_ZOOM_EXPONENT)));
+          const nextZoom = Math.min(
+            8,
+            Math.max(0.2, viewportRef.current.zoom * Math.pow(ratio, TOUCH_PINCH_ZOOM_EXPONENT))
+          );
           // CSS transform適用中のgetBoundingClientRectは変形後の矩形を返すため、
           // ジェスチャー開始時のレイアウト矩形を基準にする。
           const rect = gestureBaseRef.current?.rect ?? svgRef.current?.getBoundingClientRect();
           if (rect) {
             const centerX = (a.clientX + b.clientX) / 2;
             const centerY = (a.clientY + b.clientY) / 2;
+            const anchor = gestureUserPoint(centerX, centerY);
             // アンカー(ユーザー座標)がピンチ中心(スクリーン座標)に留まるpanを、
             // レターボックス込みの写像 screen = offset + scale*(u - box.xy) の逆算で求める。
             const m = screenMappingFor(rect, { zoom: nextZoom, pan: { x: 0, y: 0 } });
             scheduleViewport(
               nextZoom,
               {
-                x: pinch.anchor.x - (centerX - rect.left - m.offsetX) / m.scale + VIEW_PAD,
-                y: pinch.anchor.y - (centerY - rect.top - m.offsetY) / m.scale + VIEW_PAD
+                x: anchor.x - (centerX - rect.left - m.offsetX) / m.scale + VIEW_PAD,
+                y: anchor.y - (centerY - rect.top - m.offsetY) / m.scale + VIEW_PAD
               },
               false
             );
           }
+          pinch.distance = nextDistance;
         }
         return;
       }
@@ -1279,7 +1281,7 @@ export const Plan2D = ({
     // clientToSvgPoint は viewBox 変換込みのユーザー空間座標を返す（=固定したいアンカー点）。
     const anchor = clientToSvgPoint(event.clientX, event.clientY);
     // ピンチ(ctrlKey)は感度を上げる。指数で倍率化すると方向反転や大きなdeltaでも破綻しない。
-    const intensity = event.ctrlKey ? 0.01 : 0.0015;
+    const intensity = event.ctrlKey ? 0.004 : 0.001;
     const factor = Math.exp(-event.deltaY * intensity);
     zoomAtUserPoint(viewportRef.current.zoom * factor, anchor.x, anchor.y);
   };

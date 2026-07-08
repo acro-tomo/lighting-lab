@@ -86,12 +86,12 @@ const useTouchDragGuard = () => useContext(TouchDragGuardContext);
 
 const TOUCH_ORBIT_SPEED = {
   rotate: 0.45,
-  zoom: 0.6,
-  pan: 0.55
+  zoom: 0.3,
+  pan: 0.35
 };
 
-const TOUCH_PINCH_DOLLY_M_PER_PX = 0.006;
-const TOUCH_PINCH_DOLLY_MAX_STEP_M = 0.2;
+const TOUCH_PINCH_DOLLY_M_PER_PX = 0.0025;
+const TOUCH_PINCH_DOLLY_MAX_STEP_M = 0.08;
 
 const DESKTOP_ORBIT_SPEED = {
   rotate: 1,
@@ -183,6 +183,11 @@ const TouchPinchDolly = ({
       if (nextDistance === null || prevDistance === null) return;
       const controls = controlsRef.current;
       if (!controls) return;
+      const distanceDeltaPx = nextDistance - prevDistance;
+      if (Math.abs(distanceDeltaPx) > 0.4) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
 
       forward.copy(camera.getWorldDirection(forward));
       forward.y = 0;
@@ -195,7 +200,7 @@ const TouchPinchDolly = ({
       forward.normalize();
 
       const deltaM = THREE.MathUtils.clamp(
-        (nextDistance - prevDistance) * TOUCH_PINCH_DOLLY_M_PER_PX,
+        distanceDeltaPx * TOUCH_PINCH_DOLLY_M_PER_PX,
         -TOUCH_PINCH_DOLLY_MAX_STEP_M,
         TOUCH_PINCH_DOLLY_MAX_STEP_M
       );
@@ -204,7 +209,6 @@ const TouchPinchDolly = ({
       camera.position.add(move);
       controls.target.add(move);
       controls.update();
-      event.preventDefault();
     };
 
     const onPointerEnd = (event: PointerEvent) => {
