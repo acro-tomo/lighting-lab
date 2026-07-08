@@ -1114,7 +1114,7 @@ const SceneRoot = ({
         enablePan
         screenSpacePanning
         keyEvents={false}
-        touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.PAN }}
+        touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }}
         rotateSpeed={orbitSpeed.rotate}
         zoomSpeed={orbitSpeed.zoom}
         panSpeed={orbitSpeed.pan}
