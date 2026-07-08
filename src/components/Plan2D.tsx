@@ -264,6 +264,11 @@ export const Plan2D = ({
   const viewportRef = useRef<ViewState>({ zoom: 1, pan: { x: 0, y: 0 } });
   const viewportFrameRef = useRef<number | null>(null);
   const pendingViewportCommitRef = useRef(false);
+  // パン/ピンチ中に<g>のtransformを毎フレーム更新するとSVG全体（背景画像+全ベクター）が
+  // CPUで再ラスタライズされ、モバイルでカクつく。ジェスチャー中はGPU合成される
+  // CSS transformを<svg>要素へ適用して代用し、指を離した時だけ<g>とstateへ確定する。
+  // view=開始時点の確定view、rect=開始時点のレイアウト矩形（CSS transformの影響を受けない基準）。
+  const gestureBaseRef = useRef<{ view: ViewState; rect: DOMRect } | null>(null);
   const [dragging, setDragging] = useState<DragState>(null);
   // ライトのドラッグ整列スナップが効いた軸のワールド座標。x/z それぞれ吸着先(m)。
   // null のとき非表示。worldToSvg を通してガイド線を描く。
@@ -539,8 +544,57 @@ export const Plan2D = ({
     return `matrix(${scaleX} 0 0 ${scaleY} ${translateX} ${translateY})`;
   };
 
+  // 要素は固定viewBox(baseViewBox)をレターボックス(xMidYMid meet)で表示し、ズーム/パンは
+  // <g>のtransformで表現している。その前提で「viewのユーザー座標⇔要素ローカルのスクリーン座標」
+  // の写像を求める: screen = offset + scale * (u - box.xy)。
+  const screenMappingFor = (rect: { width: number; height: number }, view: ViewState) => {
+    const sBase = Math.min(rect.width / baseViewBox.width, rect.height / baseViewBox.height);
+    const box = viewBoxFor(view.zoom, view.pan);
+    return {
+      box,
+      scale: (sBase * baseViewBox.width) / box.width,
+      offsetX: (rect.width - sBase * baseViewBox.width) / 2,
+      offsetY: (rect.height - sBase * baseViewBox.height) / 2
+    };
+  };
+
   const applySvgViewport = (view: ViewState) => {
+    const gesture = gestureBaseRef.current;
+    const svg = svgRef.current;
+    if (gesture && svg) {
+      // ジェスチャー開始時の描画(m0)から現在view(m1)への差分をスクリーン座標の
+      // translate+scaleで表す（transform-originは要素左上）。screen1 = k*screen0 + t。
+      const m0 = screenMappingFor(gesture.rect, gesture.view);
+      const m1 = screenMappingFor(gesture.rect, view);
+      const k = m1.scale / m0.scale;
+      const tx = (1 - k) * m1.offsetX + m1.scale * (m0.box.x - m1.box.x);
+      const ty = (1 - k) * m1.offsetY + m1.scale * (m0.box.y - m1.box.y);
+      svg.style.transformOrigin = "0 0";
+      svg.style.transform = `translate(${tx}px, ${ty}px) scale(${k})`;
+      return;
+    }
     viewportLayerRef.current?.setAttribute("transform", viewportTransformFor(view));
+  };
+
+  const beginViewportGesture = () => {
+    if (gestureBaseRef.current || !svgRef.current) return;
+    gestureBaseRef.current = {
+      view: { zoom: viewportRef.current.zoom, pan: { ...viewportRef.current.pan } },
+      rect: svgRef.current.getBoundingClientRect()
+    };
+  };
+
+  // ジェスチャー中はCSS transformがかかっており、WebKitのgetScreenCTMは
+  // <svg>要素自身のCSS transformを反映しないことがあるため、CTMに頼らず
+  // 開始時rectと現在viewからクライアント座標→ユーザー座標を計算する。
+  const gestureUserPoint = (clientX: number, clientY: number) => {
+    const rect = gestureBaseRef.current?.rect;
+    if (!rect) return clientToSvgPoint(clientX, clientY);
+    const m = screenMappingFor(rect, viewportRef.current);
+    return {
+      x: m.box.x + (clientX - rect.left - m.offsetX) / m.scale,
+      y: m.box.y + (clientY - rect.top - m.offsetY) / m.scale
+    };
   };
 
   useEffect(() => {
@@ -558,6 +612,9 @@ export const Plan2D = ({
       viewportFrameRef.current = null;
     }
     pendingViewportCommitRef.current = false;
+    // ジェスチャー終了: CSS transformを外し、<g>のtransformとstateへ確定する。
+    gestureBaseRef.current = null;
+    if (svgRef.current) svgRef.current.style.transform = "";
     const next = viewportRef.current;
     applySvgViewport(next);
     setZoom(next.zoom);
@@ -573,6 +630,11 @@ export const Plan2D = ({
       const next = viewportRef.current;
       const shouldCommit = pendingViewportCommitRef.current;
       pendingViewportCommitRef.current = false;
+      if (shouldCommit) {
+        // state確定時はCSS transformを残すと<g>側の再レンダーと二重適用になるため外す。
+        gestureBaseRef.current = null;
+        if (svgRef.current) svgRef.current.style.transform = "";
+      }
       applySvgViewport(next);
       if (shouldCommit) {
         setZoom(next.zoom);
@@ -648,8 +710,9 @@ export const Plan2D = ({
   const startPinch = () => {
     const points = getPinchPoints();
     if (!points) return;
+    beginViewportGesture();
     const [a, b] = points;
-    const center = clientToSvgPoint((a.clientX + b.clientX) / 2, (a.clientY + b.clientY) / 2);
+    const center = gestureUserPoint((a.clientX + b.clientX) / 2, (a.clientY + b.clientY) / 2);
     pinchRef.current = {
       distance: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY),
       zoom: viewportRef.current.zoom,
@@ -878,6 +941,7 @@ export const Plan2D = ({
     }
 
     if (event.button === 1) {
+      beginViewportGesture();
       const currentViewBox = viewBoxFor(viewportRef.current.zoom, viewportRef.current.pan);
       setDragging({
         kind: "pan",
@@ -893,6 +957,7 @@ export const Plan2D = ({
     if (handleCanvasPlacement(event.clientX, event.clientY)) return;
 
     // 通常操作で何も無い背景を掴んだら平面図をパンする（要望: 空白ドラッグでパン）。
+    beginViewportGesture();
     const currentViewBox = viewBoxFor(viewportRef.current.zoom, viewportRef.current.pan);
     setDragging({
       kind: "pan",
@@ -922,19 +987,20 @@ export const Plan2D = ({
         if (pinch.distance > 4) {
           const ratio = nextDistance / pinch.distance;
           const nextZoom = Math.min(8, Math.max(0.2, pinch.zoom * Math.pow(ratio, TOUCH_PINCH_ZOOM_EXPONENT)));
-          const rect = svgRef.current?.getBoundingClientRect();
+          // CSS transform適用中のgetBoundingClientRectは変形後の矩形を返すため、
+          // ジェスチャー開始時のレイアウト矩形を基準にする。
+          const rect = gestureBaseRef.current?.rect ?? svgRef.current?.getBoundingClientRect();
           if (rect) {
             const centerX = (a.clientX + b.clientX) / 2;
             const centerY = (a.clientY + b.clientY) / 2;
-            const fracX = (centerX - rect.left) / rect.width;
-            const fracY = (centerY - rect.top) / rect.height;
-            const nextWidth = planSize.width / nextZoom + VIEW_PAD * 2;
-            const nextHeight = planSize.height / nextZoom + VIEW_PAD * 2;
+            // アンカー(ユーザー座標)がピンチ中心(スクリーン座標)に留まるpanを、
+            // レターボックス込みの写像 screen = offset + scale*(u - box.xy) の逆算で求める。
+            const m = screenMappingFor(rect, { zoom: nextZoom, pan: { x: 0, y: 0 } });
             scheduleViewport(
               nextZoom,
               {
-                x: pinch.anchor.x - fracX * nextWidth + VIEW_PAD,
-                y: pinch.anchor.y - fracY * nextHeight + VIEW_PAD
+                x: pinch.anchor.x - (centerX - rect.left - m.offsetX) / m.scale + VIEW_PAD,
+                y: pinch.anchor.y - (centerY - rect.top - m.offsetY) / m.scale + VIEW_PAD
               },
               false
             );
@@ -1019,7 +1085,8 @@ export const Plan2D = ({
     if (!dragging) return;
 
     if (dragging.kind === "pan") {
-      const rect = svgRef.current?.getBoundingClientRect();
+      // CSS transform適用中でも一定のレイアウト矩形（ジェスチャー開始時）を基準にする。
+      const rect = gestureBaseRef.current?.rect ?? svgRef.current?.getBoundingClientRect();
       if (!rect) return;
       const dx = ((event.clientX - dragging.clientStart.x) / rect.width) * dragging.viewBoxStart.width * dragging.sensitivity;
       const dy = ((event.clientY - dragging.clientStart.y) / rect.height) * dragging.viewBoxStart.height * dragging.sensitivity;
