@@ -79,8 +79,8 @@ const MIN_SIZE_M = 0.2;
 const WALL_SNAP_M = 1.2;
 // ライトをドラッグ移動するとき、他ライトの x/z にこの距離(m)以内なら整列スナップする。
 const SNAP_M = 0.12;
-const TOUCH_PAN_SENSITIVITY = 0.5;
-const TOUCH_PINCH_ZOOM_EXPONENT = 0.35;
+const TOUCH_PAN_SENSITIVITY = 0.62;
+const TOUCH_PINCH_ZOOM_EXPONENT = 0.58;
 const TOUCH_TAP_MAX_MOVE_PX = 10;
 const TOUCH_WALL_DRAW_START_PX = 12;
 const WALL_VERTEX_SNAP_PX = 30;
@@ -1284,7 +1284,7 @@ export const Plan2D = ({
     // clientToSvgPoint は viewBox 変換込みのユーザー空間座標を返す（=固定したいアンカー点）。
     const anchor = clientToSvgPoint(event.clientX, event.clientY);
     // ピンチ(ctrlKey)は感度を上げる。指数で倍率化すると方向反転や大きなdeltaでも破綻しない。
-    const intensity = event.ctrlKey ? 0.004 : 0.001;
+    const intensity = event.ctrlKey ? 0.007 : 0.0012;
     const factor = Math.exp(-event.deltaY * intensity);
     zoomAtUserPoint(viewportRef.current.zoom * factor, anchor.x, anchor.y);
   };

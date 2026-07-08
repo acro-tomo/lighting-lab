@@ -87,12 +87,12 @@ const useTouchDragGuard = () => useContext(TouchDragGuardContext);
 
 const TOUCH_ORBIT_SPEED = {
   rotate: 0.45,
-  zoom: 0.3,
-  pan: 0.35
+  zoom: 0.45,
+  pan: 0.45
 };
 
-const TOUCH_PINCH_DOLLY_M_PER_PX = 0.0025;
-const TOUCH_PINCH_DOLLY_MAX_STEP_M = 0.08;
+const TOUCH_PINCH_DOLLY_M_PER_PX = 0.0045;
+const TOUCH_PINCH_DOLLY_MAX_STEP_M = 0.14;
 
 const DESKTOP_ORBIT_SPEED = {
   rotate: 1,
