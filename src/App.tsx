@@ -9,7 +9,7 @@ import { projectSchema } from "./schema/projectSchema";
 import { loadProjectFromIndexedDb, saveProjectToIndexedDb } from "./storage/projectStorage";
 import { useProjectStore } from "./store/projectStore";
 import type { CompareShot, Project, Selection } from "./types";
-import { floorPlanFileToDataUrl } from "./utils/floorplanImport";
+import { floorPlanFileToDataUrl, rasterizeSvgBackground } from "./utils/floorplanImport";
 import { DEFAULT_DAYLIGHT } from "./utils/sun";
 import { cloneProject } from "./utils/units";
 import { newCeilingZone, newDoor, newDownlight, newFixtureFromModel, newFloorZone, newFurnitureFromPreset, newLineLight, newPendant, newStair, newVoid, newWallSpot, newWindow, newWindowFromPreset } from "./data/objectFactory";
@@ -84,6 +84,14 @@ const downloadDataUrl = (fileName: string, dataUrl: string) => {
   anchor.click();
 };
 
+// 旧JSON・自動保存に残るSVG背景をPNGへ変換する（SVGはモバイルのピンチ操作を殺す）。
+const migrateSvgBackgrounds = async <T extends Project>(project: T): Promise<T> => {
+  const next = { ...project };
+  if (next.backgroundPlan) next.backgroundPlan = await rasterizeSvgBackground(next.backgroundPlan);
+  if (next.backgroundPlan2) next.backgroundPlan2 = await rasterizeSvgBackground(next.backgroundPlan2);
+  return next;
+};
+
 type RenderProgressState = {
   status: "idle" | "running" | "complete" | "stopped" | "error";
   samples: number;
@@ -152,10 +160,12 @@ export const App = () => {
     if (loadedOnce.current) return;
     loadedOnce.current = true;
     loadProjectFromIndexedDb()
-      .then((savedProject) => {
+      .then(async (savedProject) => {
         if (savedProject) {
           // スキーマ検証は loadProjectFromIndexedDb 内で済んでいる（二重検証しない）。
-          const parsed = savedProject as Project & { compareShots?: CompareShot[] };
+          const parsed = await migrateSvgBackgrounds(
+            savedProject as Project & { compareShots?: CompareShot[] }
+          );
           setProject(parsed);
           if (Array.isArray(parsed.compareShots)) {
             setCompareShots(parsed.compareShots);
@@ -350,7 +360,9 @@ export const App = () => {
   const handleImportProject = async (file: File) => {
     try {
       const text = await readTextFile(file);
-      const parsed = projectSchema.parse(JSON.parse(text)) as Project & { compareShots?: CompareShot[] };
+      const parsed = await migrateSvgBackgrounds(
+        projectSchema.parse(JSON.parse(text)) as Project & { compareShots?: CompareShot[] }
+      );
       setProject(parsed);
       setCompareShots(Array.isArray(parsed.compareShots) ? parsed.compareShots : []);
       setNotice(`${file.name} を読み込みました。`);

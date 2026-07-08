@@ -6,10 +6,12 @@
 
 ## 使う素材
 
-- 平面図: `public/demo/dimensioned-ldk-demo-plan.svg`
+- 平面図: `public/demo/dimensioned-ldk-demo-plan.svg`（編集用の元データ）/ `.png`（JSONに埋め込む配布用）
 - 読み込み用JSON: `public/demo/share-demo-project.json`
 
 どちらも架空のオリジナル素材。実在住宅・工務店カタログ・不動産図面のコピーではない。
+
+注意: JSONにはPNG版を埋め込む。SVG背景はモバイルのピンチ/パン中にWebKitが毎フレーム再ラスタライズして操作不能になるため使わない（SVGを更新したらPNGを再生成してJSONに埋め込み直す。旧JSONを読み込んだ場合はアプリ側で自動的にPNGへ変換される）。
 
 ## 30秒デモ構成
 

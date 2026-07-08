@@ -1559,7 +1559,9 @@ export const Plan2D = ({
                   (selection?.kind === "light" && selection.id === fixture.id) ||
                   selectedLightIds.includes(fixture.id)
                 }
+                togglesOffOnClick={selection?.kind === "light" && selection.id === fixture.id}
                 onSelectLight={selectLight}
+                onClearSelection={() => handleSelect(null)}
                 onDragStart={(offset) => setDragging({ kind: "light", id: fixture.id, offset })}
                 svgToWorld={svgToWorld}
                 canDrag={canDragObjects}
@@ -2144,7 +2146,9 @@ const LightPlanItem = ({
   fixture,
   worldToSvg,
   selected,
+  togglesOffOnClick,
   onSelectLight,
+  onClearSelection,
   onDragStart,
   svgToWorld,
   canDrag
@@ -2152,7 +2156,9 @@ const LightPlanItem = ({
   fixture: LightFixture;
   worldToSvg: (point: Vec2M) => { x: number; y: number };
   selected: boolean;
+  togglesOffOnClick: boolean;
   onSelectLight: (id: string, shiftKey: boolean) => void;
+  onClearSelection: () => void;
   onDragStart: (offset: Vec2M) => void;
   svgToWorld: (clientX: number, clientY: number) => Vec2M;
   canDrag: boolean;
@@ -2160,20 +2166,51 @@ const LightPlanItem = ({
   const center = worldToSvg({ x: fixture.position.x, z: fixture.position.z });
   const target = fixture.target ? worldToSvg({ x: fixture.target.x, z: fixture.target.z }) : null;
   const radius = fixture.type === "downlight" ? (selected ? 6 : 4) : (selected ? 11 : 8);
+  const pressRef = useRef<{ pointerId: number; clientX: number; clientY: number; togglesOff: boolean } | null>(null);
   const handlePointerDown = (event: React.PointerEvent<SVGGElement>) => {
     event.stopPropagation();
     onSelectLight(fixture.id, event.shiftKey);
     // Shift+クリックは複数選択トグルのみ。ドラッグは開始しない。
     if (event.shiftKey || !canDrag || !selected || (event.pointerType === "touch" && !event.isPrimary)) return;
+    pressRef.current = {
+      pointerId: event.pointerId,
+      clientX: event.clientX,
+      clientY: event.clientY,
+      togglesOff: togglesOffOnClick
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
     const point = svgToWorld(event.clientX, event.clientY);
     onDragStart({
       x: point.x - fixture.position.x,
       z: point.z - fixture.position.z
     });
   };
+  const handlePointerMove = (event: React.PointerEvent<SVGGElement>) => {
+    const press = pressRef.current;
+    if (!press || press.pointerId !== event.pointerId) return;
+    if (Math.hypot(event.clientX - press.clientX, event.clientY - press.clientY) > TOUCH_TAP_MAX_MOVE_PX) {
+      pressRef.current = { ...press, togglesOff: false };
+    }
+  };
+  const handlePointerEnd = (event: React.PointerEvent<SVGGElement>) => {
+    const press = pressRef.current;
+    if (press?.pointerId === event.pointerId) {
+      if (press.togglesOff) onClearSelection();
+      pressRef.current = null;
+    }
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
 
   return (
-    <g onPointerDown={handlePointerDown} className={selected ? "plan-light is-selected" : "plan-light"}>
+    <g
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerEnd}
+      onPointerCancel={handlePointerEnd}
+      className={selected ? "plan-light is-selected" : "plan-light"}
+    >
       {target && <line x1={center.x} y1={center.y} x2={target.x} y2={target.y} className="plan-aim-line" />}
       <circle cx={center.x} cy={center.y} r={radius} />
       <text x={center.x + radius + 5} y={center.y - radius - 2} className="plan-label">

@@ -90,6 +90,9 @@ const TOUCH_ORBIT_SPEED = {
   pan: 0.55
 };
 
+const TOUCH_PINCH_DOLLY_M_PER_PX = 0.006;
+const TOUCH_PINCH_DOLLY_MAX_STEP_M = 0.2;
+
 const DESKTOP_ORBIT_SPEED = {
   rotate: 1,
   zoom: 1,
@@ -139,6 +142,97 @@ const TouchDragGuardProvider = ({ children }: { children: ReactNode }) => {
     []
   );
   return <TouchDragGuardContext.Provider value={value}>{children}</TouchDragGuardContext.Provider>;
+};
+
+type TouchPoint = { x: number; y: number };
+
+const TouchPinchDolly = ({
+  controlsRef
+}: {
+  controlsRef: MutableRefObject<OrbitControlsImpl | null>;
+}) => {
+  const { camera, gl } = useThree();
+  const pointersRef = useRef(new Map<number, TouchPoint>());
+  const pinchDistanceRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const canvas = gl.domElement;
+    const forward = new THREE.Vector3();
+    const move = new THREE.Vector3();
+    const targetDir = new THREE.Vector3();
+
+    const pinchDistance = () => {
+      const points = Array.from(pointersRef.current.values());
+      if (points.length < 2) return null;
+      const [a, b] = points;
+      return Math.hypot(a.x - b.x, a.y - b.y);
+    };
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.pointerType !== "touch") return;
+      pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      pinchDistanceRef.current = pinchDistance();
+    };
+
+    const onPointerMove = (event: PointerEvent) => {
+      if (event.pointerType !== "touch" || !pointersRef.current.has(event.pointerId)) return;
+      pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      const nextDistance = pinchDistance();
+      const prevDistance = pinchDistanceRef.current;
+      pinchDistanceRef.current = nextDistance;
+      if (nextDistance === null || prevDistance === null) return;
+      const controls = controlsRef.current;
+      if (!controls) return;
+
+      forward.copy(camera.getWorldDirection(forward));
+      forward.y = 0;
+      if (forward.lengthSq() < 1e-6) {
+        targetDir.copy(controls.target).sub(camera.position);
+        targetDir.y = 0;
+        forward.copy(targetDir);
+      }
+      if (forward.lengthSq() < 1e-6) return;
+      forward.normalize();
+
+      const deltaM = THREE.MathUtils.clamp(
+        (nextDistance - prevDistance) * TOUCH_PINCH_DOLLY_M_PER_PX,
+        -TOUCH_PINCH_DOLLY_MAX_STEP_M,
+        TOUCH_PINCH_DOLLY_MAX_STEP_M
+      );
+      if (Math.abs(deltaM) < 1e-4) return;
+      move.copy(forward).multiplyScalar(deltaM);
+      camera.position.add(move);
+      controls.target.add(move);
+      controls.update();
+      event.preventDefault();
+    };
+
+    const onPointerEnd = (event: PointerEvent) => {
+      if (event.pointerType !== "touch") return;
+      pointersRef.current.delete(event.pointerId);
+      pinchDistanceRef.current = pinchDistance();
+    };
+
+    const clear = () => {
+      pointersRef.current.clear();
+      pinchDistanceRef.current = null;
+    };
+
+    canvas.addEventListener("pointerdown", onPointerDown, { capture: true });
+    canvas.addEventListener("pointermove", onPointerMove, { capture: true, passive: false });
+    canvas.addEventListener("pointerup", onPointerEnd, { capture: true });
+    canvas.addEventListener("pointercancel", onPointerEnd, { capture: true });
+    window.addEventListener("blur", clear);
+    return () => {
+      canvas.removeEventListener("pointerdown", onPointerDown, { capture: true });
+      canvas.removeEventListener("pointermove", onPointerMove, { capture: true });
+      canvas.removeEventListener("pointerup", onPointerEnd, { capture: true });
+      canvas.removeEventListener("pointercancel", onPointerEnd, { capture: true });
+      window.removeEventListener("blur", clear);
+    };
+  }, [camera, controlsRef, gl.domElement]);
+
+  return null;
 };
 
 // パストレ常駐モードでは選択枠・グロー・補助光など非物理の演出を隠す。
@@ -899,6 +993,7 @@ const SceneRoot = ({
         floorLevelM={floorLevelM}
         ceilingHeightM={project.room.ceilingHeightM}
       />
+      <TouchPinchDolly controlsRef={controlsRef} />
       <color attach="background" args={[backgroundColor]} />
       <Outdoors />
       {sunUp && <SunLight dir={sun.dir} altitudeDeg={sun.altitudeDeg} roomSpan={roomSpan} />}
@@ -1015,7 +1110,7 @@ const SceneRoot = ({
         enablePan
         screenSpacePanning
         keyEvents={false}
-        touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN }}
+        touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.PAN }}
         rotateSpeed={orbitSpeed.rotate}
         zoomSpeed={orbitSpeed.zoom}
         panSpeed={orbitSpeed.pan}
@@ -3682,6 +3777,8 @@ const FixtureMesh = ({
   const [moveMode, setMoveMode] = useState<FixtureMoveMode>("horizontal");
   // ドラッグ中に効いている整列軸のガイド位置（編集時のみ描画）。
   const [dragSnap, setDragSnap] = useState<{ snapX: number | null; snapZ: number | null } | null>(null);
+  const wasSelectedRef = useRef(false);
+  const movedRef = useRef(false);
   const heightDragging = useRef(false);
   const heightGrabY = useRef(0);
   const heightHit = useMemo(() => new THREE.Vector3(), []);
@@ -3705,6 +3802,7 @@ const FixtureMesh = ({
           fixture.floor ?? project.activeFloor ?? 1
         );
         if (!placement) return;
+        movedRef.current = true;
         updateLight(fixture.id, {
           position: placement.position,
           mountHeightM: placement.position.y,
@@ -3716,6 +3814,7 @@ const FixtureMesh = ({
       // 生の(x,z)を他ライト軸へ吸着してから反映（掴み相対オフセットは useFloorDrag が保持済み）。
       const snap = snapDragToLightAxes(rawX, rawZ, lights, fixture.id);
       setDragSnap(snap.snapX !== null || snap.snapZ !== null ? { snapX: snap.snapX, snapZ: snap.snapZ } : null);
+      movedRef.current = true;
       const x = snap.x;
       const z = snap.z;
       const dx = x - fixture.position.x;
@@ -3765,6 +3864,7 @@ const FixtureMesh = ({
     }
     event.stopPropagation();
     const y = THREE.MathUtils.clamp(heightFromRay(event) + heightGrabY.current, minMoveY, maxMoveY);
+    movedRef.current = true;
     updateLight(fixture.id, { position: { ...fixture.position, y }, mountHeightM: y });
   };
 
@@ -3794,6 +3894,8 @@ const FixtureMesh = ({
           toggleLightSelection(fixture.id);
           return;
         }
+        wasSelectedRef.current = selected;
+        movedRef.current = false;
         if (!selected) onSelect({ kind: "light", id: fixture.id });
         if (editMode === "select" && canDragFixture && (selected || multiSelected)) {
           if (moveMode === "vertical") startHeightDrag(event);
@@ -3819,6 +3921,8 @@ const FixtureMesh = ({
           ? (event: ThreeEvent<PointerEvent>) => {
               drag.onPointerUp(event);
               stopHeightDrag(event);
+              if (wasSelectedRef.current && !movedRef.current) onSelect(null);
+              wasSelectedRef.current = false;
               setDragSnap(null);
             }
           : undefined
@@ -3828,6 +3932,7 @@ const FixtureMesh = ({
           ? (event: ThreeEvent<PointerEvent>) => {
               drag.onPointerCancel(event);
               stopHeightDrag(event);
+              wasSelectedRef.current = false;
               setDragSnap(null);
             }
           : undefined

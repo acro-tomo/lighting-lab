@@ -1,5 +1,6 @@
 import * as pdfjsLib from "pdfjs-dist";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.mjs?url";
+import type { FloorPlanBackground } from "../types";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
@@ -53,6 +54,47 @@ const compressImageFile = async (file: File) => {
     return drawCompressedImage(image, image.naturalWidth, image.naturalHeight);
   } finally {
     URL.revokeObjectURL(objectUrl);
+  }
+};
+
+// SVG背景はピンチ/パン中の変形のたびにWebKitが再ラスタライズしてモバイルで
+// 操作不能になるため、プロジェクト読み込み時にPNGへ変換する（旧JSON・自動保存の救済）。
+export const rasterizeSvgBackground = async (
+  background: FloorPlanBackground
+): Promise<FloorPlanBackground> => {
+  if (!background.dataUrl.startsWith("data:image/svg")) return background;
+  try {
+    const image = await loadImage(background.dataUrl);
+    if (!image.naturalWidth || !image.naturalHeight) return background;
+    const scale = Math.min(
+      2,
+      FLOOR_PLAN_MAX_IMAGE_DIMENSION / Math.max(image.naturalWidth, image.naturalHeight)
+    );
+    const width = Math.max(1, Math.round(image.naturalWidth * scale));
+    const height = Math.max(1, Math.round(image.naturalHeight * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d");
+    if (!context) return background;
+    context.fillStyle = "#fff";
+    context.fillRect(0, 0, width, height);
+    context.drawImage(image, 0, 0, width, height);
+    // 実寸配置(m) = naturalSize × metersPerPixel を保つよう解像度変更ぶんを補正する。
+    const ratio = width / image.naturalWidth;
+    return {
+      ...background,
+      dataUrl: canvas.toDataURL("image/png"),
+      fileName: background.fileName.replace(/\.svg$/i, ".png"),
+      scale: background.scale
+        ? { ...background.scale, pixels: background.scale.pixels * ratio }
+        : background.scale,
+      placement: background.placement
+        ? { ...background.placement, metersPerPixel: background.placement.metersPerPixel / ratio }
+        : background.placement
+    };
+  } catch {
+    return background;
   }
 };
 
