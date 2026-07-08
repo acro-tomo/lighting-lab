@@ -47,6 +47,7 @@ import {
   voidWallId,
   wallMountedLightPlacementAt
 } from "../utils/fixtureMounting";
+import { constrainFurniturePlacement } from "../utils/furniturePlacement";
 import { wallInwardNormal } from "../utils/wallGeometry";
 
 export type ViewMode = "raster" | "realistic";
@@ -1046,6 +1047,7 @@ const SceneRoot = ({
           {floorProject.furniture.map((item) => (
             <FurnitureMesh
               key={item.id}
+              project={floorProject}
               item={item}
               materialMap={materialMap}
               selected={selection?.kind === "furniture" && selection.id === item.id}
@@ -3255,12 +3257,14 @@ const FurnitureResizeHandles = ({ item }: { item: FurnitureItem }) => {
 };
 
 const FurnitureMesh = ({
+  project,
   item,
   materialMap,
   selected,
   onSelect,
   debugMode
 }: {
+  project: Project;
   item: FurnitureItem;
   materialMap: Map<string, MaterialPreset>;
   selected: boolean;
@@ -3287,7 +3291,8 @@ const FurnitureMesh = ({
     floorLevelM + item.position.y,
     (x, z) => {
       movedRef.current = true;
-      updateFurniture(item.id, { position: { ...item.position, x, z } });
+      const next = constrainFurniturePlacement(project, item, { ...item.position, x, z });
+      updateFurniture(item.id, { position: next.position, rotationYDeg: next.rotationYDeg });
     }
   );
 

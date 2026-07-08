@@ -23,6 +23,7 @@ import {
   visibleVoidSides,
   wallMountedLightPlacementAt
 } from "../utils/fixtureMounting";
+import { constrainFurniturePlacement } from "../utils/furniturePlacement";
 
 type Plan2DProps = {
   project: Project;
@@ -1136,8 +1137,10 @@ export const Plan2D = ({
     if (dragging.kind === "furniture") {
       const item = project.furniture.find((candidate) => candidate.id === dragging.id);
       if (!item) return;
+      const placement = constrainFurniturePlacement(project, item, { ...item.position, x: next.x, z: next.z });
       updateFurniture(item.id, {
-        position: { ...item.position, x: next.x, z: next.z }
+        position: placement.position,
+        rotationYDeg: placement.rotationYDeg
       });
     } else if (dragging.kind === "light") {
       const fixture = project.lights.find((candidate) => candidate.id === dragging.id);
