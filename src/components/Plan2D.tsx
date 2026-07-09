@@ -69,7 +69,7 @@ type ResizeEdge =
   | "bottomRight";
 type ResizeState = { kind: ResizeKind; id: string; edge: ResizeEdge } | null;
 type TouchPoint = { clientX: number; clientY: number };
-type PinchState = { distance: number };
+type PinchState = { distance: number; center: TouchPoint };
 type TouchTapState = { pointerId: number; clientX: number; clientY: number } | null;
 type TouchWallTraceState = {
   pointerId: number;
@@ -85,8 +85,8 @@ const MIN_SIZE_M = 0.2;
 const WALL_SNAP_M = 1.2;
 // ライトをドラッグ移動するとき、他ライトの x/z にこの距離(m)以内なら整列スナップする。
 const SNAP_M = 0.12;
-const TOUCH_PAN_SENSITIVITY = 0.62;
-const TOUCH_PINCH_ZOOM_EXPONENT = 0.58;
+const TOUCH_PAN_SENSITIVITY = 0.9;
+const TOUCH_PINCH_ZOOM_EXPONENT = 0.74;
 const TOUCH_TAP_MAX_MOVE_PX = 10;
 const TOUCH_WALL_DRAW_START_PX = 12;
 const WALL_VERTEX_SNAP_PX = 30;
@@ -734,7 +734,11 @@ export const Plan2D = ({
     beginViewportGesture();
     const [a, b] = points;
     pinchRef.current = {
-      distance: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY)
+      distance: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY),
+      center: {
+        clientX: (a.clientX + b.clientX) / 2,
+        clientY: (a.clientY + b.clientY) / 2
+      }
     };
     touchTapRef.current = null;
     touchWallTraceRef.current = null;
@@ -1045,20 +1049,23 @@ export const Plan2D = ({
           // ジェスチャー開始時のレイアウト矩形を基準にする。
           const rect = gestureBaseRef.current?.rect ?? svgRef.current?.getBoundingClientRect();
           if (rect) {
-            const centerX = (a.clientX + b.clientX) / 2;
-            const centerY = (a.clientY + b.clientY) / 2;
-            const anchor = gestureUserPoint(centerX, centerY);
-            // アンカー(ユーザー座標)がピンチ中心(スクリーン座標)に留まるpanを、
+            const nextCenter = {
+              clientX: (a.clientX + b.clientX) / 2,
+              clientY: (a.clientY + b.clientY) / 2
+            };
+            const anchor = gestureUserPoint(pinch.center.clientX, pinch.center.clientY);
+            // 前回中心の下にあった点を現在中心へ送ることで、二本指移動もパンとして扱う。
             // レターボックス込みの写像 screen = offset + scale*(u - box.xy) の逆算で求める。
             const m = screenMappingFor(rect, { zoom: nextZoom, pan: { x: 0, y: 0 } });
             scheduleViewport(
               nextZoom,
               {
-                x: anchor.x - (centerX - rect.left - m.offsetX) / m.scale + VIEW_PAD,
-                y: anchor.y - (centerY - rect.top - m.offsetY) / m.scale + VIEW_PAD
+                x: anchor.x - (nextCenter.clientX - rect.left - m.offsetX) / m.scale + VIEW_PAD,
+                y: anchor.y - (nextCenter.clientY - rect.top - m.offsetY) / m.scale + VIEW_PAD
               },
               false
             );
+            pinch.center = nextCenter;
           }
           pinch.distance = nextDistance;
         }
