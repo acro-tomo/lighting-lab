@@ -96,6 +96,7 @@ const TOUCH_PINCH_DOLLY_MAX_STEP_M = 0.14;
 const TOUCH_TWO_FINGER_PAN_SPEED = 0.9;
 const TOUCH_GESTURE_LOCK_PX = 5;
 const TOUCH_GESTURE_LOCK_RATIO = 1.25;
+const TRACKPAD_WHEEL_PAN_SPEED = 0.55;
 
 const DESKTOP_ORBIT_SPEED = {
   rotate: 1,
@@ -317,6 +318,49 @@ const TouchPinchDolly = ({
       window.removeEventListener("blur", clear);
       clear();
     };
+  }, [camera, controlsRef, gl.domElement]);
+
+  return null;
+};
+
+const TrackpadWheelPan = ({
+  controlsRef
+}: {
+  controlsRef: MutableRefObject<OrbitControlsImpl | null>;
+}) => {
+  const { camera, gl } = useThree();
+
+  useEffect(() => {
+    const canvas = gl.domElement;
+    const move = new THREE.Vector3();
+    const panAxis = new THREE.Vector3();
+
+    const onWheel = (event: WheelEvent) => {
+      if (event.ctrlKey) return;
+      const controls = controlsRef.current;
+      if (!controls) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+
+      const elementHeight = canvas.clientHeight || 1;
+      const targetDistance = camera.position.distanceTo(controls.target);
+      const panScale =
+        camera instanceof THREE.PerspectiveCamera
+          ? (2 * targetDistance * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))) / elementHeight
+          : targetDistance / elementHeight;
+      move.set(0, 0, 0);
+      panAxis.setFromMatrixColumn(camera.matrix, 0).multiplyScalar(-event.deltaX * panScale * TRACKPAD_WHEEL_PAN_SPEED);
+      move.add(panAxis);
+      panAxis.setFromMatrixColumn(camera.matrix, 1).multiplyScalar(event.deltaY * panScale * TRACKPAD_WHEEL_PAN_SPEED);
+      move.add(panAxis);
+      if (move.lengthSq() < 1e-10) return;
+      camera.position.add(move);
+      controls.target.add(move);
+      controls.update();
+    };
+
+    canvas.addEventListener("wheel", onWheel, { capture: true, passive: false });
+    return () => canvas.removeEventListener("wheel", onWheel, { capture: true });
   }, [camera, controlsRef, gl.domElement]);
 
   return null;
@@ -1081,6 +1125,7 @@ const SceneRoot = ({
         ceilingHeightM={project.room.ceilingHeightM}
       />
       <TouchPinchDolly controlsRef={controlsRef} />
+      <TrackpadWheelPan controlsRef={controlsRef} />
       <color attach="background" args={[backgroundColor]} />
       <Outdoors />
       {sunUp && <SunLight dir={sun.dir} altitudeDeg={sun.altitudeDeg} roomSpan={roomSpan} />}
