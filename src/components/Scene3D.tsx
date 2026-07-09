@@ -93,7 +93,7 @@ const TOUCH_ORBIT_SPEED = {
 
 const TOUCH_PINCH_DOLLY_M_PER_PX = 0.0045;
 const TOUCH_PINCH_DOLLY_MAX_STEP_M = 0.14;
-const TOUCH_PINCH_INTENT_PX = 0.7;
+const TOUCH_TWO_FINGER_PAN_SPEED = 0.9;
 
 const DESKTOP_ORBIT_SPEED = {
   rotate: 1,
@@ -156,30 +156,52 @@ const TouchPinchDolly = ({
   const { camera, gl } = useThree();
   const pointersRef = useRef(new Map<number, TouchPoint>());
   const pinchDistanceRef = useRef<number | null>(null);
+  const pinchCenterRef = useRef<TouchPoint | null>(null);
   const pinchFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
     const canvas = gl.domElement;
     const forward = new THREE.Vector3();
     const move = new THREE.Vector3();
+    const panMove = new THREE.Vector3();
+    const panAxis = new THREE.Vector3();
     const targetDir = new THREE.Vector3();
 
-    const pinchDistance = () => {
+    const pinchMetrics = () => {
       const points = Array.from(pointersRef.current.values());
       if (points.length < 2) return null;
       const [a, b] = points;
-      return Math.hypot(a.x - b.x, a.y - b.y);
+      return {
+        center: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 },
+        distance: Math.hypot(a.x - b.x, a.y - b.y)
+      };
     };
 
     const processPinch = () => {
       pinchFrameRef.current = null;
-      const nextDistance = pinchDistance();
+      const metrics = pinchMetrics();
       const prevDistance = pinchDistanceRef.current;
-      pinchDistanceRef.current = nextDistance;
-      if (nextDistance === null || prevDistance === null) return;
+      const prevCenter = pinchCenterRef.current;
+      pinchDistanceRef.current = metrics?.distance ?? null;
+      pinchCenterRef.current = metrics?.center ?? null;
+      if (!metrics || prevDistance === null || !prevCenter) return;
       const controls = controlsRef.current;
       if (!controls) return;
-      const distanceDeltaPx = nextDistance - prevDistance;
+      const distanceDeltaPx = metrics.distance - prevDistance;
+      const centerDeltaX = metrics.center.x - prevCenter.x;
+      const centerDeltaY = metrics.center.y - prevCenter.y;
+
+      panMove.set(0, 0, 0);
+      const elementHeight = gl.domElement.clientHeight || 1;
+      const targetDistance = camera.position.distanceTo(controls.target);
+      const panScale =
+        camera instanceof THREE.PerspectiveCamera
+          ? (2 * targetDistance * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))) / elementHeight
+          : targetDistance / elementHeight;
+      panAxis.setFromMatrixColumn(camera.matrix, 0).multiplyScalar(-centerDeltaX * panScale * TOUCH_TWO_FINGER_PAN_SPEED);
+      panMove.add(panAxis);
+      panAxis.setFromMatrixColumn(camera.matrix, 1).multiplyScalar(centerDeltaY * panScale * TOUCH_TWO_FINGER_PAN_SPEED);
+      panMove.add(panAxis);
 
       forward.copy(camera.getWorldDirection(forward));
       forward.y = 0;
@@ -196,8 +218,9 @@ const TouchPinchDolly = ({
         -TOUCH_PINCH_DOLLY_MAX_STEP_M,
         TOUCH_PINCH_DOLLY_MAX_STEP_M
       );
-      if (Math.abs(deltaM) < 1e-4) return;
-      move.copy(forward).multiplyScalar(deltaM);
+      move.copy(panMove);
+      if (Math.abs(deltaM) >= 1e-4) move.addScaledVector(forward, deltaM);
+      if (move.lengthSq() < 1e-10) return;
       camera.position.add(move);
       controls.target.add(move);
       controls.update();
@@ -211,27 +234,28 @@ const TouchPinchDolly = ({
     const onPointerDown = (event: PointerEvent) => {
       if (event.pointerType !== "touch") return;
       pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
-      pinchDistanceRef.current = pinchDistance();
+      const metrics = pinchMetrics();
+      pinchDistanceRef.current = metrics?.distance ?? null;
+      pinchCenterRef.current = metrics?.center ?? null;
     };
 
     const onPointerMove = (event: PointerEvent) => {
       if (event.pointerType !== "touch" || !pointersRef.current.has(event.pointerId)) return;
       pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
-      const nextDistance = pinchDistance();
+      const metrics = pinchMetrics();
       const prevDistance = pinchDistanceRef.current;
-      if (nextDistance === null || prevDistance === null) return;
-      const distanceDeltaPx = nextDistance - prevDistance;
-      if (Math.abs(distanceDeltaPx) > TOUCH_PINCH_INTENT_PX) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-      }
+      if (!metrics || prevDistance === null) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
       schedulePinch();
     };
 
     const onPointerEnd = (event: PointerEvent) => {
       if (event.pointerType !== "touch") return;
       pointersRef.current.delete(event.pointerId);
-      pinchDistanceRef.current = pinchDistance();
+      const metrics = pinchMetrics();
+      pinchDistanceRef.current = metrics?.distance ?? null;
+      pinchCenterRef.current = metrics?.center ?? null;
     };
 
     const clear = () => {
@@ -241,6 +265,7 @@ const TouchPinchDolly = ({
       }
       pointersRef.current.clear();
       pinchDistanceRef.current = null;
+      pinchCenterRef.current = null;
     };
 
     canvas.addEventListener("pointerdown", onPointerDown, { capture: true });
