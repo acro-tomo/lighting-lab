@@ -9,10 +9,10 @@ type DragState = {
   offset: { x: number; y: number };
 } | null;
 type TouchPoint = { clientX: number; clientY: number };
+type ImageTransform = { scale: number; offset: { x: number; y: number } };
 type PinchState = {
   pointerIds: [number, number];
   distance: number;
-  imageScale: number;
   anchorPixel: Pixel;
 } | null;
 
@@ -32,9 +32,12 @@ export const ScaleCalibrationModal = ({
   onCancel
 }: ScaleCalibrationModalProps) => {
   const stageRef = useRef<HTMLDivElement | null>(null);
+  const imageRef = useRef<HTMLImageElement | null>(null);
   const dragRef = useRef<DragState>(null);
   const pointersRef = useRef<Map<number, TouchPoint>>(new Map());
   const pinchRef = useRef<PinchState>(null);
+  const transformRef = useRef<ImageTransform>({ scale: 1, offset: { x: 0, y: 0 } });
+  const frameRef = useRef<number | null>(null);
   const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
   const [millimeters, setMillimeters] = useState("3640");
   const [orientation, setOrientation] = useState<Orientation>("horizontal");
@@ -65,11 +68,51 @@ export const ScaleCalibrationModal = ({
   const baseScale = stageSize.width > 0 && stageSize.height > 0
     ? Math.min(stageSize.width / naturalSize.width, stageSize.height / naturalSize.height)
     : 1;
-  const displayScale = baseScale * imageScale;
-  const imageWidth = naturalSize.width * displayScale;
-  const imageHeight = naturalSize.height * displayScale;
-  const imageLeft = (stageSize.width - imageWidth) / 2 + imageOffset.x;
-  const imageTop = (stageSize.height - imageHeight) / 2 + imageOffset.y;
+  const imageMetricsFor = (transform: ImageTransform) => {
+    const displayScale = baseScale * transform.scale;
+    const imageWidth = naturalSize.width * displayScale;
+    const imageHeight = naturalSize.height * displayScale;
+    return {
+      displayScale,
+      left: (stageSize.width - imageWidth) / 2 + transform.offset.x,
+      top: (stageSize.height - imageHeight) / 2 + transform.offset.y
+    };
+  };
+  const imageMetrics = imageMetricsFor({ scale: imageScale, offset: imageOffset });
+  const applyImageTransform = (transform: ImageTransform) => {
+    const image = imageRef.current;
+    if (!image) return;
+    const metrics = imageMetricsFor(transform);
+    image.style.transform = `translate(${metrics.left}px, ${metrics.top}px) scale(${metrics.displayScale})`;
+  };
+  const scheduleImageTransform = (transform: ImageTransform) => {
+    transformRef.current = transform;
+    if (frameRef.current !== null) return;
+    frameRef.current = requestAnimationFrame(() => {
+      frameRef.current = null;
+      applyImageTransform(transformRef.current);
+    });
+  };
+  const commitImageTransform = () => {
+    if (frameRef.current !== null) {
+      cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
+    }
+    const transform = transformRef.current;
+    applyImageTransform(transform);
+    setImageScale(transform.scale);
+    setImageOffset(transform.offset);
+  };
+
+  useEffect(() => {
+    transformRef.current = { scale: imageScale, offset: imageOffset };
+    applyImageTransform(transformRef.current);
+    return () => {
+      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+    };
+    // applyImageTransform は stageSize/baseScale を使うため、サイズ変化でも再適用する。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imageScale, imageOffset, stageSize, naturalSize]);
 
   const referenceLength = stageSize.width > 0 && stageSize.height > 0
     ? orientation === "horizontal"
@@ -83,10 +126,16 @@ export const ScaleCalibrationModal = ({
   const referenceEnd = orientation === "horizontal"
     ? { x: referenceCenter.x + referenceLength / 2, y: referenceCenter.y }
     : { x: referenceCenter.x, y: referenceCenter.y + referenceLength / 2 };
-  const stagePointToImagePixel = (point: { x: number; y: number }): Pixel => ({
-    x: (point.x - imageLeft) / displayScale,
-    y: (point.y - imageTop) / displayScale
-  });
+  const stagePointToImagePixel = (
+    point: { x: number; y: number },
+    transform: ImageTransform = { scale: imageScale, offset: imageOffset }
+  ): Pixel => {
+    const metrics = imageMetricsFor(transform);
+    return {
+      x: (point.x - metrics.left) / metrics.displayScale,
+      y: (point.y - metrics.top) / metrics.displayScale
+    };
+  };
   const clientPointToStage = (clientX: number, clientY: number) => {
     const rect = stageRef.current?.getBoundingClientRect();
     if (!rect) return { x: 0, y: 0 };
@@ -104,8 +153,14 @@ export const ScaleCalibrationModal = ({
   const canConfirm = referenceWithinImage && referencePixels > 1 && Number.isFinite(mm) && mm > 0;
 
   const handleConfirm = () => {
-    if (!canConfirm) return;
-    onConfirm(referencePix1, referencePix2, mm);
+    const currentPix1 = stagePointToImagePixel(referenceStart, transformRef.current);
+    const currentPix2 = stagePointToImagePixel(referenceEnd, transformRef.current);
+    const currentPixels = Math.hypot(currentPix2.x - currentPix1.x, currentPix2.y - currentPix1.y);
+    const currentWithinImage = [currentPix1, currentPix2].every((point) =>
+      point.x >= 0 && point.x <= naturalSize.width && point.y >= 0 && point.y <= naturalSize.height
+    );
+    if (!currentWithinImage || currentPixels <= 1 || !Number.isFinite(mm) || mm <= 0) return;
+    onConfirm(currentPix1, currentPix2, mm);
   };
 
   const handleStagePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -120,8 +175,7 @@ export const ScaleCalibrationModal = ({
       pinchRef.current = {
         pointerIds: [aId, bId],
         distance: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY),
-        imageScale,
-        anchorPixel: stagePointToImagePixel(center)
+        anchorPixel: stagePointToImagePixel(center, transformRef.current)
       };
       dragRef.current = null;
       return;
@@ -130,7 +184,7 @@ export const ScaleCalibrationModal = ({
       pointerId: event.pointerId,
       clientX: event.clientX,
       clientY: event.clientY,
-      offset: imageOffset
+      offset: transformRef.current.offset
     };
   };
 
@@ -144,24 +198,31 @@ export const ScaleCalibrationModal = ({
       const b = pointersRef.current.get(pinch.pointerIds[1]);
       if (!a || !b || pinch.distance <= 1) return;
       const center = clientPointToStage((a.clientX + b.clientX) / 2, (a.clientY + b.clientY) / 2);
+      const distance = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
       const nextScale = clamp(
-        pinch.imageScale * (Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) / pinch.distance),
+        transformRef.current.scale * (distance / pinch.distance),
         0.25,
         6
       );
       const nextDisplayScale = baseScale * nextScale;
-      setImageScale(nextScale);
-      setImageOffset({
-        x: center.x - pinch.anchorPixel.x * nextDisplayScale - (stageSize.width - naturalSize.width * nextDisplayScale) / 2,
-        y: center.y - pinch.anchorPixel.y * nextDisplayScale - (stageSize.height - naturalSize.height * nextDisplayScale) / 2
+      scheduleImageTransform({
+        scale: nextScale,
+        offset: {
+          x: center.x - pinch.anchorPixel.x * nextDisplayScale - (stageSize.width - naturalSize.width * nextDisplayScale) / 2,
+          y: center.y - pinch.anchorPixel.y * nextDisplayScale - (stageSize.height - naturalSize.height * nextDisplayScale) / 2
+        }
       });
+      pinch.distance = distance;
       return;
     }
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
-    setImageOffset({
-      x: drag.offset.x + event.clientX - drag.clientX,
-      y: drag.offset.y + event.clientY - drag.clientY
+    scheduleImageTransform({
+      scale: transformRef.current.scale,
+      offset: {
+        x: drag.offset.x + event.clientX - drag.clientX,
+        y: drag.offset.y + event.clientY - drag.clientY
+      }
     });
   };
 
@@ -169,16 +230,24 @@ export const ScaleCalibrationModal = ({
     pointersRef.current.delete(event.pointerId);
     if (pinchRef.current?.pointerIds.includes(event.pointerId)) pinchRef.current = null;
     if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null;
+    commitImageTransform();
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
   };
 
   const zoomBy = (factor: number) => {
-    setImageScale((current) => clamp(current * factor, 0.25, 6));
+    const next = {
+      scale: clamp(transformRef.current.scale * factor, 0.25, 6),
+      offset: transformRef.current.offset
+    };
+    transformRef.current = next;
+    setImageScale(next.scale);
+    setImageOffset(next.offset);
   };
 
   const resetImageTransform = () => {
+    transformRef.current = { scale: 1, offset: { x: 0, y: 0 } };
     setImageScale(1);
     setImageOffset({ x: 0, y: 0 });
     pointersRef.current.clear();
@@ -210,13 +279,14 @@ export const ScaleCalibrationModal = ({
             }}
           >
             <img
+              ref={imageRef}
               src={imageUrl}
               alt="間取り図"
               className="scale-modal-image"
               style={{
                 width: naturalSize.width,
                 height: naturalSize.height,
-                transform: `translate(${imageLeft}px, ${imageTop}px) scale(${displayScale})`
+                transform: `translate(${imageMetrics.left}px, ${imageMetrics.top}px) scale(${imageMetrics.displayScale})`
               }}
               draggable={false}
             />
@@ -285,7 +355,12 @@ export const ScaleCalibrationModal = ({
               max={6}
               step={0.01}
               value={imageScale}
-              onChange={(event) => setImageScale(Number(event.target.value))}
+              onChange={(event) => {
+                const next = { scale: Number(event.target.value), offset: transformRef.current.offset };
+                transformRef.current = next;
+                setImageScale(next.scale);
+                setImageOffset(next.offset);
+              }}
             />
           </label>
           <span className="scale-modal-status">
