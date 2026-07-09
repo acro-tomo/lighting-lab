@@ -93,6 +93,7 @@ const TOUCH_ORBIT_SPEED = {
 
 const TOUCH_PINCH_DOLLY_M_PER_PX = 0.0045;
 const TOUCH_PINCH_DOLLY_MAX_STEP_M = 0.14;
+const TOUCH_PINCH_INTENT_PX = 0.7;
 
 const DESKTOP_ORBIT_SPEED = {
   rotate: 1,
@@ -155,6 +156,7 @@ const TouchPinchDolly = ({
   const { camera, gl } = useThree();
   const pointersRef = useRef(new Map<number, TouchPoint>());
   const pinchDistanceRef = useRef<number | null>(null);
+  const pinchFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
     const canvas = gl.domElement;
@@ -169,15 +171,8 @@ const TouchPinchDolly = ({
       return Math.hypot(a.x - b.x, a.y - b.y);
     };
 
-    const onPointerDown = (event: PointerEvent) => {
-      if (event.pointerType !== "touch") return;
-      pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
-      pinchDistanceRef.current = pinchDistance();
-    };
-
-    const onPointerMove = (event: PointerEvent) => {
-      if (event.pointerType !== "touch" || !pointersRef.current.has(event.pointerId)) return;
-      pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    const processPinch = () => {
+      pinchFrameRef.current = null;
       const nextDistance = pinchDistance();
       const prevDistance = pinchDistanceRef.current;
       pinchDistanceRef.current = nextDistance;
@@ -185,9 +180,6 @@ const TouchPinchDolly = ({
       const controls = controlsRef.current;
       if (!controls) return;
       const distanceDeltaPx = nextDistance - prevDistance;
-      if (Math.abs(distanceDeltaPx) > 0.4) {
-        event.preventDefault();
-      }
 
       forward.copy(camera.getWorldDirection(forward));
       forward.y = 0;
@@ -211,6 +203,31 @@ const TouchPinchDolly = ({
       controls.update();
     };
 
+    const schedulePinch = () => {
+      if (pinchFrameRef.current !== null) return;
+      pinchFrameRef.current = requestAnimationFrame(processPinch);
+    };
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.pointerType !== "touch") return;
+      pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      pinchDistanceRef.current = pinchDistance();
+    };
+
+    const onPointerMove = (event: PointerEvent) => {
+      if (event.pointerType !== "touch" || !pointersRef.current.has(event.pointerId)) return;
+      pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      const nextDistance = pinchDistance();
+      const prevDistance = pinchDistanceRef.current;
+      if (nextDistance === null || prevDistance === null) return;
+      const distanceDeltaPx = nextDistance - prevDistance;
+      if (Math.abs(distanceDeltaPx) > TOUCH_PINCH_INTENT_PX) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+      schedulePinch();
+    };
+
     const onPointerEnd = (event: PointerEvent) => {
       if (event.pointerType !== "touch") return;
       pointersRef.current.delete(event.pointerId);
@@ -218,6 +235,10 @@ const TouchPinchDolly = ({
     };
 
     const clear = () => {
+      if (pinchFrameRef.current !== null) {
+        cancelAnimationFrame(pinchFrameRef.current);
+        pinchFrameRef.current = null;
+      }
       pointersRef.current.clear();
       pinchDistanceRef.current = null;
     };
@@ -233,6 +254,7 @@ const TouchPinchDolly = ({
       canvas.removeEventListener("pointerup", onPointerEnd, { capture: true });
       canvas.removeEventListener("pointercancel", onPointerEnd, { capture: true });
       window.removeEventListener("blur", clear);
+      clear();
     };
   }, [camera, controlsRef, gl.domElement]);
 
