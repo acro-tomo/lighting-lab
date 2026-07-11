@@ -1,6 +1,6 @@
 # Zenn記事ドラフト
 
-技術軸ローンチ用（marketing-plan.md 2章）。公開前に [要確認] 箇所を実コードと照合し、スクリーンショットを差し込む。
+技術軸ローンチ用（marketing-plan.md 2章）。技術内容は実コード（rendering/pathTracer.ts、utils/lighting.ts、docs/lighting-calibration-report.md）と照合済み。公開前の残作業はスクリーンショット差し込みのみ。
 
 ---
 
@@ -34,18 +34,37 @@ topics: [threejs, react, webgl, typescript, 個人開発]
 
 ## 2. BVH構築をworkerに逃がす
 
-three-gpu-pathtracerはシーンのBVH（three-mesh-bvh）構築が重く、メインスレッドでやるとUIが止まります。BVH生成をWeb Workerに逃がし、進捗表示と停止ボタンを付けました。[要確認: worker分割の実装詳細・転送方法を rendering/pathTracer.ts から補記]
+three-gpu-pathtracerはレンダリング前にシーンのBVH（three-mesh-bvh）構築が必要で、メインスレッドでやるとその間UIが完全に止まります。ここは自前でworkerを書く必要はなく、three-mesh-bvhが提供する `GenerateMeshBVHWorker` を `WebGLPathTracer.setBVHWorker()` に渡すだけでBVH構築がWeb Worker側に逃げます。
+
+```ts
+import { GenerateMeshBVHWorker } from "three-mesh-bvh/src/workers/index.js";
+
+const pathTracer = new WebGLPathTracer(renderer);
+const bvhWorker = new GenerateMeshBVHWorker();
+pathTracer.setBVHWorker(bvhWorker);
+```
+
+構築中は進捗コールバックで「BVH生成中」の表示を出し、その後のサンプリングは `renderSample()` を1サンプルずつ回して毎回 `requestAnimationFrame` に返す（進捗バー更新と `AbortSignal` チェックをここに挟む）ことで、長時間レンダー中でも停止ボタンが効くようにしています。高負荷モードではタイル分割（`pathTracer.tiles`）で1フレームあたりのGPU占有も抑えます。
 
 高解像度PNG書き出し用の最終レンダーは、編集シーンとは別に、プロジェクトデータから軽量なレンダー専用シーンを再構築します。ビューポートの常駐パストレ（同一シーン共有）とは役割を分けています。
 
 ## 3. ルーメン・色温度をThree.jsの光に落とす
 
-ユーザーが入力するのは照明器具のカタログ値（光束lm、色温度K、ビーム角）です。これをThree.jsのlight intensityへ変換します。
+ユーザーが入力するのは照明器具のカタログ値（光束lm、色温度K、ビーム角）です。これをThree.jsの光へ変換しますが、**ラスター用とパストレ用で変換式を分けています**。
 
-- 色温度→RGB: 黒体放射の近似式でKelvinをhexに変換（`colorTemperatureToHex`、1000〜12000Kでクランプ）
-- 光束→強度: 調光(%)を掛けたlmを物理ベースのintensityへ（`lumensToThreeIntensity` / パストレ側は `lumensToPhysicalPower`）
+- 色温度→RGB: 黒体放射の近似式（Tanner Helland系）でKelvinをRGBに変換。1000〜12000Kでクランプ
+- パストレ側: 調光(%)を掛けたlmを**そのまま `light.power` に渡す**（物理単位）。AmbientLight/HemisphereLightは一切足さず、Multiple Importance Samplingを明示的に有効化
+- ラスター側: 同じlmに器具タイプ別の経験係数（ダウンライト0.0062、ペンダント/テープ0.0048、ブラケット0.0032）を掛けて表示用intensityへ
 
-ラスター表示とパストレ表示で「同じ設定が同じ明るさに見える」よう突き合わせるキャリブレーションが必要で、これは実測スクリーンショット比較で詰めました。[要確認: docs/lighting-calibration-report.md から代表例を1つ引用]
+この分離に落ち着くまでに一度「パストレすると画面が真っ黒」という事故を踏んでいて、原因調査の結論が面白かったので共有します。犯人は3つありました。
+
+1. **ジオメトリ**: 部屋の外殻をboxで作っていたため、光を受ける内側の面が曖昧で、不要な暗い側面が生じていた → 法線を室内に向けた片面planeで部屋を組み直し
+2. **光の単位**: lmを一度「表示用係数」で変換した値を、パストレ側でさらに乗算していた（二重変換）→ パストレは素のlm（`power`）に統一
+3. **シーン分離**: リアルタイムプレビューには補助光が入っていたので、プレビューが明るくてもパストレの正しさの証明になっていなかった
+
+露出やカラースペース（ACES/SRGB）を疑いがちですが、実測ではそこは主因ではありませんでした。教訓: 「物理レンダラーに渡す値は物理単位のまま渡す」。
+
+細かい例をもう1つ。壁付ブラケットの点光源は壁に密着させると `decay=2` の逆二乗で至近の壁が白飛びします。照射方向へ数cm室内側にオフセットする補正を入れていますが、この式をラスターとパストレで共有することでWYSIWYGを守っています。
 
 ## 4. PDF間取り図の取り込み
 
