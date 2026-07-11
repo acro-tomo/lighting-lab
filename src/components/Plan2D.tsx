@@ -91,6 +91,8 @@ const TOUCH_TAP_MAX_MOVE_PX = 10;
 const TOUCH_WALL_DRAW_START_PX = 12;
 const WALL_VERTEX_SNAP_PX = 30;
 const MIN_WALL_SEGMENT_M = 0.03;
+// 実機ジェスチャー診断用HUD。?gdebug=1 で有効（一時的なデバッグ用）。
+const GESTURE_DEBUG = new URLSearchParams(window.location.search).has("gdebug");
 
 // 壁に付く追加物（窓カタログ "window:<id>" / 扉 "door" / 壁付スポット "wallspot"）の判定。
 const isWallOpening = (kind: string | null): boolean =>
@@ -277,6 +279,29 @@ export const Plan2D = ({
   // view=開始時点の確定view、rect=開始時点のレイアウト矩形（CSS transformの影響を受けない基準）。
   const gestureBaseRef = useRef<{ view: ViewState; rect: DOMRect } | null>(null);
   const [dragging, setDragging] = useState<DragState>(null);
+  // 実機ジェスチャー診断用。?gdebug=1 で有効。カウンタはrefに集約し、move以外のイベントでのみ再描画する。
+  const gestureDebugRef = useRef({ down: 0, up: 0, cancel: 0, leave: 0, lostcap: 0, last: "-", killer: "-" });
+  const [, setGestureDebugTick] = useState(0);
+  const noteGestureDebugEvent = (type: string) => {
+    if (!GESTURE_DEBUG) return;
+    const counts = gestureDebugRef.current;
+    if (type === "pointerdown") counts.down += 1;
+    else if (type === "pointerup") counts.up += 1;
+    else if (type === "pointercancel") counts.cancel += 1;
+    else if (type === "pointerleave") counts.leave += 1;
+    else if (type === "lostpointercapture") counts.lostcap += 1;
+    counts.last = type;
+    if (type !== "pointermove") setGestureDebugTick((tick) => tick + 1);
+  };
+  useEffect(() => {
+    if (!GESTURE_DEBUG) return;
+    const svg = svgRef.current;
+    if (!svg) return;
+    const onLostCapture = () => noteGestureDebugEvent("lostpointercapture");
+    svg.addEventListener("lostpointercapture", onLostCapture);
+    return () => svg.removeEventListener("lostpointercapture", onLostCapture);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // ライトのドラッグ整列スナップが効いた軸のワールド座標。x/z それぞれ吸着先(m)。
   // null のとき非表示。worldToSvg を通してガイド線を描く。
   const [snapGuides, setSnapGuides] = useState<{ x: number | null; z: number | null }>({ x: null, z: null });
@@ -957,6 +982,7 @@ export const Plan2D = ({
   };
 
   const handleCanvasPointerDown = (event: React.PointerEvent<SVGSVGElement>) => {
+    if (GESTURE_DEBUG) noteGestureDebugEvent(event.type);
     if (event.pointerType === "touch") {
       event.currentTarget.setPointerCapture(event.pointerId);
       touchPointersRef.current.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
@@ -1024,6 +1050,7 @@ export const Plan2D = ({
   };
 
   const onPointerMove = (event: React.PointerEvent<SVGSVGElement>) => {
+    if (GESTURE_DEBUG) gestureDebugRef.current.last = event.type;
     if (event.pointerType === "touch" && touchPointersRef.current.has(event.pointerId)) {
       touchPointersRef.current.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
       const touchTap = touchTapRef.current;
@@ -1275,6 +1302,10 @@ export const Plan2D = ({
   };
 
   const handleCanvasPointerEnd = (event: React.PointerEvent<SVGSVGElement>) => {
+    if (GESTURE_DEBUG) {
+      gestureDebugRef.current.killer = `${event.type} #${event.pointerId}`;
+      noteGestureDebugEvent(event.type);
+    }
     const touchTap = touchTapRef.current;
     const touchWallTrace = touchWallTraceRef.current;
     const wasPinching = !!pinchRef.current || touchPointersRef.current.size >= 2;
@@ -1554,6 +1585,32 @@ export const Plan2D = ({
       )}
 
       <div className="plan-canvas-wrap">
+        {GESTURE_DEBUG && (
+          // 実機ジェスチャー診断用HUD。?gdebug=1 で有効。
+          <div
+            style={{
+              position: "absolute",
+              top: 4,
+              left: 4,
+              zIndex: 50,
+              pointerEvents: "none",
+              background: "rgba(0,0,0,0.75)",
+              color: "#fff",
+              font: "11px/1.5 ui-monospace, monospace",
+              padding: 6,
+              borderRadius: 4,
+              whiteSpace: "pre"
+            }}
+          >
+            {[
+              `ptrs: ${touchPointersRef.current.size}`,
+              `pinch: ${pinchRef.current ? "on" : "-"}  gest: ${gestureBaseRef.current ? "on" : "-"}  drag: ${dragging?.kind ?? "-"}`,
+              `zoom: ${viewportRef.current.zoom.toFixed(2)}  pan: ${viewportRef.current.pan.x.toFixed(1)},${viewportRef.current.pan.y.toFixed(1)}`,
+              `ev: d${gestureDebugRef.current.down} u${gestureDebugRef.current.up} c${gestureDebugRef.current.cancel} l${gestureDebugRef.current.leave} lc${gestureDebugRef.current.lostcap}  last:${gestureDebugRef.current.last}`,
+              `killer: ${gestureDebugRef.current.killer}`
+            ].join("\n")}
+          </div>
+        )}
         <svg
           ref={svgRef}
           className="plan-canvas"
