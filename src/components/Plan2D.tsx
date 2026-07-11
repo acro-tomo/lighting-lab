@@ -777,6 +777,44 @@ export const Plan2D = ({
     if (touchPointersRef.current.size < 2) pinchRef.current = null;
   };
 
+  // iOS Safariはジェスチャー中のCSS transformで<svg>のpointer captureを失うことがあり、
+  // svg外で指を離すとup/cancelがsvgへ届かずタッチ状態がスタックする。
+  // windowのcaptureフェーズで拾ってクリーンアップする（captureが生きていれば通常経路に任せる）。
+  const windowPointerEndRef = useRef<(event: PointerEvent) => void>(() => {});
+  useEffect(() => {
+    windowPointerEndRef.current = (event: PointerEvent) => {
+      if (event.pointerType !== "touch" || !touchPointersRef.current.has(event.pointerId)) return;
+      if (svgRef.current?.hasPointerCapture(event.pointerId)) return;
+      if (GESTURE_DEBUG) {
+        gestureDebugRef.current.killer = `window:${event.type} #${event.pointerId}`;
+        noteGestureDebugEvent(event.type);
+      }
+      const wasPinching = !!pinchRef.current || touchPointersRef.current.size >= 2;
+      const shouldCommitViewport = dragging?.kind === "pan" || wasPinching;
+      clearTouchGesture(event.pointerId);
+      if (touchTapRef.current?.pointerId === event.pointerId) touchTapRef.current = null;
+      if (touchWallTraceRef.current?.pointerId === event.pointerId) {
+        touchWallTraceRef.current = null;
+        setWallCursor(null);
+      }
+      if (touchPointersRef.current.size === 0) {
+        setDragging(null);
+        setResizing(null);
+        setSnapGuides({ x: null, z: null });
+        if (shouldCommitViewport) commitViewport();
+      }
+    };
+  });
+  useEffect(() => {
+    const onWindowPointerEnd = (event: PointerEvent) => windowPointerEndRef.current(event);
+    window.addEventListener("pointerup", onWindowPointerEnd, true);
+    window.addEventListener("pointercancel", onWindowPointerEnd, true);
+    return () => {
+      window.removeEventListener("pointerup", onWindowPointerEnd, true);
+      window.removeEventListener("pointercancel", onWindowPointerEnd, true);
+    };
+  }, []);
+
   const handleObjectPointerDownCapture = (event: React.PointerEvent<SVGGElement>) => {
     if (event.pointerType !== "touch") return;
     touchPointersRef.current.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
@@ -1306,6 +1344,9 @@ export const Plan2D = ({
       gestureDebugRef.current.killer = `${event.type} #${event.pointerId}`;
       noteGestureDebugEvent(event.type);
     }
+    // iOS SafariはCSS transformで<svg>が指の下から動くと偽のpointerleaveを発火する
+    // （captureも失われる）。タッチのジェスチャー終了はup/cancel（とwindowフォールバック）に任せる。
+    if (event.type === "pointerleave" && event.pointerType === "touch") return;
     const touchTap = touchTapRef.current;
     const touchWallTrace = touchWallTraceRef.current;
     const wasPinching = !!pinchRef.current || touchPointersRef.current.size >= 2;
