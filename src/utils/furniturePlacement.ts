@@ -30,6 +30,13 @@ type WallProjection = {
   tangentOverflowM: number;
 };
 
+type WallSnap = {
+  wall: WallSegment;
+  projection: WallProjection;
+  inward: Vec2M;
+  distanceError: number;
+};
+
 const projectOntoWall = (point: Vec2M, wall: WallSegment): WallProjection | null => {
   const dx = wall.end.x - wall.start.x;
   const dz = wall.end.z - wall.start.z;
@@ -82,6 +89,62 @@ const halfExtentAlong = (item: FurnitureItem, axis: Vec2M, rotationYDeg = item.r
   );
 };
 
+const wallTangent = (wall: WallSegment, length: number): Vec2M => ({
+  x: (wall.end.x - wall.start.x) / length,
+  z: (wall.end.z - wall.start.z) / length
+});
+
+const wallTargetDistance = (item: FurnitureItem, wall: WallSegment) =>
+  wall.thicknessM * 0.5 + item.size.z * 0.5 + FURNITURE_WALL_CLEARANCE_M;
+
+const wallSignedDistance = (position: Vec3M, projection: WallProjection, inward: Vec2M) =>
+  (position.x - projection.x) * inward.x + (position.z - projection.z) * inward.z;
+
+const findWallSnap = (
+  item: FurnitureItem,
+  position: Vec3M,
+  walls: WallSegment[],
+  center: Vec2M,
+  rotationYDeg: number
+): WallSnap | null => {
+  let snap: WallSnap | null = null;
+
+  for (const wall of walls) {
+    const projection = projectOntoWall(position, wall);
+    if (!projection) continue;
+    const inward = wallInwardNormal(wall, center);
+    const tangent = wallTangent(wall, projection.length);
+    const tangentExtent = item.size.x * 0.5;
+    if (projection.tangentOverflowM > tangentExtent + FURNITURE_WALL_SNAP_M) continue;
+    const signedDistance = wallSignedDistance(position, projection, inward);
+    const targetDistance = wallTargetDistance(item, wall);
+    const distanceError = Math.abs(signedDistance - targetDistance);
+    if (distanceError > FURNITURE_WALL_SNAP_M) continue;
+    const tangentScore = Math.max(0, projection.tangentOverflowM - halfExtentAlong(item, tangent, rotationYDeg));
+    const score = distanceError + tangentScore;
+    if (!snap || score < snap.distanceError) snap = { wall, projection, inward, distanceError: score };
+  }
+
+  return snap;
+};
+
+const keepCurrentWallSnap = (
+  item: FurnitureItem,
+  position: Vec3M,
+  wall: WallSegment,
+  center: Vec2M
+): WallSnap | null => {
+  const projection = projectOntoWall(position, wall);
+  if (!projection) return null;
+  const tangent = wallTangent(wall, projection.length);
+  if (projection.tangentOverflowM > halfExtentAlong(item, tangent) + FURNITURE_WALL_SNAP_M) return null;
+  const inward = wallInwardNormal(wall, center);
+  const signedDistance = wallSignedDistance(position, projection, inward);
+  const targetDistance = wallTargetDistance(item, wall);
+  if (signedDistance > targetDistance + FURNITURE_WALL_SNAP_M) return null;
+  return { wall, projection, inward, distanceError: Math.abs(signedDistance - targetDistance) };
+};
+
 const constrainAgainstWalls = (
   item: FurnitureItem,
   position: Vec3M,
@@ -130,33 +193,10 @@ export const constrainFurniturePlacement = (
   let nextRotationYDeg = item.rotationYDeg;
 
   if (wallAttachableTypes.has(item.type)) {
-    let snap:
-      | {
-          wall: WallSegment;
-          projection: WallProjection;
-          inward: Vec2M;
-          distanceError: number;
-        }
-      | null = null;
-
-    for (const wall of walls) {
-      const projection = projectOntoWall(position, wall);
-      if (!projection) continue;
-      const inward = wallInwardNormal(wall, center);
-      const tangent = {
-        x: (wall.end.x - wall.start.x) / projection.length,
-        z: (wall.end.z - wall.start.z) / projection.length
-      };
-      const tangentExtent = item.size.x * 0.5;
-      if (projection.tangentOverflowM > tangentExtent + FURNITURE_WALL_SNAP_M) continue;
-      const signedDistance = (position.x - projection.x) * inward.x + (position.z - projection.z) * inward.z;
-      const targetDistance = wall.thicknessM * 0.5 + item.size.z * 0.5 + FURNITURE_WALL_CLEARANCE_M;
-      const distanceError = Math.abs(signedDistance - targetDistance);
-      if (distanceError > FURNITURE_WALL_SNAP_M) continue;
-      const tangentScore = Math.max(0, projection.tangentOverflowM - halfExtentAlong(item, tangent, nextRotationYDeg));
-      const score = distanceError + tangentScore;
-      if (!snap || score < snap.distanceError) snap = { wall, projection, inward, distanceError: score };
-    }
+    const currentSnap = findWallSnap(item, item.position, walls, center, item.rotationYDeg);
+    const snap =
+      (currentSnap && keepCurrentWallSnap(item, position, currentSnap.wall, center)) ??
+      findWallSnap(item, position, walls, center, nextRotationYDeg);
 
     if (snap) {
       const ratioPadding = Math.min(0.5, item.size.x * 0.5 / snap.projection.length);
@@ -166,7 +206,7 @@ export const constrainFurniturePlacement = (
           : snap.projection.ratio;
       const x = snap.wall.start.x + (snap.wall.end.x - snap.wall.start.x) * ratio;
       const z = snap.wall.start.z + (snap.wall.end.z - snap.wall.start.z) * ratio;
-      const targetDistance = snap.wall.thicknessM * 0.5 + item.size.z * 0.5 + FURNITURE_WALL_CLEARANCE_M;
+      const targetDistance = wallTargetDistance(item, snap.wall);
       nextPosition = {
         ...nextPosition,
         x: x + snap.inward.x * targetDistance,
