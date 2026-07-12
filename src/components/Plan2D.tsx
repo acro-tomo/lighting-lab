@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Project, Selection, WallSegment } from "../types";
 import { useProjectStore } from "../store/projectStore";
 import { DEFAULT_DAYLIGHT } from "../utils/sun";
@@ -54,6 +54,7 @@ export const Plan2D = ({
   // 壁トレースのタッチ状態は useWallTrace（後始末）と usePlanPointerGestures（判定）の
   // 両方が触るため、本体で ref を作って両フックへ渡す。
   const touchWallTraceRef = useRef<TouchWallTraceState>(null);
+  const backgroundImageRef = useRef<HTMLImageElement | null>(null);
   const [bgNaturalSize, setBgNaturalSize] = useState<{ width: number; height: number } | null>(null);
   // ダブルクリックで開始する辺ドラッグリサイズ。resizeTarget=ハンドル表示中のオブジェクト。
   const [resizeTarget, setResizeTarget] = useState<{ kind: ResizeKind; id: string } | null>(null);
@@ -138,6 +139,7 @@ export const Plan2D = ({
   const {
     svgRef,
     viewportLayerRef,
+    backgroundLayerRef,
     viewportRef,
     gestureBaseRef,
     zoom,
@@ -156,6 +158,7 @@ export const Plan2D = ({
     svgPointToWorld,
     clientToSvgPoint,
     svgToWorld,
+    refreshViewport,
     zoomAtCenter
   } = usePlanViewport({ contentBox, planSize });
 
@@ -183,6 +186,19 @@ export const Plan2D = ({
     worldToSvg,
     setBackgroundPlan
   });
+
+  useLayoutEffect(() => {
+    const image = backgroundImageRef.current;
+    backgroundLayerRef.current =
+      image && bgRender
+        ? {
+            element: image,
+            ...bgRender,
+            opacity: backgroundAlignMode ? 0.62 : 0.42
+          }
+        : null;
+    refreshViewport();
+  }, [backgroundAlignMode, backgroundUrl, bgRender]);
 
   const {
     wallDraft,
@@ -468,6 +484,17 @@ export const Plan2D = ({
             dragging={dragging}
           />
         )}
+        {activeBackground && bgRender && (
+          <img
+            ref={backgroundImageRef}
+            src={activeBackground.dataUrl}
+            alt=""
+            aria-hidden="true"
+            className="plan-background-image"
+            style={{ width: bgRender.width, height: bgRender.height }}
+            draggable={false}
+          />
+        )}
         <svg
           ref={svgRef}
           className="plan-canvas"
@@ -497,7 +524,7 @@ export const Plan2D = ({
             y={baseViewBox.y}
             width={baseViewBox.width}
             height={baseViewBox.height}
-            fill="#141414"
+            fill="transparent"
           />
           <g ref={viewportLayerRef} transform={viewportTransformFor({ zoom, pan })}>
           <rect
@@ -505,19 +532,8 @@ export const Plan2D = ({
             y={-VIEW_PAD}
             width={planSize.width + VIEW_PAD * 2}
             height={planSize.height + VIEW_PAD * 2}
-            fill="#141414"
+            fill="transparent"
           />
-          {activeBackground && bgRender && (
-            <image
-              href={activeBackground.dataUrl}
-              x="0"
-              y="0"
-              width={bgRender.width}
-              height={bgRender.height}
-              transform={`translate(${bgRender.tx} ${bgRender.ty}) scale(${bgRender.scale})`}
-              opacity={backgroundAlignMode ? "0.62" : "0.42"}
-            />
-          )}
           <rect
             x={-VIEW_PAD}
             y={-VIEW_PAD}

@@ -3,6 +3,14 @@ import type { FloorPlanBackground, FurnitureItem, Project, Vec2M, WallSegment } 
 import { MARGIN_M, VIEW_PAD } from "./constants";
 import type { ContentBox, PlanSize, ViewState } from "./types";
 
+type BackgroundLayer = {
+  element: HTMLImageElement;
+  tx: number;
+  ty: number;
+  scale: number;
+  opacity: number;
+};
+
 // コンテンツ全体(壁/room矩形/窓が乗る壁/家具/void/天井・床ゾーン/背景画像)を
 // 内包する world(m) バウンディングボックス。これを基準に planSize/座標系を作る。
 // room 矩形より壁が外に広がっていても 100%(=fit) で全体が映るようにするのが目的。
@@ -99,17 +107,15 @@ export const usePlanBounds = ({
   return { contentBox, planSize };
 };
 
-// SVGビューポート(ズーム/パン)と座標変換。パン/ピンチ中に<g>のtransformを毎フレーム
-// 更新するとSVG全体（背景画像+全ベクター）がCPUで再ラスタライズされ、モバイルで
-// カクつく。ジェスチャー中はGPU合成されるCSS transformを<svg>要素へ適用して代用し、
-// 指を離した時だけ<g>とstateへ確定する。
+// SVGビューポート(ズーム/パン)と座標変換。背景画像はSVG外のHTMLレイヤーへ置き、
+// ベクター編集レイヤーと同じビューポート変換を適用する。
 export const usePlanViewport = ({ contentBox, planSize }: { contentBox: ContentBox; planSize: PlanSize }) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const viewportLayerRef = useRef<SVGGElement | null>(null);
+  const backgroundLayerRef = useRef<BackgroundLayer | null>(null);
   const viewportRef = useRef<ViewState>({ zoom: 1, pan: { x: 0, y: 0 } });
   const viewportFrameRef = useRef<number | null>(null);
   const pendingViewportCommitRef = useRef(false);
-  // view=開始時点の確定view、rect=開始時点のレイアウト矩形（CSS transformの影響を受けない基準）。
   const gestureBaseRef = useRef<{ view: ViewState; rect: DOMRect } | null>(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -149,26 +155,21 @@ export const usePlanViewport = ({ contentBox, planSize }: { contentBox: ContentB
     };
   };
 
-  const applySvgViewport = (view: ViewState) => {
-    const gesture = gestureBaseRef.current;
-    const svg = svgRef.current;
-    if (gesture && svg) {
-      // ジェスチャー開始時の描画(m0)から現在view(m1)への差分をスクリーン座標の
-      // translate+scaleで表す（transform-originは要素左上）。screen1 = k*screen0 + t。
-      const m0 = screenMappingFor(gesture.rect, gesture.view);
-      const m1 = screenMappingFor(gesture.rect, view);
-      const k = m1.scale / m0.scale;
-      const tx = (1 - k) * m1.offsetX + m1.scale * (m0.box.x - m1.box.x);
-      const ty = (1 - k) * m1.offsetY + m1.scale * (m0.box.y - m1.box.y);
-      // transform-box を border-box に固定する。既定は WebKit だと outer <svg> で view-box に
-      // なり、transform-origin:0 0 が viewBox 原点（レターボックスでずれた位置）を指すため
-      // ズームが中央寄りにずれる。border-box なら全ブラウザで要素の左上基準に揃う。
-      svg.style.transformBox = "border-box";
-      svg.style.transformOrigin = "0 0";
-      svg.style.transform = `translate(${tx}px, ${ty}px) scale(${k})`;
-      return;
-    }
+  const applyPlanViewport = (view: ViewState) => {
     viewportLayerRef.current?.setAttribute("transform", viewportTransformFor(view));
+    const svg = svgRef.current;
+    const background = backgroundLayerRef.current;
+    if (!svg || !background) return;
+    const rect = gestureBaseRef.current?.rect ?? svg.getBoundingClientRect();
+    const mapping = screenMappingFor(rect, view);
+    const x = mapping.offsetX + (background.tx - mapping.box.x) * mapping.scale;
+    const y = mapping.offsetY + (background.ty - mapping.box.y) * mapping.scale;
+    background.element.style.transform = `translate(${x}px, ${y}px) scale(${background.scale * mapping.scale})`;
+    background.element.style.opacity = String(background.opacity);
+  };
+
+  const refreshViewport = () => {
+    applyPlanViewport(viewportRef.current);
   };
 
   const beginViewportGesture = () => {
@@ -179,9 +180,6 @@ export const usePlanViewport = ({ contentBox, planSize }: { contentBox: ContentB
     };
   };
 
-  // ジェスチャー中はCSS transformがかかっており、WebKitのgetScreenCTMは
-  // <svg>要素自身のCSS transformを反映しないことがあるため、CTMに頼らず
-  // 開始時rectと現在viewからクライアント座標→ユーザー座標を計算する。
   const gestureUserPoint = (clientX: number, clientY: number) => {
     const rect = gestureBaseRef.current?.rect;
     if (!rect) return clientToSvgPoint(clientX, clientY);
@@ -194,7 +192,7 @@ export const usePlanViewport = ({ contentBox, planSize }: { contentBox: ContentB
 
   useEffect(() => {
     viewportRef.current = { zoom, pan };
-    applySvgViewport(viewportRef.current);
+    applyPlanViewport(viewportRef.current);
   }, [zoom, pan, planSize.width, planSize.height]);
 
   useEffect(() => () => {
@@ -207,11 +205,9 @@ export const usePlanViewport = ({ contentBox, planSize }: { contentBox: ContentB
       viewportFrameRef.current = null;
     }
     pendingViewportCommitRef.current = false;
-    // ジェスチャー終了: CSS transformを外し、<g>のtransformとstateへ確定する。
     gestureBaseRef.current = null;
-    if (svgRef.current) svgRef.current.style.transform = "";
     const next = viewportRef.current;
-    applySvgViewport(next);
+    applyPlanViewport(next);
     setZoom(next.zoom);
     setPan(next.pan);
   };
@@ -225,12 +221,8 @@ export const usePlanViewport = ({ contentBox, planSize }: { contentBox: ContentB
       const next = viewportRef.current;
       const shouldCommit = pendingViewportCommitRef.current;
       pendingViewportCommitRef.current = false;
-      if (shouldCommit) {
-        // state確定時はCSS transformを残すと<g>側の再レンダーと二重適用になるため外す。
-        gestureBaseRef.current = null;
-        if (svgRef.current) svgRef.current.style.transform = "";
-      }
-      applySvgViewport(next);
+      if (shouldCommit) gestureBaseRef.current = null;
+      applyPlanViewport(next);
       if (shouldCommit) {
         setZoom(next.zoom);
         setPan(next.pan);
@@ -324,6 +316,7 @@ export const usePlanViewport = ({ contentBox, planSize }: { contentBox: ContentB
   return {
     svgRef,
     viewportLayerRef,
+    backgroundLayerRef,
     viewportRef,
     gestureBaseRef,
     zoom,
@@ -342,6 +335,7 @@ export const usePlanViewport = ({ contentBox, planSize }: { contentBox: ContentB
     svgPointToWorld,
     clientToSvgPoint,
     svgToWorld,
+    refreshViewport,
     zoomAtUserPoint,
     zoomAtCenter
   };
