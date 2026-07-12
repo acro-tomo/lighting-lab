@@ -62,7 +62,7 @@ if (shouldRender || shouldPeekRender) {
   await page.getByRole("button", { name: "レンダリング開始" }).click();
   if (shouldPeekRender) {
     await page.waitForTimeout(8000);
-    console.log(`renderStatus=${await page.locator(".render-status-wide").innerText()}`);
+    console.log(`renderStatus=${await page.locator(".output-progress").innerText()}`);
   } else {
     await page.waitForFunction(
       () => document.body.textContent?.includes("Path traced") || document.body.textContent?.includes("完了"),
