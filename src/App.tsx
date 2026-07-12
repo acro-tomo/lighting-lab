@@ -1,106 +1,25 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { HeaderBar } from "./components/HeaderBar";
 import { Inspector } from "./components/Inspector";
 import { Plan2D } from "./components/Plan2D";
-import { Scene3D, type LiveTraceStatus, type ViewMode } from "./components/Scene3D";
-import { renderPathTracedImage, sampleCountByMode, type PathTraceMode, type RenderDebugMode } from "./rendering/pathTracer";
-import type { RenderContext } from "./rendering/renderContext";
+import { Scene3D } from "./components/Scene3D";
+import { type PathTraceMode, type RenderDebugMode } from "./rendering/pathTracer";
 import { projectSchema } from "./schema/projectSchema";
-import { loadProjectFromIndexedDb, saveProjectToIndexedDb } from "./storage/projectStorage";
 import { useProjectStore } from "./store/projectStore";
 import type { CompareShot, FloorPlanBackground, Project, Selection } from "./types";
-import { floorPlanFileToDataUrl, rasterizeSvgBackground } from "./utils/floorplanImport";
+import { floorPlanFileToDataUrl } from "./utils/floorplanImport";
 import { DEFAULT_DAYLIGHT } from "./utils/sun";
-import { cloneProject } from "./utils/units";
-import { newCeilingZone, newDoor, newDownlight, newFixtureFromModel, newFloorZone, newFurnitureFromPreset, newLineLight, newPendant, newStair, newVoid, newWallSpot, newWindow, newWindowFromPreset } from "./data/objectFactory";
-import { getFurniturePreset } from "./data/furnitureCatalog";
-import { getWindowPreset } from "./data/windowCatalog";
-import { fixtureModelFromAddKind, isLightAddKind, isWallLightAddKind } from "./data/fixtureAddKinds";
-import { EditToolbar, type EditMode } from "./components/EditToolbar";
+import { EditToolbar } from "./components/EditToolbar";
 import { ShortcutGuide } from "./components/ShortcutGuide";
 import { IntroGuide } from "./components/IntroGuide";
 import { FeedbackForm } from "./components/FeedbackForm";
-import { APP_NAME, getAppDisplayUrl } from "./config/appMeta";
-import { fixtureModelMap } from "./data/fixtureCatalog";
-import { ceilingMountHeightAt } from "./utils/ceiling";
-import { wallMountedLightPlacementOnSurface } from "./utils/fixtureMounting";
-
-const withWatermark = (dataUrl: string): Promise<string> =>
-  new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      const w = img.naturalWidth;
-      const h = img.naturalHeight;
-      const canvas = document.createElement("canvas");
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) { resolve(dataUrl); return; }
-      ctx.drawImage(img, 0, 0);
-      const fontSize = Math.max(12, Math.round(h * 0.022));
-      ctx.font = `${fontSize}px Inter, ui-sans-serif, system-ui, sans-serif`;
-      ctx.globalAlpha = 0.55;
-      ctx.shadowColor = "rgba(0,0,0,0.7)";
-      ctx.shadowBlur = 4;
-      ctx.fillStyle = "#ffffff";
-      const text = `${APP_NAME} · ${getAppDisplayUrl()}`;
-      const margin = Math.round(fontSize * 0.9);
-      ctx.fillText(text, w - ctx.measureText(text).width - margin, h - margin);
-      resolve(canvas.toDataURL("image/png"));
-    };
-    img.onerror = () => resolve(dataUrl);
-    img.src = dataUrl;
-  });
-
-// 小数hourをHH:MM文字列に変換する（例: 14.5 → "14:30"）。
-const formatHour = (hour: number): string => {
-  const h = Math.floor(hour);
-  const m = Math.round((hour - h) * 60);
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-};
-
-const readTextFile = (file: File) =>
-  new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(reader.error);
-    reader.readAsText(file);
-  });
-
-const downloadText = (fileName: string, text: string) => {
-  const blob = new Blob([text], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = fileName;
-  anchor.click();
-  URL.revokeObjectURL(url);
-};
-
-const downloadDataUrl = (fileName: string, dataUrl: string) => {
-  const anchor = document.createElement("a");
-  anchor.href = dataUrl;
-  anchor.download = fileName;
-  anchor.click();
-};
-
-// 旧JSON・自動保存に残るSVG背景をPNGへ変換する（SVGはモバイルのピンチ操作を殺す）。
-const migrateSvgBackgrounds = async <T extends Project>(project: T): Promise<T> => {
-  const next = { ...project };
-  if (next.backgroundPlan) next.backgroundPlan = await rasterizeSvgBackground(next.backgroundPlan);
-  if (next.backgroundPlan2) next.backgroundPlan2 = await rasterizeSvgBackground(next.backgroundPlan2);
-  return next;
-};
-
-type RenderProgressState = {
-  status: "idle" | "running" | "complete" | "stopped" | "error";
-  samples: number;
-  targetSamples: number;
-  elapsedMs: number;
-  message: string;
-};
-
-type MobileView = "plan" | "scene";
+import { isWallLightAddKind } from "./data/fixtureAddKinds";
+import { downloadText, formatHour, migrateSvgBackgrounds, readTextFile } from "./app/appUtils";
+import { useProjectPersistence } from "./app/hooks/useProjectPersistence";
+import { useKeyboardShortcuts } from "./app/hooks/useKeyboardShortcuts";
+import { useEditModeControls } from "./app/hooks/useEditModeControls";
+import { useAddObjectHandlers } from "./app/hooks/useAddObjectHandlers";
+import { useRenderPipeline } from "./app/hooks/useRenderPipeline";
 
 export const App = () => {
   const project = useProjectStore((state) => state.project);
@@ -126,242 +45,84 @@ export const App = () => {
   const setDaylight = useProjectStore((state) => state.setDaylight);
   const setCeilingHeight = useProjectStore((state) => state.setCeilingHeight);
   const setActiveFloor = useProjectStore((state) => state.setActiveFloor);
-  const [canvasElement, setCanvasElement] = useState<HTMLCanvasElement | null>(null);
-  const [renderContext, setRenderContext] = useState<RenderContext | null>(null);
   const [notice, setNotice] = useState("IndexedDBに自動保存します。");
-  const [compareOpen, setCompareOpen] = useState(false);
-  const [pathTraceMode, setPathTraceMode] = useState<PathTraceMode>("standard");
-  const [viewMode, setViewMode] = useState<ViewMode>("raster");
-  const [mode, setMode] = useState<EditMode>("select");
-  const [planEditMode, setPlanEditMode] = useState(false);
-  const [pendingAdd, setPendingAdd] = useState<string | null>(null);
-  const [focusViewport, setFocusViewport] = useState(false);
-  const [focusPlan, setFocusPlan] = useState(false);
   const [outputOpen, setOutputOpen] = useState(false);
   const [daylightOpen, setDaylightOpen] = useState(false);
-  const [mobileView, setMobileView] = useState<MobileView>("plan");
-  const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
-  const [liveTrace, setLiveTrace] = useState<LiveTraceStatus>({ phase: "off", samples: 0 });
-  const [debugMode, setDebugMode] = useState<RenderDebugMode>("beauty");
-  const [lastPathTracedImage, setLastPathTracedImage] = useState<string | null>(null);
-  const [renderProgress, setRenderProgress] = useState<RenderProgressState>({
-    status: "idle",
-    samples: 0,
-    targetSamples: sampleCountByMode.standard,
-    elapsedMs: 0,
-    message: "待機中"
-  });
   const [showIntro, setShowIntro] = useState(false);
-  const loadedOnce = useRef(false);
-  const renderAbortRef = useRef<AbortController | null>(null);
-  const renderingRef = useRef(false);
 
-  useEffect(() => {
-    if (loadedOnce.current) return;
-    loadedOnce.current = true;
+  useProjectPersistence(project, setProject, setCompareShots, setNotice);
 
-    // 共有リンク（?demo=1）からの流入では共有デモの間取りを開く。
-    // 読込後はクエリを消し、リロードでの再上書きと透かしURLの汚れを防ぐ。
-    const url = new URL(window.location.href);
-    const demoRequested = url.searchParams.has("demo");
-    if (demoRequested) {
-      url.searchParams.delete("demo");
-      window.history.replaceState(null, "", url);
-    }
+  const {
+    mode,
+    setMode,
+    planEditMode,
+    pendingAdd,
+    setPendingAdd,
+    focusViewport,
+    setFocusViewport,
+    focusPlan,
+    setFocusPlan,
+    mobileView,
+    mobileSettingsOpen,
+    setMobileSettingsOpen,
+    openMobileView,
+    handleSelect,
+    handleEditModeChange,
+    handlePlanEditModeChange,
+    canDeleteSelection,
+    handleMobileClear,
+    handleMobileDelete
+  } = useEditModeControls({ selection, select, deleteSelection, setNotice });
 
-    const loadSharedDemo = async () => {
-      const response = await fetch(`${import.meta.env.BASE_URL}demo/share-demo-project.json`);
-      if (!response.ok) throw new Error(`demo fetch failed: ${response.status}`);
-      const parsed = await migrateSvgBackgrounds(
-        projectSchema.parse(await response.json()) as Project & { compareShots?: CompareShot[] }
-      );
-      setProject(parsed);
-      setCompareShots(Array.isArray(parsed.compareShots) ? parsed.compareShots : []);
-      setNotice("デモの間取りを読み込みました。照明や家具を動かして夜の見え方を試せます。");
-    };
+  const {
+    canvasElement,
+    setCanvasElement,
+    renderContext,
+    setRenderContext,
+    pathTraceMode,
+    setPathTraceMode,
+    viewMode,
+    setViewMode,
+    liveTrace,
+    debugMode,
+    setDebugMode,
+    lastPathTracedImage,
+    renderProgress,
+    exportPng,
+    captureCompare,
+    stopRender,
+    handleLiveTraceStatus,
+    elapsedSeconds,
+    renderPercent,
+    estimatedRemainingSeconds
+  } = useRenderPipeline({ project, compareShots, addCompareShot, setNotice });
 
-    loadProjectFromIndexedDb()
-      .catch(() => {
-        setNotice("自動保存データを読めませんでした。デモプロジェクトで起動しています。");
-        return undefined;
-      })
-      .then(async (savedProject) => {
-        if (demoRequested) {
-          // 自動保存が既にある場合は、直後の自動保存でデモに上書きされるため必ず確認する。
-          const useDemo =
-            !savedProject ||
-            window.confirm(
-              "共有リンクのデモ間取りを読み込みますか？\nOK: デモを開く（作業中のプロジェクトはデモで上書き保存されます）\nキャンセル: 前回の続きを開く"
-            );
-          if (useDemo) {
-            try {
-              await loadSharedDemo();
-              return;
-            } catch {
-              setNotice("デモデータを読み込めませんでした。通常どおり起動します。");
-            }
-          }
-        }
-        if (savedProject) {
-          // スキーマ検証は loadProjectFromIndexedDb 内で済んでいる（二重検証しない）。
-          const parsed = await migrateSvgBackgrounds(
-            savedProject as Project & { compareShots?: CompareShot[] }
-          );
-          setProject(parsed);
-          if (Array.isArray(parsed.compareShots)) {
-            setCompareShots(parsed.compareShots);
-          }
-          setNotice("前回のプロジェクトをIndexedDBから復元しました。");
-        }
-      });
-  }, [setCompareShots, setProject]);
+  const { handleAddObject, handleStartAdd, handlePlaceObject, handlePlaceOnWall } = useAddObjectHandlers({
+    project,
+    addLight,
+    addFurniture,
+    addWindow,
+    addVoid,
+    addCeilingZone,
+    addFloorZone,
+    pendingAdd,
+    setPendingAdd,
+    setMode,
+    setNotice
+  });
 
-  useEffect(() => {
-    const flush = () =>
-      saveProjectToIndexedDb(project).catch(() => {
-        setNotice("IndexedDBへの自動保存に失敗しました。JSON保存を使ってください。");
-      });
-    const handle = window.setTimeout(flush, 500);
-    // 配置直後にすぐリロード/タブを閉じてもデバウンス前の変更を失わないよう、
-    // 離脱(非表示/pagehide)時は即時に最新プロジェクト全体を保存する。
-    const onHide = () => {
-      if (document.visibilityState === "hidden") flush();
-    };
-    document.addEventListener("visibilitychange", onHide);
-    window.addEventListener("pagehide", flush);
-
-    return () => {
-      window.clearTimeout(handle);
-      document.removeEventListener("visibilitychange", onHide);
-      window.removeEventListener("pagehide", flush);
-    };
-  }, [project]);
-
-  useEffect(() => {
-    setLastPathTracedImage(null);
-  }, [project]);
-
-  // パネル開閉で3Dコンテナ幅が変わるため、R3Fに再計測させる。
-  useEffect(() => {
-    const handle = window.setTimeout(() => window.dispatchEvent(new Event("resize")), 80);
-    return () => window.clearTimeout(handle);
-  }, [focusViewport, focusPlan, mobileView]);
-
-  const openMobileView = useCallback((view: MobileView) => {
-    setMobileView(view);
-    setMobileSettingsOpen(false);
-    setFocusPlan(false);
-    setFocusViewport(false);
-  }, []);
-
-  const handleSelect = useCallback((next: Selection) => {
-    if (next?.kind === "wall" && !planEditMode) return;
-    select(next);
-  }, [planEditMode, select]);
-
-  const handleEditModeChange = useCallback((next: EditMode) => {
-    setMode(next);
-    setPendingAdd(null);
-    if (next === "wall") {
-      setPlanEditMode(true);
-      openMobileView("plan");
-    }
-  }, [openMobileView]);
-
-  const handlePlanEditModeChange = useCallback((enabled: boolean) => {
-    setPlanEditMode(enabled);
-    setPendingAdd(null);
-    setMode("select");
-    if (enabled) {
-      openMobileView("plan");
-      setNotice("間取り編集を開始しました。壁の選択・移動・削除ができます。");
-    } else {
-      if (selection?.kind === "wall") select(null);
-      setNotice("間取り編集を終了しました。壁は誤操作防止のため選択できません。");
-    }
-  }, [openMobileView, select, selection]);
-
-  useEffect(() => {
-    if (planEditMode) return;
-    if (mode === "wall") setMode("select");
-    if (selection?.kind === "wall") select(null);
-  }, [mode, planEditMode, select, selection]);
-
-  const canDeleteSelection = !!selection && (selection.kind !== "wall" || planEditMode);
-
-  const handleMobileClear = useCallback(() => {
-    if (pendingAdd) {
-      setPendingAdd(null);
-      setNotice("配置を終了しました。");
-      return;
-    }
-    if (selection) {
-      select(null);
-      setNotice("選択を解除しました。");
-    }
-  }, [pendingAdd, select, selection]);
-
-  const handleMobileDelete = useCallback(() => {
-    if (!selection || (selection.kind === "wall" && !planEditMode)) return;
-    deleteSelection(selection);
-    setNotice("選択中の要素を削除しました。");
-  }, [deleteSelection, planEditMode, selection]);
-
-  useEffect(() => {
-    if (!renderingRef.current) return;
-    renderAbortRef.current?.abort();
-    setLastPathTracedImage(null);
-    setRenderProgress((current) => ({
-      ...current,
-      status: "stopped",
-      message: "シーン変更によりレンダリングをリセットしました。"
-    }));
-    setNotice("カメラ、家具、照明、材質が変更されたためレンダリングを停止しました。");
-  }, [project]);
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z" && event.shiftKey) {
-        event.preventDefault();
-        redo();
-      } else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z") {
-        event.preventDefault();
-        undo();
-      } else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "c") {
-        const target = event.target as HTMLElement | null;
-        const tag = target?.tagName;
-        // 入力欄の編集中はブラウザのテキストコピーに任せる。
-        if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
-        event.preventDefault();
-        copySelection();
-      } else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "v") {
-        const target = event.target as HTMLElement | null;
-        const tag = target?.tagName;
-        if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
-        event.preventDefault();
-        pasteSelection();
-      } else if (event.key === "Escape") {
-        // 配置待ち中は Esc で配置モードを終了し、選択もクリアする。
-        if (pendingAdd) {
-          setPendingAdd(null);
-          setNotice("配置を終了しました。");
-        }
-        select(null);
-      } else if (event.key === "Delete" || event.key === "Backspace") {
-        const target = event.target as HTMLElement | null;
-        const tag = target?.tagName;
-        // 入力欄の編集中は削除キーを通常動作に任せる。
-        if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
-        const current = useProjectStore.getState().selection;
-        if (current && (current.kind !== "wall" || planEditMode)) {
-          event.preventDefault();
-          deleteSelection(current);
-        }
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [copySelection, deleteSelection, pasteSelection, pendingAdd, planEditMode, redo, select, undo]);
+  useKeyboardShortcuts({
+    undo,
+    redo,
+    copySelection,
+    pasteSelection,
+    select,
+    deleteSelection,
+    pendingAdd,
+    setPendingAdd,
+    setNotice,
+    planEditMode
+  });
 
   const handleImportFloorPlan = async (file: File) => {
     try {
@@ -427,279 +188,6 @@ export const App = () => {
       JSON.stringify({ ...project, compareShots }, null, 2)
     );
   };
-
-  const exportPng = useCallback(async () => {
-    if (lastPathTracedImage) {
-      const stamped = await withWatermark(lastPathTracedImage);
-      downloadDataUrl("ldk-lighting-lab-pathtraced.png", stamped);
-      return;
-    }
-    if (!canvasElement) {
-      setNotice("3Dキャンバスがまだ準備できていません。");
-      return;
-    }
-    const raw = canvasElement.toDataURL("image/png");
-    const stamped = await withWatermark(raw);
-    downloadDataUrl("ldk-lighting-lab-preview.png", stamped);
-  }, [canvasElement, lastPathTracedImage]);
-
-  const captureCompare = useCallback(() => {
-    if (renderingRef.current) return;
-    if (!renderContext) {
-      setNotice("レンダリングを開始できませんでした。3D表示を確認してください。");
-      return;
-    }
-
-    const abortController = new AbortController();
-    renderAbortRef.current = abortController;
-    renderingRef.current = true;
-    setLastPathTracedImage(null);
-    setRenderProgress({
-      status: "running",
-      samples: 0,
-      targetSamples: sampleCountByMode[pathTraceMode],
-      elapsedMs: 0,
-      message: "BVH生成とpath tracingを開始しています。"
-    });
-    setNotice("three-gpu-pathtracerで最終レンダリングを開始しました。");
-
-    void renderPathTracedImage({
-      context: renderContext,
-      project,
-      mode: pathTraceMode,
-      debugMode,
-      maxWidth: project.camera.resolutionWidth,
-      signal: abortController.signal,
-      onProgress: (progress) => {
-        const buildPercent =
-          typeof progress.buildProgress === "number"
-            ? ` ${Math.round(progress.buildProgress * 100)}%`
-            : "";
-        const message =
-          progress.phase === "bvh"
-            ? `BVH生成中${buildPercent}`
-            : progress.phase === "sampling"
-              ? "path tracing中"
-              : progress.phase === "complete"
-                ? "レンダリング完了"
-                : "準備中";
-        setRenderProgress({
-          status: "running",
-          samples: progress.samples,
-          targetSamples: progress.targetSamples,
-          elapsedMs: progress.elapsedMs,
-          message
-        });
-      }
-    })
-      .then((result) => {
-        const shot: CompareShot = {
-          id: `shot-${Date.now()}`,
-          name: `案 ${compareShots.length + 1}`,
-          dataUrl: result.dataUrl,
-          createdAt: new Date().toISOString(),
-          cameraViewName: "視点",
-          lightingSceneName: "",
-          renderer: "pathtraced",
-          samples: result.samples,
-          resolution: { width: result.width, height: result.height }
-        };
-        setLastPathTracedImage(result.dataUrl);
-        addCompareShot(shot);
-        setCompareOpen(true);
-        setRenderProgress({
-          status: "complete",
-          samples: result.samples,
-          targetSamples: result.samples,
-          elapsedMs: result.elapsedMs,
-          message: "完了"
-        });
-        setNotice(`Path traced ${result.samples} samples の比較画像を保存しました。`);
-      })
-      .catch((error: unknown) => {
-        const aborted = error instanceof DOMException && error.name === "AbortError";
-        setRenderProgress((current) => ({
-          ...current,
-          status: aborted ? "stopped" : "error",
-          message: aborted ? "停止しました" : error instanceof Error ? error.message : "レンダリングに失敗しました。"
-        }));
-        if (!aborted) {
-          setNotice(error instanceof Error ? error.message : "レンダリングに失敗しました。");
-        }
-      })
-      .finally(() => {
-        renderAbortRef.current = null;
-        renderingRef.current = false;
-      });
-  }, [addCompareShot, compareShots.length, debugMode, pathTraceMode, project, renderContext]);
-
-  const stopRender = useCallback(() => {
-    renderAbortRef.current?.abort();
-  }, []);
-
-  const handleLiveTraceStatus = useCallback((status: LiveTraceStatus) => {
-    setLiveTrace(status);
-  }, []);
-
-  // 配置情報。床に置く物は at(x,z)、壁に付く物(窓/扉)は wallId+centerRatio を使う。
-  type PlaceOpts = { at?: { x: number; z: number }; wallId?: string; centerRatio?: number };
-
-  const lowerCeilingDropFromKind = (kind: string) => {
-    if (!kind.startsWith("ceilingZone:")) return undefined;
-    const dropM = Number(kind.slice("ceilingZone:".length));
-    return Number.isFinite(dropM) && dropM > 0 ? dropM : undefined;
-  };
-
-  const handleAddObject = useCallback(
-    (kind: string, opts: PlaceOpts = {}) => {
-      const { at, wallId, centerRatio } = opts;
-      const model = fixtureModelFromAddKind(kind);
-      if (model) {
-        const mountHeightM = at ? ceilingMountHeightAt(project, at) : undefined;
-        addLight(newFixtureFromModel(project, model, at, { ceilingHeightM: mountHeightM }));
-        return;
-      }
-      if (kind.startsWith("ceilingZone")) {
-        addCeilingZone({ ...newCeilingZone(at), dropM: lowerCeilingDropFromKind(kind) ?? 0.3 });
-        return;
-      }
-      // 家具カタログ: kind = "furniture:<presetId>"。
-      if (kind.startsWith("furniture:")) {
-        const preset = getFurniturePreset(kind.slice("furniture:".length));
-        if (preset) addFurniture(newFurnitureFromPreset(preset, at));
-        return;
-      }
-      // 窓カタログ: kind = "window:<presetId>"。クリックした壁に設置。
-      if (kind.startsWith("window:")) {
-        const preset = getWindowPreset(kind.slice("window:".length));
-        if (preset) {
-          addWindow(
-            newWindowFromPreset(preset, project, { wallId, centerRatio }),
-            preset.hasGlass ? "window" : "opening"
-          );
-        }
-        return;
-      }
-      switch (kind) {
-        case "downlight":
-          addLight(newDownlight(project, at));
-          break;
-        case "wallspot":
-          addLight(newWallSpot(project, at));
-          break;
-        case "pendant":
-          addLight(newPendant(project, at));
-          break;
-        case "linelight":
-          addLight(newLineLight(project, at));
-          break;
-        case "stair":
-          addFurniture(newStair(project, at));
-          break;
-        case "window":
-          addWindow(newWindow(project, { wallId, centerRatio }), "window");
-          break;
-        case "door":
-          addWindow(newDoor(project, { wallId, centerRatio }), "opening");
-          break;
-        case "void":
-          addVoid(newVoid(at));
-          break;
-        case "floorZone":
-          addFloorZone(newFloorZone(at));
-          break;
-        default:
-          return;
-      }
-    },
-    [addCeilingZone, addFloorZone, addFurniture, addLight, addVoid, addWindow, project]
-  );
-
-  // 「＋追加」で種別を選んだら配置待ちにする。実際の生成はクリック位置確定時。
-  const handleStartAdd = useCallback((kind: string) => {
-    let nextKind = kind;
-    if (kind === "ceilingZone") {
-      const defaultHeightMm = Math.round((project.room.ceilingHeightM - 0.3) * 1000);
-      const input = window.prompt("下げ天井の下端高さをmmで入力してください。", String(defaultHeightMm));
-      const lowerHeightM = input === null ? NaN : Number(input) / 1000;
-      if (Number.isFinite(lowerHeightM) && lowerHeightM > 1.6 && lowerHeightM < project.room.ceilingHeightM) {
-        nextKind = `ceilingZone:${project.room.ceilingHeightM - lowerHeightM}`;
-      }
-    }
-    setPendingAdd(nextKind);
-    setMode("select");
-    setNotice(
-      nextKind === "door" || nextKind.startsWith("window") || isWallLightAddKind(nextKind)
-        ? "設置したい壁をクリックしてください。Escで終了。"
-        : isLightAddKind(nextKind)
-          ? "配置したい位置をクリックしてください。配置後は選択してCmd+C / Cmd+Vで複製できます。"
-          : "配置したい位置をクリックしてください。"
-    );
-  }, [project.room.ceilingHeightM]);
-
-  // 床に置く物の配置（クリック位置）。連続配置はせず、複製はCmd+C / Cmd+Vに寄せる。
-  const handlePlaceObject = useCallback(
-    (at: { x: number; z: number }) => {
-      if (!pendingAdd) return;
-      handleAddObject(pendingAdd, { at });
-      setPendingAdd(null);
-      setMode("select");
-      setNotice(
-        isLightAddKind(pendingAdd)
-          ? "配置しました。選択してCmd+C / Cmd+Vで複製できます。"
-          : "配置しました。選択後にドラッグで微調整できます。"
-      );
-    },
-    [pendingAdd, handleAddObject]
-  );
-
-  // 壁に付く物(窓/扉/壁付スポット)の配置。Plan2D がクリック点を最寄り壁へ射影して渡す。
-  // heightM は3D側がカーソルの壁上Y値を渡す場合のみ存在する（2Dからは undefined）。
-  const handlePlaceOnWall = useCallback(
-    (wallId: string, centerRatio: number, heightM?: number) => {
-      if (!pendingAdd) return;
-      if (isWallLightAddKind(pendingAdd)) {
-        const model = fixtureModelFromAddKind(pendingAdd) ?? fixtureModelMap.get("sp-wall");
-        const placement = wallMountedLightPlacementOnSurface(project, wallId, centerRatio, heightM ?? 1.9);
-        if (model && placement) {
-          addLight(
-            newFixtureFromModel(project, model, undefined, {
-              wall: {
-                x: placement.position.x,
-                y: placement.position.y,
-                z: placement.position.z,
-                target: placement.target,
-                rotationYDeg: placement.rotationYDeg
-              }
-            })
-          );
-        }
-        setPendingAdd(null);
-        setMode("select");
-        setNotice("壁に設置しました。選択してCmd+C / Cmd+Vで複製できます。");
-        return;
-      }
-      handleAddObject(pendingAdd, { wallId, centerRatio });
-      setPendingAdd(null);
-      setMode("select");
-      setNotice("壁に設置しました。選択後に壁上をドラッグして位置を調整できます。");
-    },
-    [pendingAdd, handleAddObject, addLight, project]
-  );
-
-  const elapsedSeconds = (renderProgress.elapsedMs / 1000).toFixed(1);
-  const renderPercent = renderProgress.targetSamples
-    ? Math.min(100, Math.round((renderProgress.samples / renderProgress.targetSamples) * 100))
-    : 0;
-  const estimatedRemainingSeconds =
-    renderProgress.status === "running" && renderProgress.samples > 1
-      ? Math.max(
-          0,
-          ((renderProgress.elapsedMs / renderProgress.samples) *
-            (renderProgress.targetSamples - renderProgress.samples)) /
-            1000
-        ).toFixed(1)
-      : "-";
 
   const workspaceClassName = [
     "workspace",
