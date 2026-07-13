@@ -135,12 +135,14 @@ const findWallSnap = (
 };
 
 const findWallSnapAtPointer = (
+  item: FurnitureItem,
   position: Vec3M,
   pointer: Vec2M,
   walls: WallSegment[],
   center: Vec2M
 ): WallSnap | null => {
   let snap: WallSnap | null = null;
+  let largestContactArea = 0;
 
   for (const wall of walls) {
     const pointerProjection = projectOntoWall(pointer, wall);
@@ -150,8 +152,17 @@ const findWallSnapAtPointer = (
     const projection = projectOntoWall(position, wall);
     if (!projection) continue;
     const inward = wallInwardNormal(wall, center);
-    if (!snap || pointerDistance < snap.distanceError) {
+    const tangent = wallTangent(wall, pointerProjection.length);
+    const contactLength = Math.min(
+      pointerProjection.length,
+      halfExtentAlong(item, tangent, item.rotationYDeg) * 2
+    );
+    const contactArea = contactLength * item.size.y;
+    const hasLargerContact = contactArea > largestContactArea + 1e-6;
+    const hasSameContact = Math.abs(contactArea - largestContactArea) <= 1e-6;
+    if (!snap || hasLargerContact || (hasSameContact && pointerDistance < snap.distanceError)) {
       snap = { wall, projection, inward, distanceError: pointerDistance };
+      largestContactArea = contactArea;
     }
   }
 
@@ -231,7 +242,7 @@ export const constrainFurniturePlacement = (
   if (wallAttachableTypes.has(item.type)) {
     const currentSnap = snapPointer ? null : findWallSnap(item, item.position, walls, center, item.rotationYDeg);
     const snap = snapPointer
-      ? findWallSnapAtPointer(position, snapPointer, walls, center)
+      ? findWallSnapAtPointer(item, position, snapPointer, walls, center)
       : (currentSnap && keepCurrentWallSnap(item, position, currentSnap.wall, center)) ??
         findWallSnap(item, position, walls, center, nextRotationYDeg);
 
