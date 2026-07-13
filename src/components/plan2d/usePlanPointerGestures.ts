@@ -19,7 +19,7 @@ import {
   nearestWallMountSurfaceAt,
   wallMountedLightPlacementAt
 } from "../../utils/fixtureMounting";
-import { constrainFurniturePlacement } from "../../utils/furniturePlacement";
+import { constrainFurniturePlacement, type FurnitureWallSnap } from "../../utils/furniturePlacement";
 import {
   GESTURE_DEBUG,
   MIN_WALL_SEGMENT_M,
@@ -158,6 +158,7 @@ export const usePlanPointerGestures = ({
   // ライトのドラッグ整列スナップが効いた軸のワールド座標。x/z それぞれ吸着先(m)。
   // null のとき非表示。worldToSvg を通してガイド線を描く。
   const [snapGuides, setSnapGuides] = useState<{ x: number | null; z: number | null }>({ x: null, z: null });
+  const [furnitureWallGuide, setFurnitureWallGuide] = useState<FurnitureWallSnap | null>(null);
   // ダブルクリックで開始する辺ドラッグリサイズ（ドラッグ中の辺）。
   const [resizing, setResizing] = useState<ResizeState>(null);
   // 窓/扉の追加待ち中、カーソル直下で設置先になる壁。クリック前に青くハイライトして
@@ -190,6 +191,7 @@ export const usePlanPointerGestures = ({
     touchWallTraceRef.current = null;
     setDragging(null);
     setResizing(null);
+    setFurnitureWallGuide(null);
     setWallCursor(null);
   };
 
@@ -222,6 +224,7 @@ export const usePlanPointerGestures = ({
         setDragging(null);
         setResizing(null);
         setSnapGuides({ x: null, z: null });
+        setFurnitureWallGuide(null);
         if (shouldCommitViewport) commitViewport();
       }
     };
@@ -548,6 +551,7 @@ export const usePlanPointerGestures = ({
         { ...item.position, x: next.x, z: next.z },
         pointer
       );
+      setFurnitureWallGuide(placement.wallSnap?.isCentered ? placement.wallSnap : null);
       updateFurniture(item.id, {
         position: placement.position,
         rotationYDeg: placement.rotationYDeg
@@ -636,6 +640,7 @@ export const usePlanPointerGestures = ({
     setDragging(null);
     setResizing(null);
     setSnapGuides({ x: null, z: null });
+    setFurnitureWallGuide(null);
     if (shouldCommitViewport) commitViewport();
     if (event.pointerType === "touch" && mode === "wall" && touchWallTrace?.pointerId === event.pointerId) {
       touchWallTraceRef.current = null;
@@ -680,6 +685,7 @@ export const usePlanPointerGestures = ({
     resizing,
     setResizing,
     snapGuides,
+    furnitureWallGuide,
     wallTarget,
     handleObjectPointerDownCapture,
     handleCanvasPointerDown,

@@ -41,6 +41,7 @@ type WallSnap = {
 export type FurnitureWallSnap = {
   wall: WallSegment;
   inward: Vec2M;
+  isCentered: boolean;
 };
 
 const projectOntoWall = (point: Vec2M, wall: WallSegment): WallProjection | null => {
@@ -252,6 +253,7 @@ export const constrainFurniturePlacement = (
         ratioPadding < 0.5
           ? Math.max(ratioPadding, Math.min(1 - ratioPadding, snap.projection.ratio))
           : snap.projection.ratio;
+      const isCentered = Math.abs(ratio - 0.5) * snap.projection.length <= FURNITURE_WALL_CENTER_SNAP_M;
       const x = snap.wall.start.x + (snap.wall.end.x - snap.wall.start.x) * ratio;
       const z = snap.wall.start.z + (snap.wall.end.z - snap.wall.start.z) * ratio;
       const targetDistance = wallTargetDistance(item, snap.wall);
@@ -261,7 +263,7 @@ export const constrainFurniturePlacement = (
         z: z + snap.inward.z * targetDistance
       };
       nextRotationYDeg = (Math.atan2(snap.inward.x, snap.inward.z) * 180) / Math.PI;
-      wallSnap = { wall: snap.wall, inward: snap.inward };
+      wallSnap = { wall: snap.wall, inward: snap.inward, isCentered };
     }
   }
 

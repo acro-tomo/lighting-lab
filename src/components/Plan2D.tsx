@@ -17,6 +17,7 @@ import { CeilingZonePlanItem, FloorZonePlanItem, VoidPlanItem } from "./plan2d/z
 import { FurniturePlanItem, LightPlanItem, ResizeHandles } from "./plan2d/objectItems";
 import {
   CameraMarker,
+  FurnitureWallCenterGuide,
   GestureDebugHud,
   GhostWallsLayer,
   SnapGuideLines,
@@ -237,6 +238,7 @@ export const Plan2D = ({
     setDragging,
     setResizing,
     snapGuides,
+    furnitureWallGuide,
     wallTarget,
     handleObjectPointerDownCapture,
     handleCanvasPointerDown,
@@ -655,6 +657,7 @@ export const Plan2D = ({
             viewBox={viewBox}
             contentBox={contentBox}
           />
+          <FurnitureWallCenterGuide wallSnap={furnitureWallGuide} worldToSvg={worldToSvg} />
 
           {/* ダブルクリックで開いた矩形オブジェクトの辺リサイズハンドル（最前面）。 */}
           {resizeTarget && !pendingAdd && (

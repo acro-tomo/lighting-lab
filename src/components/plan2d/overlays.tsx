@@ -1,5 +1,6 @@
 import type { Project, Vec2M, WallSegment } from "../../types";
 import { parseVoidWallId } from "../../utils/fixtureMounting";
+import type { FurnitureWallSnap } from "../../utils/furniturePlacement";
 import { svgSideNormal, voidSideLine } from "./geometry";
 import type { ContentBox, DragState, PinchState, TouchPoint, ViewState } from "./types";
 
@@ -80,6 +81,40 @@ export const SnapGuideLines = ({
     )}
   </>
 );
+
+export const FurnitureWallCenterGuide = ({
+  wallSnap,
+  worldToSvg
+}: {
+  wallSnap: FurnitureWallSnap | null;
+  worldToSvg: (point: Vec2M) => { x: number; y: number };
+}) => {
+  if (!wallSnap) return null;
+  const midpoint = {
+    x: (wallSnap.wall.start.x + wallSnap.wall.end.x) * 0.5,
+    z: (wallSnap.wall.start.z + wallSnap.wall.end.z) * 0.5
+  };
+  const start = worldToSvg({
+    x: midpoint.x - wallSnap.inward.x * 0.18,
+    z: midpoint.z - wallSnap.inward.z * 0.18
+  });
+  const end = worldToSvg({
+    x: midpoint.x + wallSnap.inward.x * 0.72,
+    z: midpoint.z + wallSnap.inward.z * 0.72
+  });
+  return (
+    <line
+      x1={start.x}
+      y1={start.y}
+      x2={end.x}
+      y2={end.y}
+      stroke="#f4cf5a"
+      strokeWidth={2}
+      strokeDasharray="6 4"
+      pointerEvents="none"
+    />
+  );
+};
 
 // 窓/扉/壁付ライトの設置先になる壁のハイライト（最前面・クリック非対象）。
 export const WallTargetHighlight = ({
