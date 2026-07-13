@@ -8,14 +8,10 @@ import type { ProjectCamera } from "../../types";
 
 export const CameraViewSync = ({
   view,
-  controlsRef,
-  floorLevelM,
-  ceilingHeightM
+  controlsRef
 }: {
   view: ProjectCamera;
   controlsRef: MutableRefObject<OrbitControlsImpl | null>;
-  floorLevelM: number;
-  ceilingHeightM: number;
 }) => {
   const { camera, gl } = useThree();
 
@@ -76,47 +72,9 @@ export const CameraViewSync = ({
     gl.toneMappingExposure = view.exposure;
   }, [gl, view.exposure]);
 
-  // 矢印キーは常に視点(カメラ)操作。
-  //   矢印        : 視点の前後左右移動（注視点も同量動かし向きは保つ）
-  //   Shift+左右  : 位置はそのままで視線方向を左右に旋回（首振り）
-  //   Shift+上下  : 位置はそのままで見上げ/見下ろし（ピッチ）
-  //   Option+上下 : 向きはそのままで上下に移動（昇降）
-  // オブジェクトの移動/回転は3Dドラッグ・Inspector側に集約する。
-  const MOVE_M = 0.4; // 矢印1回の移動量(m)
-  const TURN_DEG = 5; // Shift+左右/上下1回の旋回・ピッチ角(度)
-
-  // macOS のキーリピート中に Shift を先に離すと、続く repeat keydown で
-  // event.shiftKey=false が報告されることがある。これを補正するため修飾キーの
-  // 物理押下状態を別途追跡し、「イベントが落としても ref でカバー」する。
-  // Shift が優先: shiftDown=true なら必ず pitch 側に入り、昇降には落ちない。
-  const modsRef = useRef({ shift: false, alt: false });
+  const TURN_DEG = 5;
 
   useEffect(() => {
-    const onMod = (e: KeyboardEvent) => {
-      // 修飾キー自身(Shift/Alt)の押下/解放だけで追跡する。矢印など非修飾イベントの
-      // e.shiftKey をコピーすると、キーリピート中に shiftKey=false が混じった瞬間に
-      // 追跡値が false へ落ち、補正(下の shiftDown OR)が無意味になるため対象を限定する。
-      const down = e.type === "keydown";
-      if (e.key === "Shift") modsRef.current.shift = down;
-      else if (e.key === "Alt") modsRef.current.alt = down;
-    };
-    const onBlur = () => {
-      // フォーカス喪失時は keyup が届かないため残留をリセットする
-      // (ShortcutGuide.tsx と同じ作法)
-      modsRef.current = { shift: false, alt: false };
-    };
-    window.addEventListener("keydown", onMod);
-    window.addEventListener("keyup", onMod);
-    window.addEventListener("blur", onBlur);
-    return () => {
-      window.removeEventListener("keydown", onMod);
-      window.removeEventListener("keyup", onMod);
-      window.removeEventListener("blur", onBlur);
-    };
-  }, []); // mount/unmount のみ。modsRef は ref なので依存不要。
-
-  useEffect(() => {
-    // ピッチ: target をカメラ位置まわりに上下回転。方位(水平向き)と距離を保ち±80°でクランプ。
     const pitchView = (delta: number) => {
       const controls = controlsRef.current;
       if (!controls) return;
@@ -150,63 +108,30 @@ export const CameraViewSync = ({
       const right = event.key === "ArrowRight";
       const up = event.key === "ArrowUp";
       const down = event.key === "ArrowDown";
+      const turn = THREE.MathUtils.degToRad(TURN_DEG);
 
-      // Shift は event.shiftKey を最優先し、キーリピートで落ちた時だけ ref で補正する。
-      // Alt は矢印イベント自身の状態だけを見る。ref の残留で Option+上下扱いにしない。
-      const shiftDown = event.shiftKey || modsRef.current.shift;
-      const altDown = !shiftDown && event.altKey;
+      if (event.altKey) {
+        if (left || right) {
+          controls.setAzimuthalAngle(controls.getAzimuthalAngle() + (left ? turn : -turn));
+        } else {
+          controls.setPolarAngle(controls.getPolarAngle() + (up ? -turn : turn));
+        }
+        return;
+      }
 
-      // Shift が Alt に優先（ユーザーのメンタルモデル: Shift=見る / Option=昇降）。
-      // shiftDown=true なら Alt 状態や通常移動へ落ちず、必ず pitch/yaw 側に入る。
-
-      // Shift+左右: 視線方向を左右に旋回（首振り）。
-      if (shiftDown && (left || right)) {
-        const angle = THREE.MathUtils.degToRad(left ? TURN_DEG : -TURN_DEG);
+      if (left || right) {
         const dir = controls.target.clone().sub(camera.position);
-        dir.applyAxisAngle(new THREE.Vector3(0, 1, 0), angle);
+        dir.applyAxisAngle(new THREE.Vector3(0, 1, 0), left ? turn : -turn);
         controls.target.copy(camera.position).add(dir);
         controls.update();
         return;
       }
 
-      // Shift+上下: 見上げ/見下ろし（ピッチ）。水平方位と距離を保ち±80°でクランプ。
-      if (shiftDown && up) {
-        pitchView(THREE.MathUtils.degToRad(TURN_DEG));
-        return;
-      }
-      if (shiftDown && down) {
-        pitchView(THREE.MathUtils.degToRad(-TURN_DEG));
-        return;
-      }
-
-      const forward = camera.getWorldDirection(new THREE.Vector3());
-      forward.y = 0;
-      if (forward.lengthSq() < 1e-6) forward.set(0, 0, -1);
-      forward.normalize();
-      const rightVec = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
-
-      const move = new THREE.Vector3();
-      // Option+上下: 昇降。shiftDown=false のときだけここに到達するので排他は順序で担保済み。
-      // 天井を抜けるほど上げると「見上げ」ではなく視点高度の破綻に見えるため、
-      // カメラ位置だけを室内の自然な高さに収め、target は実際に動けた量だけ追従させる。
-      if (altDown && (up || down)) {
-        const minEyeY = floorLevelM + 0.35;
-        const maxEyeY = floorLevelM + Math.max(0.6, ceilingHeightM - 0.05);
-        const nextY = THREE.MathUtils.clamp(camera.position.y + (up ? MOVE_M : -MOVE_M), minEyeY, maxEyeY);
-        move.set(0, nextY - camera.position.y, 0);
-      }
-      else if (left)  move.copy(rightVec).multiplyScalar(-MOVE_M);
-      else if (right) move.copy(rightVec).multiplyScalar(MOVE_M);
-      else move.copy(forward).multiplyScalar(up ? MOVE_M : -MOVE_M); // 前後
-
-      if (move.lengthSq() < 1e-10) return;
-      camera.position.add(move);
-      controls.target.add(move);
-      controls.update();
+      pitchView(up ? turn : -turn);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [camera, ceilingHeightM, controlsRef, floorLevelM]);
+  }, [camera, controlsRef]);
 
   return null;
 };

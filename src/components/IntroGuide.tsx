@@ -43,8 +43,8 @@ export const IntroGuide = ({ forceOpen, onClose }: IntroGuideProps) => {
             <li><span className="intro-key">間取り編集</span> 壁の選択・移動・削除、壁引き</li>
             <li><span className="intro-key">ピンチ</span> 平面図をズーム</li>
             <li><span className="intro-key">ドラッグ / 二本指</span> 3D視点の回転・パン</li>
-            <li><span className="intro-key">Shift + ↑↓←→</span> 見回す</li>
-            <li><span className="intro-key">Option + ↑↓</span> 視点を上下</li>
+            <li><span className="intro-key">↑↓←→</span> 注視点だけを動かして見回す（カメラ固定）</li>
+            <li><span className="intro-key">Option + ↑↓←→</span> カメラが注視点の周りを回る</li>
           </ul>
         </div>
         <button className="intro-start" onClick={handleStart}>

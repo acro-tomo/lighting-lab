@@ -156,8 +156,6 @@ export const SceneRoot = ({
       <CameraViewSync
         view={project.camera}
         controlsRef={controlsRef}
-        floorLevelM={floorLevelM}
-        ceilingHeightM={project.room.ceilingHeightM}
       />
       <TouchPinchDolly controlsRef={controlsRef} />
       <TrackpadWheelPan controlsRef={controlsRef} />

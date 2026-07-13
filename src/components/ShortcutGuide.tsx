@@ -77,24 +77,22 @@ export const ShortcutGuide = () => {
         <div className="sg-body">
           {/* 常時ベース */}
           <div className={`sg-section${modifier === "none" ? " is-active" : ""}`}>
-            <Row keys={[<Key>←</Key>, <Key>→</Key>, <Key>↑</Key>, <Key>↓</Key>]} label="視点を前後左右に移動" />
+            <Row keys={[<Key>←</Key>, <Key>→</Key>, <Key>↑</Key>, <Key>↓</Key>]} label="注視点だけを動かして見回す（カメラ固定）" />
           </div>
 
           {/* Shift */}
           <div className={`sg-section${modifier === "shift" ? " is-active" : ""}`}>
             <div className="sg-section-label"><Key>⇧ Shift</Key></div>
-            <Row keys={[<Key>⇧</Key>, <Key>←</Key>]} label="左を向く" />
-            <Row keys={[<Key>⇧</Key>, <Key>→</Key>]} label="右を向く（首振り）" />
-            <Row keys={[<Key>⇧</Key>, <Key>↑</Key>]} label="見上げる" />
-            <Row keys={[<Key>⇧</Key>, <Key>↓</Key>]} label="見下ろす" />
             <Row keys={[<Key>⇧</Key>, <Key>クリック</Key>]} label="ライト複数選択" />
           </div>
 
           {/* Option / Alt */}
           <div className={`sg-section${modifier === "alt" ? " is-active" : ""}`}>
             <div className="sg-section-label"><Key>⌥ Option</Key></div>
-            <Row keys={[<Key>⌥</Key>, <Key>↑</Key>]} label="視点を上げる（昇降）" />
-            <Row keys={[<Key>⌥</Key>, <Key>↓</Key>]} label="視点を下げる（昇降）" />
+            <Row keys={[<Key>⌥</Key>, <Key>←</Key>]} label="カメラが注視点の周りを左に回る" />
+            <Row keys={[<Key>⌥</Key>, <Key>→</Key>]} label="カメラが注視点の周りを右に回る" />
+            <Row keys={[<Key>⌥</Key>, <Key>↑</Key>]} label="カメラが注視点の周りを上に回る" />
+            <Row keys={[<Key>⌥</Key>, <Key>↓</Key>]} label="カメラが注視点の周りを下に回る" />
           </div>
 
           {/* ⌘ / Ctrl */}
