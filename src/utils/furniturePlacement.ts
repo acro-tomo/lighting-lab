@@ -168,8 +168,12 @@ const constrainAgainstWalls = (
       const signedDistance = (next.x - projection.x) * inward.x + (next.z - projection.z) * inward.z;
       const minDistance =
         wall.thicknessM * 0.5 + halfExtentAlong(item, inward, rotationYDeg) + FURNITURE_WALL_CLEARANCE_M;
-      if (signedDistance >= minDistance) continue;
-      const push = minDistance - signedDistance;
+      const previousProjection = projectOntoWall(item.position, wall);
+      if (!previousProjection) continue;
+      const previousSignedDistance = wallSignedDistance(item.position, previousProjection, inward);
+      const previousSide = previousSignedDistance < 0 ? -1 : 1;
+      if (signedDistance * previousSide >= minDistance) continue;
+      const push = previousSide * minDistance - signedDistance;
       next = {
         ...next,
         x: next.x + inward.x * push,
