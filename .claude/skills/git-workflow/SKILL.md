@@ -32,11 +32,10 @@ Rules:
 
 - Default branch: `main`.
 - Feature: `feat/<short-slug>` · Fix: `fix/<short-slug>` · Spike: `spike/<short-slug>`.
-- Commit or push only when the user asks. If on `main`, branch first for non-trivial work.
+- 作業を検証して完了したら、ユーザーから保留・ローカル限定の指示がない限り `main` に統合して `origin/main` まで通常 push する。非自明な作業を `main` で始める場合は、先にブランチを切る。
 
 ## Pushing — always ask first when
 
-- Pushing to `main` directly
 - Force-pushing anywhere (`--force`, `--force-with-lease`)
 - Pushing tags or pushing to a new remote for the first time
 

@@ -82,7 +82,7 @@ Vite + React 19 + TypeScript / Three.js + @react-three/fiber + @react-three/drei
 
 - **作業単位の完了ごとに必ずセマンティックコミットする**（履歴を残さず放置しない）。複数の不具合修正・機能追加をまとめて行った場合も、論理単位ごとに分けてコミットする。検証（typecheck/build）が通ってからコミットする。
 - **コミット前に必ず `git status` / `git diff` で意図しない変更が混ざっていないか確認**してから `git add` する。
-- push はユーザーが依頼したときだけ。`main` 直push・force系は事前確認。
+- 検証済みで完了した作業ブランチは、特別な指示がない限り最新の `main` に統合し、`origin/main` まで通常 push する。`--force` 系は事前確認。
 - 生成物はコミットしない: `dist/`, `output/`, `.playwright-cli/`。
 
 ## メモリ
