@@ -239,7 +239,6 @@ export const FurnitureMesh = ({
   const updateFurniture = useProjectStore((state) => state.updateFurniture);
   const deleteSelection = useProjectStore((state) => state.deleteSelection);
   const floorLevelM = useProjectStore((state) => state.project.room.floorLevelM ?? 0);
-  const [lateralGuide, setLateralGuide] = useState<FurnitureWallSnap | null>(null);
   const [heightGuide, setHeightGuide] = useState<FurnitureWallSnap | null>(null);
   const tvWallSnap =
     selected && item.type === "tv" ? constrainFurniturePlacement(project, item, item.position).wallSnap : null;
@@ -254,15 +253,12 @@ export const FurnitureMesh = ({
     (x, z) => {
       movedRef.current = true;
       const next = constrainFurniturePlacement(project, item, { ...item.position, x, z });
-      setLateralGuide(next.wallSnap?.isCentered ? next.wallSnap : null);
       updateFurniture(item.id, { position: next.position, rotationYDeg: next.rotationYDeg });
-    },
-    () => setLateralGuide(null)
+    }
   );
 
   return (
     <>
-      {selected && !pathTraced && lateralGuide && <FurnitureWallGuide wallSnap={lateralGuide} horizontal={false} />}
       {selected && !pathTraced && heightGuide && <FurnitureWallGuide wallSnap={heightGuide} horizontal />}
       <group
         position={[item.position.x, item.position.y, item.position.z]}
