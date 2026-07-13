@@ -101,6 +101,23 @@ const wallTangent = (wall: WallSegment, length: number): Vec2M => ({
   z: (wall.end.z - wall.start.z) / length
 });
 
+const furnitureWallOverlapLength = (
+  item: FurnitureItem,
+  position: Vec3M,
+  wall: WallSegment,
+  tangent: Vec2M,
+  wallLength: number
+) => {
+  const centerAlongWall =
+    (position.x - wall.start.x) * tangent.x + (position.z - wall.start.z) * tangent.z;
+  const extentAlongWall = halfExtentAlong(item, tangent, item.rotationYDeg);
+  return Math.max(
+    0,
+    Math.min(wallLength, centerAlongWall + extentAlongWall) -
+      Math.max(0, centerAlongWall - extentAlongWall)
+  );
+};
+
 const wallTargetDistance = (item: FurnitureItem, wall: WallSegment) =>
   wall.thicknessM * 0.5 + item.size.z * 0.5 + FURNITURE_WALL_CLEARANCE_M;
 
@@ -154,10 +171,14 @@ const findWallSnapAtPointer = (
     if (!projection) continue;
     const inward = wallInwardNormal(wall, center);
     const tangent = wallTangent(wall, pointerProjection.length);
-    const contactLength = Math.min(
-      pointerProjection.length,
-      halfExtentAlong(item, tangent, item.rotationYDeg) * 2
+    const contactLength = furnitureWallOverlapLength(
+      item,
+      position,
+      wall,
+      tangent,
+      pointerProjection.length
     );
+    if (contactLength <= 1e-6) continue;
     const contactArea = contactLength * item.size.y;
     const hasLargerContact = contactArea > largestContactArea + 1e-6;
     const hasSameContact = Math.abs(contactArea - largestContactArea) <= 1e-6;
