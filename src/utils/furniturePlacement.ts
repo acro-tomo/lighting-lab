@@ -163,25 +163,31 @@ const findWallSnapAtPointer = (
   let largestContactArea = 0;
 
   for (const wall of walls) {
-    const pointerProjection = projectOntoWall(pointer, wall);
-    if (!pointerProjection) continue;
-    const pointerDistance = Math.hypot(pointer.x - pointerProjection.x, pointer.z - pointerProjection.z);
-    if (pointerDistance > FURNITURE_WALL_SNAP_M) continue;
     const projection = projectOntoWall(position, wall);
     if (!projection) continue;
     const inward = wallInwardNormal(wall, center);
-    const tangent = wallTangent(wall, pointerProjection.length);
+    // 候補判定は家具本体が壁に接しているか（垂直距離）で行う。カーソル位置基準だと、
+    // 端をつかんで隅にドラッグしたとき本体が大きく接する壁が候補から外れてしまう。
+    const signedDistance = wallSignedDistance(position, projection, inward);
+    const targetDistance = wallTargetDistance(item, wall);
+    if (Math.abs(signedDistance - targetDistance) > FURNITURE_WALL_SNAP_M) continue;
+    const tangent = wallTangent(wall, projection.length);
     const contactLength = furnitureWallOverlapLength(
       item,
       position,
       wall,
       tangent,
-      pointerProjection.length
+      projection.length
     );
     if (contactLength <= 1e-6) continue;
     const contactArea = contactLength * item.size.y;
+    const pointerProjection = projectOntoWall(pointer, wall);
+    const pointerDistance = pointerProjection
+      ? Math.hypot(pointer.x - pointerProjection.x, pointer.z - pointerProjection.z)
+      : Infinity;
     const hasLargerContact = contactArea > largestContactArea + 1e-6;
     const hasSameContact = Math.abs(contactArea - largestContactArea) <= 1e-6;
+    // 接触面積が大きい壁を優先。同等ならカーソルに近い壁でタイブレーク。
     if (!snap || hasLargerContact || (hasSameContact && pointerDistance < snap.distanceError)) {
       snap = { wall, projection, inward, distanceError: pointerDistance };
       largestContactArea = contactArea;
