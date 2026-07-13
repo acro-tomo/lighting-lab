@@ -3,6 +3,7 @@ import { wallInwardNormal } from "./wallGeometry";
 
 const FURNITURE_WALL_CLEARANCE_M = 0.015;
 const FURNITURE_WALL_SNAP_M = 0.22;
+export const FURNITURE_WALL_CENTER_SNAP_M = 0.12;
 
 const wallAttachableTypes = new Set<FurnitureType>([
   "bed",
@@ -35,6 +36,12 @@ type WallSnap = {
   projection: WallProjection;
   inward: Vec2M;
   distanceError: number;
+};
+
+export type FurnitureWallSnap = {
+  wall: WallSegment;
+  inward: Vec2M;
+  isCentered: boolean;
 };
 
 const projectOntoWall = (point: Vec2M, wall: WallSegment): WallProjection | null => {
@@ -188,13 +195,14 @@ export const constrainFurniturePlacement = (
   project: Project,
   item: FurnitureItem,
   position: Vec3M
-): { position: Vec3M; rotationYDeg: number } => {
+): { position: Vec3M; rotationYDeg: number; wallSnap: FurnitureWallSnap | null } => {
   const floor = item.floor ?? project.activeFloor ?? 1;
   const walls = project.walls.filter((wall) => (wall.floor ?? 1) === floor && wall.kind !== "railing");
   const center = wallsCenter(walls);
 
   let nextPosition = { ...position };
   let nextRotationYDeg = item.rotationYDeg;
+  let wallSnap: FurnitureWallSnap | null = null;
 
   if (wallAttachableTypes.has(item.type)) {
     const currentSnap = findWallSnap(item, item.position, walls, center, item.rotationYDeg);
@@ -204,10 +212,13 @@ export const constrainFurniturePlacement = (
 
     if (snap) {
       const ratioPadding = Math.min(0.5, item.size.x * 0.5 / snap.projection.length);
+      const isCentered =
+        Math.abs(snap.projection.ratio - 0.5) * snap.projection.length <= FURNITURE_WALL_CENTER_SNAP_M;
+      const requestedRatio = isCentered ? 0.5 : snap.projection.ratio;
       const ratio =
         ratioPadding < 0.5
-          ? Math.max(ratioPadding, Math.min(1 - ratioPadding, snap.projection.ratio))
-          : snap.projection.ratio;
+          ? Math.max(ratioPadding, Math.min(1 - ratioPadding, requestedRatio))
+          : requestedRatio;
       const x = snap.wall.start.x + (snap.wall.end.x - snap.wall.start.x) * ratio;
       const z = snap.wall.start.z + (snap.wall.end.z - snap.wall.start.z) * ratio;
       const targetDistance = wallTargetDistance(item, snap.wall);
@@ -217,11 +228,13 @@ export const constrainFurniturePlacement = (
         z: z + snap.inward.z * targetDistance
       };
       nextRotationYDeg = (Math.atan2(snap.inward.x, snap.inward.z) * 180) / Math.PI;
+      wallSnap = { wall: snap.wall, inward: snap.inward, isCentered };
     }
   }
 
   return {
     position: constrainAgainstWalls(item, nextPosition, nextRotationYDeg, walls, center),
-    rotationYDeg: nextRotationYDeg
+    rotationYDeg: nextRotationYDeg,
+    wallSnap
   };
 };

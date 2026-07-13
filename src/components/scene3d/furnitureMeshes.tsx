@@ -1,13 +1,17 @@
 import type { ThreeEvent } from "@react-three/fiber";
 import { useThree } from "@react-three/fiber";
-import { useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { RenderDebugMode } from "../../rendering/pathTracer";
 import { useProjectStore } from "../../store/projectStore";
 import type { FurnitureItem, MaterialPreset, Project, Selection } from "../../types";
-import { constrainFurniturePlacement } from "../../utils/furniturePlacement";
+import {
+  constrainFurniturePlacement,
+  FURNITURE_WALL_CENTER_SNAP_M,
+  type FurnitureWallSnap
+} from "../../utils/furniturePlacement";
 import { degToRad } from "../../utils/units";
-import { useEditMode, usePathTraced, usePlacement } from "./contexts";
+import { useEditMode, usePathTraced, usePlacement, useTouchDragGuard } from "./contexts";
 import { resizeBox3D, useFloorDrag, useHandleDrag } from "./dragHooks";
 import { debugColorForRole } from "./materials";
 import { eventObjectHasMarker, ignoreRaycast } from "./raycastUtils";
@@ -69,6 +73,147 @@ const FurnitureResizeHandles = ({ item }: { item: FurnitureItem }) => {
   );
 };
 
+const FurnitureWallGuide = ({
+  wallSnap,
+  horizontal
+}: {
+  wallSnap: FurnitureWallSnap;
+  horizontal: boolean;
+}) => {
+  const { wall, inward } = wallSnap;
+  const faceOffset = wall.thicknessM * 0.5 + 0.006;
+  const start: [number, number, number] = [
+    wall.start.x + inward.x * faceOffset,
+    horizontal ? wall.heightM * 0.5 : 0.02,
+    wall.start.z + inward.z * faceOffset
+  ];
+  const end: [number, number, number] = [
+    wall.end.x + inward.x * faceOffset,
+    horizontal ? wall.heightM * 0.5 : wall.heightM - 0.02,
+    wall.end.z + inward.z * faceOffset
+  ];
+  if (!horizontal) {
+    start[0] = end[0] = (start[0] + end[0]) * 0.5;
+    start[2] = end[2] = (start[2] + end[2]) * 0.5;
+  }
+  const positions = new Float32Array([...start, ...end]);
+  return (
+    <lineSegments raycast={ignoreRaycast} renderOrder={38}>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
+      </bufferGeometry>
+      <lineBasicMaterial color="#f4cf5a" transparent opacity={0.68} depthTest={false} depthWrite={false} />
+    </lineSegments>
+  );
+};
+
+const FurnitureHeightHandle = ({
+  item,
+  wallSnap,
+  onCenterSnapChange
+}: {
+  item: FurnitureItem;
+  wallSnap: FurnitureWallSnap;
+  onCenterSnapChange: (isCentered: boolean) => void;
+}) => {
+  const controls = useThree((state) => state.controls) as { enabled: boolean } | null;
+  const touchGuard = useTouchDragGuard();
+  const updateFurniture = useProjectStore((state) => state.updateFurniture);
+  const floorLevelM = useProjectStore((state) => state.project.room.floorLevelM ?? 0);
+  const minY = item.size.y * 0.5;
+  const maxY = Math.max(minY, wallSnap.wall.heightM - item.size.y * 0.5);
+  const gripOffsetX = item.size.x * 0.5 + 0.22;
+  const rotationY = degToRad(item.rotationYDeg);
+  const gripX = item.position.x + Math.cos(rotationY) * gripOffsetX;
+  const gripZ = item.position.z - Math.sin(rotationY) * gripOffsetX;
+  const dragging = useRef(false);
+  const grabY = useRef(0);
+  const hit = useMemo(() => new THREE.Vector3(), []);
+
+  useEffect(() => {
+    return () => {
+      if (controls) controls.enabled = true;
+    };
+  }, [controls]);
+
+  const heightFromRay = (event: ThreeEvent<PointerEvent>) => {
+    const start = new THREE.Vector3(gripX, floorLevelM + minY, gripZ);
+    const end = new THREE.Vector3(gripX, floorLevelM + maxY, gripZ);
+    event.ray.distanceSqToSegment(start, end, undefined, hit);
+    return hit.y - floorLevelM;
+  };
+
+  const startDrag = (event: ThreeEvent<PointerEvent>) => {
+    if (event.button !== 0) return;
+    if (event.pointerType === "touch" && touchGuard.hasMultiTouch()) return;
+    event.stopPropagation();
+    dragging.current = true;
+    grabY.current = item.position.y - heightFromRay(event);
+    onCenterSnapChange(false);
+    (event.target as Element | null)?.setPointerCapture?.(event.pointerId);
+    if (controls) controls.enabled = false;
+  };
+
+  const stopDrag = (event: ThreeEvent<PointerEvent>) => {
+    if (!dragging.current) return;
+    event.stopPropagation();
+    dragging.current = false;
+    onCenterSnapChange(false);
+    (event.target as Element | null)?.releasePointerCapture?.(event.pointerId);
+    if (controls) controls.enabled = true;
+  };
+
+  const handlePointerMove = (event: ThreeEvent<PointerEvent>) => {
+    if (!dragging.current) return;
+    if (event.pointerType === "touch" && touchGuard.hasMultiTouch()) {
+      stopDrag(event);
+      return;
+    }
+    event.stopPropagation();
+    const boundedY = THREE.MathUtils.clamp(heightFromRay(event) + grabY.current, minY, maxY);
+    const centerY = wallSnap.wall.heightM * 0.5;
+    const isCentered = Math.abs(boundedY - centerY) <= FURNITURE_WALL_CENTER_SNAP_M;
+    const y = isCentered ? centerY : boundedY;
+    onCenterSnapChange(isCentered);
+    updateFurniture(item.id, { position: { ...item.position, y } });
+  };
+
+  const dragHandlers = {
+    onPointerMove: handlePointerMove,
+    onPointerUp: stopDrag,
+    onPointerCancel: stopDrag,
+    onLostPointerCapture: stopDrag
+  };
+
+  return (
+    <group renderOrder={40}>
+      <lineSegments raycast={ignoreRaycast} renderOrder={40}>
+        <bufferGeometry>
+          <bufferAttribute
+            attach="attributes-position"
+            args={[new Float32Array([gripOffsetX, minY - item.position.y, 0, gripOffsetX, maxY - item.position.y, 0]), 3]}
+          />
+        </bufferGeometry>
+        <lineBasicMaterial color="#7fd6ff" />
+      </lineSegments>
+      <group position={[gripOffsetX, 0, 0]} userData={{ dragHandle: true }}>
+        <mesh onPointerDown={startDrag} {...dragHandlers} renderOrder={41}>
+          <sphereGeometry args={[0.065, 18, 12]} />
+          <meshBasicMaterial color="#7fd6ff" transparent opacity={0.95} depthTest={false} />
+        </mesh>
+        <mesh position={[0, 0.12, 0]} onPointerDown={startDrag} {...dragHandlers} renderOrder={41}>
+          <coneGeometry args={[0.05, 0.1, 18]} />
+          <meshBasicMaterial color="#7fd6ff" transparent opacity={0.85} depthTest={false} />
+        </mesh>
+        <mesh position={[0, -0.12, 0]} rotation-x={Math.PI} onPointerDown={startDrag} {...dragHandlers} renderOrder={41}>
+          <coneGeometry args={[0.05, 0.1, 18]} />
+          <meshBasicMaterial color="#7fd6ff" transparent opacity={0.85} depthTest={false} />
+        </mesh>
+      </group>
+    </group>
+  );
+};
+
 export const FurnitureMesh = ({
   project,
   item,
@@ -94,6 +239,10 @@ export const FurnitureMesh = ({
   const updateFurniture = useProjectStore((state) => state.updateFurniture);
   const deleteSelection = useProjectStore((state) => state.deleteSelection);
   const floorLevelM = useProjectStore((state) => state.project.room.floorLevelM ?? 0);
+  const [lateralGuide, setLateralGuide] = useState<FurnitureWallSnap | null>(null);
+  const [heightGuide, setHeightGuide] = useState<FurnitureWallSnap | null>(null);
+  const tvWallSnap =
+    selected && item.type === "tv" ? constrainFurniturePlacement(project, item, item.position).wallSnap : null;
   // 選択済みオブジェクトの再クリックで選択解除するトグル判定用。実際にドラッグが
   // 発生した場合（=移動操作）は解除しない、クリックのみ(移動なし)の時だけ解除する。
   const wasSelectedRef = useRef(false);
@@ -105,69 +254,83 @@ export const FurnitureMesh = ({
     (x, z) => {
       movedRef.current = true;
       const next = constrainFurniturePlacement(project, item, { ...item.position, x, z });
+      setLateralGuide(next.wallSnap?.isCentered ? next.wallSnap : null);
       updateFurniture(item.id, { position: next.position, rotationYDeg: next.rotationYDeg });
-    }
+    },
+    () => setLateralGuide(null)
   );
 
   return (
-    <group
-      position={[item.position.x, item.position.y, item.position.z]}
-      rotation={[0, degToRad(item.rotationYDeg), 0]}
-      // 外壁越しに奥のこのオブジェクトを選べるよう、選択可能マーカーを付与。
-      userData={{ selectable: true }}
-      onPointerDown={(event: ThreeEvent<PointerEvent>) => {
-        const hitFurnitureBody = eventObjectHasMarker(event, "furnitureBody");
-        // 配置中は家具の上に重ねて置けるよう、床キャッチャーへ素通りさせる。
-        if (placement.pendingAdd) return;
-        // 手前の家具をクリックしたら確定（背後の壁へ選択が伝播するのを止める）。
-        event.stopPropagation();
-        if (editMode === "delete") {
-          deleteSelection({ kind: "furniture", id: item.id });
-          return;
+    <>
+      {selected && !pathTraced && lateralGuide && <FurnitureWallGuide wallSnap={lateralGuide} horizontal={false} />}
+      {selected && !pathTraced && heightGuide && <FurnitureWallGuide wallSnap={heightGuide} horizontal />}
+      <group
+        position={[item.position.x, item.position.y, item.position.z]}
+        rotation={[0, degToRad(item.rotationYDeg), 0]}
+        // 外壁越しに奥のこのオブジェクトを選べるよう、選択可能マーカーを付与。
+        userData={{ selectable: true }}
+        onPointerDown={(event: ThreeEvent<PointerEvent>) => {
+          const hitFurnitureBody = eventObjectHasMarker(event, "furnitureBody");
+          // 配置中は家具の上に重ねて置けるよう、床キャッチャーへ素通りさせる。
+          if (placement.pendingAdd) return;
+          // 手前の家具をクリックしたら確定（背後の壁へ選択が伝播するのを止める）。
+          event.stopPropagation();
+          if (editMode === "delete") {
+            deleteSelection({ kind: "furniture", id: item.id });
+            return;
+          }
+          wasSelectedRef.current = selected;
+          movedRef.current = false;
+          if (!selected) onSelect({ kind: "furniture", id: item.id });
+          if (editMode === "select" && selected && hitFurnitureBody) drag.onPointerDown(event);
+        }}
+        onPointerMove={editMode === "select" ? drag.onPointerMove : undefined}
+        onPointerUp={
+          editMode === "select"
+            ? (event: ThreeEvent<PointerEvent>) => {
+                drag.onPointerUp(event);
+                // 移動を伴わないクリックで、既に選択中の家具を再選択しようとした場合のみ解除する。
+                if (wasSelectedRef.current && !movedRef.current) onSelect(null);
+                wasSelectedRef.current = false;
+              }
+            : undefined
         }
-        wasSelectedRef.current = selected;
-        movedRef.current = false;
-        if (!selected) onSelect({ kind: "furniture", id: item.id });
-        if (editMode === "select" && selected && hitFurnitureBody) drag.onPointerDown(event);
-      }}
-      onPointerMove={editMode === "select" ? drag.onPointerMove : undefined}
-      onPointerUp={
-        editMode === "select"
-          ? (event: ThreeEvent<PointerEvent>) => {
-              drag.onPointerUp(event);
-              // 移動を伴わないクリックで、既に選択中の家具を再選択しようとした場合のみ解除する。
-              if (wasSelectedRef.current && !movedRef.current) onSelect(null);
-              wasSelectedRef.current = false;
-            }
-          : undefined
-      }
-      onPointerCancel={
-        editMode === "select"
-          ? (event: ThreeEvent<PointerEvent>) => {
-              drag.onPointerCancel(event);
-              wasSelectedRef.current = false;
-            }
-          : undefined
-      }
-    >
-      <group userData={{ furnitureBody: true }}>
-        <FurniturePrimitive
-          item={item}
-          color={debugColorForRole("furniture", debugMode, color)}
-          roughness={roughness}
-          metalness={debugMode === "beauty" ? metalness : 0}
-        />
+        onPointerCancel={
+          editMode === "select"
+            ? (event: ThreeEvent<PointerEvent>) => {
+                drag.onPointerCancel(event);
+                wasSelectedRef.current = false;
+              }
+            : undefined
+        }
+        onLostPointerCapture={editMode === "select" ? drag.onLostPointerCapture : undefined}
+      >
+        <group userData={{ furnitureBody: true }}>
+          <FurniturePrimitive
+            item={item}
+            color={debugColorForRole("furniture", debugMode, color)}
+            roughness={roughness}
+            metalness={debugMode === "beauty" ? metalness : 0}
+          />
+        </group>
+        {selected && !pathTraced && (
+          <>
+            <mesh raycast={ignoreRaycast}>
+              <boxGeometry args={[item.size.x + 0.08, item.size.y + 0.08, item.size.z + 0.08]} />
+              <meshBasicMaterial color="#f5c64d" wireframe transparent opacity={0.9} />
+            </mesh>
+            <FurnitureResizeHandles item={item} />
+            {item.type === "tv" && tvWallSnap && (
+              <FurnitureHeightHandle
+                item={item}
+                wallSnap={tvWallSnap}
+                onCenterSnapChange={(isCentered) => setHeightGuide(isCentered ? tvWallSnap : null)}
+              />
+            )}
+          </>
+        )}
       </group>
-      {selected && !pathTraced && (
-        <>
-          <mesh raycast={ignoreRaycast}>
-            <boxGeometry args={[item.size.x + 0.08, item.size.y + 0.08, item.size.z + 0.08]} />
-            <meshBasicMaterial color="#f5c64d" wireframe transparent opacity={0.9} />
-          </mesh>
-          <FurnitureResizeHandles item={item} />
-        </>
-      )}
-    </group>
+    </>
   );
 };
 

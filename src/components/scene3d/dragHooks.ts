@@ -9,7 +9,8 @@ import { useTouchDragGuard } from "./contexts";
 export const useFloorDrag = (
   current: { x: number; z: number },
   floorY: number,
-  onMove: (x: number, z: number) => void
+  onMove: (x: number, z: number) => void,
+  onEnd?: () => void
 ) => {
   const controls = useThree((state) => state.controls) as { enabled: boolean } | null;
   const touchGuard = useTouchDragGuard();
@@ -22,6 +23,7 @@ export const useFloorDrag = (
     dragging.current = false;
     (event.target as Element | null)?.releasePointerCapture?.(event.pointerId);
     if (controls) controls.enabled = true;
+    onEnd?.();
   };
 
   return {
@@ -50,6 +52,9 @@ export const useFloorDrag = (
       stopDrag(event);
     },
     onPointerCancel: (event: ThreeEvent<PointerEvent>) => {
+      stopDrag(event);
+    },
+    onLostPointerCapture: (event: ThreeEvent<PointerEvent>) => {
       stopDrag(event);
     }
   };
