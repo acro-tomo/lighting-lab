@@ -250,9 +250,9 @@ export const FurnitureMesh = ({
     { x: item.position.x, z: item.position.z },
     // 家具は floorLevelM 群に乗るのでドラッグ平面も同量持ち上げる（floorLevelM=0で従来同一）。
     floorLevelM + item.position.y,
-    (x, z) => {
+    (x, z, pointer) => {
       movedRef.current = true;
-      const next = constrainFurniturePlacement(project, item, { ...item.position, x, z });
+      const next = constrainFurniturePlacement(project, item, { ...item.position, x, z }, pointer);
       updateFurniture(item.id, { position: next.position, rotationYDeg: next.rotationYDeg });
     }
   );

@@ -134,6 +134,30 @@ const findWallSnap = (
   return snap;
 };
 
+const findWallSnapAtPointer = (
+  position: Vec3M,
+  pointer: Vec2M,
+  walls: WallSegment[],
+  center: Vec2M
+): WallSnap | null => {
+  let snap: WallSnap | null = null;
+
+  for (const wall of walls) {
+    const pointerProjection = projectOntoWall(pointer, wall);
+    if (!pointerProjection) continue;
+    const pointerDistance = Math.hypot(pointer.x - pointerProjection.x, pointer.z - pointerProjection.z);
+    if (pointerDistance > FURNITURE_WALL_SNAP_M) continue;
+    const projection = projectOntoWall(position, wall);
+    if (!projection) continue;
+    const inward = wallInwardNormal(wall, center);
+    if (!snap || pointerDistance < snap.distanceError) {
+      snap = { wall, projection, inward, distanceError: pointerDistance };
+    }
+  }
+
+  return snap;
+};
+
 const keepCurrentWallSnap = (
   item: FurnitureItem,
   position: Vec3M,
@@ -193,7 +217,8 @@ const constrainAgainstWalls = (
 export const constrainFurniturePlacement = (
   project: Project,
   item: FurnitureItem,
-  position: Vec3M
+  position: Vec3M,
+  snapPointer?: Vec2M
 ): { position: Vec3M; rotationYDeg: number; wallSnap: FurnitureWallSnap | null } => {
   const floor = item.floor ?? project.activeFloor ?? 1;
   const walls = project.walls.filter((wall) => (wall.floor ?? 1) === floor && wall.kind !== "railing");
@@ -204,10 +229,11 @@ export const constrainFurniturePlacement = (
   let wallSnap: FurnitureWallSnap | null = null;
 
   if (wallAttachableTypes.has(item.type)) {
-    const currentSnap = findWallSnap(item, item.position, walls, center, item.rotationYDeg);
-    const snap =
-      (currentSnap && keepCurrentWallSnap(item, position, currentSnap.wall, center)) ??
-      findWallSnap(item, position, walls, center, nextRotationYDeg);
+    const currentSnap = snapPointer ? null : findWallSnap(item, item.position, walls, center, item.rotationYDeg);
+    const snap = snapPointer
+      ? findWallSnapAtPointer(position, snapPointer, walls, center)
+      : (currentSnap && keepCurrentWallSnap(item, position, currentSnap.wall, center)) ??
+        findWallSnap(item, position, walls, center, nextRotationYDeg);
 
     if (snap) {
       const ratioPadding = Math.min(0.5, item.size.x * 0.5 / snap.projection.length);

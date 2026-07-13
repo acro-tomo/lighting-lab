@@ -9,7 +9,7 @@ import { useTouchDragGuard } from "./contexts";
 export const useFloorDrag = (
   current: { x: number; z: number },
   floorY: number,
-  onMove: (x: number, z: number) => void,
+  onMove: (x: number, z: number, pointer: { x: number; z: number }) => void,
   onEnd?: () => void
 ) => {
   const controls = useThree((state) => state.controls) as { enabled: boolean } | null;
@@ -45,7 +45,7 @@ export const useFloorDrag = (
         return;
       }
       if (event.ray.intersectPlane(plane, hit)) {
-        onMove(hit.x + grab.current.x, hit.z + grab.current.z);
+        onMove(hit.x + grab.current.x, hit.z + grab.current.z, { x: hit.x, z: hit.z });
       }
     },
     onPointerUp: (event: ThreeEvent<PointerEvent>) => {

@@ -531,7 +531,8 @@ export const usePlanPointerGestures = ({
       return;
     }
 
-    const point = snapPoint(svgToWorld(event.clientX, event.clientY));
+    const pointer = svgToWorld(event.clientX, event.clientY);
+    const point = snapPoint(pointer);
 
     const next = {
       x: point.x - dragging.offset.x,
@@ -541,7 +542,12 @@ export const usePlanPointerGestures = ({
     if (dragging.kind === "furniture") {
       const item = project.furniture.find((candidate) => candidate.id === dragging.id);
       if (!item) return;
-      const placement = constrainFurniturePlacement(project, item, { ...item.position, x: next.x, z: next.z });
+      const placement = constrainFurniturePlacement(
+        project,
+        item,
+        { ...item.position, x: next.x, z: next.z },
+        pointer
+      );
       updateFurniture(item.id, {
         position: placement.position,
         rotationYDeg: placement.rotationYDeg
