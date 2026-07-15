@@ -33,6 +33,7 @@ import { findLightReflections, type ReflectiveSurface } from './photometry/refle
 import { disposeScreenReflectors, SCREEN_MESH_NAME } from './render/screenReflector';
 import { IndirectController } from './app/indirect';
 import { AdaptiveQuality } from './app/adaptiveQuality';
+import { PathTraceRunner } from './pathtrace/ptRunner';
 import { createRadianceScene } from './render/radianceScene';
 import { IndirectLightingGpu, injectIndirect } from './render/indirectLighting';
 import type { IndirectIlluminanceProvider } from './photometry/illuminance';
@@ -67,6 +68,55 @@ interface App {
   indirectGpu: IndirectLightingGpu;
   /** 間接光を描画に反映するか */
   indirectRenderOn: boolean;
+  pt: PathTraceRunner;
+  /** 停止時にパストレースを自動開始するか */
+  ptAuto: boolean;
+  ptIdleTimer: number;
+}
+
+/** パストレースを開始する（現在のカメラ・シーン・露出で） */
+function startPathTrace(app: App): void {
+  if (app.pt.isActive) return;
+  const viewport = document.getElementById('viewport')!;
+  const architecture = app.scene.getObjectByName('architecture')!;
+  void app.pt.start({
+    model: app.model,
+    displayRoots: [architecture, app.furnitureGroup, app.lightsGroup],
+    resolveDistribution: (lum) => resolveIes(lum.preset),
+    camera: {
+      fov: app.camera.fov,
+      aspect: viewport.clientWidth / viewport.clientHeight,
+      position: app.camera.position,
+      quaternion: app.camera.quaternion,
+    },
+    width: viewport.clientWidth,
+    height: viewport.clientHeight,
+    toneMappingExposure: app.renderer.three.toneMappingExposure,
+  });
+}
+
+/** 操作を検知したらPTを止め、停止後に自動再開をスケジュール */
+function markInteraction(app: App): void {
+  if (app.pt.isActive) {
+    app.pt.stop();
+    updatePtStatus(app);
+  }
+  window.clearTimeout(app.ptIdleTimer);
+  if (app.ptAuto) {
+    app.ptIdleTimer = window.setTimeout(() => startPathTrace(app), 1500);
+  }
+}
+
+function updatePtStatus(app: App): void {
+  const statusEl = document.getElementById('pt-status');
+  if (!statusEl) return;
+  statusEl.textContent = app.pt.isActive
+    ? app.pt.samples > 0
+      ? `収束中: ${app.pt.samples} サンプル（操作すると編集ビューに戻ります）`
+      : 'シーン構築中…'
+    : app.ptAuto
+      ? '待機中（操作停止1.5秒後に開始）'
+      : '停止';
 }
 
 /** 照度計算に使う間接光プロバイダ（係数コミット済みかつ加算ONのときだけ） */
@@ -330,6 +380,8 @@ function buildPanel(app: App): void {
     evInput.addEventListener('input', () => {
       app.renderer.setExposureEv(Number(evInput.value));
       evOut.textContent = `${Number(evInput.value).toFixed(1)}EV`;
+      // PTは露出をトーンマップ時に適用するため再収束なしで追従できる
+      app.pt.setExposure(app.renderer.three.toneMappingExposure);
     });
     evRow.append(el('label', { text: '固定露出' }), evInput, evOut);
 
@@ -499,6 +551,47 @@ function buildPanel(app: App): void {
     );
     panel.append(giSection);
     updateIndirectStatus(app);
+
+    // 高品質レンダー（Phase 3: 停止時パストレース）
+    const ptSection = el('div', { class: 'section' });
+    ptSection.append(el('h2', { text: '高品質レンダー（停止時パストレース）' }));
+
+    const ptAutoRow = el('div', { class: 'row' });
+    const ptAutoCheck = el('input', { type: 'checkbox' });
+    ptAutoCheck.checked = app.ptAuto;
+    ptAutoCheck.addEventListener('change', () => {
+      app.ptAuto = ptAutoCheck.checked;
+      if (!app.ptAuto) {
+        window.clearTimeout(app.ptIdleTimer);
+        app.pt.stop();
+      } else {
+        markInteraction(app);
+      }
+      updatePtStatus(app);
+    });
+    ptAutoRow.append(el('label', { text: '停止時に自動開始' }), ptAutoCheck);
+
+    const ptBtnRow = el('div', { class: 'row' });
+    const ptStartBtn = el('button', { text: '今すぐ開始' });
+    ptStartBtn.addEventListener('click', () => {
+      window.clearTimeout(app.ptIdleTimer);
+      startPathTrace(app);
+    });
+    const ptSaveBtn = el('button', { text: 'PNG保存' });
+    ptSaveBtn.addEventListener('click', () => app.pt.savePng('photometric-render.png'));
+    ptBtnRow.append(ptStartBtn, ptSaveBtn);
+
+    ptSection.append(
+      ptAutoRow,
+      ptBtnRow,
+      el('p', { class: 'disclaimer', id: 'pt-status' }),
+      el('p', {
+        class: 'disclaimer',
+        text: 'フル物理GI（NEE+MIS・4バウンス・発光面サイズのソフトシャドウ）。同一シーン・同一露出・PBR Neutralで漸進収束します。照度[lx]計算とは独立です。',
+      }),
+    );
+    panel.append(ptSection);
+    updatePtStatus(app);
 
     // 器具
     const lumSection = el('div', { class: 'section' });
@@ -720,6 +813,7 @@ function setupPointerEditing(app: App, rerenderPanel: () => void): void {
   };
 
   canvas.addEventListener('pointerdown', (event) => {
+    markInteraction(app);
     downAt = { x: event.clientX, y: event.clientY };
     pick(event);
     // 発光面ディスク → 器具、表示メッシュ → 家具
@@ -943,6 +1037,9 @@ async function init(): Promise<void> {
     indirect,
     indirectGpu,
     indirectRenderOn: true,
+    pt: new PathTraceRunner(document.getElementById('viewport')!, () => updatePtStatus(app)),
+    ptAuto: true,
+    ptIdleTimer: 0,
   };
   app.probeMarker.visible = false;
   app.probeMarker.name = 'probe-marker';
@@ -951,6 +1048,15 @@ async function init(): Promise<void> {
   scene.add(app.reflectionMarkers);
   app.onSceneEdited.push(() => scheduleHeatmapUpdate(app));
   app.onSceneEdited.push((kind) => app.indirect.invalidate(kind));
+  app.onSceneEdited.push(() => markInteraction(app));
+
+  // カメラ操作でPTを止め、止まったら再開をスケジュール
+  controls.addEventListener('start', () => {
+    app.pt.stop();
+    window.clearTimeout(app.ptIdleTimer);
+    updatePtStatus(app);
+  });
+  controls.addEventListener('end', () => markInteraction(app));
 
   rebuildLights(app);
   buildHud(app);
@@ -995,8 +1101,12 @@ async function init(): Promise<void> {
     }
   });
 
+  // 起動直後も停止時PTを備える
+  markInteraction(app);
+
   // 検証スクリプト用（UIからは使わない）
   (window as unknown as { __app: App }).__app = app;
+  (window as unknown as { __startPt: () => void }).__startPt = () => startPathTrace(app);
 }
 
 init().catch((error) => {
