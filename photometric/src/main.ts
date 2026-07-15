@@ -8,7 +8,7 @@
 import * as THREE from 'three/webgpu';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import './styles.css';
-import type { FixturePreset, Furniture, Luminaire, SceneModel } from './core/types';
+import type { FixturePreset, Furniture, Luminaire, SceneModel, Vec3 } from './core/types';
 import { createRenderer, type RendererHandle } from './render/renderer';
 import { buildArchitecture, buildFurniture, planBounds } from './render/sceneBuilder';
 import { buildLuminaire, planToWorld, type BuiltLuminaire } from './render/lights';
@@ -29,6 +29,7 @@ import { pointInPolygon } from './core/room';
 import { vec3 } from './core/vec3';
 import { overlayColorMaterial, syncOverlayExposure } from './render/overlayMaterial';
 import { createClipWarningPipeline, type ClipWarningPipeline } from './render/clipWarning';
+import { findLightReflections, type ReflectiveSurface } from './photometry/reflection';
 
 interface App {
   renderer: RendererHandle;
@@ -52,6 +53,8 @@ interface App {
   heatmap: HeatmapState;
   probeMarker: THREE.Mesh;
   clipWarning: { enabled: boolean; pipeline: ClipWarningPipeline | null };
+  /** 映り込み判定の反射点マーカー */
+  reflectionMarkers: THREE.Group;
 }
 
 interface HeatmapState {
@@ -341,13 +344,17 @@ function buildPanel(app: App): void {
     sofaBtn.addEventListener('click', () => setReflectionViewpoint(app));
     const homeBtn = el('button', { text: '俯瞰' });
     homeBtn.addEventListener('click', () => setHomeViewpoint(app));
+    const recheckBtn = el('button', { text: '現在の視点で再判定' });
+    recheckBtn.addEventListener('click', () => runReflectionCheck(app));
     vpRow.append(sofaBtn, homeBtn);
     viewpointSection.append(
       vpRow,
+      el('div', { class: 'row' }, [recheckBtn]),
       el('p', {
         class: 'disclaimer',
-        text: '低Roughness面（消灯TV画面など）への光源の映り込みを目視確認するモードです。',
+        text: '低Roughness面（消灯TV画面など）への光源の映り込みを確認するモードです。映り込みの有無は測光データ（鏡像＋配光＋遮蔽）で判定します。',
       }),
+      el('p', { class: 'disclaimer', id: 'reflection-result' }),
     );
     panel.append(viewpointSection);
 
@@ -475,6 +482,78 @@ function buildPanel(app: App): void {
 
 /* ------------------------------ 視点プリセット ------------------------------ */
 
+/** 最も Roughness の低い家具 = 反射確認の対象（TV等） */
+function reflectionTarget(app: App): Furniture | undefined {
+  return [...app.model.furniture].sort(
+    (a, b) => a.material.roughness - b.material.roughness,
+  )[0];
+}
+
+/** 家具の視点側の面を鏡面矩形として構成する */
+function reflectiveSurfaceFor(item: Furniture, eye: Vec3): ReflectiveSurface {
+  const r = (item.rotationDeg * Math.PI) / 180;
+  const uPlan = { x: Math.cos(r), y: Math.sin(r) };
+  let nPlan = { x: -Math.sin(r), y: Math.cos(r) };
+  // 視点側を向く方の面を選ぶ
+  const eyePlan = { x: eye.x, y: -eye.z };
+  const toEye = {
+    x: eyePlan.x - item.position.x,
+    y: eyePlan.y - item.position.y,
+  };
+  if (toEye.x * nPlan.x + toEye.y * nPlan.y < 0) {
+    nPlan = { x: -nPlan.x, y: -nPlan.y };
+  }
+  const offset = item.size.d / 2 + 0.002;
+  const centerPlan = {
+    x: item.position.x + nPlan.x * offset,
+    y: item.position.y + nPlan.y * offset,
+  };
+  return {
+    center: vec3(centerPlan.x, item.elevation + item.size.h / 2, -centerPlan.y),
+    normal: vec3(nPlan.x, 0, -nPlan.y),
+    uAxis: vec3(uPlan.x, 0, -uPlan.y),
+    vAxis: vec3(0, 1, 0),
+    halfU: item.size.w / 2,
+    halfV: item.size.h / 2,
+  };
+}
+
+/**
+ * 現在のカメラ位置から、反射対象面に映り込む光源を測光データで判定し、
+ * 結果テキストと反射点マーカーを更新する。目視（黒い画面）に頼らず
+ * 「グレアなし」と「映り込みあり」を区別できるようにする。
+ */
+function runReflectionCheck(app: App): void {
+  const resultEl = document.getElementById('reflection-result');
+  app.reflectionMarkers.clear();
+  const target = reflectionTarget(app);
+  if (!resultEl) return;
+  if (!target) {
+    resultEl.textContent = '反射対象の家具がありません。';
+    return;
+  }
+  const eye = vec3(app.camera.position.x, app.camera.position.y, app.camera.position.z);
+  const surface = reflectiveSurfaceFor(target, eye);
+  const lights = app.builtLuminaires.map((b) => b.photometric);
+  const hits = findLightReflections(eye, surface, lights, app.occlusion);
+  if (hits.length === 0) {
+    resultEl.textContent =
+      `判定: この視点で「${target.name}」に映り込む光源はありません（グレアなし）。` +
+      '明るい床・壁の像は間接光が必要なため本フェーズでは表示されません。';
+    return;
+  }
+  const names = hits.map((h) => app.model.luminaires[h.lightIndex]?.id ?? '?');
+  resultEl.textContent = `判定: 「${target.name}」に映り込む光源 → ${names.join(', ')}（面上の●が反射点）`;
+  for (const hit of hits) {
+    const marker = new THREE.Mesh(
+      new THREE.SphereGeometry(0.025, 12, 8),
+      overlayColorMaterial(1.0, 0.72, 0.1),
+    );
+    marker.position.set(hit.point.x, hit.point.y, hit.point.z);
+    app.reflectionMarkers.add(marker);
+  }
+}
+
 /**
  * 反射確認モード: 目線高さの視点カメラから、低Roughnessの反射性オブジェクト
  * （例: 消灯TV画面）への光源の映り込みを確認する。
@@ -482,10 +561,7 @@ function buildPanel(app: App): void {
 function setReflectionViewpoint(app: App): void {
   const eyeHeight = 1.15; // 座位の目線高さ
   const sofa = app.model.furniture.find((f) => f.id === 'sofa');
-  // 最も Roughness の低い家具を注視対象にする（TV等）
-  const target = [...app.model.furniture].sort(
-    (a, b) => a.material.roughness - b.material.roughness,
-  )[0];
+  const target = reflectionTarget(app);
   if (!target) return;
   const eye = sofa
     ? planToWorld(sofa.position, eyeHeight)
@@ -494,6 +570,7 @@ function setReflectionViewpoint(app: App): void {
   app.camera.position.set(eye.x, eye.y, eye.z);
   app.controls.target.set(look.x, look.y, look.z);
   app.controls.update();
+  runReflectionCheck(app);
 }
 
 function setHomeViewpoint(app: App): void {
@@ -717,10 +794,13 @@ async function init(): Promise<void> {
       overlayColorMaterial(0.95, 0.95, 0.98),
     ),
     clipWarning: { enabled: false, pipeline: null },
+    reflectionMarkers: new THREE.Group(),
   };
   app.probeMarker.visible = false;
   app.probeMarker.name = 'probe-marker';
   scene.add(app.probeMarker);
+  app.reflectionMarkers.name = 'reflection-markers';
+  scene.add(app.reflectionMarkers);
   app.onSceneEdited.push(() => scheduleHeatmapUpdate(app));
 
   rebuildLights(app);
