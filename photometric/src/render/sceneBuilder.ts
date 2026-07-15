@@ -10,7 +10,7 @@
  *   将来差し替えても両系の遮蔽は変化しない。
  */
 import * as THREE from 'three/webgpu';
-import { srgbTripletToLinear } from '../core/color';
+import { albedoLinear } from '../core/color';
 import {
   boundingBox,
   ceilingHeightAt,
@@ -35,9 +35,10 @@ export interface BuiltFurniture {
   displayMeshes: THREE.Mesh[];
 }
 
-export function toMaterial(params: MaterialParams): THREE.MeshPhysicalMaterial {
+export function toMaterial(params: MaterialParams): THREE.MeshPhysicalNodeMaterial {
   const [r, g, b] = params.baseColor;
-  const material = new THREE.MeshPhysicalMaterial({
+  // NodeMaterial: 間接光（emissiveNode 注入）に対応するため
+  const material = new THREE.MeshPhysicalNodeMaterial({
     roughness: params.roughness,
     metalness: params.metallic,
     side: params.doubleSided ? THREE.DoubleSide : THREE.FrontSide,
@@ -125,6 +126,7 @@ export function buildArchitecture(model: SceneModel): BuiltArchitecture {
   floorMesh.name = 'floor';
   floorMesh.receiveShadow = true;
   floorMesh.castShadow = true;
+  floorMesh.userData.albedoLinear = albedoLinear(model.surfaces.floor);
   group.add(floorMesh);
   occluders.push(floorMesh);
 
@@ -137,6 +139,7 @@ export function buildArchitecture(model: SceneModel): BuiltArchitecture {
   baseCeiling.name = 'ceiling';
   baseCeiling.receiveShadow = true;
   baseCeiling.castShadow = true;
+  baseCeiling.userData.albedoLinear = albedoLinear(model.surfaces.ceiling);
   group.add(baseCeiling);
   occluders.push(baseCeiling);
 
@@ -149,6 +152,7 @@ export function buildArchitecture(model: SceneModel): BuiltArchitecture {
     upper.name = 'ceiling-override';
     upper.receiveShadow = true;
     upper.castShadow = true;
+    upper.userData.albedoLinear = albedoLinear(model.surfaces.ceiling);
     group.add(upper);
     occluders.push(upper);
 
@@ -159,12 +163,13 @@ export function buildArchitecture(model: SceneModel): BuiltArchitecture {
       if (edgeOnOutline(a, b, outline)) continue; // 外周壁が既にカバー
       const rim = new THREE.Mesh(
         wallQuad(a, b, plan.ceilingHeight, override.height),
-        new THREE.MeshPhysicalMaterial().copy(wallMaterial),
+        new THREE.MeshPhysicalNodeMaterial().copy(wallMaterial),
       );
       rim.material.side = THREE.DoubleSide;
       rim.name = 'void-rim-wall';
       rim.receiveShadow = true;
       rim.castShadow = true;
+      rim.userData.albedoLinear = albedoLinear(model.surfaces.wall);
       group.add(rim);
       occluders.push(rim);
     }
@@ -176,6 +181,7 @@ export function buildArchitecture(model: SceneModel): BuiltArchitecture {
     wall.name = 'wall';
     wall.receiveShadow = true;
     wall.castShadow = true;
+    wall.userData.albedoLinear = albedoLinear(model.surfaces.wall);
     group.add(wall);
     occluders.push(wall);
   }
@@ -219,6 +225,7 @@ export function buildFurniture(items: readonly Furniture[]): BuiltFurniture {
     const occluder = new THREE.Mesh(furnitureBoxGeometry(item), occluderMaterial);
     occluder.name = `furniture-occluder:${item.id}`;
     occluder.castShadow = true;
+    occluder.userData.albedoLinear = albedoLinear(item.material);
     placeFurnitureMesh(occluder, item);
     group.add(occluder);
     occluders.push(occluder);

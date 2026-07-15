@@ -31,6 +31,11 @@ import { overlayColorMaterial, syncOverlayExposure } from './render/overlayMater
 import { createClipWarningPipeline, type ClipWarningPipeline } from './render/clipWarning';
 import { findLightReflections, type ReflectiveSurface } from './photometry/reflection';
 import { disposeScreenReflectors, SCREEN_MESH_NAME } from './render/screenReflector';
+import { IndirectController } from './app/indirect';
+import { AdaptiveQuality } from './app/adaptiveQuality';
+import { createRadianceScene } from './render/radianceScene';
+import { IndirectLightingGpu, injectIndirect } from './render/indirectLighting';
+import type { IndirectIlluminanceProvider } from './photometry/illuminance';
 
 interface App {
   renderer: RendererHandle;
@@ -50,7 +55,7 @@ interface App {
   ambient: THREE.AmbientLight;
   selectedLuminaireId: string | null;
   selectedFurnitureId: string | null;
-  onSceneEdited: (() => void)[];
+  onSceneEdited: ((kind: 'lights' | 'geometry') => void)[];
   heatmap: HeatmapState;
   probeMarker: THREE.Mesh;
   clipWarning: { enabled: boolean; pipeline: ClipWarningPipeline | null };
@@ -58,6 +63,17 @@ interface App {
   reflectionMarkers: THREE.Group;
   /** 平面反射スクリーンの表示（表示のみ・照度に不関与） */
   screenReflectionsOn: boolean;
+  indirect: IndirectController;
+  indirectGpu: IndirectLightingGpu;
+  /** 間接光を描画に反映するか */
+  indirectRenderOn: boolean;
+}
+
+/** 照度計算に使う間接光プロバイダ（係数コミット済みかつ加算ONのときだけ） */
+function activeIndirectProvider(app: App): IndirectIlluminanceProvider | undefined {
+  return app.indirect.includeInLx && app.indirect.field?.isReady
+    ? app.indirect.field
+    : undefined;
 }
 
 interface HeatmapState {
@@ -111,7 +127,7 @@ function rebuildLights(app: App): void {
     buildLuminaire(lum, resolveIes(lum.preset)),
   );
   for (const built of app.builtLuminaires) app.lightsGroup.add(built.group);
-  notifyEdited(app);
+  notifyEdited(app, 'lights');
 }
 
 function applyScreenReflectionVisibility(app: App): void {
@@ -135,12 +151,14 @@ function rebuildFurniture(app: App): void {
   app.furnitureOccluders = built.occluders;
   app.scene.add(app.furnitureGroup);
   applyScreenReflectionVisibility(app);
+  // 家具マテリアルが作り直されるため、間接光ノードを再注入
+  if (app.indirectGpu?.isAllocated) injectIndirect(app.furnitureGroup, app.indirectGpu);
   app.occlusion = createRaycastOcclusion([...app.architectureOccluders, ...app.furnitureOccluders]);
-  notifyEdited(app);
+  notifyEdited(app, 'geometry');
 }
 
-function notifyEdited(app: App): void {
-  for (const cb of app.onSceneEdited) cb();
+function notifyEdited(app: App, kind: 'lights' | 'geometry'): void {
+  for (const cb of app.onSceneEdited) cb(kind);
 }
 
 /* -------------------------------- ヒートマップ ------------------------------- */
@@ -169,6 +187,8 @@ function updateHeatmapNow(app: App): void {
     app.builtLuminaires.map((b) => b.photometric),
     app.occlusion,
     app.heatmap.height,
+    undefined,
+    activeIndirectProvider(app),
   );
   app.heatmap.lastComputeMs = performance.now() - start;
   app.heatmap.grid = grid;
@@ -188,12 +208,13 @@ function updateHeatmapStats(app: App): void {
   const statsEl = document.getElementById('heatmap-stats');
   if (!statsEl) return;
   const grid = app.heatmap.grid;
+  const label = activeIndirectProvider(app)
+    ? '直接＋間接照度（プローブ近似）'
+    : '直接照度のみ';
   statsEl.textContent = grid
-    ? `平均 ${grid.mean.toFixed(0)}lx / 最小 ${grid.min.toFixed(0)}lx / 最大 ${grid.max.toFixed(0)}lx （計算 ${app.heatmap.lastComputeMs.toFixed(0)}ms・${GRID_LABEL}）`
+    ? `平均 ${grid.mean.toFixed(0)}lx / 最小 ${grid.min.toFixed(0)}lx / 最大 ${grid.max.toFixed(0)}lx （計算 ${app.heatmap.lastComputeMs.toFixed(0)}ms・${label}・グリッド0.15m）`
     : '';
 }
-
-const GRID_LABEL = `直接照度・グリッド0.15m`;
 
 /* ----------------------------------- UI ----------------------------------- */
 
@@ -203,7 +224,8 @@ function buildHud(app: App): void {
     el('div', { class: 'hud-badge', id: 'hud-backend', text: `レンダラー: ${app.renderer.backend === 'webgpu' ? 'WebGPU' : 'WebGL2'}` }),
     el('div', {
       class: 'hud-badge warn',
-      text: 'Phase 1: 直接照度のみ（間接光は未実装・環境光は見た目用で照度に含めません）',
+      id: 'hud-phase',
+      text: 'Phase 1: 直接照度のみ',
     }),
   );
 }
@@ -435,6 +457,49 @@ function buildPanel(app: App): void {
     panel.append(heatSection);
     updateHeatmapStats(app);
 
+    // 間接光（Phase 2: Irradiance Probe）
+    const giSection = el('div', { class: 'section' });
+    giSection.append(el('h2', { text: '間接光（Irradiance Probe・SH2次）' }));
+
+    const giLxRow = el('div', { class: 'row' });
+    const giLxCheck = el('input', { type: 'checkbox' });
+    giLxCheck.checked = app.indirect.includeInLx;
+    giLxCheck.addEventListener('change', () => {
+      app.indirect.includeInLx = giLxCheck.checked;
+      updateHeatmapNow(app);
+    });
+    giLxRow.append(el('label', { text: '照度に加算' }), giLxCheck, el('span', { class: 'disclaimer', text: 'E = 直接 + 間接' }));
+
+    const giRenderRow = el('div', { class: 'row' });
+    const giRenderCheck = el('input', { type: 'checkbox' });
+    giRenderCheck.checked = app.indirectRenderOn;
+    giRenderCheck.addEventListener('change', () => {
+      app.indirectRenderOn = giRenderCheck.checked;
+      app.indirectGpu.intensity.value = giRenderCheck.checked ? 1 : 0;
+      if (giRenderCheck.checked) {
+        // 実測の間接光が入るので、近似の補助環境光は消す
+        app.ambient.visible = false;
+        ambientCheck.checked = false;
+      }
+    });
+    giRenderRow.append(el('label', { text: '描画に反映' }), giRenderCheck, el('span', { class: 'disclaimer', text: 'ONで補助環境光は自動OFF' }));
+
+    const giRecompute = el('button', { text: '再計算' });
+    giRecompute.addEventListener('click', () => app.indirect.invalidate('geometry'));
+
+    giSection.append(
+      giLxRow,
+      giRenderRow,
+      el('div', { class: 'row' }, [giRecompute]),
+      el('p', { class: 'disclaimer', id: 'indirect-status' }),
+      el('p', {
+        class: 'disclaimer',
+        text: '0.65m格子プローブ・可視性つき補間・最大2バウンスの近似です。編集後は自動で再計算されます。',
+      }),
+    );
+    panel.append(giSection);
+    updateIndirectStatus(app);
+
     // 器具
     const lumSection = el('div', { class: 'section' });
     lumSection.append(el('h2', { text: `照明器具（${app.model.luminaires.length}）` }));
@@ -503,6 +568,30 @@ function buildPanel(app: App): void {
   app.onSceneEdited.push(() => {
     // 選択中の器具が消えた場合などの整合を保つ（毎回の全再描画は避ける）
   });
+}
+
+/* -------------------------------- 間接光UI -------------------------------- */
+
+function updateIndirectStatus(app: App): void {
+  const statusEl = document.getElementById('indirect-status');
+  if (statusEl) {
+    const c = app.indirect;
+    statusEl.textContent =
+      c.status === 'computing'
+        ? `計算中: ${c.passLabel} ${(c.progress * 100).toFixed(0)}%`
+        : c.status === 'ready'
+          ? `準備完了（${(c.lastComputeMs / 1000).toFixed(1)}s・プローブ ${c.field?.count ?? 0}点）`
+          : '未計算';
+  }
+  const badge = document.getElementById('hud-phase');
+  if (badge) {
+    badge.textContent =
+      app.indirect.status === 'ready'
+        ? '直接照度＋間接光（プローブ近似・最大2バウンス）'
+        : app.indirect.status === 'computing'
+          ? `間接光を計算中…（${(app.indirect.progress * 100).toFixed(0)}%）直接照度は常時正確`
+          : 'Phase 1: 直接照度のみ';
+  }
 }
 
 /* ------------------------------ 視点プリセット ------------------------------ */
@@ -699,6 +788,7 @@ function setupPointerEditing(app: App, rerenderPanel: () => void): void {
       { position: vec3(x, h, -y), normal: vec3(0, 1, 0) },
       app.builtLuminaires.map((b) => b.photometric),
       app.occlusion,
+      activeIndirectProvider(app),
     );
     app.probeMarker.position.set(x, h + 0.02, -y);
     app.probeMarker.visible = true;
@@ -708,7 +798,11 @@ function setupPointerEditing(app: App, rerenderPanel: () => void): void {
       readout = el('div', { class: 'hud-lx', id: 'hud-lx' });
       hud.append(readout);
     }
-    readout.textContent = `${result.total.toFixed(1)} lx（直接照度） @ (${x.toFixed(2)}, ${y.toFixed(2)}) 高さ${h.toFixed(2)}m`;
+    const breakdown =
+      result.indirect > 0
+        ? `直接 ${result.direct.toFixed(1)} + 間接 ${result.indirect.toFixed(1)}`
+        : '直接照度のみ';
+    readout.textContent = `${result.total.toFixed(1)} lx（${breakdown}） @ (${x.toFixed(2)}, ${y.toFixed(2)}) 高さ${h.toFixed(2)}m`;
   };
 
   const endDrag = (event: PointerEvent) => {
@@ -786,6 +880,31 @@ async function init(): Promise<void> {
   lightsGroup.name = 'luminaires';
   scene.add(lightsGroup);
 
+  // 間接光（Phase 2）: コントローラとGPU側。deps は app を遅延参照する
+  const indirectGpu = new IndirectLightingGpu();
+  let panelRefresh: () => void = () => {};
+  const indirect = new IndirectController({
+    getModel: () => app.model,
+    getRadianceScene: () =>
+      createRadianceScene([...app.architectureOccluders, ...app.furnitureOccluders]),
+    getLights: () => app.builtLuminaires.map((b) => b.photometric),
+    getOcclusion: () => app.occlusion,
+    onPassCommitted: (field) => {
+      indirectGpu.update(field.gridInfo());
+      injectIndirect(architecture.group, indirectGpu);
+      injectIndirect(app.furnitureGroup, indirectGpu);
+      indirectGpu.intensity.value = app.indirectRenderOn ? 1 : 0;
+      if (app.indirectRenderOn && app.ambient.visible) {
+        // 実測ベースの間接光が入るため、近似の補助環境光は止める
+        app.ambient.visible = false;
+        panelRefresh();
+      }
+      updateHeatmapNow(app);
+      updateIndirectStatus(app);
+    },
+    onStatusChanged: () => updateIndirectStatus(app),
+  });
+
   const app: App = {
     renderer,
     scene,
@@ -821,6 +940,9 @@ async function init(): Promise<void> {
     clipWarning: { enabled: false, pipeline: null },
     reflectionMarkers: new THREE.Group(),
     screenReflectionsOn: true,
+    indirect,
+    indirectGpu,
+    indirectRenderOn: true,
   };
   app.probeMarker.visible = false;
   app.probeMarker.name = 'probe-marker';
@@ -828,17 +950,33 @@ async function init(): Promise<void> {
   app.reflectionMarkers.name = 'reflection-markers';
   scene.add(app.reflectionMarkers);
   app.onSceneEdited.push(() => scheduleHeatmapUpdate(app));
+  app.onSceneEdited.push((kind) => app.indirect.invalidate(kind));
 
   rebuildLights(app);
   buildHud(app);
   buildPanel(app);
   const rerenderPanel = () => buildPanel(app);
+  panelRefresh = rerenderPanel;
   setupPointerEditing(app, rerenderPanel);
+
+  // 動的品質調整: 30fps割れで描画解像度を下げ、余裕があれば戻す
+  const quality = new AdaptiveQuality((scale) => {
+    resize();
+    const badge = document.getElementById('hud-backend');
+    if (badge) {
+      const base = `レンダラー: ${renderer.backend === 'webgpu' ? 'WebGPU' : 'WebGL2'}`;
+      badge.textContent = scale < 1 ? `${base}（描画スケール ${Math.round(scale * 100)}%）` : base;
+    }
+  });
 
   const resize = () => {
     const viewport = document.getElementById('viewport')!;
     const { clientWidth, clientHeight } = viewport;
-    renderer.setSize(clientWidth, clientHeight, Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(
+      clientWidth,
+      clientHeight,
+      Math.min(window.devicePixelRatio, 2) * quality.scale,
+    );
     camera.aspect = clientWidth / clientHeight;
     camera.updateProjectionMatrix();
   };
@@ -846,6 +984,7 @@ async function init(): Promise<void> {
   resize();
 
   renderer.setAnimationLoop(() => {
+    quality.tick(performance.now());
     controls.update();
     syncOverlayExposure(renderer.three.toneMappingExposure);
     if (app.clipWarning.enabled) {

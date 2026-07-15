@@ -87,3 +87,19 @@ export function diffuseReflectance(params: {
   }
   return luminanceOf(srgbTripletToLinear(params.baseColor));
 }
+
+/**
+ * RGB拡散反射率（linear）。reflectance が明示されている場合は
+ * 色みを保ったまま輝度を reflectance に合わせてスケールする。
+ */
+export function albedoLinear(params: {
+  baseColor: [number, number, number];
+  reflectance?: number;
+}): LinearRGB {
+  const rgb = srgbTripletToLinear(params.baseColor);
+  if (params.reflectance === undefined) return rgb;
+  const lum = luminanceOf(rgb);
+  if (lum <= 0) return [params.reflectance, params.reflectance, params.reflectance];
+  const k = Math.min(1 / lum, Math.max(0, params.reflectance) / lum);
+  return [rgb[0] * k, rgb[1] * k, rgb[2] * k];
+}

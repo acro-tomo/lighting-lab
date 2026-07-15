@@ -7,6 +7,7 @@ import type { Furniture, Lux, SceneModel, Vec2 } from '../core/types';
 import { vec3 } from '../core/vec3';
 import {
   illuminanceAt,
+  type IndirectIlluminanceProvider,
   type OcclusionTester,
   type PhotometricLight,
 } from './illuminance';
@@ -42,6 +43,7 @@ export function computeIlluminanceGrid(
   occlusion: OcclusionTester,
   height: number,
   spacing = GRID_SPACING,
+  indirect?: IndirectIlluminanceProvider,
 ): IlluminanceGrid {
   const { min, max } = boundingBox(model.floorPlan.outline);
   const cols = Math.max(1, Math.ceil((max.x - min.x) / spacing) + 1);
@@ -63,6 +65,7 @@ export function computeIlluminanceGrid(
         { position: vec3(x, height, -y), normal: vec3(0, 1, 0) },
         lights,
         occlusion,
+        indirect,
       );
       values[row * cols + col] = result.total;
       vMin = Math.min(vMin, result.total);
