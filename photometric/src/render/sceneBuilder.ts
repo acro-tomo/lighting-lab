@@ -18,6 +18,7 @@ import {
   wallSegments,
 } from '../core/room';
 import type { FloorPlan, Furniture, MaterialParams, SceneModel, Vec2 } from '../core/types';
+import { addScreenReflector, SCREEN_ROUGHNESS_MAX } from './screenReflector';
 
 export interface BuiltArchitecture {
   group: THREE.Group;
@@ -204,6 +205,10 @@ export function buildFurniture(items: readonly Furniture[]): BuiltFurniture {
     display.receiveShadow = true;
     display.castShadow = false;
     placeFurnitureMesh(display, item);
+    // 平滑面（TV画面等）は正面に平面反射スクリーンを付与（表示のみ）
+    if (item.material.roughness <= SCREEN_ROUGHNESS_MAX) {
+      addScreenReflector(display, item);
+    }
     group.add(display);
     displayMeshes.push(display);
 

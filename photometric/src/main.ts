@@ -30,6 +30,7 @@ import { vec3 } from './core/vec3';
 import { overlayColorMaterial, syncOverlayExposure } from './render/overlayMaterial';
 import { createClipWarningPipeline, type ClipWarningPipeline } from './render/clipWarning';
 import { findLightReflections, type ReflectiveSurface } from './photometry/reflection';
+import { disposeScreenReflectors, SCREEN_MESH_NAME } from './render/screenReflector';
 
 interface App {
   renderer: RendererHandle;
@@ -55,6 +56,8 @@ interface App {
   clipWarning: { enabled: boolean; pipeline: ClipWarningPipeline | null };
   /** 映り込み判定の反射点マーカー */
   reflectionMarkers: THREE.Group;
+  /** 平面反射スクリーンの表示（表示のみ・照度に不関与） */
+  screenReflectionsOn: boolean;
 }
 
 interface HeatmapState {
@@ -111,8 +114,15 @@ function rebuildLights(app: App): void {
   notifyEdited(app);
 }
 
+function applyScreenReflectionVisibility(app: App): void {
+  app.furnitureGroup.traverse((obj) => {
+    if (obj.name === SCREEN_MESH_NAME) obj.visible = app.screenReflectionsOn;
+  });
+}
+
 function rebuildFurniture(app: App): void {
   app.furnitureGroup.removeFromParent();
+  disposeScreenReflectors(app.furnitureGroup);
   app.furnitureGroup.traverse((obj) => {
     if (obj instanceof THREE.Mesh) {
       obj.geometry.dispose();
@@ -124,6 +134,7 @@ function rebuildFurniture(app: App): void {
   app.furnitureDisplayMeshes = built.displayMeshes;
   app.furnitureOccluders = built.occluders;
   app.scene.add(app.furnitureGroup);
+  applyScreenReflectionVisibility(app);
   app.occlusion = createRaycastOcclusion([...app.architectureOccluders, ...app.furnitureOccluders]);
   notifyEdited(app);
 }
@@ -320,6 +331,20 @@ function buildPanel(app: App): void {
     });
     ceilingRow.append(el('label', { text: '天井を表示' }), ceilingCheck);
 
+    // 平面反射（TV画面等の映り込み。表示のみ）
+    const reflRow = el('div', { class: 'row' });
+    const reflCheck = el('input', { type: 'checkbox' });
+    reflCheck.checked = app.screenReflectionsOn;
+    reflCheck.addEventListener('change', () => {
+      app.screenReflectionsOn = reflCheck.checked;
+      applyScreenReflectionVisibility(app);
+    });
+    reflRow.append(
+      el('label', { text: '映り込み' }),
+      reflCheck,
+      el('span', { class: 'disclaimer', text: '平滑面の平面反射（表示のみ）' }),
+    );
+
     // 白飛び警告（表示上の飽和検出。lx計算とは無関係）
     const clipRow = el('div', { class: 'row' });
     const clipCheck = el('input', { type: 'checkbox' });
@@ -333,7 +358,7 @@ function buildPanel(app: App): void {
       el('span', { class: 'disclaimer', text: '表示上限超えの画素を強調' }),
     );
 
-    view.append(evRow, ambientRow, ceilingRow, clipRow);
+    view.append(evRow, ambientRow, ceilingRow, reflRow, clipRow);
     panel.append(view);
 
     // 視点（反射確認モード）
@@ -795,6 +820,7 @@ async function init(): Promise<void> {
     ),
     clipWarning: { enabled: false, pipeline: null },
     reflectionMarkers: new THREE.Group(),
+    screenReflectionsOn: true,
   };
   app.probeMarker.visible = false;
   app.probeMarker.name = 'probe-marker';

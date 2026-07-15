@@ -94,6 +94,22 @@
 - headless Chromium（SwiftShader）で WebGL2 経路の全機能（描画・ヒートマップ・プローブ・白飛び警告・視点切替）を確認済み。**WebGPU 経路は実GPUを持つ実機ブラウザでの確認が未了**（コンテナはアダプタ取得後デバイスロスト）。
 - CI（GitHub Actions）に photometric ジョブを追加: unit tests / typecheck / build を常時実行（全フェーズの回帰ゲート）。
 
+## 追補: 鏡面反射の方式整理と平面反射の導入
+
+「TVの反射が光源の点にしか見えない」というフィードバックを受けて方式を整理した。
+
+| 役割 | 方式 | 状態 |
+|---|---|---|
+| 材質表面の鏡面反射 | Cook-Torrance GGX（Smith相関可視性・Schlickフレネル） | **実装済み** — three.js MeshPhysicalMaterial の標準BRDF |
+| 平滑面（消灯TV・鏡）の映り込み | Planar Reflection（鏡映カメラで実シーン再描画） | **実装済み** — `render/screenReflector.ts`（本追補） |
+| 器具の発光面サイズのハイライト | LTCエリアライト（ディスク/矩形） | 未実装 — three標準はRectAreaLightのみ。ディスクLTCはカスタムTSLが必要。**平面反射が発光面ディスクの実像を映すため、平滑面上では実質的に解決** |
+| 室内の映り込み（中間roughness面） | Reflection Probe＋Prefiltered Cubemap（Box Projection） | 未実装（次候補） — three の envMap は拡散IBLも加算するため「間接光を照度に含めない/描画にも1環境光のみ」の Phase 1 原則との整合設計が必要 |
+| SSR | 採用しない（画面外情報を扱えない） | 仕様どおり不採用 |
+
+**実装（`render/screenReflector.ts`）**: roughness ≤ 0.15 の家具正面に three の ReflectorNode（解像度1/2）による反射スクリーンを付与。反射像は Schlick フレネル（F0=0.04）で減衰させ emissiveNode 経由で合成（HDR→トーンマップの経路は本編と同一）。反射に映るのは直接光で描画された実シーンそのもの（器具の発光ディスク・床の光だまり・家具）で、存在しない光の捏造はない。表示専用で照度計算・遮蔽には不関与。UIトグル「映り込み」で無効化可能（無効時は再描画コストもゼロ）。
+
+**検証**: ソファ視点でTV画面に部屋の鏡像（ソファ・床・カウンター）が映ることを確認。白飛び警告（PostProcessing）併用でもエラーなし。家具再構築時に ReflectorNode を dispose（RTリーク防止）。
+
 ## 残課題（Phase 1 終了時点）
 
 - WebGPU バックエンドの実機確認（Chrome/Edge、Safari 26+）。
