@@ -15,6 +15,7 @@ export function createSampleScene(presets: readonly FixturePreset[]): SceneModel
   const dlDiffuse = pickPreset(presets, 'SAMPLE-DL-D85-27');
   const dlMedium = pickPreset(presets, 'SAMPLE-DL-M45-27');
   const dlHigh = pickPreset(presets, 'SAMPLE-DL-H60-27');
+  const dlIes = pickPreset(presets, 'SAMPLE-DL-IES');
   const spot = pickPreset(presets, 'SAMPLE-SP-N24-30');
 
   const ceilingHeight = 2.4;
@@ -116,7 +117,7 @@ export function createSampleScene(presets: readonly FixturePreset[]): SceneModel
       downlight('dl-dining-2', dlDiffuse, 2.9, 3.3),
       downlight('dl-living-high-1', dlHigh, 1.0, 5.6, voidHeight),
       downlight('dl-living-high-2', dlHigh, 1.0, 7.2, voidHeight),
-      downlight('dl-living-1', dlDiffuse, 3.6, 5.6),
+      downlight('dl-living-1', dlIes, 3.6, 5.6),
       downlight('dl-living-2', dlDiffuse, 3.6, 7.2),
       {
         id: 'spot-wall',

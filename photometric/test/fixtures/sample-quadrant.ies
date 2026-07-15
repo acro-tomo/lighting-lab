@@ -1,0 +1,10 @@
+IESNA:LM-63-2002
+[TEST] Synthetic quadrant-symmetric fixture (0-90deg horizontal)
+TILT=NONE
+1 500 2 3 3 1 2 0.1 0.1 0
+1.0 0 20
+0 90 180
+0 45 90
+100 40 0
+200 80 0
+300 120 0

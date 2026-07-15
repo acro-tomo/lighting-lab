@@ -15,6 +15,7 @@ import { buildLuminaire, planToWorld, type BuiltLuminaire } from './render/light
 import { createRaycastOcclusion } from './render/occlusion';
 import { illuminanceAt, type OcclusionTester } from './photometry/illuminance';
 import { loadPresets } from './app/presets';
+import { prefetchIes, resolveIes } from './app/iesCache';
 import { createSampleScene } from './data/sampleScene';
 import {
   buildHeatmapMesh,
@@ -99,8 +100,10 @@ function disposeLuminaireGroup(group: THREE.Group): void {
 
 function rebuildLights(app: App): void {
   disposeLuminaireGroup(app.lightsGroup);
-  // IES 配光は Step 7 で接続（現状は全器具ビーム角近似 = 推定配光）
-  app.builtLuminaires = app.model.luminaires.map((lum) => buildLuminaire(lum, null));
+  // IES があればその配光、なければビーム角近似（=推定配光バッジ）
+  app.builtLuminaires = app.model.luminaires.map((lum) =>
+    buildLuminaire(lum, resolveIes(lum.preset)),
+  );
   for (const built of app.builtLuminaires) app.lightsGroup.add(built.group);
   notifyEdited(app);
 }
@@ -253,9 +256,9 @@ function luminaireEditor(app: App, lum: Luminaire, rerender: () => void): HTMLEl
 
   editor.append(
     el('div', { class: 'row' }, [el('label', { text: '品番' }), presetSelect]),
-    lum.preset.ies === undefined
+    resolveIes(lum.preset) === null
       ? el('p', { class: 'disclaimer', text: '⚠ 推定配光: IESデータがないためビーム角からの近似です' })
-      : el('span'),
+      : el('p', { class: 'disclaimer', text: 'IES配光データを使用（測光・描画共通）' }),
     info,
     numberRow('位置 x [m]', lum.position.x, 0.05, (v) => (lum.position.x = v)),
     numberRow('位置 y [m]', lum.position.y, 0.05, (v) => (lum.position.y = v)),
@@ -390,7 +393,9 @@ function buildPanel(app: App): void {
       const item = el('div', { class: `lum-item${lum.id === app.selectedLuminaireId ? ' selected' : ''}` });
       item.append(
         el('span', { class: 'name', text: `${lum.id} — ${lum.preset.model}` }),
-        ...(lum.preset.ies === undefined ? [el('span', { class: 'badge', text: '推定配光' })] : []),
+        ...(resolveIes(lum.preset) === null
+          ? [el('span', { class: 'badge', text: '推定配光' })]
+          : [el('span', { class: 'badge info', text: 'IES' })]),
       );
       item.addEventListener('click', () => {
         app.selectedLuminaireId = lum.id === app.selectedLuminaireId ? null : lum.id;
@@ -599,6 +604,7 @@ async function init(): Promise<void> {
   });
 
   const presets = await loadPresets(`${import.meta.env.BASE_URL}presets.json`);
+  await prefetchIes(presets, import.meta.env.BASE_URL);
   const model = createSampleScene(presets);
 
   const scene = new THREE.Scene();

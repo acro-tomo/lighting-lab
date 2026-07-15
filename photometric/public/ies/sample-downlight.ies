@@ -1,0 +1,10 @@
+IESNA:LM-63-2002
+[TEST] Synthetic axially-symmetric downlight (golden fixture)
+[MANUFAC] SAMPLE LAB
+[LUMCAT] SAMPLE-DL-IES
+TILT=NONE
+1 800 1 5 1 1 2 0.06 0.06 0
+1.0 0 10.5
+0 30 60 90 180
+0
+1000 800 200 0 0

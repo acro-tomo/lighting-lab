@@ -50,6 +50,19 @@
       "dataSource": "representative"
     },
     {
+      "model": "SAMPLE-DL-IES",
+      "maker": "代表値サンプル",
+      "kind": "downlight",
+      "beamAngleDeg": 60,
+      "flux": 800,
+      "cct": 3500,
+      "dimmable": true,
+      "cutoutDiameter": 0.1,
+      "apertureDiameter": 0.08,
+      "ies": "ies/sample-downlight.ies",
+      "dataSource": "representative"
+    },
+    {
       "model": "SAMPLE-SP-N24-30",
       "maker": "代表値サンプル",
       "kind": "spot",
