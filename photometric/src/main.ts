@@ -333,6 +333,24 @@ function buildPanel(app: App): void {
     view.append(evRow, ambientRow, ceilingRow, clipRow);
     panel.append(view);
 
+    // 視点（反射確認モード）
+    const viewpointSection = el('div', { class: 'section' });
+    viewpointSection.append(el('h2', { text: '視点' }));
+    const vpRow = el('div', { class: 'row' });
+    const sofaBtn = el('button', { text: 'ソファ視点（映り込み確認）' });
+    sofaBtn.addEventListener('click', () => setReflectionViewpoint(app));
+    const homeBtn = el('button', { text: '俯瞰' });
+    homeBtn.addEventListener('click', () => setHomeViewpoint(app));
+    vpRow.append(sofaBtn, homeBtn);
+    viewpointSection.append(
+      vpRow,
+      el('p', {
+        class: 'disclaimer',
+        text: '低Roughness面（消灯TV画面など）への光源の映り込みを目視確認するモードです。',
+      }),
+    );
+    panel.append(viewpointSection);
+
     // 照度ヒートマップ
     const heatSection = el('div', { class: 'section' });
     heatSection.append(el('h2', { text: '照度ヒートマップ（直接照度・測光計算）' }));
@@ -453,6 +471,40 @@ function buildPanel(app: App): void {
   app.onSceneEdited.push(() => {
     // 選択中の器具が消えた場合などの整合を保つ（毎回の全再描画は避ける）
   });
+}
+
+/* ------------------------------ 視点プリセット ------------------------------ */
+
+/**
+ * 反射確認モード: 目線高さの視点カメラから、低Roughnessの反射性オブジェクト
+ * （例: 消灯TV画面）への光源の映り込みを確認する。
+ */
+function setReflectionViewpoint(app: App): void {
+  const eyeHeight = 1.15; // 座位の目線高さ
+  const sofa = app.model.furniture.find((f) => f.id === 'sofa');
+  // 最も Roughness の低い家具を注視対象にする（TV等）
+  const target = [...app.model.furniture].sort(
+    (a, b) => a.material.roughness - b.material.roughness,
+  )[0];
+  if (!target) return;
+  const eye = sofa
+    ? planToWorld(sofa.position, eyeHeight)
+    : planToWorld({ x: target.position.x, y: target.position.y - 2.5 }, eyeHeight);
+  const look = planToWorld(target.position, target.elevation + target.size.h / 2);
+  app.camera.position.set(eye.x, eye.y, eye.z);
+  app.controls.target.set(look.x, look.y, look.z);
+  app.controls.update();
+}
+
+function setHomeViewpoint(app: App): void {
+  const bounds = planBounds(app.model.floorPlan);
+  app.camera.position.set(
+    bounds.center.x + bounds.radius * 1.1,
+    bounds.radius * 1.4,
+    bounds.center.z + bounds.radius * 1.3,
+  );
+  app.controls.target.copy(bounds.center);
+  app.controls.update();
 }
 
 /* ------------------------------ ドラッグ編集 ------------------------------ */

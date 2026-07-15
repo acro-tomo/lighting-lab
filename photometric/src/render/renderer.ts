@@ -39,12 +39,21 @@ export async function createRenderer(
   canvas: HTMLCanvasElement,
   options?: { forceWebGL?: boolean },
 ): Promise<RendererHandle> {
-  const renderer = new THREE.WebGPURenderer({
+  let renderer = new THREE.WebGPURenderer({
     canvas,
     antialias: true,
     forceWebGL: options?.forceWebGL === true,
   });
-  await renderer.init();
+  try {
+    await renderer.init();
+  } catch (error) {
+    if (options?.forceWebGL === true) throw error;
+    // WebGPU アダプタはあるが初期化に失敗する環境 → WebGL2 で再試行
+    console.warn('WebGPU初期化に失敗、WebGL2へフォールバックします', error);
+    renderer.dispose();
+    renderer = new THREE.WebGPURenderer({ canvas, antialias: true, forceWebGL: true });
+    await renderer.init();
+  }
 
   renderer.toneMapping = THREE.NeutralToneMapping;
   renderer.toneMappingExposure = BASE_EXPOSURE;
