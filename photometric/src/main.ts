@@ -13,9 +13,20 @@ import { createRenderer, type RendererHandle } from './render/renderer';
 import { buildArchitecture, buildFurniture, planBounds } from './render/sceneBuilder';
 import { buildLuminaire, planToWorld, type BuiltLuminaire } from './render/lights';
 import { createRaycastOcclusion } from './render/occlusion';
-import type { OcclusionTester } from './photometry/illuminance';
+import { illuminanceAt, type OcclusionTester } from './photometry/illuminance';
 import { loadPresets } from './app/presets';
 import { createSampleScene } from './data/sampleScene';
+import {
+  buildHeatmapMesh,
+  buildLegendCanvas,
+  computeIlluminanceGrid,
+  insideFurniture,
+  SCALE_OPTIONS,
+  type IlluminanceGrid,
+} from './app/heatmap';
+import { pointInPolygon } from './core/room';
+import { vec3 } from './core/vec3';
+import { overlayColorMaterial, syncOverlayExposure } from './render/overlayMaterial';
 
 interface App {
   renderer: RendererHandle;
@@ -36,6 +47,19 @@ interface App {
   selectedLuminaireId: string | null;
   selectedFurnitureId: string | null;
   onSceneEdited: (() => void)[];
+  heatmap: HeatmapState;
+  probeMarker: THREE.Mesh;
+}
+
+interface HeatmapState {
+  enabled: boolean;
+  /** 計算面高さ [m]（例: 床上0.75m） */
+  height: number;
+  scaleMax: (typeof SCALE_OPTIONS)[number];
+  mesh: THREE.Mesh | null;
+  grid: IlluminanceGrid | null;
+  timer: number;
+  lastComputeMs: number;
 }
 
 const query = new URLSearchParams(location.search);
@@ -99,6 +123,58 @@ function rebuildFurniture(app: App): void {
 function notifyEdited(app: App): void {
   for (const cb of app.onSceneEdited) cb();
 }
+
+/* -------------------------------- ヒートマップ ------------------------------- */
+
+function disposeHeatmapMesh(app: App): void {
+  if (app.heatmap.mesh) {
+    app.heatmap.mesh.removeFromParent();
+    app.heatmap.mesh.geometry.dispose();
+    const material = app.heatmap.mesh.material as THREE.MeshBasicMaterial;
+    material.map?.dispose();
+    material.dispose();
+    app.heatmap.mesh = null;
+  }
+}
+
+function updateHeatmapNow(app: App): void {
+  disposeHeatmapMesh(app);
+  if (!app.heatmap.enabled) {
+    app.heatmap.grid = null;
+    updateHeatmapStats(app);
+    return;
+  }
+  const start = performance.now();
+  const grid = computeIlluminanceGrid(
+    app.model,
+    app.builtLuminaires.map((b) => b.photometric),
+    app.occlusion,
+    app.heatmap.height,
+  );
+  app.heatmap.lastComputeMs = performance.now() - start;
+  app.heatmap.grid = grid;
+  app.heatmap.mesh = buildHeatmapMesh(grid, app.heatmap.scaleMax, app.heatmap.height);
+  app.scene.add(app.heatmap.mesh);
+  updateHeatmapStats(app);
+}
+
+/** シーン編集後の再計算（デバウンス） */
+function scheduleHeatmapUpdate(app: App): void {
+  if (!app.heatmap.enabled) return;
+  window.clearTimeout(app.heatmap.timer);
+  app.heatmap.timer = window.setTimeout(() => updateHeatmapNow(app), 120);
+}
+
+function updateHeatmapStats(app: App): void {
+  const statsEl = document.getElementById('heatmap-stats');
+  if (!statsEl) return;
+  const grid = app.heatmap.grid;
+  statsEl.textContent = grid
+    ? `平均 ${grid.mean.toFixed(0)}lx / 最小 ${grid.min.toFixed(0)}lx / 最大 ${grid.max.toFixed(0)}lx （計算 ${app.heatmap.lastComputeMs.toFixed(0)}ms・${GRID_LABEL}）`
+    : '';
+}
+
+const GRID_LABEL = `直接照度・グリッド0.15m`;
 
 /* ----------------------------------- UI ----------------------------------- */
 
@@ -239,6 +315,58 @@ function buildPanel(app: App): void {
     view.append(evRow, ambientRow, ceilingRow);
     panel.append(view);
 
+    // 照度ヒートマップ
+    const heatSection = el('div', { class: 'section' });
+    heatSection.append(el('h2', { text: '照度ヒートマップ（直接照度・測光計算）' }));
+
+    const enableRow = el('div', { class: 'row' });
+    const enableCheck = el('input', { type: 'checkbox' });
+    enableCheck.checked = app.heatmap.enabled;
+    enableCheck.addEventListener('change', () => {
+      app.heatmap.enabled = enableCheck.checked;
+      updateHeatmapNow(app);
+    });
+    enableRow.append(el('label', { text: '表示' }), enableCheck);
+
+    const heightRow = el('div', { class: 'row' });
+    const heightInput = el('input', { type: 'number', step: '0.05', min: '0', max: '2', value: String(app.heatmap.height) });
+    heightInput.addEventListener('change', () => {
+      const v = Number(heightInput.value);
+      if (Number.isFinite(v) && v >= 0) {
+        app.heatmap.height = v;
+        updateHeatmapNow(app);
+      }
+    });
+    heightRow.append(el('label', { text: '計算面高 [m]' }), heightInput);
+
+    const scaleRow = el('div', { class: 'row' });
+    const scaleSelect = el('select');
+    for (const max of SCALE_OPTIONS) {
+      const opt = el('option', { value: String(max), text: `0〜${max} lx（固定）` });
+      if (max === app.heatmap.scaleMax) opt.selected = true;
+      scaleSelect.append(opt);
+    }
+    scaleSelect.addEventListener('change', () => {
+      app.heatmap.scaleMax = Number(scaleSelect.value) as (typeof SCALE_OPTIONS)[number];
+      legendHolder.replaceChildren(buildLegendCanvas(app.heatmap.scaleMax));
+      updateHeatmapNow(app);
+    });
+    scaleRow.append(el('label', { text: 'スケール' }), scaleSelect);
+
+    const legendHolder = el('div');
+    legendHolder.append(buildLegendCanvas(app.heatmap.scaleMax));
+
+    heatSection.append(
+      enableRow,
+      heightRow,
+      scaleRow,
+      legendHolder,
+      el('p', { class: 'disclaimer', id: 'heatmap-stats' }),
+      el('p', { class: 'disclaimer', text: '3Dビューをクリックすると、その位置の計算面高さでの実数lx値を表示します。' }),
+    );
+    panel.append(heatSection);
+    updateHeatmapStats(app);
+
     // 器具
     const lumSection = el('div', { class: 'section' });
     lumSection.append(el('h2', { text: `照明器具（${app.model.luminaires.length}）` }));
@@ -317,6 +445,7 @@ function setupPointerEditing(app: App, rerenderPanel: () => void): void {
   const hit = new THREE.Vector3();
 
   let dragging: { kind: 'luminaire' | 'furniture'; id: string } | null = null;
+  let downAt: { x: number; y: number } | null = null;
 
   const pick = (event: PointerEvent) => {
     const rect = canvas.getBoundingClientRect();
@@ -328,6 +457,7 @@ function setupPointerEditing(app: App, rerenderPanel: () => void): void {
   };
 
   canvas.addEventListener('pointerdown', (event) => {
+    downAt = { x: event.clientX, y: event.clientY };
     pick(event);
     // 発光面ディスク → 器具、表示メッシュ → 家具
     const discs = app.builtLuminaires
@@ -381,8 +511,41 @@ function setupPointerEditing(app: App, rerenderPanel: () => void): void {
     }
   });
 
+  /** クリック（ドラッグでない）→ 実数lx値プローブ */
+  const probe = (event: PointerEvent) => {
+    pick(event);
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -app.heatmap.height);
+    if (!raycaster.ray.intersectPlane(plane, hit)) return;
+    const x = hit.x;
+    const y = -hit.z;
+    const h = app.heatmap.height;
+    if (!pointInPolygon({ x, y }, app.model.floorPlan.outline)) return;
+    if (app.model.furniture.some((f) => insideFurniture({ x, y }, h, f))) return;
+    const result = illuminanceAt(
+      { position: vec3(x, h, -y), normal: vec3(0, 1, 0) },
+      app.builtLuminaires.map((b) => b.photometric),
+      app.occlusion,
+    );
+    app.probeMarker.position.set(x, h + 0.02, -y);
+    app.probeMarker.visible = true;
+    const hud = document.getElementById('hud')!;
+    let readout = document.getElementById('hud-lx');
+    if (!readout) {
+      readout = el('div', { class: 'hud-lx', id: 'hud-lx' });
+      hud.append(readout);
+    }
+    readout.textContent = `${result.total.toFixed(1)} lx（直接照度） @ (${x.toFixed(2)}, ${y.toFixed(2)}) 高さ${h.toFixed(2)}m`;
+  };
+
   const endDrag = (event: PointerEvent) => {
-    if (!dragging) return;
+    const wasClick =
+      downAt !== null &&
+      Math.hypot(event.clientX - downAt.x, event.clientY - downAt.y) < 5;
+    downAt = null;
+    if (!dragging) {
+      if (wasClick) probe(event);
+      return;
+    }
     pick(event);
     const active = dragging;
     dragging = null;
@@ -467,7 +630,24 @@ async function init(): Promise<void> {
     selectedLuminaireId: null,
     selectedFurnitureId: null,
     onSceneEdited: [],
+    heatmap: {
+      enabled: false,
+      height: 0.75,
+      scaleMax: 300,
+      mesh: null,
+      grid: null,
+      timer: 0,
+      lastComputeMs: 0,
+    },
+    probeMarker: new THREE.Mesh(
+      new THREE.SphereGeometry(0.035, 16, 12),
+      overlayColorMaterial(0.95, 0.95, 0.98),
+    ),
   };
+  app.probeMarker.visible = false;
+  app.probeMarker.name = 'probe-marker';
+  scene.add(app.probeMarker);
+  app.onSceneEdited.push(() => scheduleHeatmapUpdate(app));
 
   rebuildLights(app);
   buildHud(app);
@@ -487,8 +667,12 @@ async function init(): Promise<void> {
 
   renderer.setAnimationLoop(() => {
     controls.update();
+    syncOverlayExposure(renderer.three.toneMappingExposure);
     renderer.render(scene, camera);
   });
+
+  // 検証スクリプト用（UIからは使わない）
+  (window as unknown as { __app: App }).__app = app;
 }
 
 init().catch((error) => {
