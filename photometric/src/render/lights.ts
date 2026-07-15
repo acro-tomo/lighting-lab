@@ -110,6 +110,14 @@ export function buildLuminaire(
   light.angle = Math.PI / 2 - 1e-3;
   light.iesMap = profileToTexture(profile);
 
+  // シャドウ（PCF低サンプル。renderer側で PCFShadowMap を指定）
+  light.castShadow = true;
+  light.shadow.mapSize.set(512, 512);
+  light.shadow.camera.near = 0.05;
+  light.shadow.camera.far = 30;
+  light.shadow.bias = -0.0004;
+  light.shadow.normalBias = 0.015;
+
   const position = planToWorld(lum.position, lum.mountHeight);
   light.position.set(position.x, position.y, position.z);
   const axis = aimToAxis(lum.aim);

@@ -27,6 +27,7 @@ import {
 import { pointInPolygon } from './core/room';
 import { vec3 } from './core/vec3';
 import { overlayColorMaterial, syncOverlayExposure } from './render/overlayMaterial';
+import { createClipWarningPipeline, type ClipWarningPipeline } from './render/clipWarning';
 
 interface App {
   renderer: RendererHandle;
@@ -49,6 +50,7 @@ interface App {
   onSceneEdited: (() => void)[];
   heatmap: HeatmapState;
   probeMarker: THREE.Mesh;
+  clipWarning: { enabled: boolean; pipeline: ClipWarningPipeline | null };
 }
 
 interface HeatmapState {
@@ -312,7 +314,20 @@ function buildPanel(app: App): void {
     });
     ceilingRow.append(el('label', { text: '天井を表示' }), ceilingCheck);
 
-    view.append(evRow, ambientRow, ceilingRow);
+    // 白飛び警告（表示上の飽和検出。lx計算とは無関係）
+    const clipRow = el('div', { class: 'row' });
+    const clipCheck = el('input', { type: 'checkbox' });
+    clipCheck.checked = app.clipWarning.enabled;
+    clipCheck.addEventListener('change', () => {
+      app.clipWarning.enabled = clipCheck.checked;
+    });
+    clipRow.append(
+      el('label', { text: '白飛び警告' }),
+      clipCheck,
+      el('span', { class: 'disclaimer', text: '表示上限超えの画素を強調' }),
+    );
+
+    view.append(evRow, ambientRow, ceilingRow, clipRow);
     panel.append(view);
 
     // 照度ヒートマップ
@@ -643,6 +658,7 @@ async function init(): Promise<void> {
       new THREE.SphereGeometry(0.035, 16, 12),
       overlayColorMaterial(0.95, 0.95, 0.98),
     ),
+    clipWarning: { enabled: false, pipeline: null },
   };
   app.probeMarker.visible = false;
   app.probeMarker.name = 'probe-marker';
@@ -668,7 +684,12 @@ async function init(): Promise<void> {
   renderer.setAnimationLoop(() => {
     controls.update();
     syncOverlayExposure(renderer.three.toneMappingExposure);
-    renderer.render(scene, camera);
+    if (app.clipWarning.enabled) {
+      app.clipWarning.pipeline ??= createClipWarningPipeline(renderer.three, scene, camera);
+      app.clipWarning.pipeline.render(scene, camera);
+    } else {
+      renderer.render(scene, camera);
+    }
   });
 
   // 検証スクリプト用（UIからは使わない）

@@ -123,6 +123,7 @@ export function buildArchitecture(model: SceneModel): BuiltArchitecture {
   const floorMesh = new THREE.Mesh(horizontalGeometry(shapeFromPolygon(outline), 0), floorMaterial);
   floorMesh.name = 'floor';
   floorMesh.receiveShadow = true;
+  floorMesh.castShadow = true;
   group.add(floorMesh);
   occluders.push(floorMesh);
 
@@ -134,6 +135,7 @@ export function buildArchitecture(model: SceneModel): BuiltArchitecture {
   const baseCeiling = new THREE.Mesh(horizontalGeometry(baseShape, plan.ceilingHeight), ceilingMaterial);
   baseCeiling.name = 'ceiling';
   baseCeiling.receiveShadow = true;
+  baseCeiling.castShadow = true;
   group.add(baseCeiling);
   occluders.push(baseCeiling);
 
@@ -145,6 +147,7 @@ export function buildArchitecture(model: SceneModel): BuiltArchitecture {
     );
     upper.name = 'ceiling-override';
     upper.receiveShadow = true;
+    upper.castShadow = true;
     group.add(upper);
     occluders.push(upper);
 
@@ -160,6 +163,7 @@ export function buildArchitecture(model: SceneModel): BuiltArchitecture {
       rim.material.side = THREE.DoubleSide;
       rim.name = 'void-rim-wall';
       rim.receiveShadow = true;
+      rim.castShadow = true;
       group.add(rim);
       occluders.push(rim);
     }
@@ -170,6 +174,7 @@ export function buildArchitecture(model: SceneModel): BuiltArchitecture {
     const wall = new THREE.Mesh(wallQuad(segment.a, segment.b, 0, segment.height), wallMaterial);
     wall.name = 'wall';
     wall.receiveShadow = true;
+    wall.castShadow = true;
     group.add(wall);
     occluders.push(wall);
   }
