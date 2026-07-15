@@ -1,0 +1,77 @@
+{
+  "note": "初期データは代表値サンプル（dataSource=representative）。実在器具のカタログ値・IESを取得できたものから dataSource=catalog に昇格させる。架空の値を実在品番として提示しないこと。",
+  "presets": [
+    {
+      "model": "SAMPLE-DL-D85-27",
+      "maker": "代表値サンプル",
+      "kind": "downlight",
+      "beamAngleDeg": 85,
+      "flux": 400,
+      "cct": 2700,
+      "dimmable": true,
+      "cutoutDiameter": 0.075,
+      "apertureDiameter": 0.06,
+      "dataSource": "representative"
+    },
+    {
+      "model": "SAMPLE-DL-D85-40",
+      "maker": "代表値サンプル",
+      "kind": "downlight",
+      "beamAngleDeg": 85,
+      "flux": 420,
+      "cct": 4000,
+      "dimmable": true,
+      "cutoutDiameter": 0.075,
+      "apertureDiameter": 0.06,
+      "dataSource": "representative"
+    },
+    {
+      "model": "SAMPLE-DL-M45-27",
+      "maker": "代表値サンプル",
+      "kind": "downlight",
+      "beamAngleDeg": 45,
+      "flux": 550,
+      "cct": 2700,
+      "dimmable": true,
+      "cutoutDiameter": 0.1,
+      "apertureDiameter": 0.08,
+      "dataSource": "representative"
+    },
+    {
+      "model": "SAMPLE-DL-H60-27",
+      "maker": "代表値サンプル",
+      "kind": "downlight",
+      "beamAngleDeg": 60,
+      "flux": 820,
+      "cct": 2700,
+      "dimmable": true,
+      "cutoutDiameter": 0.125,
+      "apertureDiameter": 0.1,
+      "dataSource": "representative"
+    },
+    {
+      "model": "SAMPLE-SP-N24-30",
+      "maker": "代表値サンプル",
+      "kind": "spot",
+      "beamAngleDeg": 24,
+      "flux": 500,
+      "cct": 3000,
+      "dimmable": true,
+      "cutoutDiameter": 0.0,
+      "apertureDiameter": 0.05,
+      "dataSource": "representative"
+    },
+    {
+      "model": "SAMPLE-SP-M36-27",
+      "maker": "代表値サンプル",
+      "kind": "spot",
+      "beamAngleDeg": 36,
+      "flux": 380,
+      "cct": 2700,
+      "dimmable": true,
+      "cutoutDiameter": 0.0,
+      "apertureDiameter": 0.05,
+      "dataSource": "representative"
+    }
+  ]
+}
