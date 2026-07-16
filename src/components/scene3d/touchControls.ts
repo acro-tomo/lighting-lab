@@ -15,6 +15,7 @@ const TOUCH_PINCH_DOLLY_MAX_STEP_M = 0.14;
 const TOUCH_TWO_FINGER_PAN_SPEED = 0.9;
 const TOUCH_GESTURE_LOCK_PX = 5;
 const TOUCH_GESTURE_LOCK_RATIO = 1.25;
+const TOUCH_LOOK_LOCK_PX = 5;
 const TRACKPAD_WHEEL_PAN_SPEED = 0.55;
 
 export const DESKTOP_ORBIT_SPEED = {
@@ -39,6 +40,123 @@ export const usePrefersTouchControls = () => {
 
 type TouchPoint = { x: number; y: number };
 type TouchGestureIntent = "pan" | "pinch" | null;
+
+export const TouchLook = ({
+  controlsRef
+}: {
+  controlsRef: MutableRefObject<OrbitControlsImpl | null>;
+}) => {
+  const { camera, gl } = useThree();
+  const pointersRef = useRef(new Map<number, TouchPoint>());
+  const touchStartRef = useRef<TouchPoint | null>(null);
+  const lastTouchRef = useRef<TouchPoint | null>(null);
+  const isLookingRef = useRef(false);
+
+  useEffect(() => {
+    const canvas = gl.domElement;
+    const lookDirection = new THREE.Vector3();
+    const yAxis = new THREE.Vector3(0, 1, 0);
+
+    const resetLook = () => {
+      touchStartRef.current = null;
+      lastTouchRef.current = null;
+      isLookingRef.current = false;
+    };
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.pointerType !== "touch") return;
+      const point = { x: event.clientX, y: event.clientY };
+      pointersRef.current.set(event.pointerId, point);
+      if (pointersRef.current.size === 1) {
+        touchStartRef.current = point;
+        lastTouchRef.current = point;
+        isLookingRef.current = false;
+      } else {
+        resetLook();
+      }
+    };
+
+    const onPointerMove = (event: PointerEvent) => {
+      if (event.pointerType !== "touch" || !pointersRef.current.has(event.pointerId)) return;
+      const point = { x: event.clientX, y: event.clientY };
+      pointersRef.current.set(event.pointerId, point);
+      if (pointersRef.current.size !== 1) return;
+
+      const controls = controlsRef.current;
+      // 選択済みオブジェクトのドラッグは pointerdown で controls を無効化する。
+      if (!controls || !controls.enabled) return;
+      const touchStart = touchStartRef.current;
+      const lastTouch = lastTouchRef.current;
+      if (!touchStart || !lastTouch) return;
+
+      if (!isLookingRef.current) {
+        const movedPx = Math.hypot(point.x - touchStart.x, point.y - touchStart.y);
+        if (movedPx < TOUCH_LOOK_LOCK_PX) return;
+        isLookingRef.current = true;
+      }
+
+      const deltaX = point.x - lastTouch.x;
+      const deltaY = point.y - lastTouch.y;
+      lastTouchRef.current = point;
+      if (deltaX === 0 && deltaY === 0) return;
+
+      const distance = camera.position.distanceTo(controls.target);
+      if (distance < 1e-6) return;
+      const turnPerPx = (Math.PI * 2 * TOUCH_ORBIT_SPEED.rotate) / (canvas.clientHeight || 1);
+      lookDirection.copy(controls.target).sub(camera.position).applyAxisAngle(yAxis, -deltaX * turnPerPx);
+      const horizontalDistance = Math.hypot(lookDirection.x, lookDirection.z);
+      const pitch = THREE.MathUtils.clamp(
+        Math.atan2(lookDirection.y, horizontalDistance) - deltaY * turnPerPx,
+        -THREE.MathUtils.degToRad(80),
+        THREE.MathUtils.degToRad(80)
+      );
+      const horizontalLength = Math.cos(pitch) * distance;
+      const horizontalScale = horizontalDistance > 1e-6 ? horizontalLength / horizontalDistance : 0;
+      controls.target.set(
+        camera.position.x + lookDirection.x * horizontalScale,
+        camera.position.y + Math.sin(pitch) * distance,
+        camera.position.z + lookDirection.z * horizontalScale
+      );
+      controls.update();
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    };
+
+    const onPointerEnd = (event: PointerEvent) => {
+      if (event.pointerType !== "touch") return;
+      pointersRef.current.delete(event.pointerId);
+      if (pointersRef.current.size === 1) {
+        const [remainingTouch] = pointersRef.current.values();
+        touchStartRef.current = remainingTouch;
+        lastTouchRef.current = remainingTouch;
+        isLookingRef.current = false;
+      } else {
+        resetLook();
+      }
+    };
+
+    const clear = () => {
+      pointersRef.current.clear();
+      resetLook();
+    };
+
+    canvas.addEventListener("pointerdown", onPointerDown, { capture: true });
+    canvas.addEventListener("pointermove", onPointerMove, { capture: true, passive: false });
+    canvas.addEventListener("pointerup", onPointerEnd, { capture: true });
+    canvas.addEventListener("pointercancel", onPointerEnd, { capture: true });
+    window.addEventListener("blur", clear);
+    return () => {
+      canvas.removeEventListener("pointerdown", onPointerDown, { capture: true });
+      canvas.removeEventListener("pointermove", onPointerMove, { capture: true });
+      canvas.removeEventListener("pointerup", onPointerEnd, { capture: true });
+      canvas.removeEventListener("pointercancel", onPointerEnd, { capture: true });
+      window.removeEventListener("blur", clear);
+      clear();
+    };
+  }, [camera, controlsRef, gl.domElement]);
+
+  return null;
+};
 
 export const TouchPinchDolly = ({
   controlsRef

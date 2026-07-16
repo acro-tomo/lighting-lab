@@ -34,6 +34,7 @@ import { RoomShell } from "./roomShell";
 import {
   DESKTOP_ORBIT_SPEED,
   TOUCH_ORBIT_SPEED,
+  TouchLook,
   TouchPinchDolly,
   TrackpadWheelPan,
   usePrefersTouchControls
@@ -174,6 +175,7 @@ export const SceneRoot = ({
         view={project.camera}
         controlsRef={controlsRef}
       />
+      {prefersTouchControls && <TouchLook controlsRef={controlsRef} />}
       <TouchPinchDolly controlsRef={controlsRef} />
       <TrackpadWheelPan controlsRef={controlsRef} />
       <color attach="background" args={[backgroundColor]} />
@@ -307,6 +309,7 @@ export const SceneRoot = ({
         makeDefault
         enableDamping
         enablePan
+        enableRotate={!prefersTouchControls}
         enableZoom={!prefersTouchControls}
         screenSpacePanning
         keyEvents={false}
