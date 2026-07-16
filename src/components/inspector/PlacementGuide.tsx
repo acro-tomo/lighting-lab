@@ -1,5 +1,6 @@
 import type { Project, WallSegment } from "../../types";
 import { clamp } from "../../utils/units";
+import { useI18n } from "../../i18n";
 
 type PlacementSubject = {
   id: string;
@@ -18,8 +19,8 @@ type AlignmentReference = {
 
 const formatMm = (meters: number) => `${Math.round(Math.abs(meters) * 1000).toLocaleString("ja-JP")}mm`;
 
-const formatSignedDistance = (meters: number, positiveLabel: string, negativeLabel: string) => {
-  if (Math.abs(meters) < 0.01) return "中心";
+const formatSignedDistance = (meters: number, positiveLabel: string, negativeLabel: string, centerLabel: string) => {
+  if (Math.abs(meters) < 0.01) return centerLabel;
   return `${formatMm(meters)} ${meters > 0 ? positiveLabel : negativeLabel}`;
 };
 
@@ -58,11 +59,11 @@ const closestAxisReference = (
     .sort((a, b) => a.deltaM - b.deltaM)[0];
 };
 
-const lineLabel = (match: ReturnType<typeof closestAxisReference> | undefined) => {
-  if (!match) return "比較対象なし";
-  if (match.deltaM < 0.015) return `${match.ref.label} と一致`;
-  if (match.deltaM <= 0.15) return `${match.ref.label} まで ${formatMm(match.deltaM)}`;
-  return `近い基準なし（最寄り ${match.ref.label} まで ${formatMm(match.deltaM)}）`;
+const lineLabel = (match: ReturnType<typeof closestAxisReference> | undefined, t: (key: string, values?: Record<string, string | number>) => string) => {
+  if (!match) return t("比較対象なし");
+  if (match.deltaM < 0.015) return t("{name} と一致", { name: match.ref.label });
+  if (match.deltaM <= 0.15) return t("{name} まで {distance}", { name: match.ref.label, distance: formatMm(match.deltaM) });
+  return t("近い基準なし（最寄り {name} まで {distance}）", { name: match.ref.label, distance: formatMm(match.deltaM) });
 };
 
 export const PlacementGuide = ({
@@ -74,6 +75,7 @@ export const PlacementGuide = ({
   subject: PlacementSubject;
   collapsible?: boolean;
 }) => {
+  const { t } = useI18n();
   const wallRelation = nearestWallRelation(subject, project.walls);
   const references: AlignmentReference[] = [
     ...project.lights.map((light) => ({
@@ -90,7 +92,7 @@ export const PlacementGuide = ({
     })),
     ...project.walls.map((wall) => ({
       id: `${wall.id}:center`,
-      label: `${wall.name} 中心`,
+      label: `${wall.name} ${t("中心")}`,
       position: {
         x: (wall.start.x + wall.end.x) / 2,
         z: (wall.start.z + wall.end.z) / 2
@@ -101,43 +103,44 @@ export const PlacementGuide = ({
   const xMatch = closestAxisReference(subject, references, "x");
   const zMatch = closestAxisReference(subject, references, "z");
   const summary = wallRelation
-    ? `${wallRelation.wall.name}から ${formatMm(wallRelation.relation.distanceM)}`
-    : "壁との距離を確認";
+    ? `${wallRelation.wall.name} ${t("から")} ${formatMm(wallRelation.relation.distanceM)}`
+    : t("壁との距離を確認");
 
   const guideContent = (
     <>
       <div className="placement-guide-heading">
-        <span>配置の目安</span>
-        <em>2D/3D共通</em>
+        <span>{t("配置の目安")}</span>
+        <em>{t("2D/3D共通")}</em>
       </div>
       <dl className="placement-guide-list">
         <div>
-          <dt>基準壁</dt>
-          <dd>{wallRelation ? wallRelation.wall.name : "壁なし"}</dd>
+          <dt>{t("基準壁")}</dt>
+          <dd>{wallRelation ? wallRelation.wall.name : t("壁なし")}</dd>
         </div>
         <div>
-          <dt>壁中心</dt>
+          <dt>{t("壁中心")}</dt>
           <dd>
             {wallRelation
               ? formatSignedDistance(
                   (wallRelation.relation.ratio - 0.5) * wallRelation.relation.wallLengthM,
-                  "終点側",
-                  "始点側"
+                  t("終点側"),
+                  t("始点側"),
+                  t("中心")
                 )
-              : "未計算"}
+              : t("未計算")}
           </dd>
         </div>
         <div>
-          <dt>壁線から</dt>
-          <dd>{wallRelation ? formatMm(wallRelation.relation.distanceM) : "未計算"}</dd>
+          <dt>{t("壁線から")}</dt>
+          <dd>{wallRelation ? formatMm(wallRelation.relation.distanceM) : t("未計算")}</dd>
         </div>
         <div>
-          <dt>横ライン</dt>
-          <dd>{lineLabel(xMatch)}</dd>
+          <dt>{t("横ライン")}</dt>
+          <dd>{lineLabel(xMatch, t)}</dd>
         </div>
         <div>
-          <dt>奥行ライン</dt>
-          <dd>{lineLabel(zMatch)}</dd>
+          <dt>{t("奥行ライン")}</dt>
+          <dd>{lineLabel(zMatch, t)}</dd>
         </div>
       </dl>
     </>
@@ -147,7 +150,7 @@ export const PlacementGuide = ({
     return (
       <details className="placement-guide placement-guide-collapsible">
         <summary>
-          <span>設置位置</span>
+          <span>{t("設置位置")}</span>
           <em>{summary}</em>
         </summary>
         <div className="placement-guide-expanded">{guideContent}</div>
@@ -156,7 +159,7 @@ export const PlacementGuide = ({
   }
 
   return (
-    <section className="placement-guide" aria-label={`${subject.kindLabel}の配置の目安`}>
+    <section className="placement-guide" aria-label={`${subject.kindLabel} ${t("配置の目安")}`}>
       {guideContent}
     </section>
   );
