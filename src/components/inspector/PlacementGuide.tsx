@@ -65,7 +65,15 @@ const lineLabel = (match: ReturnType<typeof closestAxisReference> | undefined) =
   return `近い基準なし（最寄り ${match.ref.label} まで ${formatMm(match.deltaM)}）`;
 };
 
-export const PlacementGuide = ({ project, subject }: { project: Project; subject: PlacementSubject }) => {
+export const PlacementGuide = ({
+  project,
+  subject,
+  collapsible = false
+}: {
+  project: Project;
+  subject: PlacementSubject;
+  collapsible?: boolean;
+}) => {
   const wallRelation = nearestWallRelation(subject, project.walls);
   const references: AlignmentReference[] = [
     ...project.lights.map((light) => ({
@@ -92,9 +100,12 @@ export const PlacementGuide = ({ project, subject }: { project: Project; subject
   ];
   const xMatch = closestAxisReference(subject, references, "x");
   const zMatch = closestAxisReference(subject, references, "z");
+  const summary = wallRelation
+    ? `${wallRelation.wall.name}から ${formatMm(wallRelation.relation.distanceM)}`
+    : "壁との距離を確認";
 
-  return (
-    <section className="placement-guide" aria-label={`${subject.kindLabel}の配置の目安`}>
+  const guideContent = (
+    <>
       <div className="placement-guide-heading">
         <span>配置の目安</span>
         <em>2D/3D共通</em>
@@ -129,6 +140,24 @@ export const PlacementGuide = ({ project, subject }: { project: Project; subject
           <dd>{lineLabel(zMatch)}</dd>
         </div>
       </dl>
+    </>
+  );
+
+  if (collapsible) {
+    return (
+      <details className="placement-guide placement-guide-collapsible">
+        <summary>
+          <span>設置位置</span>
+          <em>{summary}</em>
+        </summary>
+        <div className="placement-guide-expanded">{guideContent}</div>
+      </details>
+    );
+  }
+
+  return (
+    <section className="placement-guide" aria-label={`${subject.kindLabel}の配置の目安`}>
+      {guideContent}
     </section>
   );
 };

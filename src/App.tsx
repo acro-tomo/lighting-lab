@@ -449,12 +449,7 @@ export const App = () => {
           project={project}
           selection={selection}
           canEditWalls={planEditMode}
-          mobileHeader={(
-            <div className="mobile-settings-sheet-head">
-              <strong>設定</strong>
-              <button type="button" onClick={() => setMobileSettingsOpen(false)}>閉じる</button>
-            </div>
-          )}
+          onCloseMobileSettings={() => setMobileSettingsOpen(false)}
         />
       </main>
       <button
