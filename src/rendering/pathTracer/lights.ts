@@ -1,6 +1,14 @@
 import * as THREE from "three";
+import { ShapedAreaLight } from "three-gpu-pathtracer";
 import type { Project } from "../../types";
-import { bracketRoomwardOffset, colorTemperatureToHex, lumensToPhysicalPower } from "../../utils/lighting";
+import {
+  bracketRoomwardOffset,
+  colorTemperatureToHex,
+  lumensToPhysicalPower,
+  TAPE_LIGHT_EMIT_OFFSET_M,
+  TAPE_LIGHT_HEIGHT_M,
+  tapeLightOrientation
+} from "../../utils/lighting";
 import { addBox } from "./geometry";
 import { diagnosticMaterial, makeMaterial } from "./materials";
 import type { RenderDebugMode } from "./qualityPresets";
@@ -29,9 +37,17 @@ export const addFixtureLights = (scene: THREE.Scene, project: Project, debugMode
         roughness: 0.48
       });
       addBox(scene, [fixture.lengthM ?? 1.2, 0.035, 0.018], [fixture.position.x, fixture.position.y, fixture.position.z], emissive, 0, "fixture", debugMode);
-      const light = new THREE.PointLight(color, 1, 0, 2);
+      // NEE対応の面光源(RectAreaLight互換)。編集ラスター(fixtureBody)の RectAreaLight と
+      // 同寸法・同power・同じ向きで WYSIWYG を保つ。バーに遮られないよう照射方向へ少し出す。
+      const { direction, quaternion } = tapeLightOrientation(fixture);
+      const light = new ShapedAreaLight(color, 1, fixture.lengthM ?? 1.2, TAPE_LIGHT_HEIGHT_M);
       light.power = power;
-      light.position.set(fixture.position.x, fixture.position.y, fixture.position.z);
+      light.quaternion.copy(quaternion);
+      light.position.set(
+        fixture.position.x + direction.x * TAPE_LIGHT_EMIT_OFFSET_M,
+        fixture.position.y + direction.y * TAPE_LIGHT_EMIT_OFFSET_M,
+        fixture.position.z + direction.z * TAPE_LIGHT_EMIT_OFFSET_M
+      );
       scene.add(light);
       return;
     }

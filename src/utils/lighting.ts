@@ -63,6 +63,33 @@ export const bracketRoomwardOffset = (
   return { x: (dx / len) * offM, z: (dz / len) * offM };
 };
 
+// テープライト(面光源)の発光面の高さと、発光バー形状から照射方向へ浮かせる距離。
+// バー形状(厚み0.018m)と同位置に発光面を置くとパストレで自身のバーに遮られるため、
+// 照射方向へ少しだけ前に出す。編集ラスター(fixtureBody)とPNG書き出し(pathTracer/lights)で
+// 同じ値を使い WYSIWYG を保つ。
+export const TAPE_LIGHT_HEIGHT_M = 0.02;
+export const TAPE_LIGHT_EMIT_OFFSET_M = 0.03;
+
+// テープの発光面(RectAreaLight系)の向き。RectAreaLight はローカル -Z へ発光するため、
+// -Z を target への方向(無指定なら真下=棚下・壁裏の間接想定)に合わせる。
+// setFromUnitVectors は水平・真下方向に対してローカルX(バー長手)を保つので、
+// 発光バー形状(X軸沿い)と発光面の幅方向が一致する。
+export const tapeLightOrientation = (
+  fixture: LightFixture
+): { direction: THREE.Vector3; quaternion: THREE.Quaternion } => {
+  const direction = fixture.target
+    ? new THREE.Vector3(
+        fixture.target.x - fixture.position.x,
+        fixture.target.y - fixture.position.y,
+        fixture.target.z - fixture.position.z
+      )
+    : new THREE.Vector3(0, -1, 0);
+  if (direction.lengthSq() < 1e-6) direction.set(0, -1, 0);
+  direction.normalize();
+  const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, -1), direction);
+  return { direction, quaternion };
+};
+
 export const lumensToPhysicalPower = (fixture: LightFixture): number => {
   if (!fixture.enabled) return 0;
   return fixture.lumens * clamp(fixture.dimmer, 0, 100) * 0.01;

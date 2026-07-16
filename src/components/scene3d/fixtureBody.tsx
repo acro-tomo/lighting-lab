@@ -1,12 +1,24 @@
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
+import { RectAreaLightUniformsLib } from "three/examples/jsm/lights/RectAreaLightUniformsLib.js";
 import type { RenderDebugMode } from "../../rendering/pathTracer";
 import type { LightFixture } from "../../types";
-import { bracketRoomwardOffset, colorTemperatureToHex, lumensToPhysicalPower } from "../../utils/lighting";
+import {
+  bracketRoomwardOffset,
+  colorTemperatureToHex,
+  lumensToPhysicalPower,
+  TAPE_LIGHT_EMIT_OFFSET_M,
+  TAPE_LIGHT_HEIGHT_M,
+  tapeLightOrientation
+} from "../../utils/lighting";
 import { degToRad } from "../../utils/units";
 import { usePathTraced } from "./contexts";
 import { debugColorForRole } from "./materials";
+
+// RectAreaLight(LTC)のラスター用参照テーブル。未初期化だと面光源が材質に反射しない。
+// モジュール初期化時に一度だけ呼ぶ(HMR再評価に備え未定義時のみ)。
+if (!(THREE.UniformsLib as { LTC_FLOAT_1?: unknown }).LTC_FLOAT_1) RectAreaLightUniformsLib.init();
 
 // 首振り器具（ユニバーサル/壁付スポット）の本体を照射先に向ける。
 const AimableSpotBody = ({
@@ -187,11 +199,23 @@ export const PhysicalLight = ({
   });
 
   if (fixture.type === "tape") {
+    // 面光源(LTC)。three ラスターの RectAreaLight は影を落とさない制約があるが、
+    // 棚下・壁裏のアクセント用途なので許容する。寸法・power・向きはPNG書き出し側
+    // (rendering/pathTracer/lights.ts の ShapedAreaLight)と揃えて WYSIWYG を保つ。
+    // 常駐パストレ(liveTracer)も本ライトをそのまま NEE 対応の面光源としてトレースする。
+    const { direction, quaternion } = tapeLightOrientation(fixture);
     return (
-      <>
-        <pointLight color={color} power={power * 0.5} distance={0} decay={2} position={[0, 0.08, 0.04]} />
-        <pointLight color={color} power={power * 0.5} distance={0} decay={2} position={[0, -0.08, 0.04]} />
-      </>
+      <rectAreaLight
+        args={[undefined, 1, fixture.lengthM ?? 1.2, TAPE_LIGHT_HEIGHT_M]}
+        color={color}
+        power={power}
+        quaternion={quaternion}
+        position={[
+          direction.x * TAPE_LIGHT_EMIT_OFFSET_M,
+          direction.y * TAPE_LIGHT_EMIT_OFFSET_M,
+          direction.z * TAPE_LIGHT_EMIT_OFFSET_M
+        ]}
+      />
     );
   }
 
