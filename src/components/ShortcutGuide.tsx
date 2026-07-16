@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useI18n } from "../i18n";
 
 type Modifier = "none" | "shift" | "alt" | "meta";
 
@@ -30,6 +31,7 @@ const Row = ({ keys, label }: { keys: React.ReactNode[]; label: string }) => (
 );
 
 export const ShortcutGuide = () => {
+  const { t } = useI18n();
   const [modifier, setModifier] = useState<Modifier>("none");
   const [visible, setVisible] = useState(false);
 
@@ -62,12 +64,12 @@ export const ShortcutGuide = () => {
   }, []);
 
   return (
-    <div className="shortcut-guide" aria-label="ショートカット案内">
+    <div className="shortcut-guide" aria-label={t("ショートカット案内")}>
       {/* ⌨ トグル — ここだけクリック可能 */}
       <button
         className={`sg-toggle${visible ? " is-open" : ""}`}
         onClick={() => setVisible((v) => !v)}
-        title={visible ? "ショートカット案内を隠す" : "ショートカット案内を表示"}
+        title={visible ? t("ショートカット案内を隠す") : t("ショートカット案内を表示")}
         aria-pressed={visible}
       >
         ⌨
@@ -77,42 +79,42 @@ export const ShortcutGuide = () => {
         <div className="sg-body">
           {/* 常時ベース */}
           <div className={`sg-section${modifier === "none" ? " is-active" : ""}`}>
-            <Row keys={[<Key>←</Key>, <Key>→</Key>, <Key>↑</Key>, <Key>↓</Key>]} label="注視点だけを動かして見回す（カメラ固定）" />
+            <Row keys={[<Key>←</Key>, <Key>→</Key>, <Key>↑</Key>, <Key>↓</Key>]} label={t("注視点だけを動かして見回す（カメラ固定）")} />
           </div>
 
           {/* Shift */}
           <div className={`sg-section${modifier === "shift" ? " is-active" : ""}`}>
             <div className="sg-section-label"><Key>⇧ Shift</Key></div>
-            <Row keys={[<Key>⇧</Key>, <Key>↑</Key>]} label="視点を前に移動" />
-            <Row keys={[<Key>⇧</Key>, <Key>↓</Key>]} label="視点を後ろに移動" />
-            <Row keys={[<Key>⇧</Key>, <Key>←</Key>]} label="視点を左に移動" />
-            <Row keys={[<Key>⇧</Key>, <Key>→</Key>]} label="視点を右に移動" />
-            <Row keys={[<Key>⇧</Key>, <Key>クリック</Key>]} label="ライト複数選択" />
+            <Row keys={[<Key>⇧</Key>, <Key>↑</Key>]} label={t("視点を前に移動")} />
+            <Row keys={[<Key>⇧</Key>, <Key>↓</Key>]} label={t("視点を後ろに移動")} />
+            <Row keys={[<Key>⇧</Key>, <Key>←</Key>]} label={t("視点を左に移動")} />
+            <Row keys={[<Key>⇧</Key>, <Key>→</Key>]} label={t("視点を右に移動")} />
+            <Row keys={[<Key>⇧</Key>, <Key>クリック</Key>]} label={t("ライト複数選択")} />
           </div>
 
           {/* Option / Alt */}
           <div className={`sg-section${modifier === "alt" ? " is-active" : ""}`}>
             <div className="sg-section-label"><Key>⌥ Option</Key></div>
-            <Row keys={[<Key>⌥</Key>, <Key>←</Key>]} label="カメラが注視点の周りを左に回る" />
-            <Row keys={[<Key>⌥</Key>, <Key>→</Key>]} label="カメラが注視点の周りを右に回る" />
-            <Row keys={[<Key>⌥</Key>, <Key>↑</Key>]} label="視点を上に移動" />
-            <Row keys={[<Key>⌥</Key>, <Key>↓</Key>]} label="視点を下に移動" />
+            <Row keys={[<Key>⌥</Key>, <Key>←</Key>]} label={t("カメラが注視点の周りを左に回る")} />
+            <Row keys={[<Key>⌥</Key>, <Key>→</Key>]} label={t("カメラが注視点の周りを右に回る")} />
+            <Row keys={[<Key>⌥</Key>, <Key>↑</Key>]} label={t("視点を上に移動")} />
+            <Row keys={[<Key>⌥</Key>, <Key>↓</Key>]} label={t("視点を下に移動")} />
           </div>
 
           {/* ⌘ / Ctrl */}
           <div className={`sg-section${modifier === "meta" ? " is-active" : ""}`}>
             <div className="sg-section-label"><Key>⌘ / Ctrl</Key></div>
-            <Row keys={[<Key>⌘</Key>, <Key>C</Key>]} label="コピー" />
-            <Row keys={[<Key>⌘</Key>, <Key>V</Key>]} label="貼り付け" />
-            <Row keys={[<Key>⌘</Key>, <Key>Z</Key>]} label="元に戻す" />
-            <Row keys={[<Key>⌘</Key>, <Key>⇧Z</Key>]} label="やり直し" />
+            <Row keys={[<Key>⌘</Key>, <Key>C</Key>]} label={t("コピー")} />
+            <Row keys={[<Key>⌘</Key>, <Key>V</Key>]} label={t("貼り付け")} />
+            <Row keys={[<Key>⌘</Key>, <Key>Z</Key>]} label={t("元に戻す")} />
+            <Row keys={[<Key>⌘</Key>, <Key>⇧Z</Key>]} label={t("やり直し")} />
           </div>
 
           {/* 常時補助 */}
           <div className="sg-section sg-aux">
-            <Row keys={[<Key>Esc</Key>]} label="配置終了 / 選択解除" />
-            <Row keys={[<Key>Del</Key>]} label="削除" />
-            <Row keys={[<Key>Enter</Key>]} label="壁モード：頂点を確定" />
+            <Row keys={[<Key>Esc</Key>]} label={t("配置終了 / 選択解除")} />
+            <Row keys={[<Key>Del</Key>]} label={t("削除")} />
+            <Row keys={[<Key>Enter</Key>]} label={t("壁モード：頂点を確定")} />
           </div>
         </div>
       )}
