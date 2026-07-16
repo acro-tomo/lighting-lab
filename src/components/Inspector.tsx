@@ -165,7 +165,7 @@ export const Inspector = ({ project, selection, canEditWalls, onCloseMobileSetti
               >
                 <option value="" disabled>{t("— 素材を選んで適用 —")}</option>
                 {project.materials.map((mat) => (
-                  <option key={mat.id} value={mat.id}>{mat.name}</option>
+                  <option key={mat.id} value={mat.id}>{t(mat.name)}</option>
                 ))}
               </select>
             </label>
@@ -195,7 +195,7 @@ export const Inspector = ({ project, selection, canEditWalls, onCloseMobileSetti
                 <option value="">{t("— 照明を選択 —")}</option>
                 {project.lights.map((light) => (
                   <option key={light.id} value={light.id}>
-                    {light.name}（{light.enabled !== false ? `${Math.round(light.dimmer ?? 100)}%` : "OFF"}）
+                    {t(light.name)} ({light.enabled !== false ? `${Math.round(light.dimmer ?? 100)}%` : t("OFF")})
                   </option>
                 ))}
               </select>

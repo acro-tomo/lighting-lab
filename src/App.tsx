@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { HeaderBar } from "./components/HeaderBar";
 import { Inspector } from "./components/Inspector";
 import { Plan2D } from "./components/Plan2D";
@@ -23,7 +23,7 @@ import { useRenderPipeline } from "./app/hooks/useRenderPipeline";
 import { useI18n } from "./i18n";
 
 export const App = () => {
-  const { t } = useI18n();
+  const { language, t } = useI18n();
   const project = useProjectStore((state) => state.project);
   const selection = useProjectStore((state) => state.selection);
   const compareShots = useProjectStore((state) => state.compareShots);
@@ -51,6 +51,10 @@ export const App = () => {
   const [outputOpen, setOutputOpen] = useState(false);
   const [daylightOpen, setDaylightOpen] = useState(false);
   const [showIntro, setShowIntro] = useState(false);
+
+  useEffect(() => {
+    setNotice(t("IndexedDBに自動保存します。"));
+  }, [language, t]);
 
   useProjectPersistence(project, setProject, setCompareShots, setNotice);
 

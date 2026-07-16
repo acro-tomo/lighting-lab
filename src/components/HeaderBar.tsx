@@ -37,7 +37,7 @@ export const HeaderBar = ({
         <div className="brand-mark" aria-hidden="true" />
         <div>
           <p className="eyebrow">{t("Local Web Simulator")}</p>
-          <h1>{project.name}</h1>
+          <h1>{t(project.name)}</h1>
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 import type { Project, Selection, Vec2M, VoidSide } from "../../types";
 import { visibleVoidSides } from "../../utils/fixtureMounting";
 import { voidSideLine } from "./geometry";
+import { useI18n } from "../../i18n";
 
 // 吹き抜けの描画。openSides を除いた辺を内周壁として描き、選択中は開放辺も点線で示す。
 export const VoidPlanItem = ({
@@ -24,6 +25,7 @@ export const VoidPlanItem = ({
   svgToWorld: (clientX: number, clientY: number) => Vec2M;
   canDrag: boolean;
 }) => {
+  const { t } = useI18n();
   const topLeft = worldToSvg({
     x: voidArea.center.x - voidArea.size.x / 2,
     z: voidArea.center.z - voidArea.size.z / 2
@@ -83,7 +85,7 @@ export const VoidPlanItem = ({
         );
       })}
       <text x={topLeft.x + 12} y={topLeft.y + 24} className="plan-label">
-        {voidArea.name}
+        {t(voidArea.name)}
       </text>
     </g>
   );
@@ -111,6 +113,7 @@ export const CeilingZonePlanItem = ({
   svgToWorld: (clientX: number, clientY: number) => Vec2M;
   canDrag: boolean;
 }) => {
+  const { t } = useI18n();
   const topLeft = worldToSvg({
     x: zone.center.x - zone.size.x / 2,
     z: zone.center.z - zone.size.z / 2
@@ -134,7 +137,7 @@ export const CeilingZonePlanItem = ({
         className={selected ? "plan-ceiling is-selected" : "plan-ceiling"}
       />
       <text x={topLeft.x + 12} y={topLeft.y + 24} className="plan-label">
-        {zone.name}（▼{Math.round(zone.dropM * 1000)}）
+        {t(zone.name)} (▼{Math.round(zone.dropM * 1000)})
       </text>
     </g>
   );
@@ -162,6 +165,7 @@ export const FloorZonePlanItem = ({
   svgToWorld: (clientX: number, clientY: number) => Vec2M;
   canDrag: boolean;
 }) => {
+  const { t } = useI18n();
   const topLeft = worldToSvg({
     x: zone.center.x - zone.size.x / 2,
     z: zone.center.z - zone.size.z / 2
@@ -185,7 +189,7 @@ export const FloorZonePlanItem = ({
         className={selected ? "plan-floor is-selected" : "plan-floor"}
       />
       <text x={topLeft.x + 12} y={topLeft.y + 24} className="plan-label">
-        {zone.name}（▽{Math.round(zone.dropM * 1000)}）
+        {t(zone.name)} (▽{Math.round(zone.dropM * 1000)})
       </text>
     </g>
   );

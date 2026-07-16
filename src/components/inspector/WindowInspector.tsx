@@ -39,7 +39,7 @@ export const WindowInspector = ({
       >
         {project.walls.map((wall) => (
           <option key={wall.id} value={wall.id}>
-            {wall.name}
+            {t(wall.name)}
           </option>
         ))}
       </select>

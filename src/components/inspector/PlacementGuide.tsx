@@ -80,19 +80,19 @@ export const PlacementGuide = ({
   const references: AlignmentReference[] = [
     ...project.lights.map((light) => ({
       id: light.id,
-      label: light.name,
+      label: t(light.name),
       position: light.position,
       floor: light.floor
     })),
     ...project.furniture.map((item) => ({
       id: item.id,
-      label: item.name,
+      label: t(item.name),
       position: item.position,
       floor: item.floor
     })),
     ...project.walls.map((wall) => ({
       id: `${wall.id}:center`,
-      label: `${wall.name} ${t("中心")}`,
+      label: `${t(wall.name)} ${t("中心")}`,
       position: {
         x: (wall.start.x + wall.end.x) / 2,
         z: (wall.start.z + wall.end.z) / 2
@@ -103,7 +103,7 @@ export const PlacementGuide = ({
   const xMatch = closestAxisReference(subject, references, "x");
   const zMatch = closestAxisReference(subject, references, "z");
   const summary = wallRelation
-    ? `${wallRelation.wall.name} ${t("から")} ${formatMm(wallRelation.relation.distanceM)}`
+    ? `${t(wallRelation.wall.name)} ${t("から")} ${formatMm(wallRelation.relation.distanceM)}`
     : t("壁との距離を確認");
 
   const guideContent = (

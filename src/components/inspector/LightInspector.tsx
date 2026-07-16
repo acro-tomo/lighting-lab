@@ -31,7 +31,7 @@ export const LightInspector = ({
       <header className="light-inspector-heading">
         <p>{t("選択中の照明")}</p>
         <h2>{t(lightTypeLabels[light.type])}{t("を編集")}</h2>
-        <span>{light.name}</span>
+        <span>{t(light.name)}</span>
         <strong className={light.enabled !== false ? "light-status is-on" : "light-status"}>
           ● {light.enabled !== false ? t("点灯中") : t("消灯中")}
         </strong>

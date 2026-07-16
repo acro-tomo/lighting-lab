@@ -81,7 +81,7 @@ export const WallInspector = ({
       >
         {project.materials.map((item) => (
           <option key={item.id} value={item.id}>
-            {item.name}
+            {t(item.name)}
           </option>
         ))}
       </select>
@@ -89,7 +89,7 @@ export const WallInspector = ({
 
     {material && (
       <section className="wallpaper-block">
-        <p className="field-hint">{t("壁紙はこの素材「{name}」を使う全ての壁に反映されます。", { name: material.name })}</p>
+        <p className="field-hint">{t("壁紙はこの素材「{name}」を使う全ての壁に反映されます。", { name: t(material.name) })}</p>
         <label className="field">
           <span>{t("壁紙画像")}</span>
           <input
