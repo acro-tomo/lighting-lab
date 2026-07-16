@@ -118,10 +118,17 @@ npm run typecheck
 npm run build
 ```
 
-ローカルサーバ起動中に、スクリーンショットと3D canvas非空チェックを行えます。
+ビルド後、別ターミナルでプレビューサーバを起動します。
 
 ```bash
-npm run visual-check -- http://127.0.0.1:5173/
+npm run preview -- --port 4173
+```
+
+プレビューサーバ起動中に、スクリーンショットと3D canvas非空チェックを行えます。
+
+```bash
+npm run visual-check -- http://127.0.0.1:4173/
+npm run exploratory-check -- http://127.0.0.1:4173/
 ```
 
 出力:
@@ -139,13 +146,13 @@ docs/lighting-calibration-report.md
 最終レンダー開始直後の進捗表示まで確認する場合:
 
 ```bash
-npm run visual-check -- http://127.0.0.1:5173/ --render-peek
+npm run visual-check -- http://127.0.0.1:4173/ --render-peek
 ```
 
 最終レンダー完了まで待つ場合:
 
 ```bash
-npm run visual-check -- http://127.0.0.1:5173/ --render
+npm run visual-check -- http://127.0.0.1:4173/ --render
 ```
 
 ## 現時点の制限

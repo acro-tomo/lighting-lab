@@ -19,7 +19,12 @@ const browser = await chromium.launch({
   headless,
   args: ["--use-gl=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist", "--disable-dev-shm-usage"]
 });
-const page = await browser.newPage({ viewport: { width: 1440, height: 960 }, deviceScaleFactor: 1 });
+const page = await browser.newPage({
+  viewport: { width: 1440, height: 960 },
+  deviceScaleFactor: 1,
+  // この回帰チェックは日本語の操作ラベルを対象にする。
+  locale: "ja-JP"
+});
 await page.addInitScript((storageKey) => {
   window.localStorage.setItem(storageKey, "1");
 }, introSeenStorageKey);
