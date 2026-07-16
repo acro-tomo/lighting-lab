@@ -1,6 +1,7 @@
 {
   "id": "share-demo-dimensioned-ldk",
   "name": "拡散用デモ - 寸法入り架空LDK",
+  "renderCalibrationVersion": 2,
   "room": {
     "widthM": 8.6,
     "depthM": 6.4,
@@ -568,7 +569,7 @@
       "z": -0.35
     },
     "fov": 64,
-    "exposure": 1.72,
+    "exposure": 0.19,
     "resolutionWidth": 1600
   },
   "backgroundPlan": {

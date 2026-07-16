@@ -1,5 +1,8 @@
 import type { Project } from "../types";
-import { CALIBRATION_CAMERA_EXPOSURE } from "../rendering/exposure";
+import {
+  CALIBRATION_CAMERA_EXPOSURE,
+  CURRENT_RENDER_CALIBRATION_VERSION
+} from "../rendering/exposure";
 import { DEFAULT_DAYLIGHT } from "../utils/sun";
 import { vec2, vec3 } from "../utils/units";
 
@@ -12,6 +15,7 @@ const halfD = depthM / 2;
 export const calibrationProject: Project = {
   id: "lighting-calibration-room",
   name: "Lighting Calibration Room",
+  renderCalibrationVersion: CURRENT_RENDER_CALIBRATION_VERSION,
   room: {
     widthM,
     depthM,

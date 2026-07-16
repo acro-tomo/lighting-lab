@@ -56,6 +56,51 @@ export function beamDistribution(flux: Lumens, beamAngleDeg: number): LightDistr
   };
 }
 
+/** Three.js SpotLight の smoothstep 半影を含む重み付き立体角 [sr]。 */
+export function threeSpotWeightedSolidAngle(fullAngleDeg: number, penumbra: number): number {
+  if (!(fullAngleDeg > 0 && fullAngleDeg <= 180)) {
+    throw new Error(`fullAngleDeg out of range: ${fullAngleDeg}`);
+  }
+  if (!(penumbra >= 0 && penumbra <= 1)) {
+    throw new Error(`penumbra out of range: ${penumbra}`);
+  }
+  const outer = (fullAngleDeg / 2) * (Math.PI / 180);
+  const inner = outer * (1 - penumbra);
+  return 2 * Math.PI * (1 - (Math.cos(outer) + Math.cos(inner)) / 2);
+}
+
+/** 入力光束を保存する Three.js SpotLight のピーク光度 [cd]。 */
+export function threeSpotPeakCandela(
+  flux: Lumens,
+  fullAngleDeg: number,
+  penumbra: number
+): Candelas {
+  return flux / threeSpotWeightedSolidAngle(fullAngleDeg, penumbra);
+}
+
+/** Three.js SpotLight と同じ cos 空間の smoothstep 半影を持つ配光。 */
+export function threeSpotDistribution(
+  flux: Lumens,
+  fullAngleDeg: number,
+  penumbra: number
+): LightDistribution {
+  const outer = (fullAngleDeg / 2) * (Math.PI / 180);
+  const inner = outer * (1 - penumbra);
+  const outerCos = Math.cos(outer);
+  const innerCos = Math.cos(inner);
+  const peak = threeSpotPeakCandela(flux, fullAngleDeg, penumbra);
+  return {
+    kind: 'beam',
+    intensityAt: (thetaRad: number) => {
+      const theta = Math.abs(thetaRad);
+      if (theta > outer) return 0;
+      if (penumbra === 0 || theta <= inner) return peak;
+      const t = (Math.cos(theta) - outerCos) / (innerCos - outerCos);
+      return peak * t * t * (3 - 2 * t);
+    },
+  };
+}
+
 /**
  * 配光の全光束 [lm] を数値積分で求める（テスト・整合性検証用）。
  * Φ = ∫∫ I(θ,φ) sinθ dθ dφ

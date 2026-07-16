@@ -3,8 +3,9 @@ import { ShapedAreaLight } from "three-gpu-pathtracer";
 import type { Project } from "../../types";
 import {
   bracketRoomwardOffset,
-  colorTemperatureToHex,
+  colorTemperatureToLinearColor,
   lumensToPhysicalPower,
+  lumensToSpotlightPeakCandela,
   TAPE_LIGHT_EMIT_OFFSET_M,
   TAPE_LIGHT_HEIGHT_M,
   tapeLightOrientation
@@ -24,10 +25,10 @@ export const sunColorForAltitude = (altitudeDeg: number): THREE.Color => {
 // 編集ビュー(Scene3D)と異なり本ファイルの光源には castShadow を設定しない。
 export const addFixtureLights = (scene: THREE.Scene, project: Project, debugMode: RenderDebugMode) => {
   project.lights.forEach((fixture) => {
-    const power = lumensToPhysicalPower(fixture);
-    if (power <= 0) return;
-    const color = colorTemperatureToHex(fixture.colorTemperatureK);
-    const targetPosition = fixture.target ?? { x: fixture.position.x, y: 0.7, z: fixture.position.z };
+    const lumens = lumensToPhysicalPower(fixture);
+    if (lumens <= 0) return;
+    const color = colorTemperatureToLinearColor(fixture.colorTemperatureK);
+    const targetPosition = fixture.target ?? { x: fixture.position.x, y: 0.1, z: fixture.position.z };
 
     if (fixture.type === "tape") {
       const emissive = new THREE.MeshStandardMaterial({
@@ -41,7 +42,7 @@ export const addFixtureLights = (scene: THREE.Scene, project: Project, debugMode
       // 同寸法・同power・同じ向きで WYSIWYG を保つ。バーに遮られないよう照射方向へ少し出す。
       const { direction, quaternion } = tapeLightOrientation(fixture);
       const light = new ShapedAreaLight(color, 1, fixture.lengthM ?? 1.2, TAPE_LIGHT_HEIGHT_M);
-      light.power = power;
+      light.power = lumens;
       light.quaternion.copy(quaternion);
       light.position.set(
         fixture.position.x + direction.x * TAPE_LIGHT_EMIT_OFFSET_M,
@@ -57,7 +58,7 @@ export const addFixtureLights = (scene: THREE.Scene, project: Project, debugMode
       // ~0.16m 離す（編集ラスターと同じ式で WYSIWYG を保つ）。
       const off = bracketRoomwardOffset(fixture, 0.16);
       const light = new THREE.PointLight(color, 1, 0, 2);
-      light.power = power;
+      light.power = lumens;
       light.position.set(
         fixture.position.x + off.x,
         fixture.position.y,
@@ -97,7 +98,7 @@ export const addFixtureLights = (scene: THREE.Scene, project: Project, debugMode
 
       // 下方配光のスポット(≈140°)。全方向 pointLight だと天井まで照るのを防ぐ。
       const light = new THREE.SpotLight(color, 1, 0, THREE.MathUtils.degToRad(70), 0.5, 2);
-      light.power = power;
+      light.intensity = lumensToSpotlightPeakCandela(lumens, 140, 0.5);
       light.position.set(fixture.position.x, fixture.position.y - 0.08, fixture.position.z);
       light.castShadow = fixture.castsShadow;
       light.target.position.set(fixture.position.x, 0.1, fixture.position.z);
@@ -115,8 +116,18 @@ export const addFixtureLights = (scene: THREE.Scene, project: Project, debugMode
       fixture.penumbra,
       2
     );
-    light.power = power;
-    light.position.set(fixture.position.x, fixture.position.y, fixture.position.z);
+    light.intensity = lumensToSpotlightPeakCandela(
+      lumens,
+      fixture.beamAngleDeg,
+      fixture.penumbra
+    );
+    // 編集ラスターと同じく、器具本体の遮蔽を避ける最小量だけ下げる。
+    const lightDrop = fixture.type === "spotlight" ? 0.2 : 0.05;
+    light.position.set(
+      fixture.position.x,
+      fixture.position.y - lightDrop,
+      fixture.position.z
+    );
     light.castShadow = fixture.castsShadow;
     light.target.position.set(targetPosition.x, targetPosition.y, targetPosition.z);
     light.target.updateMatrixWorld(true);

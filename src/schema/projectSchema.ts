@@ -1,6 +1,10 @@
 import { z } from "zod";
 import type { LightFixture, Project } from "../types";
-import { DEFAULT_CAMERA_EXPOSURE } from "../rendering/exposure";
+import {
+  CURRENT_RENDER_CALIBRATION_VERSION,
+  DEFAULT_CAMERA_EXPOSURE,
+  migrateRenderExposure
+} from "../rendering/exposure";
 import { fitCameraToProject, shouldFitDefaultCamera } from "../utils/cameraFit";
 import { normalizeCeilingMountedFixture } from "../utils/fixtureMounting";
 
@@ -141,8 +145,9 @@ const lightSchema = z
     colorTemperatureK: z.number().default(2700),
     dimmer: z.number().default(80),
     enabled: z.boolean().default(true),
-    beamAngleDeg: z.number().default(60),
-    penumbra: z.number().default(0.6),
+    // 旧JSONの範囲外値も拒否せず、Three.js SpotLightの有効域へ移行する。
+    beamAngleDeg: z.number().transform((value) => Math.min(180, Math.max(1, value))).default(60),
+    penumbra: z.number().transform((value) => Math.min(1, Math.max(0, value))).default(0.6),
     castsShadow: z.boolean().default(true),
     note: z.string().default(""),
     lengthM: z.number().optional(),
@@ -209,6 +214,7 @@ const baseProjectSchema = z
   .object({
     id: z.string(),
     name: z.string(),
+    renderCalibrationVersion: z.number().int().positive().optional(),
     room: z
       .object({
         widthM: z.number().positive(),
@@ -252,19 +258,26 @@ export const projectSchema = baseProjectSchema.transform((raw) => {
     activeCameraViewId,
     camera,
     lights,
+    renderCalibrationVersion,
     ...rest
   } = raw;
 
-  const resolvedCamera =
+  const storedCamera =
     camera ??
     cameraViews?.find((view) => view.id === activeCameraViewId) ??
-    cameraViews?.[0] ??
-    DEFAULT_CAMERA;
+    cameraViews?.[0];
+  const resolvedCamera = storedCamera ?? DEFAULT_CAMERA;
+  const renderCalibration = storedCamera
+    ? migrateRenderExposure(resolvedCamera.exposure, renderCalibrationVersion)
+    : {
+        exposure: resolvedCamera.exposure,
+        renderCalibrationVersion: CURRENT_RENDER_CALIBRATION_VERSION
+      };
   const nextCamera = {
     position: resolvedCamera.position,
     target: resolvedCamera.target,
     fov: resolvedCamera.fov,
-    exposure: resolvedCamera.exposure,
+    exposure: renderCalibration.exposure,
     resolutionWidth: resolvedCamera.resolutionWidth
   };
 
@@ -278,7 +291,12 @@ export const projectSchema = baseProjectSchema.transform((raw) => {
       })
     : lights;
 
-  const project = { ...rest, lights: migratedLights, camera: nextCamera } as Project;
+  const project = {
+    ...rest,
+    renderCalibrationVersion: renderCalibration.renderCalibrationVersion,
+    lights: migratedLights,
+    camera: nextCamera
+  } as Project;
   const nextLights = project.lights.map((light) =>
     normalizeCeilingMountedFixture(project, light as LightFixture)
   );

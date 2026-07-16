@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { projectSchema } from "../../schema/projectSchema";
 import { loadProjectFromIndexedDb, saveProjectToIndexedDb } from "../../storage/projectStorage";
 import type { CompareShot, Project } from "../../types";
-import { migrateSvgBackgrounds } from "../appUtils";
+import { migrateLoadedProject } from "../appUtils";
 
 // 初回読込（共有デモ or IndexedDB復元）とデバウンス自動保存をまとめて扱う。
 export const useProjectPersistence = (
@@ -29,7 +29,7 @@ export const useProjectPersistence = (
     const loadSharedDemo = async () => {
       const response = await fetch(`${import.meta.env.BASE_URL}demo/share-demo-project.json`);
       if (!response.ok) throw new Error(`demo fetch failed: ${response.status}`);
-      const parsed = await migrateSvgBackgrounds(
+      const parsed = await migrateLoadedProject(
         projectSchema.parse(await response.json()) as Project & { compareShots?: CompareShot[] }
       );
       setProject(parsed);
@@ -61,7 +61,7 @@ export const useProjectPersistence = (
         }
         if (savedProject) {
           // スキーマ検証は loadProjectFromIndexedDb 内で済んでいる（二重検証しない）。
-          const parsed = await migrateSvgBackgrounds(
+          const parsed = await migrateLoadedProject(
             savedProject as Project & { compareShots?: CompareShot[] }
           );
           setProject(parsed);

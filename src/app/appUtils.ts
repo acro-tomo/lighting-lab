@@ -1,4 +1,5 @@
 import { APP_NAME, getAppDisplayUrl } from "../config/appMeta";
+import { migrateRenderExposure } from "../rendering/exposure";
 import { rasterizeSvgBackground } from "../utils/floorplanImport";
 import type { Project } from "../types";
 
@@ -61,9 +62,15 @@ export const downloadDataUrl = (fileName: string, dataUrl: string) => {
   anchor.click();
 };
 
-// 旧JSON・自動保存に残るSVG背景をPNGへ変換する（SVGはモバイルのピンチ操作を殺す）。
-export const migrateSvgBackgrounds = async <T extends Project>(project: T): Promise<T> => {
+export const migrateLoadedProject = async <T extends Project>(project: T): Promise<T> => {
   const next = { ...project };
+  const renderCalibration = migrateRenderExposure(
+    next.camera.exposure,
+    next.renderCalibrationVersion
+  );
+  next.camera = { ...next.camera, exposure: renderCalibration.exposure };
+  next.renderCalibrationVersion = renderCalibration.renderCalibrationVersion;
+  // SVG背景はモバイルのピンチ操作を殺すため、旧JSONと自動保存の読込時にPNG化する。
   if (next.backgroundPlan) next.backgroundPlan = await rasterizeSvgBackground(next.backgroundPlan);
   if (next.backgroundPlan2) next.backgroundPlan2 = await rasterizeSvgBackground(next.backgroundPlan2);
   return next;

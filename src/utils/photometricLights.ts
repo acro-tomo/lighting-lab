@@ -1,7 +1,7 @@
 import type { PhotometricLight } from "../../photometric/src/photometry/illuminance";
 import {
-  beamDistribution,
-  isotropicDistribution
+  isotropicDistribution,
+  threeSpotDistribution
 } from "../../photometric/src/photometry/distribution";
 import type { Vec3 } from "../../photometric/src/core/types";
 import { vec3 } from "../../photometric/src/core/vec3";
@@ -110,7 +110,7 @@ export const projectLightsToPhotometric = (
       result.push({
         position,
         axis: aimAxis(position, target),
-        distribution: beamDistribution(power, PENDANT_FULL_ANGLE_DEG),
+        distribution: threeSpotDistribution(power, PENDANT_FULL_ANGLE_DEG, 0.5),
         dimming: 1
       });
       continue;
@@ -122,7 +122,11 @@ export const projectLightsToPhotometric = (
     result.push({
       position,
       axis: aimAxis(position, target),
-      distribution: beamDistribution(power, clampFullAngle(fixture.beamAngleDeg)),
+      distribution: threeSpotDistribution(
+        power,
+        clampFullAngle(fixture.beamAngleDeg),
+        fixture.penumbra
+      ),
       dimming: 1
     });
   }

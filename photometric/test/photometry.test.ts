@@ -8,6 +8,8 @@ import {
   beamDistribution,
   integrateFlux,
   isotropicDistribution,
+  threeSpotDistribution,
+  threeSpotPeakCandela,
 } from '../src/photometry/distribution';
 import {
   directIlluminanceFrom,
@@ -118,6 +120,38 @@ describe('lm → cd 変換（ビーム角近似）', () => {
   it('等方配光の全光束が保存される', () => {
     const integrated = integrateFlux(isotropicDistribution(1000));
     expect(integrated).toBeCloseTo(1000, 1);
+  });
+});
+
+describe('lm → cd 変換（Three.js SpotLight 配光）', () => {
+  it('smoothstep 半影を含む重み付き立体角からピーク光度を求める', () => {
+    const flux = 1000;
+    const outer = (30 * Math.PI) / 180;
+    const inner = outer * (1 - 0.6);
+    const solidAngle = 2 * Math.PI * (1 - (Math.cos(outer) + Math.cos(inner)) / 2);
+    expect(threeSpotPeakCandela(flux, 60, 0.6)).toBeCloseTo(flux / solidAngle, 9);
+  });
+
+  it('Three.js と同じ cos 空間の smoothstep で減衰する', () => {
+    const dist = threeSpotDistribution(1000, 60, 0.6);
+    const inner = (12 * Math.PI) / 180;
+    const outer = (30 * Math.PI) / 180;
+    const middleCos = (Math.cos(inner) + Math.cos(outer)) / 2;
+    const middle = Math.acos(middleCos);
+    expect(dist.intensityAt(inner, 0)).toBeCloseTo(dist.intensityAt(0, 0), 9);
+    expect(dist.intensityAt(middle, 0)).toBeCloseTo(dist.intensityAt(0, 0) * 0.5, 9);
+    expect(dist.intensityAt(outer, 0)).toBeCloseTo(0, 9);
+  });
+
+  it('半影 0 を含む配光で全光束を保存する', () => {
+    for (const [angle, penumbra] of [[24, 0], [60, 0.6], [100, 1]] as const) {
+      const flux = 800;
+      const integrated = integrateFlux(
+        threeSpotDistribution(flux, angle, penumbra),
+        8192
+      );
+      expect(Math.abs(integrated - flux) / flux).toBeLessThan(0.001);
+    }
   });
 });
 

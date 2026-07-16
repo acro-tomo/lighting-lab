@@ -262,6 +262,8 @@ export type Daylight = {
 export type Project = {
   id: string;
   name: string;
+  /** レンダー測光キャリブレーションの世代。未設定は旧方式として読み込む。 */
+  renderCalibrationVersion?: number;
   room: {
     widthM: number;
     depthM: number;

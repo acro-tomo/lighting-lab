@@ -6,8 +6,9 @@ import type { RenderDebugMode } from "../../rendering/pathTracer";
 import type { LightFixture } from "../../types";
 import {
   bracketRoomwardOffset,
-  colorTemperatureToHex,
+  colorTemperatureToLinearColor,
   lumensToPhysicalPower,
+  lumensToSpotlightPeakCandela,
   TAPE_LIGHT_EMIT_OFFSET_M,
   TAPE_LIGHT_HEIGHT_M,
   tapeLightOrientation
@@ -181,8 +182,8 @@ export const PhysicalLight = ({
   const scene = useThree((state) => state.scene);
   const pathTraced = usePathTraced();
   const target = useMemo(() => new THREE.Object3D(), []);
-  const power = lumensToPhysicalPower(fixture);
-  const color = colorTemperatureToHex(fixture.colorTemperatureK);
+  const lumens = lumensToPhysicalPower(fixture);
+  const color = colorTemperatureToLinearColor(fixture.colorTemperatureK);
   const targetPosition = fixture.target ?? { x: fixture.position.x, y: 0.1, z: fixture.position.z };
   const castShadow = !pathTraced && castsRealtimeShadow;
 
@@ -208,7 +209,7 @@ export const PhysicalLight = ({
       <rectAreaLight
         args={[undefined, 1, fixture.lengthM ?? 1.2, TAPE_LIGHT_HEIGHT_M]}
         color={color}
-        power={power}
+        power={lumens}
         quaternion={quaternion}
         position={[
           direction.x * TAPE_LIGHT_EMIT_OFFSET_M,
@@ -227,7 +228,7 @@ export const PhysicalLight = ({
     return (
       <pointLight
         color={color}
-        power={power}
+        power={lumens}
         distance={0}
         decay={2}
         position={[off.x, 0, off.z]}
@@ -244,7 +245,7 @@ export const PhysicalLight = ({
     return (
       <spotLight
         color={color}
-        power={power}
+        intensity={lumensToSpotlightPeakCandela(lumens, 140, 0.5)}
         angle={degToRad(70)}
         penumbra={0.5}
         distance={0}
@@ -264,7 +265,7 @@ export const PhysicalLight = ({
   return (
     <spotLight
       color={color}
-      power={power}
+      intensity={lumensToSpotlightPeakCandela(lumens, fixture.beamAngleDeg, fixture.penumbra)}
       angle={degToRad(fixture.beamAngleDeg / 2)}
       penumbra={fixture.penumbra}
       distance={0}

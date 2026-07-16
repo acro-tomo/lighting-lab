@@ -3,7 +3,7 @@ import { useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import type { FloorTag, Project } from "../../types";
-import { colorTemperatureToHex } from "../../utils/lighting";
+import { colorTemperatureToLinearColor } from "../../utils/lighting";
 import { DEFAULT_DAYLIGHT, sunVector } from "../../utils/sun";
 import { CameraViewSync } from "./cameraViewSync";
 import { EditModeContext, PathTracedContext, PlacementContext, type WallHover } from "./contexts";
@@ -14,6 +14,8 @@ import { DuctRail, FurnitureMesh } from "./furnitureMeshes";
 import {
   DAYLIGHT_FILL_ALTITUDE_GAIN,
   DAYLIGHT_FILL_BASE_INTENSITY,
+  DAYLIGHT_FILL_MAX_OPENING_SCALE,
+  DAYLIGHT_FILL_REFERENCE_OPENING_RATIO,
   effectiveLightIdSet,
   RASTER_BOUNCE_AMBIENT_RATIO,
   RASTER_BOUNCE_CEILING_FACTOR,
@@ -95,6 +97,7 @@ export const SceneRoot = ({
   // 室内仕上げ床のレベル。室内オブジェクト(家具/照明)も床と同じだけ持ち上げる。未設定(=0)で従来同一。
   const floorLevelM = project.room.floorLevelM ?? 0;
   const floorBounds = useMemo(() => computeFloorBounds(floorProject), [floorProject]);
+  const floorAreaM2 = floorBounds.sizeX * floorBounds.sizeZ;
   const effectiveLightIds = useMemo(
     () => effectiveLightIdSet(floorProject.lights, floorBounds),
     [floorProject.lights, floorBounds]
@@ -116,16 +119,27 @@ export const SceneRoot = ({
 
   // 昼光の空光フィル（ラスター用）。パストレでは Sky 環境が窓越しの拡散光と GI を
   // 担って昼の室内は明るくなるが、ラスターにはその経路が無く昼でも夜のように沈む。
-  // 太陽高度に応じた空色ヘミライトで近似する（非物理・パストレ常駐時は使わない）。
+  // 太陽高度と床面積に対する開口面積に応じた空色ヘミライトで近似する。
+  // 非物理なので、窓なしとパストレ常駐時は使わない。
   const daylightFill = useMemo(() => {
     if (!sunUp) return null;
+    const openingAreaM2 = floorProject.windows.reduce((area, opening) => {
+      const style = opening.style ?? (opening.hasGlass ? "window" : "opening");
+      return style === "door" ? area : area + opening.widthM * opening.heightM;
+    }, 0);
+    if (openingAreaM2 <= 0) return null;
     const sinAlt = Math.max(0, Math.sin((sun.altitudeDeg * Math.PI) / 180));
+    // 一様なヘミライトは開口の方向や室奥への減衰を表せないため、基準開口率の2倍で頭打ちにする。
+    const openingScale = Math.min(
+      DAYLIGHT_FILL_MAX_OPENING_SCALE,
+      openingAreaM2 / floorAreaM2 / DAYLIGHT_FILL_REFERENCE_OPENING_RATIO
+    );
     return {
       sky: skyColorForAltitude(sun.altitudeDeg).getStyle(),
       ground: "#7d7568",
-      intensity: DAYLIGHT_FILL_BASE_INTENSITY + DAYLIGHT_FILL_ALTITUDE_GAIN * sinAlt
+      intensity: (DAYLIGHT_FILL_BASE_INTENSITY + DAYLIGHT_FILL_ALTITUDE_GAIN * sinAlt) * openingScale
     };
-  }, [sunUp, sun.altitudeDeg]);
+  }, [floorAreaM2, floorProject.windows, sunUp, sun.altitudeDeg]);
 
   // 高速ラスター用の擬似間接光（バウンスフィル）。点いている照明の総光束と平均色温度に
   // 連動した暖色フィルで、直接ビームの外にある壁・天井もぼんやり持ち上がる＝反射の近似。
@@ -140,17 +154,17 @@ export const SceneRoot = ({
       kWeighted += light.colorTemperatureK * lm;
     }
     const kelvin = lumens > 0 ? kWeighted / lumens : 2700;
-    const warmColor = colorTemperatureToHex(kelvin);
-    const warm = warmColor.getStyle();
+    const warmColor = colorTemperatureToLinearColor(kelvin);
+    const warm = warmColor;
     // 下向き面（天井）側も少し起こす。直接光を外した壁・床が黒く沈むのを防ぎつつ、
     // ダウンライトの下方配光と床の光だまりは残すため、床側よりは暗くする。
-    const warmCeiling = warmColor.clone().multiplyScalar(RASTER_BOUNCE_CEILING_FACTOR).getStyle();
-    // 総光束→フィル強度。線形だと家庭用の低〜中光束で反射が弱すぎるため、
+    const warmCeiling = warmColor.clone().multiplyScalar(RASTER_BOUNCE_CEILING_FACTOR);
+    // 床面積当たり光束→フィル強度。線形だと家庭用の低〜中光束で反射が弱すぎるため、
     // 早めに立ち上がって多灯時は飽和するカーブにする。
-    const intensity = rasterBounceIntensity(lumens);
+    const intensity = rasterBounceIntensity(lumens, floorAreaM2);
     const ambient = Math.min(RASTER_BOUNCE_MAX_AMBIENT, intensity * RASTER_BOUNCE_AMBIENT_RATIO);
     return { warm, warmCeiling, intensity, ambient };
-  }, [floorProject.lights, effectiveLightIds]);
+  }, [floorAreaM2, floorProject.lights, effectiveLightIds]);
 
   return (
     <EditModeContext.Provider value={mode}>
@@ -180,10 +194,10 @@ export const SceneRoot = ({
           {!sunUp && <fog attach="fog" args={["#060504", 8, 16]} />}
           {daylightFill ? (
             <hemisphereLight args={[daylightFill.sky, daylightFill.ground, daylightFill.intensity]} />
-          ) : (
+          ) : !sunUp ? (
             <hemisphereLight args={["#2b2a25", "#0a0805", 0.34]} />
-          )}
-          <directionalLight position={[-2, 4, 3]} intensity={sunUp ? 0.08 : 0.12} color="#c9d6ff" />
+          ) : null}
+          {!sunUp && <directionalLight position={[-2, 4, 3]} intensity={0.12} color="#c9d6ff" />}
           {/* 照明量に連動した暖色バウンスフィル（疑似間接光）。skyColor=上向き面(床)に当たり、
               groundColor=下向き面(天井)に当たる。壁はその中間色になるため、直接光が外れた
               床・壁・天井をまとめて少し持ち上げ、空間全体に光が回る見え方へ寄せる。 */}

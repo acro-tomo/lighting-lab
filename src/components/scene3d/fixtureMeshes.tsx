@@ -13,7 +13,7 @@ import {
   parseVoidWallId,
   wallMountedLightPlacementAt
 } from "../../utils/fixtureMounting";
-import { colorTemperatureToHex } from "../../utils/lighting";
+import { colorTemperatureToLinearColor } from "../../utils/lighting";
 import { useEditMode, usePathTraced, usePlacement, useTouchDragGuard } from "./contexts";
 import { DebugLine, LightDirectionLine } from "./debugHelpers";
 import { useViewPlaneDrag } from "./dragHooks";
@@ -66,7 +66,7 @@ export const FixtureMesh = ({
   onSelect: (selection: Selection) => void;
   debugMode: RenderDebugMode;
 }) => {
-  const lightColor = colorTemperatureToHex(fixture.colorTemperatureK);
+  const lightColor = colorTemperatureToLinearColor(fixture.colorTemperatureK);
   const controls = useThree((state) => state.controls) as { enabled: boolean } | null;
   const touchGuard = useTouchDragGuard();
   const pathTraced = usePathTraced();

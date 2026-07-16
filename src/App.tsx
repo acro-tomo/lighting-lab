@@ -14,7 +14,7 @@ import { ShortcutGuide } from "./components/ShortcutGuide";
 import { IntroGuide } from "./components/IntroGuide";
 import { FeedbackForm } from "./components/FeedbackForm";
 import { isWallLightAddKind } from "./data/fixtureAddKinds";
-import { downloadText, formatHour, migrateSvgBackgrounds, readTextFile } from "./app/appUtils";
+import { downloadText, formatHour, migrateLoadedProject, readTextFile } from "./app/appUtils";
 import { useProjectPersistence } from "./app/hooks/useProjectPersistence";
 import { useKeyboardShortcuts } from "./app/hooks/useKeyboardShortcuts";
 import { useEditModeControls } from "./app/hooks/useEditModeControls";
@@ -171,7 +171,7 @@ export const App = () => {
   const handleImportProject = async (file: File) => {
     try {
       const text = await readTextFile(file);
-      const parsed = await migrateSvgBackgrounds(
+      const parsed = await migrateLoadedProject(
         projectSchema.parse(JSON.parse(text)) as Project & { compareShots?: CompareShot[] }
       );
       setProject(parsed);

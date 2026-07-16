@@ -1,5 +1,8 @@
 import type { Project } from "../types";
-import { DEMO_CAMERA_EXPOSURE } from "../rendering/exposure";
+import {
+  CURRENT_RENDER_CALIBRATION_VERSION,
+  DEMO_CAMERA_EXPOSURE
+} from "../rendering/exposure";
 import { vec2, vec3 } from "../utils/units";
 
 const roomWidthM = 8.6;
@@ -10,6 +13,7 @@ const halfD = roomDepthM / 2;
 export const demoProject: Project = {
   id: "demo-ldk-lighting-lab",
   name: "LDK Lighting Lab - デモLDK",
+  renderCalibrationVersion: CURRENT_RENDER_CALIBRATION_VERSION,
   room: {
     widthM: roomWidthM,
     depthM: roomDepthM,
