@@ -73,8 +73,26 @@ export const CameraViewSync = ({
   }, [gl, view.exposure]);
 
   const TURN_DEG = 5;
+  const CAMERA_MOVE_M = 0.25;
 
   useEffect(() => {
+    const moveCamera = (move: THREE.Vector3) => {
+      const controls = controlsRef.current;
+      if (!controls) return;
+      camera.position.add(move);
+      controls.target.add(move);
+      controls.update();
+    };
+
+    const moveHorizontally = (distance: number) => {
+      const controls = controlsRef.current;
+      if (!controls) return;
+      const forward = controls.target.clone().sub(camera.position);
+      forward.y = 0;
+      if (forward.lengthSq() < 1e-6) return;
+      moveCamera(forward.normalize().multiplyScalar(distance));
+    };
+
     const pitchView = (delta: number) => {
       const controls = controlsRef.current;
       if (!controls) return;
@@ -110,11 +128,25 @@ export const CameraViewSync = ({
       const down = event.key === "ArrowDown";
       const turn = THREE.MathUtils.degToRad(TURN_DEG);
 
+      if (event.shiftKey) {
+        if (up || down) {
+          moveHorizontally(up ? CAMERA_MOVE_M : -CAMERA_MOVE_M);
+          return;
+        }
+
+        const forward = controls.target.clone().sub(camera.position);
+        forward.y = 0;
+        if (forward.lengthSq() < 1e-6) return;
+        const sideways = forward.normalize().cross(new THREE.Vector3(0, 1, 0));
+        moveCamera(sideways.multiplyScalar(left ? -CAMERA_MOVE_M : CAMERA_MOVE_M));
+        return;
+      }
+
       if (event.altKey) {
         if (left || right) {
           controls.setAzimuthalAngle(controls.getAzimuthalAngle() + (left ? turn : -turn));
         } else {
-          controls.setPolarAngle(controls.getPolarAngle() + (up ? -turn : turn));
+          moveCamera(new THREE.Vector3(0, up ? CAMERA_MOVE_M : -CAMERA_MOVE_M, 0));
         }
         return;
       }

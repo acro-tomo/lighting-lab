@@ -83,6 +83,10 @@ export const ShortcutGuide = () => {
           {/* Shift */}
           <div className={`sg-section${modifier === "shift" ? " is-active" : ""}`}>
             <div className="sg-section-label"><Key>⇧ Shift</Key></div>
+            <Row keys={[<Key>⇧</Key>, <Key>↑</Key>]} label="視点を前に移動" />
+            <Row keys={[<Key>⇧</Key>, <Key>↓</Key>]} label="視点を後ろに移動" />
+            <Row keys={[<Key>⇧</Key>, <Key>←</Key>]} label="視点を左に移動" />
+            <Row keys={[<Key>⇧</Key>, <Key>→</Key>]} label="視点を右に移動" />
             <Row keys={[<Key>⇧</Key>, <Key>クリック</Key>]} label="ライト複数選択" />
           </div>
 
@@ -91,8 +95,8 @@ export const ShortcutGuide = () => {
             <div className="sg-section-label"><Key>⌥ Option</Key></div>
             <Row keys={[<Key>⌥</Key>, <Key>←</Key>]} label="カメラが注視点の周りを左に回る" />
             <Row keys={[<Key>⌥</Key>, <Key>→</Key>]} label="カメラが注視点の周りを右に回る" />
-            <Row keys={[<Key>⌥</Key>, <Key>↑</Key>]} label="カメラが注視点の周りを上に回る" />
-            <Row keys={[<Key>⌥</Key>, <Key>↓</Key>]} label="カメラが注視点の周りを下に回る" />
+            <Row keys={[<Key>⌥</Key>, <Key>↑</Key>]} label="視点を上に移動" />
+            <Row keys={[<Key>⌥</Key>, <Key>↓</Key>]} label="視点を下に移動" />
           </div>
 
           {/* ⌘ / Ctrl */}

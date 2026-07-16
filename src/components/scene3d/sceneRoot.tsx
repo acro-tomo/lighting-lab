@@ -318,7 +318,6 @@ export const SceneRoot = ({
         zoomSpeed={orbitSpeed.zoom}
         panSpeed={orbitSpeed.pan}
         dampingFactor={0.08}
-        minDistance={1.2}
         maxDistance={12}
         minPolarAngle={Math.PI * 0.05}
         maxPolarAngle={Math.PI * 0.95}
