@@ -444,6 +444,7 @@ const en: Record<string, string> = {
   ,"ダイニングペンダント": "Dining pendant"
   ,"階段ブラケット": "Stair wall light"
   ,"TV背面間接テープライト": "TV-back indirect tape light"
+  ,"{name}（{state}）": "{name} ({state})"
 };
 
 type I18nContextValue = {

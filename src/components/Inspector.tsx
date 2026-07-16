@@ -195,7 +195,10 @@ export const Inspector = ({ project, selection, canEditWalls, onCloseMobileSetti
                 <option value="">{t("— 照明を選択 —")}</option>
                 {project.lights.map((light) => (
                   <option key={light.id} value={light.id}>
-                    {t(light.name)} ({light.enabled !== false ? `${Math.round(light.dimmer ?? 100)}%` : t("OFF")})
+                    {t("{name}（{state}）", {
+                      name: t(light.name),
+                      state: light.enabled !== false ? `${Math.round(light.dimmer ?? 100)}%` : t("OFF")
+                    })}
                   </option>
                 ))}
               </select>
