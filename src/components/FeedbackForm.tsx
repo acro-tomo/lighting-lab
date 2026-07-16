@@ -4,6 +4,15 @@ import { useI18n } from "../i18n";
 type FeedbackType = "feature" | "bug";
 type SubmitState = "idle" | "sending" | "done" | "error";
 
+const serverErrorMessage = (code: string | undefined, t: (key: string) => string) => {
+  switch (code) {
+    case "feedback_unavailable": return t("フィードバック送信は現在利用できません。");
+    case "empty_message": return t("内容を入力してください。");
+    case "issue_creation_failed": return t("フィードバック送信に失敗しました。時間をおいて再度お試しください。");
+    default: return t("送信に失敗しました。");
+  }
+};
+
 // 送信先はCloudflare Pages Function（functions/api/feedback.ts）。
 // ローカルvite単体では存在しないため、未配信環境では送信エラーになる。
 const ENDPOINT = "/api/feedback";
@@ -37,7 +46,7 @@ export const FeedbackForm = () => {
       });
       if (!res.ok) {
         const data = (await res.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(data?.error ?? `${t("送信に失敗しました。")} (${res.status})`);
+        throw new Error(`${serverErrorMessage(data?.error, t)} (${res.status})`);
       }
       setState("done");
       setMessage(t("送信しました。ありがとうございます。"));

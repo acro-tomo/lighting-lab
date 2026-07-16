@@ -243,6 +243,9 @@ const en: Record<string, string> = {
   ,"柄の幅": "Pattern width"
   ,"柄の高さ": "Pattern height"
   ,"壁紙を外す": "Remove wallpaper"
+  ,"詳細 +": "Details +"
+  ,"フィードバック送信は現在利用できません。": "Feedback is unavailable right now."
+  ,"フィードバック送信に失敗しました。時間をおいて再度お試しください。": "Could not send feedback. Please try again later."
 };
 
 type I18nContextValue = {

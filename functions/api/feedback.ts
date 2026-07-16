@@ -21,14 +21,14 @@ const json = (data: unknown, status = 200): Response =>
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   if (!env.GITHUB_TOKEN || !env.GITHUB_REPO) {
-    return json({ error: "フィードバック送信は現在利用できません。" }, 503);
+    return json({ error: "feedback_unavailable" }, 503);
   }
 
   let payload: { type?: string; body?: string; contact?: string; website?: string };
   try {
     payload = await request.json();
   } catch {
-    return json({ error: "リクエスト形式が不正です。" }, 400);
+    return json({ error: "invalid_request" }, 400);
   }
 
   // ハニーポット欄に値が入っていればbotとみなし、静かに成功扱いで破棄する。
@@ -37,7 +37,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const type = payload.type === "bug" ? "bug" : "feature";
   const body = (payload.body ?? "").trim().slice(0, MAX_BODY);
   const contact = (payload.contact ?? "").trim().slice(0, MAX_CONTACT);
-  if (!body) return json({ error: "内容が空です。" }, 400);
+  if (!body) return json({ error: "empty_message" }, 400);
 
   const repo = env.GITHUB_REPO;
   // "bug" / "enhancement" はGitHubリポジトリの既定ラベル。
@@ -72,7 +72,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     // クライアントには情報を漏らさない簡潔なメッセージを返す。
     const detail = await res.text();
     console.error("GitHub issue creation failed", res.status, detail);
-    return json({ error: "起票に失敗しました。時間をおいて再度お試しください。" }, 502);
+    return json({ error: "issue_creation_failed" }, 502);
   }
 
   const created = (await res.json()) as { html_url?: string };
