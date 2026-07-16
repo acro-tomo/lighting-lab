@@ -5,6 +5,7 @@ import { AdvancedPositionDetails, NumberField, TextField } from "./fields";
 import { ColorTempPresets } from "./ColorTempPresets";
 import { AimTargetPresets } from "./AimControls";
 import { PlacementGuide } from "./PlacementGuide";
+import { useI18n } from "../../i18n";
 
 const lightTypeLabels: Record<LightType, string> = {
   downlight: "ダウンライト",
@@ -23,15 +24,16 @@ export const LightInspector = ({
   project: Project;
   updateLight: (id: string, patch: Partial<LightFixture>) => void;
 }) => {
+  const { t } = useI18n();
   const currentModel = getFixtureModel(light);
   return (
     <div className="form-grid light-inspector">
       <header className="light-inspector-heading">
-        <p>選択中の照明</p>
-        <h2>{lightTypeLabels[light.type]}を編集</h2>
+        <p>{t("選択中の照明")}</p>
+        <h2>{t(lightTypeLabels[light.type])}{t("を編集")}</h2>
         <span>{light.name}</span>
         <strong className={light.enabled !== false ? "light-status is-on" : "light-status"}>
-          ● {light.enabled !== false ? "点灯中" : "消灯中"}
+          ● {light.enabled !== false ? t("点灯中") : t("消灯中")}
         </strong>
       </header>
       <div className="light-primary-controls">
@@ -47,7 +49,7 @@ export const LightInspector = ({
           <strong>{light.enabled !== false ? "ON" : "OFF"}</strong>
         </label>
         <label className="light-range-control">
-          <span>明るさ</span>
+          <span>{t("明るさ")}</span>
           <div>
             <input
               type="range"
@@ -61,13 +63,13 @@ export const LightInspector = ({
         </label>
       </div>
       <section className="light-inspector-section">
-        <h3>色温度</h3>
+        <h3>{t("色温度")}</h3>
         <ColorTempPresets
           value={light.colorTemperatureK}
           onSelect={(colorTemperatureK) => updateLight(light.id, { colorTemperatureK })}
         />
         <NumberField
-          label="色温度"
+          label={t("色温度")}
           unit="K"
           value={light.colorTemperatureK}
           min={1800}
@@ -78,9 +80,9 @@ export const LightInspector = ({
       </section>
       {light.type === "pendant" && (
         <section className="light-inspector-section">
-          <h3>吊り長さ</h3>
+          <h3>{t("吊り長さ")}</h3>
           <label className="light-range-control">
-            <span>天井から</span>
+            <span>{t("天井から")}</span>
             <div>
               <input
                 type="range"
@@ -96,9 +98,9 @@ export const LightInspector = ({
         </section>
       )}
       <section className="light-inspector-section">
-        <h3>器具・配光</h3>
+        <h3>{t("器具・配光")}</h3>
         <label className="field">
-          <span>器具</span>
+          <span>{t("器具")}</span>
           <select
             value={currentModel.id}
             onChange={(event) => {
@@ -113,7 +115,7 @@ export const LightInspector = ({
           >
             {fixtureCatalog.map((model) => (
               <option key={model.id} value={model.id}>
-                {model.label}（{model.beamAngleDeg}°{model.glareless ? " / グレアレス" : ""}）
+                {model.label} ({model.beamAngleDeg}°{model.glareless ? ` / ${t("グレアレス")}` : ""})
               </option>
             ))}
           </select>
@@ -121,30 +123,30 @@ export const LightInspector = ({
         <p className="field-hint">{currentModel.description}</p>
         {currentModel.aimable && (
           <div className="field">
-            <span>照射先</span>
+            <span>{t("照射先")}</span>
             <AimTargetPresets light={light} aim={light.target} onChange={(target) => updateLight(light.id, { target })} />
           </div>
         )}
         {light.type === "tape" && (
-          <NumberField label="長さ" unit="mm" value={mToMm(light.lengthM ?? 1.2)} min={100} max={10000} onChange={(value) => updateLight(light.id, { lengthM: mmToM(value) })} />
+          <NumberField label={t("長さ")} unit="mm" value={mToMm(light.lengthM ?? 1.2)} min={100} max={10000} onChange={(value) => updateLight(light.id, { lengthM: mmToM(value) })} />
         )}
       </section>
       <PlacementGuide
         project={project}
-        subject={{ id: light.id, name: light.name, kindLabel: "照明", position: light.position, floor: light.floor }}
+        subject={{ id: light.id, name: light.name, kindLabel: t("照明"), position: light.position, floor: light.floor }}
         collapsible
       />
       <AdvancedPositionDetails>
-        <TextField label="名前" value={light.name} onChange={(name) => updateLight(light.id, { name })} />
+        <TextField label={t("名前")} value={light.name} onChange={(name) => updateLight(light.id, { name })} />
         <NumberField
-          label="明るさ（光束）"
+          label={t("明るさ（光束）")}
           unit="lm"
           value={light.lumens}
           min={0}
           onChange={(lumens) => updateLight(light.id, { lumens })}
         />
         <NumberField
-          label="光の広がり（器具プリセットを上書き）"
+          label={t("光の広がり（器具プリセットを上書き）")}
           unit="°"
           value={light.beamAngleDeg}
           min={5}
@@ -152,7 +154,7 @@ export const LightInspector = ({
           onChange={(beamAngleDeg) => updateLight(light.id, { beamAngleDeg })}
         />
         <label className="field">
-          <span>メモ</span>
+          <span>{t("メモ")}</span>
           <textarea value={light.note} onChange={(event) => updateLight(light.id, { note: event.target.value })} />
         </label>
         <div className="field-row">
@@ -172,10 +174,11 @@ export const BulkLightInspector = ({
   lights: LightFixture[];
   updateLights: (patch: Partial<LightFixture>) => void;
 }) => {
+  const { t } = useI18n();
   const rep = lights[0];
   return (
     <div className="form-grid">
-      <p className="field-hint"><strong>{lights.length}個のライトを選択中</strong> — 変更は全選択ライトに適用されます。</p>
+      <p className="field-hint"><strong>{t("{count}個のライトを選択中", { count: lights.length })}</strong> — {t("変更は全選択ライトに適用されます。")}</p>
       <div className="scene-control">
         <label className="light-onoff-label">
           <input
@@ -186,7 +189,7 @@ export const BulkLightInspector = ({
           <strong>{rep.enabled !== false ? "ON" : "OFF"}</strong>
         </label>
         <NumberField
-          label="調光"
+          label={t("調光")}
           unit="%"
           value={Math.round(rep.dimmer ?? 100)}
           min={0}
@@ -195,31 +198,31 @@ export const BulkLightInspector = ({
         />
       </div>
       <label className="field">
-        <span>種類</span>
+        <span>{t("種類")}</span>
         <select
           value={rep.type}
           onChange={(event) => updateLights({ type: event.target.value as LightType })}
         >
-          <option value="downlight">ダウンライト</option>
-          <option value="spotlight">スポットライト</option>
-          <option value="pendant">ペンダント</option>
-          <option value="bracket">ブラケット</option>
-          <option value="tape">テープ</option>
+          <option value="downlight">{t("ダウンライト")}</option>
+          <option value="spotlight">{t("スポットライト")}</option>
+          <option value="pendant">{t("ペンダント")}</option>
+          <option value="bracket">{t("ブラケット")}</option>
+          <option value="tape">{t("テープ")}</option>
         </select>
       </label>
       <div className="field-row">
-        <NumberField label="光束" unit="lm" value={rep.lumens} min={0} onChange={(lumens) => updateLights({ lumens })} />
-        <NumberField label="色温度" unit="K" value={rep.colorTemperatureK} min={1800} max={6500} step={50} onChange={(colorTemperatureK) => updateLights({ colorTemperatureK })} />
+        <NumberField label={t("光束")} unit="lm" value={rep.lumens} min={0} onChange={(lumens) => updateLights({ lumens })} />
+        <NumberField label={t("色温度")} unit="K" value={rep.colorTemperatureK} min={1800} max={6500} step={50} onChange={(colorTemperatureK) => updateLights({ colorTemperatureK })} />
       </div>
       <label className="field">
-        <span>色温度プリセット</span>
+        <span>{t("色温度プリセット")}</span>
         <ColorTempPresets
           value={rep.colorTemperatureK}
           onSelect={(colorTemperatureK) => updateLights({ colorTemperatureK })}
         />
       </label>
       <NumberField
-        label="照射角度"
+        label={t("照射角度")}
         unit="°"
         value={rep.beamAngleDeg}
         min={5}
