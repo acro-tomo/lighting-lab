@@ -16,7 +16,8 @@ export const Scene3D = (props: Scene3DProps) => (
     gl={{ antialias: true, preserveDrawingBuffer: true, powerPreference: "high-performance" }}
     onCreated={({ gl }) => {
       gl.outputColorSpace = THREE.SRGBColorSpace;
-      gl.toneMapping = THREE.ACESFilmicToneMapping;
+      // Khronos PBR Neutral: ACES と違い壁・床の色相が転ばない（色再現優先）。
+      gl.toneMapping = THREE.NeutralToneMapping;
       gl.toneMappingExposure = 0.9;
       gl.shadowMap.enabled = true;
       gl.shadowMap.type = THREE.PCFSoftShadowMap;

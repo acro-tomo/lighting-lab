@@ -88,7 +88,8 @@ export const renderPathTracedImage = async ({
   renderer.setPixelRatio(1);
   renderer.setSize(width, height, false);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  // 編集ビュー(Scene3D)と同じ Neutral トーンマッピングで書き出しの見た目を揃える。
+  renderer.toneMapping = THREE.NeutralToneMapping;
   renderer.toneMappingExposure = context.gl.toneMappingExposure;
 
   const camera = context.camera.clone() as THREE.PerspectiveCamera;

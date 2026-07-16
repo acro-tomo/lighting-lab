@@ -240,7 +240,7 @@ export const PathTracerController = ({
     tracer.tiles.set(1, 1);
     // 表示ブリットを smartDeNoise で置き換え、低サンプル時のノイズを均す。
     // DenoiseMaterial は既定 quad と同様に tone mapping / colorspace を行うため
-    // 見た目の意味（ACES・固定露出）は変わらず、WYSIWYG を保つ。
+    // 見た目の意味（Neutralトーンマップ・固定露出）は変わらず、WYSIWYG を保つ。
     const denoiseQuad = new FullScreenQuad(
       new DenoiseMaterial({
         premultipliedAlpha: gl.getContextAttributes().premultipliedAlpha,
