@@ -48,7 +48,7 @@ export const VoidInspector = ({
                 className={hasWall ? "chip is-active" : "chip"}
                 onClick={() => toggleSide(side)}
               >
-                {label}
+                {t(label)}
                 <span>{hasWall ? t("壁あり") : t("開放")}</span>
               </button>
             );

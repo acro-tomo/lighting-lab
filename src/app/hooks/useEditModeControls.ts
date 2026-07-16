@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { EditMode } from "../../components/EditToolbar";
 import type { Selection } from "../../types";
+import { useI18n } from "../../i18n";
 
 export type MobileView = "plan" | "scene";
 
@@ -16,6 +17,7 @@ export const useEditModeControls = ({
   deleteSelection: (selection: NonNullable<Selection>) => void;
   setNotice: (notice: string) => void;
 }) => {
+  const { t } = useI18n();
   const [mode, setMode] = useState<EditMode>("select");
   const [planEditMode, setPlanEditMode] = useState(false);
   const [pendingAdd, setPendingAdd] = useState<string | null>(null);
@@ -57,12 +59,12 @@ export const useEditModeControls = ({
     setMode("select");
     if (enabled) {
       openMobileView("plan");
-      setNotice("間取り編集を開始しました。壁の選択・移動・削除ができます。");
+      setNotice(t("間取り編集を開始しました。壁の選択・移動・削除ができます。"));
     } else {
       if (selection?.kind === "wall") select(null);
-      setNotice("間取り編集を終了しました。壁は誤操作防止のため選択できません。");
+      setNotice(t("間取り編集を終了しました。壁は誤操作防止のため選択できません。"));
     }
-  }, [openMobileView, select, selection, setNotice]);
+  }, [openMobileView, select, selection, setNotice, t]);
 
   useEffect(() => {
     if (planEditMode) return;
@@ -75,20 +77,20 @@ export const useEditModeControls = ({
   const handleMobileClear = useCallback(() => {
     if (pendingAdd) {
       setPendingAdd(null);
-      setNotice("配置を終了しました。");
+      setNotice(t("配置を終了しました。"));
       return;
     }
     if (selection) {
       select(null);
-      setNotice("選択を解除しました。");
+      setNotice(t("選択を解除しました。"));
     }
-  }, [pendingAdd, select, selection, setNotice]);
+  }, [pendingAdd, select, selection, setNotice, t]);
 
   const handleMobileDelete = useCallback(() => {
     if (!selection || (selection.kind === "wall" && !planEditMode)) return;
     deleteSelection(selection);
-    setNotice("選択中の要素を削除しました。");
-  }, [deleteSelection, planEditMode, selection, setNotice]);
+    setNotice(t("選択中の要素を削除しました。"));
+  }, [deleteSelection, planEditMode, selection, setNotice, t]);
 
   return {
     mode,

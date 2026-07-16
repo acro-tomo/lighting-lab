@@ -47,7 +47,7 @@ export const App = () => {
   const setDaylight = useProjectStore((state) => state.setDaylight);
   const setCeilingHeight = useProjectStore((state) => state.setCeilingHeight);
   const setActiveFloor = useProjectStore((state) => state.setActiveFloor);
-  const [notice, setNotice] = useState("IndexedDBに自動保存します。");
+  const [notice, setNotice] = useState(() => t("IndexedDBに自動保存します。"));
   const [outputOpen, setOutputOpen] = useState(false);
   const [daylightOpen, setDaylightOpen] = useState(false);
   const [showIntro, setShowIntro] = useState(false);
@@ -130,7 +130,7 @@ export const App = () => {
     try {
       const result = await floorPlanFileToDataUrl(file);
       const activeFloor = project.activeFloor ?? 1;
-      const floorLabel = activeFloor === 2 ? "2階" : "1階";
+      const floorLabel = activeFloor === 2 ? t("2階") : t("1階");
       const firstFloorPlan = project.backgroundPlan;
       const backgroundPlan: FloorPlanBackground = {
         dataUrl: result.dataUrl,
@@ -144,7 +144,7 @@ export const App = () => {
       }
       setBackgroundPlan(backgroundPlan);
       const ceilingInput = window.prompt(
-        "天井高をmmで入力してください。",
+        t("天井高をmmで入力してください。"),
         String(Math.round(project.room.ceilingHeightM * 1000))
       );
       const ceilingMm = ceilingInput === null ? NaN : Number(ceilingInput);
@@ -154,19 +154,19 @@ export const App = () => {
       // 間取り図に沿って一から壁を引けるよう、既存ジオメトリの一括削除を促す。
       // キャンセル時は背景だけ読み込み、既存オブジェクトは残す（誤消し防止）。
       const cleared = window.confirm(
-        `${floorLabel}の間取り図を読み込みました。${floorLabel}の壁・窓・家具・照明・吹き抜けだけを削除して、まっさらな状態にしますか？\n（キャンセルすると既存のまま背景だけ読み込みます。Cmd+Zで元に戻せます）`
+        t("{floor}の間取り図を読み込みました。{floor}の壁・窓・家具・照明・吹き抜けだけを削除して、まっさらな状態にしますか？\n（キャンセルすると既存のまま背景だけ読み込みます。Cmd+Zで元に戻せます）", { floor: floorLabel })
       );
       if (cleared) clearActiveFloorGeometry();
       const alignmentNotice = backgroundPlan.alignmentPending
-        ? " 1階基準で仮合わせしたので、背景合わせで位置を確認してください。"
+        ? ` ${t("1階基準で仮合わせしたので、背景合わせで位置を確認してください。")}`
         : "";
       setNotice(
         cleared
-          ? `${file.name} を${floorLabel}背景に読み込み、${floorLabel}の既存オブジェクトを削除しました。${alignmentNotice}`
-          : `${file.name} を${floorLabel}の平面図背景として読み込みました。${alignmentNotice}`
+          ? t("{fileName} を{floor}背景に読み込み、{floor}の既存オブジェクトを削除しました。{alignmentNotice}", { fileName: file.name, floor: floorLabel, alignmentNotice })
+          : t("{fileName} を{floor}の平面図背景として読み込みました。{alignmentNotice}", { fileName: file.name, floor: floorLabel, alignmentNotice })
       );
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "間取り図を読み込めませんでした。");
+      setNotice(error instanceof Error ? t(error.message) : t("間取り図を読み込めませんでした。"));
     }
   };
 
@@ -178,9 +178,9 @@ export const App = () => {
       );
       setProject(parsed);
       setCompareShots(Array.isArray(parsed.compareShots) ? parsed.compareShots : []);
-      setNotice(`${file.name} を読み込みました。`);
+      setNotice(t("{fileName} を読み込みました。", { fileName: file.name }));
     } catch {
-      setNotice("プロジェクトJSONの形式が不正です。読み込みを中止しました。");
+      setNotice(t("プロジェクトJSONの形式が不正です。読み込みを中止しました。"));
     }
   };
 

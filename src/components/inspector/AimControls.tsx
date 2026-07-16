@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import type { LightFixture } from "../../types";
+import { useI18n } from "../../i18n";
 
 const aimHeightPresets: { label: string; heightM: number }[] = [
   { label: "床", heightM: 0 },
@@ -17,6 +18,7 @@ const AimAzimuthDial = ({
   aim: LightFixture["target"];
   onChange: (target: NonNullable<LightFixture["target"]>) => void;
 }) => {
+  const { t } = useI18n();
   const currentAim = aim ?? { x: light.position.x, y: 0, z: light.position.z };
   const dx = currentAim.x - light.position.x;
   const dz = currentAim.z - light.position.z;
@@ -91,7 +93,7 @@ const AimAzimuthDial = ({
         <circle cx={needleX} cy={needleY} r={4.5} className="aim-dial-tip" />
       </svg>
       <label className="aim-dial-deg field">
-        <span>方位角</span>
+        <span>{t("方位角")}</span>
         <div className="number-input">
           <input
             type="number"
@@ -117,6 +119,7 @@ export const AimTargetPresets = ({
   aim: LightFixture["target"];
   onChange: (target: NonNullable<LightFixture["target"]>) => void;
 }) => {
+  const { t } = useI18n();
   const currentAim = aim ?? { x: light.position.x, y: 0, z: light.position.z };
   const isStraightDown =
     Math.abs(currentAim.x - light.position.x) < 0.02 &&
@@ -132,8 +135,8 @@ export const AimTargetPresets = ({
           className={isStraightDown ? "chip is-active" : "chip"}
           onClick={() => onChange({ x: light.position.x, y: 0, z: light.position.z })}
         >
-          真下
-          <span>直下</span>
+          {t("真下")}
+          <span>{t("直下")}</span>
         </button>
         {aimHeightPresets.map((preset) => (
           <button
@@ -142,7 +145,7 @@ export const AimTargetPresets = ({
             className={Math.abs(currentAim.y - preset.heightM) < 0.03 && !isStraightDown ? "chip is-active" : "chip"}
             onClick={() => onChange({ ...currentAim, y: preset.heightM })}
           >
-            {preset.label}
+            {t(preset.label)}
             <span>{Math.round(preset.heightM * 1000)}mm</span>
           </button>
         ))}
@@ -151,12 +154,12 @@ export const AimTargetPresets = ({
           className={isUpward ? "chip is-active" : "chip"}
           onClick={() => onChange({ ...currentAim, y: light.position.y + 0.8 })}
         >
-          上向き
+          {t("上向き")}
           <span>+800mm</span>
         </button>
       </div>
       <AimAzimuthDial light={light} aim={aim} onChange={onChange} />
-      <p className="field-hint">黄色の照射ポイントを3Dビュー上でも調整できます</p>
+      <p className="field-hint">{t("黄色の照射ポイントを3Dビュー上でも調整できます")}</p>
     </div>
   );
 };

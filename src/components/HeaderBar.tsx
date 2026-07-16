@@ -81,14 +81,14 @@ export const HeaderBar = ({
           <button
             className={viewMode === "raster" ? "view-mode-btn is-active" : "view-mode-btn"}
             onClick={() => { onViewModeChange("raster"); setMobileMenuOpen(false); }}
-            title={language === "en" ? "Edit (fast raster)" : "編集（高速ラスター）"}
+            title={t("編集（高速ラスター）")}
           >
             {t("編集")}
           </button>
           <button
             className={viewMode === "realistic" ? "view-mode-btn is-active" : "view-mode-btn"}
             onClick={() => { onViewModeChange("realistic"); setMobileMenuOpen(false); }}
-            title={language === "en" ? "Realistic (live path tracing)" : "リアル（常駐パストレ）"}
+            title={t("リアル（常駐パストレ）")}
           >
             {t("リアル")}
           </button>

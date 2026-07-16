@@ -115,12 +115,12 @@ export const LightInspector = ({
           >
             {fixtureCatalog.map((model) => (
               <option key={model.id} value={model.id}>
-                {model.label} ({model.beamAngleDeg}°{model.glareless ? ` / ${t("グレアレス")}` : ""})
+                {t(model.label)} ({model.beamAngleDeg}°{model.glareless ? ` / ${t("グレアレス")}` : ""})
               </option>
             ))}
           </select>
         </label>
-        <p className="field-hint">{currentModel.description}</p>
+        <p className="field-hint">{t(currentModel.description)}</p>
         {currentModel.aimable && (
           <div className="field">
             <span>{t("照射先")}</span>
