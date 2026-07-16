@@ -96,7 +96,7 @@ Use the built-in **LDK Lighting Lab - Demo LDK** project to start immediately. F
 
 ## How Codex and GPT-5.6 were used
 
-This repository contains pre-existing functionality built before the OpenAI Build Week finalization session. During that session, Codex with GPT-5.6 is used to inspect the existing architecture, verify builds and runtime behavior, harden the feedback destination, add bilingual UI infrastructure, prepare documentation, and record validation results. This section will be updated only with work actually completed in the session.
+This repository contains pre-existing functionality built before the OpenAI Build Week finalization session. During that session, Codex with GPT-5.6 inspected the existing architecture, verified builds and browser behavior, hardened the feedback destination, added bilingual UI infrastructure, prepared documentation, and recorded validation results. See the factual [Build Week development record](docs/build-week-development.md) for the distinction between pre-existing functionality and session work.
 
 ## Key technical decisions
 
