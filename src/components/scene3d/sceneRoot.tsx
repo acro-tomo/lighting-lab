@@ -21,7 +21,9 @@ import {
   rasterBounceIntensity,
   realtimeShadowLightIdSet
 } from "./lightingFill";
+import { isLuxLabEnabled } from "../../utils/luxLab";
 import { CanvasReady, PathTracerController } from "./liveTracer";
+import { LuxHeatmap } from "./luxHeatmap";
 import { createWoodTexture, materialById } from "./materials";
 import { PlacementLayer } from "./placementLayer";
 import { ReflectionProbe } from "./reflectionProbe";
@@ -252,14 +254,26 @@ export const SceneRoot = ({
           </group>
         )}
       </group>
-      {/* 追加配置のゴーストプレビュー。非物理の編集補助なので常駐パストレ時は出さない。 */}
+      {/* 追加配置のゴーストプレビュー。非物理の編集補助なので常駐パストレ時は出さない。
+          luxIgnore: 照度ヒートマップ(?lux=1)の遮蔽レイキャストからゴーストを除外する目印。 */}
       {!pathTraced && pendingAdd && (
-        <PlacementLayer
-          pendingAdd={pendingAdd}
+        <group userData={{ luxIgnore: true }}>
+          <PlacementLayer
+            pendingAdd={pendingAdd}
+            project={floorProject}
+            onPlaceObject={onPlaceObject}
+            onPlaceOnWall={onPlaceOnWall}
+            wallCursor={wallCursor}
+          />
+        </group>
+      )}
+      {/* 照度ヒートマップ（?lux=1 の隠し機能）。常駐パストレ時は内部で非表示になる。 */}
+      {isLuxLabEnabled() && (
+        <LuxHeatmap
           project={floorProject}
-          onPlaceObject={onPlaceObject}
-          onPlaceOnWall={onPlaceOnWall}
-          wallCursor={wallCursor}
+          floorBounds={floorBounds}
+          floorLevelM={floorLevelM}
+          effectiveLightIds={effectiveLightIds}
         />
       )}
       {!pathTraced && (
