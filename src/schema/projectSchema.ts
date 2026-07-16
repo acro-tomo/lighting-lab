@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { LightFixture, Project } from "../types";
+import { DEFAULT_CAMERA_EXPOSURE } from "../rendering/exposure";
 import { fitCameraToProject, shouldFitDefaultCamera } from "../utils/cameraFit";
 import { normalizeCeilingMountedFixture } from "../utils/fixtureMounting";
 
@@ -200,7 +201,7 @@ const DEFAULT_CAMERA = {
   position: { x: 1.8, y: 2.35, z: 3.05 },
   target: { x: -0.35, y: 0.72, z: -0.35 },
   fov: 64,
-  exposure: 1.2,
+  exposure: DEFAULT_CAMERA_EXPOSURE,
   resolutionWidth: 1600
 } as const;
 

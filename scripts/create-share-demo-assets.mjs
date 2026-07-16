@@ -390,7 +390,7 @@ const project = {
     position: vec3(1.8, 2.35, 3.05),
     target: vec3(-0.35, 0.72, -0.35),
     fov: 64,
-    exposure: 1.22,
+    exposure: 1.72,
     resolutionWidth: 1600
   },
   backgroundPlan: {

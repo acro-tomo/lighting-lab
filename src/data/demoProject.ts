@@ -1,4 +1,5 @@
 import type { Project } from "../types";
+import { DEMO_CAMERA_EXPOSURE } from "../rendering/exposure";
 import { vec2, vec3 } from "../utils/units";
 
 const roomWidthM = 8.6;
@@ -428,7 +429,7 @@ export const demoProject: Project = {
     position: vec3(1.8, 2.35, 3.05),
     target: vec3(-0.35, 0.72, -0.35),
     fov: 64,
-    exposure: 1.22,
+    exposure: DEMO_CAMERA_EXPOSURE,
     resolutionWidth: 1600
   },
   daylight: { enabled: true, month: 10, day: 15, hour: 14, northOffsetDeg: 0, latitudeDeg: 35 },

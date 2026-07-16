@@ -58,8 +58,8 @@ No LDK editing features were added in this pass. The work focused on the renderi
    - Spot target is added to the scene and `target.updateMatrixWorld(true)` is called after positioning.
 
 13. Color space/tone mapping/exposure:
-   - The offscreen path trace renderer uses `SRGBColorSpace` and `ACESFilmicToneMapping`.
-   - Exposure is inherited from the selected camera view and kept around `1.1`, not pushed to extreme values.
+   - At the time of this phase, the offscreen path trace renderer used `SRGBColorSpace` and `ACESFilmicToneMapping`.
+   - Exposure was inherited from the selected camera view and kept around `1.1`, not pushed to extreme values.
 
 14. API usage:
    - The implementation uses `WebGLPathTracer`, not the old direct `PathTracingRenderer` API.
@@ -79,7 +79,7 @@ Secondary cause:
 Not the main cause:
 
 - MIS: available by default in the library, now explicitly enabled.
-- Exposure: keeping exposure around `1.1` is enough once geometry and light power are fixed.
+- Exposure: at the time, keeping exposure around `1.1` was enough once geometry and light power were fixed.
 - Color space: no evidence of double tone mapping as the primary blackness cause.
 
 ## Screenshots
@@ -122,3 +122,13 @@ Not fully verified in automated screenshots yet:
 - Capture final 128 sample calibration render once performance is acceptable.
 - Verify pendant 500lm vs 1000lm and spot OFF/target movement with path trace screenshots.
 - Only after those checks, continue applying the same basis to broader LDK scenarios.
+
+## 2026-07-16 PBR Neutral Recalibration
+
+- The mathematical starting value of `1.58`, intended to preserve the former ACES 18% middle gray, was rejected because it produced excessive highlight clipping in the resident path tracer.
+- At exposure `1.58` and about 161 spp, fully white pixels occupied 5.83% of the full image. The white-wall ROI had 0% fully white pixels, while the table, chairs, and spot-lit area were clipped.
+- The final PNG export was stopped manually at 173/256 samples and completed successfully. No large exposure difference was observed between that export and the resident path tracer.
+- Exposure `1.30` was adopted for the calibration room as the safer value. Calibration daylight is disabled so artificial-light calibration is not contaminated by sunlight.
+- Demo exposure was changed to `1.72`; both the daytime view and the raster view with daylight disabled had 0% fully white pixels.
+- The new-project schema default was changed to `1.70`, and the imported-project fitted-camera cap to `0.88`. Existing saved JSON is not converted automatically.
+- A complete 256-sample run and a strict A/B comparison at identical spp remain unverified.

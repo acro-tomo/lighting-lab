@@ -28,25 +28,6 @@ export const colorTemperatureToHex = (kelvin: number) => {
   );
 };
 
-export const lumensToThreeIntensity = (fixture: LightFixture): number => {
-  if (!fixture.enabled) return 0;
-
-  const dimmedLumens = fixture.lumens * clamp(fixture.dimmer, 0, 100) * 0.01;
-
-  // Three.jsの物理ライト単位は器具形状や露出設定で見え方が変わる。
-  // v1では視覚比較の一貫性を優先し、lmを一定係数で表示用強度に変換する。
-  const typeFactor =
-    fixture.type === "tape"
-      ? 0.0048
-      : fixture.type === "pendant"
-        ? 0.0048
-        : fixture.type === "bracket"
-          ? 0.0032
-          : 0.0062;
-
-  return dimmedLumens * typeFactor;
-};
-
 // ブラケット(壁付)の点光源を取付壁から室内側へ離す水平オフセット。
 // 壁に密着した点光源は decay=2 の逆二乗で至近の壁を白飛びさせるため、
 // target（照射方向＝室内向き）へ offM だけずらす。target 無指定なら 0。

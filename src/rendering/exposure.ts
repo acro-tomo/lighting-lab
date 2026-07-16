@@ -1,0 +1,4 @@
+export const CALIBRATION_CAMERA_EXPOSURE = 1.3;
+export const DEMO_CAMERA_EXPOSURE = 1.72;
+export const DEFAULT_CAMERA_EXPOSURE = 1.7;
+export const FITTED_CAMERA_EXPOSURE_CAP = 0.88;

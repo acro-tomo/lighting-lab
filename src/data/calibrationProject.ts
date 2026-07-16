@@ -1,4 +1,6 @@
 import type { Project } from "../types";
+import { CALIBRATION_CAMERA_EXPOSURE } from "../rendering/exposure";
+import { DEFAULT_DAYLIGHT } from "../utils/sun";
 import { vec2, vec3 } from "../utils/units";
 
 const widthM = 5.0;
@@ -197,8 +199,12 @@ export const calibrationProject: Project = {
     position: vec3(0, 1.34, 1.92),
     target: vec3(0, 1.05, -0.65),
     fov: 56,
-    exposure: 1.12,
+    exposure: CALIBRATION_CAMERA_EXPOSURE,
     resolutionWidth: 1200
+  },
+  daylight: {
+    ...DEFAULT_DAYLIGHT,
+    enabled: false
   },
   activeFloor: 1
 };
