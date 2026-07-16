@@ -24,6 +24,7 @@ import {
 import { CanvasReady, PathTracerController } from "./liveTracer";
 import { createWoodTexture, materialById } from "./materials";
 import { PlacementLayer } from "./placementLayer";
+import { ReflectionProbe } from "./reflectionProbe";
 import { computeFloorBounds } from "./roomGeometry";
 import { RoomShell } from "./roomShell";
 import {
@@ -160,6 +161,8 @@ export const SceneRoot = ({
       <TouchPinchDolly controlsRef={controlsRef} />
       <TrackpadWheelPan controlsRef={controlsRef} />
       <color attach="background" args={[backgroundColor]} />
+      {/* 編集ビュー用の環境反射。パストレ時は内部で無効化される(environmentはliveTracerが所有)。 */}
+      <ReflectionProbe />
       <Outdoors />
       {sunUp && <SunLight dir={sun.dir} altitudeDeg={sun.altitudeDeg} roomSpan={roomSpan} />}
       {/* ラスターのみ見栄え用に drei の Sky を重ねる。scene.background は変えないので
