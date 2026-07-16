@@ -1,157 +1,126 @@
 # LDK Lighting Lab
 
-MacBook上でローカル実行する、個人用のLDK照明シミュレーターです。
+**English** | [日本語](README.ja.md)
 
-目的は住宅CADや照度帳票ではなく、自分の間取りを取り込み、1階LDK・階段・吹き抜け周辺を簡易3D化し、家具と照明の位置・明るさ・色温度を変えながら夜の見え方を比較することです。
+LDK Lighting Lab is a browser-based visual simulator for comparing home lighting layouts and nighttime atmosphere in your own floor plan.
 
-画面には常に次の前提を表示します。
+> This is a visual simulation for comparing lighting layouts and atmosphere. It does not guarantee actual illuminance, light distribution, color, or the finished result.
 
-> これは照明配置・雰囲気比較用の視覚シミュレーションです。実際の照度、配光、色、施工後の見え方を保証するものではありません。
+![LDK Lighting Lab demo](docs/images/demo-placeholder.svg)
 
-## 公開方針
+## What it does
 
-- 無料で触れる、手軽なシミュレーションアプリとして公開する。
-- 主役はデモではなく、ユーザー自身の間取り図を取り込んで試す体験。
-- ログイン、課金ロック、アプリ内広告、診断申し込み導線は初期公開では入れない。
-- 収益化や有料版は、無料公開後の使われ方を見てから判断する。
-- 共有・書き出し画像にはアプリ名とURLの透かしを入れる。
+Import a PNG, JPG, or PDF floor plan, add and edit room elements, then compare lighting placement, brightness, color temperature, and beam distribution in 2D and 3D. Save rendered comparison shots and export them as PNG images.
 
-公開URLを固定したい場合は、ビルド時に `VITE_APP_URL` を指定します。未指定の場合、PNG透かしには現在開いているURLを使います。
+## The problem it solves
 
-## 起動
+Homeowners usually need to decide on lighting before construction, while it is still hard to imagine the result from a fixture schedule or a floor plan alone. Professional lighting software is powerful but not designed for a homeowner's quick “what will our living room feel like at night?” comparison.
+
+LDK Lighting Lab focuses on that decision: a fast, approachable way to compare ideas in the context of a real floor plan. It is not a replacement for professional lighting design, compliance checks, or construction documentation.
+
+## Who it is for
+
+- Homeowners and buyers planning an LDK, stairs, or double-height space
+- Families comparing lighting mood before a renovation or new build
+- Designers who want a lightweight visual discussion tool with a client
+
+## Key features
+
+- Built-in LDK sample project with furniture, fixtures, stairs, and a double-height zone
+- PNG/JPG/PDF floor-plan import and scale calibration
+- 2D editing for walls, windows, openings, furniture, lights, stairs, and voids
+- Fixture brightness, color temperature, beam distribution, dimming, and placement controls
+- Fast raster editing view and an optional live path-traced realistic view
+- Final path-traced renders, saved comparison shots, and PNG export with a watermark
+- IndexedDB autosave plus portable project JSON import/export
+- Japanese and English UI selection, persisted in local storage
+
+## How it works
+
+1. Open the included sample or import your floor plan.
+2. Add or select lights in the 2D plan.
+3. Change brightness, color temperature, fixture distribution, and placement in the inspector.
+4. Switch to 3D and use **Realistic** view to inspect direct and indirect light where supported.
+5. Save a comparison shot or export a PNG.
+
+## Quick start
+
+Requires Node.js 22 or later.
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
-表示されたURLをブラウザで開きます。通常は以下です。
+Open the local URL printed by Vite, normally `http://127.0.0.1:5173/`.
 
-```text
-http://127.0.0.1:5173/
+For a production build:
+
+```bash
+npm run build
+npm run preview -- --port 4173
 ```
 
-ポートが使用中の場合はViteが別ポートを表示します。
+## Setup
 
-## 実装済み
+No account is required to use the simulator. Projects are stored locally in IndexedDB unless you explicitly export a JSON file or send feedback.
 
-- Vite + React + TypeScript
-- Three.js + @react-three/fiber + @react-three/drei
-- Zustandストア
-- ZodによるプロジェクトJSON読込時の最低限検証
-- pdfjs-distによるPDF 1ページ目の背景画像化
-- three-gpu-pathtracer + three-mesh-bvh worker による最終レンダー
-- サンプルLDK
-  - LDK矩形空間
-  - 丸ダイニングテーブル、椅子、ペニンシュラキッチン、ソファ、TV、ラグ
-  - TV背面壁照射ダウンライト3灯
-  - キッチンスポット3灯
-  - ダイニングペンダント1灯
-  - 階段ブラケット1灯
-  - TV背面間接テープライト
-  - 吹き抜け領域
-- 3D表示
-  - 表示モード切替
-    - 編集（高速ラスター）: 操作・配置用。リアルタイム描画。
-    - リアル（常駐パストレ）: 編集中のシーンをそのままthree-gpu-pathtracerで描画。
-      カメラ停止後に壁・天井・床の反射による本物の間接光込みで数秒かけて収束する。
-      編集用と同一シーンを共有するため「見たまま＝最終結果」になる（WYSIWYG）。
-      非物理の補助光・霧・接地影・選択枠は常駐パストレ時には無効化される。
-  - PBR材質、影、PBR Neutralトーンマッピング、固定露出
-  - OrbitControls
-  - 色温度プリセット一括変更（電球色2700K / 温白色3500K / 昼白色5000K / 昼光色6500K）
-  - 日光設定（ON/OFF、時刻、月日、北方位、緯度）
-- レイアウト
-  - 「3D集中表示」ヘッダーボタンで左右パネルを畳み、3Dビューを横長に最大化
-  - ウィンドウ高さに収まる固定レイアウト（縦スクロールしない）
-- 2D SVG平面ビュー
-  - デモ配置の確認
-  - 家具・照明の選択
-  - 家具・照明のドラッグ移動
-  - PNG/JPG/PDF背景の読込
-  - 壁、窓、開口、家具、照明、吹き抜けの追加
-  - クイック追加ボタン（照明 / 家具 / 階段 / 吹抜を部屋中心へワンタップ追加）
-  - 縮尺キャリブレーション
-  - パン、ズーム、全体表示
-  - 選択対象の削除
-- 間取り・オブジェクト編集
-  - 壁の始点/終点座標・厚み・高さ・素材
-  - 家具の種類変更（階段を含む）・寸法・位置・回転
-  - 階段プリミティブ（蹴上げから自動段数）
-  - 吹き抜けは上階天井まで側面と上蓋で囲い、黒く抜ける「穴」を防止
-- プロパティ編集
-  - 照明の位置、光束、色温度、ビーム角、半影、ON/OFF、調光
-  - 家具の位置、寸法、回転、影
-  - 壁の厚み、高さ、素材
-  - 窓の幅、高さ、腰高、ガラス有無
-  - 吹き抜けの中心位置と寸法
-- IndexedDB自動保存
-- プロジェクトJSON保存/読込
-- PNG書き出し
-  - path traced画像がある場合は最終レンダーを書き出し
-  - ない場合は現在のリアルタイム3D表示を書き出し
-- 比較一覧
-  - path traced画像またはリアルタイム画像を保存
-  - カメラ、照明シーン、samples、解像度を保持
-- 最終レンダー
-  - 低: 128 samples
-  - 中: 512 samples
-  - 高: 1024 samples
-  - BVH生成、サンプリング進捗、停止ボタン
-  - WebGL2非対応時のガード
-- Cmd+Z / Cmd+Shift+Z
+The optional feedback form is handled by a Cloudflare Pages Function. It requires `GITHUB_TOKEN` and `GITHUB_REPO` as encrypted Cloudflare Secrets. `GITHUB_REPO` must point to a private feedback-only repository. See [feedback setup](docs/feedback-setup.md).
 
-## フィードバック（要望・不具合報告）
-
-アプリ右下の「💬 ご意見」フォームから、要望・不具合を送信できます。送信内容は
-Cloudflare Pages Function（`functions/api/feedback.ts`）経由でGitHubリポジトリに
-Issueとして起票されます。トークンはサーバ側の秘密として保持するため、リポジトリは
-非公開のまま、投稿者のGitHubアカウントも不要です。セットアップ手順は
-[docs/feedback-setup.md](docs/feedback-setup.md) を参照してください。
-
-## 検証
+## Test
 
 ```bash
 npm run typecheck
 npm run build
 ```
 
-ローカルサーバ起動中に、スクリーンショットと3D canvas非空チェックを行えます。
+With the preview server running:
 
 ```bash
-npm run visual-check -- http://127.0.0.1:5173/
+npm run visual-check -- http://127.0.0.1:4173/
+npm run exploratory-check -- http://127.0.0.1:4173/
 ```
 
-出力:
+The CI workflow runs these runtime checks on Linux with Chromium. The `photometric/` subproject has its own unit tests, typecheck, and build in CI.
 
-```text
-output/playwright/ldk-lighting-lab.png
-```
+## Sample workflow
 
-照明キャリブレーションの調査結果とスクリーンショット:
+Use the built-in **LDK Lighting Lab - Demo LDK** project to start immediately. For an importable project and original fictional floor-plan assets, see [public/demo](public/demo/README.md).
 
-```text
-docs/lighting-calibration-report.md
-```
+## Rendering architecture
 
-最終レンダー開始直後の進捗表示まで確認する場合:
+- **Edit view:** real-time raster rendering with PBR materials, fixed exposure, and PBR Neutral tone mapping.
+- **Realistic view:** an optional live `three-gpu-pathtracer` view using the current editing scene. It progressively converges after camera motion stops.
+- **Final render:** a separate path-traced PNG pipeline with BVH preparation, sample progress, cancellation, comparison-shot storage, and WebGL2 guarding.
+- **Illuminance heatmap:** a reference-only direct/indirect heatmap is available in the existing experimental `?lux=1` route. It is not a compliance calculation.
 
-```bash
-npm run visual-check -- http://127.0.0.1:5173/ --render-peek
-```
+## How Codex and GPT-5.6 were used
 
-最終レンダー完了まで待つ場合:
+This repository contains pre-existing functionality built before the OpenAI Build Week finalization session. During that session, Codex with GPT-5.6 is used to inspect the existing architecture, verify builds and runtime behavior, harden the feedback destination, add bilingual UI infrastructure, prepare documentation, and record validation results. This section will be updated only with work actually completed in the session.
 
-```bash
-npm run visual-check -- http://127.0.0.1:5173/ --render
-```
+## Key technical decisions
 
-## 現時点の制限
+- Preserve the existing raster and path-tracing pipelines instead of replacing the rendering engine near the deadline.
+- Keep raster editing usable even when realistic path tracing is unsupported or slow.
+- Use a small typed in-app dictionary instead of a new i18n dependency for two languages.
+- Send feedback only to a private dedicated repository, never to the public source repository.
 
-- Phase 4までのローカルMVPです。
-- DIALux evoのような公的な照度検証、配光データ検証、帳票作成はまだ実装していません。
-- 実メーカー品番、IES/LDT、実照度計算、CSV/帳票は未実装です。
-- ビューポートの「リアル（常駐パストレ）」表示は編集用3Dと同一シーンを共有します（WYSIWYG）。
-- 一方、ヘッダーの「レンダリング開始」による高解像度PNG書き出し用の最終レンダーは、従来どおりプロジェクトデータから軽量なレンダー用3Dシーンを再構築して描画します。こちらは編集用3Dと完全同一メッシュではありません。
-- 常駐パストレの収束速度はGPU性能に依存します。SwiftShader等のソフトウェア描画環境では大幅に遅くなります。
-- PDF背景の自動ベクトル化や壁認識は未実装です。現状は背景画像を読み込み、2Dツールで壁・窓・照明を手で重ねます。
+## Known limitations
+
+- This is not DIALux, a certified illuminance calculation tool, or construction documentation.
+- It does not include manufacturer-specific fixture catalog data, validated IES/LDT data, CSV reports, or guaranteed lux values.
+- Live and final path tracing depend on browser WebGL2 support and GPU performance.
+- PDF import rasterizes the first page; automatic wall recognition and vectorization are not implemented.
+- The final render rebuilds a lightweight rendering scene and is not a byte-for-byte mesh copy of the editing view.
+
+## Privacy and local data
+
+Project data is autosaved in the browser's IndexedDB. It is not uploaded by default. Exported JSON and PNG files are created only when you choose to export them. Feedback is optional; do not include personal or sensitive information in it.
+
+## Assets and notices
+
+The sample floor plan in `public/demo/` is original fictional material made for this repository. The project uses open-source npm dependencies under their respective licenses. A separate third-party notice will be added if externally sourced assets are introduced.
+
+## License
+
+[MIT](LICENSE) — Copyright (c) 2026 Tomoharu Hoshi.
