@@ -6,7 +6,9 @@ LDK Lighting Lab is a browser-based visual simulator for comparing home lighting
 
 > This is a visual simulation for comparing lighting layouts and atmosphere. It does not guarantee actual illuminance, light distribution, color, or the finished result.
 
-![LDK Lighting Lab demo](docs/images/demo-placeholder.svg)
+![LDK Lighting Lab desktop demo](docs/images/demo-en.png)
+
+<img src="docs/images/demo-mobile-en.png" alt="LDK Lighting Lab mobile interface in English" width="260" />
 
 ## What it does
 
