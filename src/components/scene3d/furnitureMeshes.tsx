@@ -1,3 +1,4 @@
+import { MeshReflectorMaterial } from "@react-three/drei";
 import type { ThreeEvent } from "@react-three/fiber";
 import { useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -15,6 +16,45 @@ import { useEditMode, usePathTraced, usePlacement, useTouchDragGuard } from "./c
 import { resizeBox3D, useFloorDrag, useHandleDrag } from "./dragHooks";
 import { debugColorForRole } from "./materials";
 import { eventObjectHasMarker, ignoreRaycast } from "./raycastUtils";
+
+// 消灯TV画面の平面反射（編集ビュー専用の見た目補助）。ラスターは environment 反射だけだと
+// 暗いガラス面の映り込みが乏しいため、前面(+Z)に MeshReflectorMaterial の薄板を重ねる。
+// 常駐パストレは同一シーンの実反射を計算するので重ねない（WYSIWYG不変条件）。
+// ギラつかせない控えめな値。emissive は既存TVボックスの点灯（待機グロー）表現を踏襲する。
+const TV_SCREEN_REFLECTOR = {
+  color: "#050505",
+  roughness: 0.18,
+  blur: [200, 60] as [number, number],
+  mixBlur: 1,
+  mixStrength: 0.75,
+  mirror: 0.9,
+  resolution: 512,
+  emissive: "#050914",
+  emissiveIntensity: 0.22,
+  // ボックス前面とのZファイティング回避
+  faceOffsetM: 0.002
+};
+
+const TvScreenReflector = ({ item }: { item: FurnitureItem }) => {
+  const pathTraced = usePathTraced();
+  if (pathTraced) return null;
+  return (
+    <mesh position={[0, 0, item.size.z / 2 + TV_SCREEN_REFLECTOR.faceOffsetM]}>
+      <planeGeometry args={[item.size.x, item.size.y]} />
+      <MeshReflectorMaterial
+        color={TV_SCREEN_REFLECTOR.color}
+        roughness={TV_SCREEN_REFLECTOR.roughness}
+        blur={TV_SCREEN_REFLECTOR.blur}
+        mixBlur={TV_SCREEN_REFLECTOR.mixBlur}
+        mixStrength={TV_SCREEN_REFLECTOR.mixStrength}
+        mirror={TV_SCREEN_REFLECTOR.mirror}
+        resolution={TV_SCREEN_REFLECTOR.resolution}
+        emissive={TV_SCREEN_REFLECTOR.emissive}
+        emissiveIntensity={TV_SCREEN_REFLECTOR.emissiveIntensity}
+      />
+    </mesh>
+  );
+};
 
 // 3Dの面ハンドル（球）1つ。平面ヒットで掴んだ点を resize に渡す。
 const ResizeHandle3D = ({
@@ -419,10 +459,13 @@ const FurniturePrimitive = ({
 
   if (item.type === "tv") {
     return (
-      <mesh castShadow receiveShadow>
-        <boxGeometry args={[item.size.x, item.size.y, item.size.z]} />
-        <meshStandardMaterial color="#030303" roughness={0.18} metalness={0.02} emissive="#050914" emissiveIntensity={0.22} />
-      </mesh>
+      <>
+        <mesh castShadow receiveShadow>
+          <boxGeometry args={[item.size.x, item.size.y, item.size.z]} />
+          <meshStandardMaterial color="#030303" roughness={0.18} metalness={0.02} emissive="#050914" emissiveIntensity={0.22} />
+        </mesh>
+        <TvScreenReflector item={item} />
+      </>
     );
   }
 
