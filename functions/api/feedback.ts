@@ -1,16 +1,15 @@
 // Cloudflare Pages Function: POST /api/feedback
-// アプリ内フィードバックフォームの内容を受け取り、GitHubの（非公開）リポジトリに
-// Issueとして起票する。トークン(GITHUB_TOKEN)はサーバ側の秘密として保持し、
-// クライアントのバンドルには一切含めない。これによりリポジトリを非公開のまま、
-// GitHubアカウントを持たない他ユーザーからの投稿を受け付けられる。
+// アプリ内フィードバックフォームの内容を受け取り、専用の非公開GitHubリポジトリに
+// Issueとして起票する。トークンと送信先(GITHUB_TOKEN / GITHUB_REPO)はサーバ側の
+// Secretとして保持し、クライアントのバンドルには一切含めない。公開リポジトリに
+// フィードバック本文や任意の連絡先を誤って投稿しないため、送信先の既定値は持たない。
 
 interface Env {
   GITHUB_TOKEN: string;
-  // "owner/repo" 形式。未設定時は DEFAULT_REPO を使う。
-  GITHUB_REPO?: string;
+  // 非公開のフィードバック専用リポジトリ。"owner/repo" 形式。
+  GITHUB_REPO: string;
 }
 
-const DEFAULT_REPO = "acro-tomo/ldk-lighting-lab";
 const MAX_BODY = 4000;
 const MAX_CONTACT = 200;
 
@@ -21,8 +20,8 @@ const json = (data: unknown, status = 200): Response =>
   });
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
-  if (!env.GITHUB_TOKEN) {
-    return json({ error: "サーバ側のトークンが未設定です。" }, 500);
+  if (!env.GITHUB_TOKEN || !env.GITHUB_REPO) {
+    return json({ error: "フィードバック送信は現在利用できません。" }, 503);
   }
 
   let payload: { type?: string; body?: string; contact?: string; website?: string };
@@ -40,7 +39,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const contact = (payload.contact ?? "").trim().slice(0, MAX_CONTACT);
   if (!body) return json({ error: "内容が空です。" }, 400);
 
-  const repo = env.GITHUB_REPO ?? DEFAULT_REPO;
+  const repo = env.GITHUB_REPO;
   // "bug" / "enhancement" はGitHubリポジトリの既定ラベル。
   const label = type === "bug" ? "bug" : "enhancement";
   const titlePrefix = type === "bug" ? "[不具合]" : "[要望]";
