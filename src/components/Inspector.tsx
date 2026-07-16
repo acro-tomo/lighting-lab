@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useI18n } from "../i18n";
 import type { Project, Selection } from "../types";
 import { useProjectStore } from "../store/projectStore";
 import { ColorTempPresets } from "./inspector/ColorTempPresets";
@@ -24,7 +25,10 @@ const lightTypeLabels = {
   tape: "テープライト"
 } as const;
 
+const languageLightType = (t: (key: string) => string, type: keyof typeof lightTypeLabels) => t(lightTypeLabels[type]);
+
 export const Inspector = ({ project, selection, canEditWalls, onCloseMobileSettings }: InspectorProps) => {
+  const { t } = useI18n();
   const updateLight = useProjectStore((state) => state.updateLight);
   const updateLights = useProjectStore((state) => state.updateLights);
   const selectedLightIds = useProjectStore((state) => state.selectedLightIds);
@@ -70,20 +74,20 @@ export const Inspector = ({ project, selection, canEditWalls, onCloseMobileSetti
   }, 0);
   const hasObjectSelection = selection !== null || selectedLightIds.length > 0;
   const mobileTitle = selectedLight
-    ? `${lightTypeLabels[selectedLight.type]}を編集`
+    ? `${languageLightType(t, selectedLight.type)}${t("を編集")}`
     : selectedFurniture
-      ? "家具を編集"
+      ? t("家具を編集")
       : hasObjectSelection
-        ? "編集"
-        : "部屋設定";
+        ? t("編集")
+        : t("部屋設定");
 
   return (
-    <aside className="inspector-panel" aria-label="プロパティインスペクター">
+    <aside className="inspector-panel" aria-label={t("プロパティインスペクター")}>
       <div className="mobile-settings-sheet-head">
-        <button type="button" onClick={onCloseMobileSettings}>戻る</button>
+        <button type="button" onClick={onCloseMobileSettings}>{t("戻る")}</button>
         <strong>{mobileTitle}</strong>
         {hasObjectSelection ? (
-          <button type="button" onClick={() => select(null)}>部屋設定</button>
+          <button type="button" onClick={() => select(null)}>{t("部屋設定")}</button>
         ) : (
           <span aria-hidden="true" />
         )}
@@ -94,7 +98,7 @@ export const Inspector = ({ project, selection, canEditWalls, onCloseMobileSetti
           <div className="panel-heading">
             <div>
               <p className="eyebrow">Room settings</p>
-              <h2>部屋設定</h2>
+              <h2>{t("部屋設定")}</h2>
             </div>
           </div>
         )}
@@ -130,27 +134,27 @@ export const Inspector = ({ project, selection, canEditWalls, onCloseMobileSetti
 
       {!hasObjectSelection && (
         <>
-          <section className="summary-strip" aria-label="部屋の集計">
+          <section className="summary-strip" aria-label={t("部屋の集計")}>
             <div>
-              <span>照明</span>
+              <span>{t("照明")}</span>
               <strong>{project.lights.length}</strong>
             </div>
             <div>
-              <span>家具</span>
+              <span>{t("家具")}</span>
               <strong>{project.furniture.length}</strong>
             </div>
             <div>
-              <span>有効lm</span>
+              <span>{t("有効lm")}</span>
               <strong>{Math.round(totalActiveLumens).toLocaleString("ja-JP")}</strong>
             </div>
           </section>
 
           <section className="panel-block">
             <div className="panel-heading compact">
-              <h2>メインクロス（壁全体）</h2>
+              <h2>{t("メインクロス（壁全体）")}</h2>
             </div>
             <label className="field">
-              <span>全壁の素材を一括変更</span>
+              <span>{t("全壁の素材を一括変更")}</span>
               <select
                 defaultValue=""
                 onChange={(event) => {
@@ -159,7 +163,7 @@ export const Inspector = ({ project, selection, canEditWalls, onCloseMobileSetti
                   event.currentTarget.value = "";
                 }}
               >
-                <option value="" disabled>— 素材を選んで適用 —</option>
+                <option value="" disabled>{t("— 素材を選んで適用 —")}</option>
                 {project.materials.map((mat) => (
                   <option key={mat.id} value={mat.id}>{mat.name}</option>
                 ))}
@@ -169,18 +173,18 @@ export const Inspector = ({ project, selection, canEditWalls, onCloseMobileSetti
 
           <section className="panel-block room-light-settings">
             <div className="panel-heading compact">
-              <h2>照明一覧</h2>
+              <h2>{t("照明一覧")}</h2>
             </div>
             <div className="room-wide-warning">
-              <strong>部屋全体に適用</strong>
-              <span>{project.lights.length}灯すべての色温度を変更します</span>
+              <strong>{t("部屋全体に適用")}</strong>
+              <span>{t("{count}灯すべての色温度を変更します", { count: project.lights.length })}</span>
             </div>
             <label className="field">
-              <span>全照明の色温度を一括変更</span>
+              <span>{t("全照明の色温度を一括変更")}</span>
               <ColorTempPresets value={NaN} onSelect={setAllColorTemperature} />
             </label>
             <label className="field">
-              <span>照明を選択</span>
+              <span>{t("照明を選択")}</span>
               <select
                 value=""
                 onChange={(event) => {
@@ -188,7 +192,7 @@ export const Inspector = ({ project, selection, canEditWalls, onCloseMobileSetti
                   if (value) select({ kind: "light", id: value });
                 }}
               >
-                <option value="">— 照明を選択 —</option>
+                <option value="">{t("— 照明を選択 —")}</option>
                 {project.lights.map((light) => (
                   <option key={light.id} value={light.id}>
                     {light.name}（{light.enabled !== false ? `${Math.round(light.dimmer ?? 100)}%` : "OFF"}）
@@ -207,15 +211,15 @@ export const Inspector = ({ project, selection, canEditWalls, onCloseMobileSetti
           onClick={() => setDisclaimerOpen((open) => !open)}
           aria-expanded={disclaimerOpen}
         >
-          ℹ 免責
+          {t("ℹ 免責")}
         </button>
         {disclaimerOpen && (
           <p className="disclaimer-text">
-            これは照明配置・雰囲気比較用の視覚シミュレーションです。実際の照度、配光、色、施工後の見え方を保証するものではありません。
+            {t("これは照明配置・雰囲気比較用の視覚シミュレーションです。実際の照度、配光、色、施工後の見え方を保証するものではありません。")}
           </p>
         )}
       </footer>
-      <div className="mobile-settings-autosave" aria-live="polite">自動保存</div>
+      <div className="mobile-settings-autosave" aria-live="polite">{t("自動保存")}</div>
     </aside>
   );
 };
