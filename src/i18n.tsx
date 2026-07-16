@@ -469,6 +469,16 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     document.documentElement.lang = language;
+    const english = language === "en";
+    document.title = english
+      ? "LDK Lighting Lab — Compare home lighting at night"
+      : "LDK Lighting Lab — 自分の間取りで夜の照明を比較するシミュレーター";
+    document.querySelector('meta[name="description"]')?.setAttribute(
+      "content",
+      english
+        ? "Compare home lighting layouts, brightness, and color temperature in your floor plan before construction. This visual simulator does not guarantee real illuminance (lux)."
+        : "自分の間取りを取り込み、照明の位置・明るさ・色温度を変えながら“夜の見え方”をブラウザで比較できる無料ツール。インストール不要。※雰囲気比較用で実照度(lux)は保証しません。"
+    );
   }, [language]);
 
   const value = useMemo<I18nContextValue>(() => ({
