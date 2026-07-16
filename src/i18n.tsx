@@ -214,6 +214,14 @@ const en: Record<string, string> = {
   ,"設置する壁": "Wall to place on"
   ,"床から": "From floor"
   ,"壁上の位置": "Position on wall"
+  ,"内周壁": "Interior walls"
+  ,"壁あり": "Wall"
+  ,"開放": "Open"
+  ,"2階廊下などで壁が無い辺は「開放」にします。壁付け照明は壁ありの辺にだけ付きます。": "Set sides without a wall, such as an upper-floor corridor edge, to Open. Wall-mounted lights can only attach to sides with a wall."
+  ,"下がり": "Ceiling drop"
+  ,"下げ量": "Floor drop"
+  ,"室内床レベル": "Interior floor level"
+  ,"土間の下がり量をこの値に合わせると土間が地面(0)になる": "Match the entry floor drop to this value to place the entry floor at ground level (0)."
 };
 
 type I18nContextValue = {
