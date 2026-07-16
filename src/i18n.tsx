@@ -136,6 +136,32 @@ const en: Record<string, string> = {
   "スマホ表示切替": "Mobile view switcher",
   "設定を開く": "Open settings",
   "設定": "Settings"
+  ,"2D平面図エディタ": "2D plan editor"
+  ,"平面配置": "Plan layout"
+  ,"2Dを最大化": "Maximize 2D"
+  ,"ズーム": "Zoom"
+  ,"拡大": "Zoom in"
+  ,"縮小": "Zoom out"
+  ,"全体表示": "Fit to view"
+  ,"縮尺": "Scale"
+  ,"背景合わせ": "Align background"
+  ,"1階基準": "Use floor 1 alignment"
+  ,"完了": "Done"
+  ,"北": "North"
+  ,"1階の薄い壁を目安に、二階の背景画像をドラッグして位置を合わせます。終わったら完了。": "Drag the floor 2 background image to align it with the faint floor 1 walls, then select Done."
+  ,"壁または吹き抜け内周に近づけると青くハイライト。クリックで壁付け照明を設置。": "A wall or void edge highlights blue when targeted. Click to place the wall-mounted light."
+  ,"壁に近づけると青くハイライト。その壁をクリックで設置。設置後は壁上をドラッグで位置調整。": "A nearby wall highlights blue. Click it to place this item, then drag along the wall to adjust it."
+  ,"クリックした位置にオブジェクトを配置します。": "Click to place the object."
+  ,"オブジェクトをクリックで選択、ドラッグで移動。何もない所のドラッグで平面図をパン。Deleteで削除。": "Click an object to select it and drag to move it. Drag empty space to pan. Press Delete to remove."
+  ,"壁をクリックで選択、ドラッグで移動。Deleteで削除。何もない所のドラッグで平面図をパン。": "Click a wall to select it and drag to move it. Press Delete to remove. Drag empty space to pan."
+  ,"角に近づけてタップ、または押して引いて離すと壁を作成。スマホは水平/垂直へ強めにスナップします。内側は下のボタンで指定できます。": "Tap near a corner, or press, drag, and release to create a wall. On mobile, walls snap strongly to horizontal or vertical. Choose the inside below."
+  ,"壁作成": "Wall drawing"
+  ,"1点戻す": "Undo point"
+  ,"壁の内側": "Wall interior"
+  ,"中央": "Center"
+  ,"左": "Left"
+  ,"右": "Right"
+  ,"中止": "Cancel"
 };
 
 type I18nContextValue = {
