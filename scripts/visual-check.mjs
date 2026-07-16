@@ -40,7 +40,8 @@ page.on("response", (response) => {
   }
 });
 
-await page.goto(url, { waitUntil: "networkidle" });
+// Worker / 3D renderer が常駐するため networkidle を待たず、後続の canvas 待機で起動完了を確認する。
+await page.goto(url, { waitUntil: "domcontentloaded" });
 try {
   await page.locator("canvas").first().waitFor({ state: "attached", timeout: canvasTimeoutMs });
 } catch (error) {

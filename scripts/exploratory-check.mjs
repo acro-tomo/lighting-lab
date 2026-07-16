@@ -159,7 +159,8 @@ const dragLocator = async (locator, fromRatio, toRatio) => {
 
 try {
   await step("load app and dismiss intro", async () => {
-    await page.goto(url, { waitUntil: "networkidle" });
+    // Worker / 3D renderer が常駐するため networkidle を待たず、後続の canvas 待機で起動完了を確認する。
+    await page.goto(url, { waitUntil: "domcontentloaded" });
     await closeIntroIfVisible();
     await assertCanvasVisible();
   });
