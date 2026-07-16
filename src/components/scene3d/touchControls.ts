@@ -177,7 +177,6 @@ export const TouchPinchDolly = ({
     const move = new THREE.Vector3();
     const panMove = new THREE.Vector3();
     const panAxis = new THREE.Vector3();
-    const targetDir = new THREE.Vector3();
 
     const pinchMetrics = () => {
       const points = Array.from(pointersRef.current.values());
@@ -234,13 +233,8 @@ export const TouchPinchDolly = ({
 
       move.copy(panMove);
       if (gestureIntentRef.current === "pinch") {
-        forward.copy(camera.getWorldDirection(forward));
+        forward.copy(controls.target).sub(camera.position);
         forward.y = 0;
-        if (forward.lengthSq() < 1e-6) {
-          targetDir.copy(controls.target).sub(camera.position);
-          targetDir.y = 0;
-          forward.copy(targetDir);
-        }
         if (forward.lengthSq() < 1e-6) return;
         forward.normalize();
         const deltaM = THREE.MathUtils.clamp(
