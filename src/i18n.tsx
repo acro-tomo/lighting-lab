@@ -290,6 +290,19 @@ const en: Record<string, string> = {
   ,"やり直し": "Redo"
   ,"配置終了 / 選択解除": "Finish placement / clear selection"
   ,"壁モード：頂点を確定": "Wall mode: confirm vertex"
+  ,"縮尺合わせ": "Scale calibration"
+  ,"実距離を入力し、表示された線に間取り図の同じ長さの部分を合わせてください。画像はドラッグ、二本指ピンチで調整できます。": "Enter a real-world distance, then align the displayed line with the same length on the floor plan. Drag or pinch with two fingers to adjust the image."
+  ,"間取り図": "Floor plan"
+  ,"実距離": "Real distance"
+  ,"ガイド線の向き": "Guide-line orientation"
+  ,"横": "Horizontal"
+  ,"縦": "Vertical"
+  ,"画像倍率": "Image zoom"
+  ,"画像上": "On image"
+  ,"線が画像から外れています": "The line is outside the image"
+  ,"リセット": "Reset"
+  ,"キャンセル": "Cancel"
+  ,"確定": "Confirm"
 };
 
 type I18nContextValue = {
