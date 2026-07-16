@@ -103,10 +103,10 @@ export const TouchLook = ({
       const distance = camera.position.distanceTo(controls.target);
       if (distance < 1e-6) return;
       const turnPerPx = (Math.PI * 2 * TOUCH_ORBIT_SPEED.rotate) / (canvas.clientHeight || 1);
-      lookDirection.copy(controls.target).sub(camera.position).applyAxisAngle(yAxis, -deltaX * turnPerPx);
+      lookDirection.copy(controls.target).sub(camera.position).applyAxisAngle(yAxis, deltaX * turnPerPx);
       const horizontalDistance = Math.hypot(lookDirection.x, lookDirection.z);
       const pitch = THREE.MathUtils.clamp(
-        Math.atan2(lookDirection.y, horizontalDistance) - deltaY * turnPerPx,
+        Math.atan2(lookDirection.y, horizontalDistance) + deltaY * turnPerPx,
         -THREE.MathUtils.degToRad(80),
         THREE.MathUtils.degToRad(80)
       );
