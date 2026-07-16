@@ -2,82 +2,35 @@ import type { ThreeEvent } from "@react-three/fiber";
 import { useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
+import { IndirectController } from "../../../photometric/src/app/indirect";
+import type { SceneModel } from "../../../photometric/src/core/types";
 import type {
   OcclusionTester,
   PhotometricLight
 } from "../../../photometric/src/photometry/illuminance";
 import { illuminanceAt } from "../../../photometric/src/photometry/illuminance";
 import { lxToColor } from "../../../photometric/src/photometry/grid";
+import type {
+  IrradianceProbeField,
+  RadianceScene
+} from "../../../photometric/src/photometry/probes";
 import type { Project } from "../../types";
+import type { LuxBreakdown } from "../../utils/luxLab";
 import { useLuxLabStore } from "../../utils/luxLab";
 import { projectLightsToPhotometric } from "../../utils/photometricLights";
 import { usePathTraced } from "./contexts";
-import { objectHasMarker } from "./raycastUtils";
+import {
+  collectLuxOccluders,
+  createProbeSceneModel,
+  createSceneOcclusion,
+  createSceneRadiance
+} from "./luxSceneAdapter";
 import { computeRoomPolygon, type FloorBounds } from "./roomGeometry";
 
-// 照度(lx)ヒートマップ（?lux=1 の隠し機能）。計算は photometric/ の測光コア
-// （露出・トーンマッピング非依存）で行い、結果を CanvasTexture の水平面として
-// 編集ビューに重ねる。非物理のオーバーレイなので常駐パストレ時は描画しない
-// （WYSIWYG不変条件）。
-
 const GRID_SPACING_M = 0.15;
-// 極端に広い間取りでメインスレッドを止めないための格子数上限（超えたら間隔を粗くする）。
 const MAX_GRID_CELLS = 40000;
 const RECOMPUTE_DEBOUNCE_MS = 500;
 const OVERLAY_ALPHA = 0.82;
-// photometric/src/render/occlusion.ts と同じ定数（遮蔽実装の整合を保つ）。
-const SURFACE_EPS = 0.005;
-const LIGHT_EPS = 0.02;
-
-// シーン全体から遮蔽ジオメトリを収集して OcclusionTester を作る。
-// 除外するもの:
-// - fixtureBody 配下（器具本体・発光アパーチャ・不可視ドラッグ判定）。器具ボディで
-//   光源が自己遮蔽されるのを防ぐ。ラスター側も光源を本体外へ出しており整合する。
-// - dragHandle 配下（照準グリップ等の編集ヘルパー）
-// - luxIgnore 配下（ヒートマップ自身・配置ゴースト等の非物理オーバーレイ）
-// - 不可視マテリアル（colorWrite=false / visible=false / 完全透明のヒット判定用）
-// なお選択枠ワイヤーフレーム等は raycast=ignoreRaycast のため交差自体が発生しない。
-const collectOccluders = (scene: THREE.Scene): THREE.Object3D[] => {
-  const occluders: THREE.Object3D[] = [];
-  scene.traverseVisible((object) => {
-    if (!(object as THREE.Mesh).isMesh) return;
-    const mesh = object as THREE.Mesh;
-    if (
-      objectHasMarker(mesh, "fixtureBody") ||
-      objectHasMarker(mesh, "dragHandle") ||
-      objectHasMarker(mesh, "luxIgnore")
-    ) {
-      return;
-    }
-    const material = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
-    if (!material || !material.visible || material.colorWrite === false) return;
-    if (material.transparent && material.opacity <= 0.05) return;
-    occluders.push(mesh);
-  });
-  return occluders;
-};
-
-const createSceneOcclusion = (occluders: readonly THREE.Object3D[]): OcclusionTester => {
-  const raycaster = new THREE.Raycaster();
-  const origin = new THREE.Vector3();
-  const direction = new THREE.Vector3();
-  return {
-    visibility(from, to) {
-      direction.set(to.x - from.x, to.y - from.y, to.z - from.z);
-      const distance = direction.length();
-      if (distance <= SURFACE_EPS + LIGHT_EPS) return 1;
-      direction.multiplyScalar(1 / distance);
-      origin.set(from.x, from.y, from.z).addScaledVector(direction, SURFACE_EPS);
-      raycaster.set(origin, direction);
-      raycaster.near = 0;
-      raycaster.far = distance - SURFACE_EPS - LIGHT_EPS;
-      for (const occluder of occluders) {
-        if (raycaster.intersectObject(occluder, false).length > 0) return 0;
-      }
-      return 1;
-    }
-  };
-};
 
 const pointInPolygonXZ = (
   x: number,
@@ -101,20 +54,37 @@ type GridData = {
   spacing: number;
   cols: number;
   rows: number;
-  /** 行優先。室内ポリゴン外は NaN */
   values: Float32Array;
 };
 
+type ComputeContext = {
+  geometryKey: string;
+  lightsKey: string;
+  lights: PhotometricLight[];
+  occlusion: OcclusionTester;
+  radianceScene: RadianceScene;
+  model: SceneModel;
+  floorY: number;
+  planeY: number;
+  polygon: ReturnType<typeof computeRoomPolygon>;
+};
+
+const emptyBreakdown = (): LuxBreakdown => ({ direct: 0, indirect: 0, total: 0 });
+
 export const LuxHeatmap = ({
   project,
+  fullProject,
   floorBounds,
   floorLevelM,
-  effectiveLightIds
+  effectiveLightIds,
+  upperVoidCeilingHeightM
 }: {
   project: Project;
+  fullProject: Project;
   floorBounds: FloorBounds;
   floorLevelM: number;
   effectiveLightIds: Set<string>;
+  upperVoidCeilingHeightM?: number;
 }) => {
   const scene = useThree((state) => state.scene);
   const pathTraced = usePathTraced();
@@ -123,27 +93,30 @@ export const LuxHeatmap = ({
   const scaleMax = useLuxLabStore((state) => state.scaleMax);
   const setStats = useLuxLabStore((state) => state.setStats);
   const setProbe = useLuxLabStore((state) => state.setProbe);
+  const setCalculation = useLuxLabStore((state) => state.setCalculation);
   const shown = visible && !pathTraced;
 
   const canvas = useMemo(() => document.createElement("canvas"), []);
   const texture = useMemo(() => {
-    const t = new THREE.CanvasTexture(canvas);
-    t.colorSpace = THREE.SRGBColorSpace;
-    t.magFilter = THREE.LinearFilter;
-    t.minFilter = THREE.LinearFilter;
-    return t;
+    const next = new THREE.CanvasTexture(canvas);
+    next.colorSpace = THREE.SRGBColorSpace;
+    next.magFilter = THREE.LinearFilter;
+    next.minFilter = THREE.LinearFilter;
+    return next;
   }, [canvas]);
   useEffect(() => () => texture.dispose(), [texture]);
 
   const gridRef = useRef<GridData | null>(null);
-  // クリック照度プローブ用に、最後の計算で使った光源・遮蔽を保持する。
-  const probeContextRef = useRef<{
-    lights: PhotometricLight[];
-    occlusion: OcclusionTester;
-    planeY: number;
-  } | null>(null);
+  const contextRef = useRef<ComputeContext | null>(null);
+  const committedFieldRef = useRef<IrradianceProbeField | null>(null);
+  const committedKeysRef = useRef<{ geometry: string; lights: string; isFinal: boolean } | null>(
+    null
+  );
+  const gridTaskRef = useRef<{ cancel: () => void } | null>(null);
+  const renderGridRef = useRef<
+    (field: IrradianceProbeField | undefined, label: string) => Promise<boolean>
+  >(async () => false);
 
-  // グリッドの実寸（格子点数はセル上限で自動的に粗くする）。
   const grid = useMemo(() => {
     const minX = floorBounds.centerX - floorBounds.sizeX / 2;
     const minZ = floorBounds.centerZ - floorBounds.sizeZ / 2;
@@ -151,8 +124,7 @@ export const LuxHeatmap = ({
     let cols = Math.max(2, Math.floor(floorBounds.sizeX / spacing) + 1);
     let rows = Math.max(2, Math.floor(floorBounds.sizeZ / spacing) + 1);
     if (cols * rows > MAX_GRID_CELLS) {
-      const scale = Math.sqrt((cols * rows) / MAX_GRID_CELLS);
-      spacing *= scale;
+      spacing *= Math.sqrt((cols * rows) / MAX_GRID_CELLS);
       cols = Math.max(2, Math.floor(floorBounds.sizeX / spacing) + 1);
       rows = Math.max(2, Math.floor(floorBounds.sizeZ / spacing) + 1);
     }
@@ -163,16 +135,14 @@ export const LuxHeatmap = ({
     if (canvas.width !== data.cols || canvas.height !== data.rows) {
       canvas.width = data.cols;
       canvas.height = data.rows;
-      // WebGL2 は texStorage2D の固定サイズで確保されるため、キャンバスの
-      // サイズ変更は dispose して再確保させないと左隅への部分更新になる。
       texture.dispose();
     }
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    const image = ctx.createImageData(data.cols, data.rows);
-    for (let i = 0; i < data.values.length; i++) {
-      const value = data.values[i];
-      const offset = i * 4;
+    const canvasContext = canvas.getContext("2d");
+    if (!canvasContext) return;
+    const image = canvasContext.createImageData(data.cols, data.rows);
+    for (let index = 0; index < data.values.length; index++) {
+      const value = data.values[index];
+      const offset = index * 4;
       if (!Number.isFinite(value)) {
         image.data[offset + 3] = 0;
         continue;
@@ -183,72 +153,238 @@ export const LuxHeatmap = ({
       image.data[offset + 2] = b;
       image.data[offset + 3] = Math.round(OVERLAY_ALPHA * 255);
     }
-    ctx.putImageData(image, 0, 0);
+    canvasContext.putImageData(image, 0, 0);
     texture.needsUpdate = true;
   };
 
-  // 表示OFF→ONで即時計算し直すためのフラグ（非表示中の編集は反映されていない）。
+  const cancelGridRender = () => {
+    gridTaskRef.current?.cancel();
+    gridTaskRef.current = null;
+  };
+
+  const renderGrid = (
+    field: IrradianceProbeField | undefined,
+    label: string
+  ): Promise<boolean> => {
+    cancelGridRender();
+    const context = contextRef.current;
+    if (!context) return Promise.resolve(false);
+    const values = new Float32Array(grid.cols * grid.rows).fill(Number.NaN);
+    const sum = emptyBreakdown();
+    const max = emptyBreakdown();
+    let count = 0;
+    let index = 0;
+    const point = {
+      position: { x: 0, y: context.planeY, z: 0 },
+      normal: { x: 0, y: 1, z: 0 }
+    };
+    return new Promise((resolve) => {
+      let timer = 0;
+      let settled = false;
+      const finish = (completed: boolean) => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timer);
+        if (gridTaskRef.current?.cancel === cancel) gridTaskRef.current = null;
+        resolve(completed);
+      };
+      const cancel = () => finish(false);
+      const step = () => {
+        if (settled || contextRef.current !== context) {
+          finish(false);
+          return;
+        }
+        const deadline = performance.now() + 8;
+        do {
+          const row = Math.floor(index / grid.cols);
+          const col = index - row * grid.cols;
+          const z = grid.minZ + row * grid.spacing;
+          const x = grid.minX + col * grid.spacing;
+          if (!context.polygon || pointInPolygonXZ(x, z, context.polygon)) {
+            point.position.x = x;
+            point.position.z = z;
+            const result = illuminanceAt(point, context.lights, context.occlusion, field);
+            values[index] = result.total;
+            sum.direct += result.direct;
+            sum.indirect += result.indirect;
+            sum.total += result.total;
+            max.direct = Math.max(max.direct, result.direct);
+            max.indirect = Math.max(max.indirect, result.indirect);
+            max.total = Math.max(max.total, result.total);
+            count++;
+          }
+          index++;
+        } while (index < values.length && performance.now() < deadline);
+        if (index < values.length) {
+          setCalculation({ status: "computing", label, progress: index / values.length });
+          timer = window.setTimeout(step, 0);
+          return;
+        }
+        const data = {
+          originX: grid.minX,
+          originZ: grid.minZ,
+          spacing: grid.spacing,
+          cols: grid.cols,
+          rows: grid.rows,
+          values
+        };
+        gridRef.current = data;
+        committedFieldRef.current = field ?? null;
+        setStats(
+          count > 0
+            ? {
+                mean: {
+                  direct: sum.direct / count,
+                  indirect: sum.indirect / count,
+                  total: sum.total / count
+                },
+                max,
+                points: count
+              }
+            : null
+        );
+        drawTexture(data, useLuxLabStore.getState().scaleMax);
+        finish(true);
+      };
+      gridTaskRef.current = { cancel };
+      step();
+    });
+  };
+  renderGridRef.current = renderGrid;
+
+  const controller = useMemo(() => {
+    let instance: IndirectController;
+    instance = new IndirectController({
+      getModel: () => contextRef.current!.model,
+      getProbeFieldConfig: () => ({ floorY: contextRef.current!.floorY }),
+      getRadianceScene: () => contextRef.current!.radianceScene,
+      getLights: () => contextRef.current!.lights,
+      getOcclusion: () => contextRef.current!.occlusion,
+      onPassCommitted: async (field, _passIndex, isFinal) => {
+        const context = contextRef.current;
+        if (!context) return;
+        const completed = await renderGridRef.current(field, "ヒートマップ更新");
+        if (!completed || contextRef.current !== context) return;
+        committedKeysRef.current = {
+          geometry: context.geometryKey,
+          lights: context.lightsKey,
+          isFinal
+        };
+      },
+      onStatusChanged: () => {
+        useLuxLabStore.getState().setCalculation({
+          status: instance.status,
+          label: instance.passLabel,
+          progress: instance.progress
+        });
+      }
+    });
+    return instance;
+  }, []);
+
+  const geometryKey = useMemo(
+    () =>
+      JSON.stringify({
+        room: fullProject.room,
+        walls: fullProject.walls,
+        windows: fullProject.windows,
+        voids: fullProject.voids,
+        ceilingZones: fullProject.ceilingZones,
+        floorZones: fullProject.floorZones,
+        furniture: fullProject.furniture,
+        materials: fullProject.materials,
+        showCeiling: fullProject.showCeiling,
+        activeFloor: fullProject.activeFloor,
+        upperVoidCeilingHeightM
+      }),
+    [fullProject, upperVoidCeilingHeightM]
+  );
+  const lightsKey = useMemo(
+    () =>
+      JSON.stringify({
+        lights: project.lights,
+        effective: [...effectiveLightIds].sort()
+      }),
+    [project.lights, effectiveLightIds]
+  );
   const needsImmediateComputeRef = useRef(true);
 
-  // 本計算。プロジェクト変更・計算面高さ変更は 500ms デバウンスで再計算する。
   useEffect(() => {
-    if (!shown) {
-      needsImmediateComputeRef.current = true;
-      return;
-    }
+    if (shown) return;
+    controller.dispose();
+    cancelGridRender();
+    contextRef.current = null;
+    committedFieldRef.current = null;
+    committedKeysRef.current = null;
+    needsImmediateComputeRef.current = true;
+    setStats(null);
+    setProbe(null);
+  }, [shown, controller, setProbe, setStats]);
+
+  useEffect(
+    () => () => {
+      controller.dispose();
+      gridTaskRef.current?.cancel();
+    },
+    [controller]
+  );
+
+  useEffect(() => {
+    if (!shown) return;
+    controller.cancel();
+    cancelGridRender();
+    committedFieldRef.current = null;
+    setCalculation({ status: "computing", label: "更新待ち", progress: 0 });
+    setProbe(null);
     const compute = () => {
-      const lights = projectLightsToPhotometric(
-        project.lights.filter((light) => effectiveLightIds.has(light.id)),
-        floorLevelM
-      );
-      const occlusion = createSceneOcclusion(collectOccluders(scene));
-      const polygon = computeRoomPolygon(project);
-      const planeY = floorLevelM + heightM;
-      const values = new Float32Array(grid.cols * grid.rows).fill(Number.NaN);
-      let sum = 0;
-      let max = 0;
-      let count = 0;
-      const point = { position: { x: 0, y: planeY, z: 0 }, normal: { x: 0, y: 1, z: 0 } };
-      for (let row = 0; row < grid.rows; row++) {
-        const z = grid.minZ + row * grid.spacing;
-        for (let col = 0; col < grid.cols; col++) {
-          const x = grid.minX + col * grid.spacing;
-          if (polygon && !pointInPolygonXZ(x, z, polygon)) continue;
-          point.position.x = x;
-          point.position.z = z;
-          const lx = illuminanceAt(point, lights, occlusion).total;
-          values[row * grid.cols + col] = lx;
-          sum += lx;
-          max = Math.max(max, lx);
-          count++;
-        }
-      }
-      const data: GridData = {
-        originX: grid.minX,
-        originZ: grid.minZ,
-        spacing: grid.spacing,
-        cols: grid.cols,
-        rows: grid.rows,
-        values
+      const occluders = collectLuxOccluders(scene);
+      const committed = committedKeysRef.current;
+      const geometryChanged = !committed || committed.geometry !== geometryKey;
+      const lightsChanged = geometryChanged || committed.lights !== lightsKey;
+      const context: ComputeContext = {
+        geometryKey,
+        lightsKey,
+        lights: projectLightsToPhotometric(
+          project.lights.filter((light) => effectiveLightIds.has(light.id)),
+          floorLevelM
+        ),
+        occlusion: createSceneOcclusion(occluders),
+        radianceScene: createSceneRadiance(occluders),
+        model: createProbeSceneModel(project, floorBounds, {
+          fullProject,
+          upperVoidCeilingHeightM
+        }),
+        floorY: floorLevelM,
+        planeY: floorLevelM + heightM,
+        polygon: computeRoomPolygon(project)
       };
-      gridRef.current = data;
-      probeContextRef.current = { lights, occlusion, planeY };
-      setStats(count > 0 ? { mean: sum / count, max, points: count } : null);
-      drawTexture(data, useLuxLabStore.getState().scaleMax);
+      contextRef.current = context;
+      if (!geometryChanged && !lightsChanged && controller.field?.isReady) {
+        void renderGridRef.current(controller.field, "ヒートマップ更新").then((completed) => {
+          if (!completed || contextRef.current !== context) return;
+          if (committed.isFinal) {
+            setCalculation({ status: "ready", label: "", progress: 1 });
+          } else {
+            controller.invalidate("lights");
+          }
+        });
+        return;
+      }
+      void renderGridRef.current(undefined, "直接光を計算中").then((completed) => {
+        if (!completed || contextRef.current !== context) return;
+        controller.invalidate(geometryChanged ? "geometry" : "lights");
+      });
     };
     if (needsImmediateComputeRef.current) {
       needsImmediateComputeRef.current = false;
-      // R3F の子メッシュ（遮蔽対象）がコミットされてから初回計算（reflectionProbe と同じ理由）。
-      const raf = requestAnimationFrame(compute);
-      return () => cancelAnimationFrame(raf);
+      const frame = requestAnimationFrame(compute);
+      return () => cancelAnimationFrame(frame);
     }
-    // 以降の編集（project prop 変更）はドラッグ中の連続更新を吸収するためデバウンス。
     const timer = window.setTimeout(compute, RECOMPUTE_DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shown, project, effectiveLightIds, floorLevelM, heightM, grid, scene]);
+  }, [shown, geometryKey, lightsKey, floorLevelM, heightM, grid, scene]);
 
-  // スケール切替は再計算せず色の描き直しだけ行う。
   useEffect(() => {
     const data = gridRef.current;
     if (data) drawTexture(data, scaleMax);
@@ -263,15 +399,16 @@ export const LuxHeatmap = ({
   const centerZ = grid.minZ + depth / 2;
 
   const handleClick = (event: ThreeEvent<MouseEvent>) => {
-    const context = probeContextRef.current;
+    const context = contextRef.current;
     if (!context) return;
     const { x, z } = event.point;
-    const lx = illuminanceAt(
+    const value = illuminanceAt(
       { position: { x, y: context.planeY, z }, normal: { x: 0, y: 1, z: 0 } },
       context.lights,
-      context.occlusion
-    ).total;
-    setProbe({ x, z, lx });
+      context.occlusion,
+      committedFieldRef.current ?? undefined
+    );
+    setProbe({ x, z, value });
   };
 
   return (
@@ -283,7 +420,6 @@ export const LuxHeatmap = ({
       onClick={handleClick}
     >
       <planeGeometry args={[width, depth]} />
-      {/* 測光値の色をそのまま出すため露出・トーンマップの影響を受けない。 */}
       <meshBasicMaterial
         map={texture}
         transparent

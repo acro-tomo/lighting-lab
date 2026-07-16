@@ -50,6 +50,8 @@ export interface ProbeFieldConfig {
   spacing?: number;
   /** 壁・床・天井からの最小距離 [m] */
   margin?: number;
+  /** ワールド座標の床高 [m]。未指定は0 */
+  floorY?: number;
   /** テスト用: ヒット→放射輝度の解決を差し替える */
   patchRadiance?: (hit: RadianceHit) => [number, number, number];
 }
@@ -81,6 +83,7 @@ export class IrradianceProbeField implements IndirectIlluminanceProvider {
   readonly positions: Vec3[] = [];
 
   private readonly margin: number;
+  private readonly floorY: number;
   private readonly patchRadianceOverride?: (hit: RadianceHit) => [number, number, number];
   /** 直近 gather のレイ方向（全プローブ共通） */
   private cachedDirs: Vec3[] = [];
@@ -93,6 +96,7 @@ export class IrradianceProbeField implements IndirectIlluminanceProvider {
   constructor(model: SceneModel, config: ProbeFieldConfig = {}) {
     this.spacing = config.spacing ?? 0.65;
     this.margin = config.margin ?? 0.25;
+    this.floorY = config.floorY ?? 0;
     this.patchRadianceOverride = config.patchRadiance;
 
     const { min, max } = boundingBox(model.floorPlan.outline);
@@ -108,7 +112,7 @@ export class IrradianceProbeField implements IndirectIlluminanceProvider {
     // ワールド座標: x → +x、鉛直 → +y、平面y → -z。origin はグリッド最小コーナー
     this.origin = {
       x: min.x + this.margin,
-      y: this.margin,
+      y: this.floorY + this.margin,
       z: -(max.y - this.margin),
     };
 
@@ -124,7 +128,8 @@ export class IrradianceProbeField implements IndirectIlluminanceProvider {
           this.positions[index] = pos;
           const inside = pointInPolygon(planP, model.floorPlan.outline);
           const ceil = inside ? ceilingHeightAt(model.floorPlan, planP) : 0;
-          this.validity[index] = inside && pos.y <= ceil - this.margin * 0.5 ? 1 : 0;
+          this.validity[index] =
+            inside && pos.y <= this.floorY + ceil - this.margin * 0.5 ? 1 : 0;
         }
       }
     }

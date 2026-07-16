@@ -52,6 +52,7 @@ export const LuxPanel = () => {
   const scaleMax = useLuxLabStore((state) => state.scaleMax);
   const stats = useLuxLabStore((state) => state.stats);
   const probe = useLuxLabStore((state) => state.probe);
+  const calculation = useLuxLabStore((state) => state.calculation);
   const setVisible = useLuxLabStore((state) => state.setVisible);
   const setHeightM = useLuxLabStore((state) => state.setHeightM);
   const setScaleMax = useLuxLabStore((state) => state.setScaleMax);
@@ -113,20 +114,39 @@ export const LuxPanel = () => {
       </div>
 
       <div style={rowStyle}>
-        <span>平均 / 最大</span>
+        <span>間接光</span>
         <span>
-          {stats ? `${formatLx(stats.mean)} / ${formatLx(stats.max)} lx` : "—"}
+          {calculation.status === "computing"
+            ? `${calculation.label} ${Math.round(calculation.progress * 100)}%`
+            : calculation.status === "ready"
+              ? "計算完了"
+              : "停止中"}
         </span>
       </div>
 
       <div style={rowStyle}>
-        <span>クリック位置</span>
-        <span>
-          {probe
-            ? `(${probe.x.toFixed(2)}, ${probe.z.toFixed(2)}) ${formatLx(probe.lx)} lx`
-            : "—"}
-        </span>
+        <span>平均 / 最大</span>
+        <span>{stats ? `${formatLx(stats.mean.total)} / ${formatLx(stats.max.total)} lx` : "—"}</span>
       </div>
+
+      {stats && (
+        <div style={{ color: "#bcb3a3", fontSize: 11, textAlign: "right" }}>
+          <div>直接 {formatLx(stats.mean.direct)} / {formatLx(stats.max.direct)} lx</div>
+          <div>間接 {formatLx(stats.mean.indirect)} / {formatLx(stats.max.indirect)} lx</div>
+        </div>
+      )}
+
+      <div style={rowStyle}>
+        <span>クリック位置</span>
+        <span>{probe ? `(${probe.x.toFixed(2)}, ${probe.z.toFixed(2)})` : "—"}</span>
+      </div>
+
+      {probe && (
+        <div style={{ color: "#bcb3a3", fontSize: 11, textAlign: "right" }}>
+          合計 {formatLx(probe.value.total)} = 直接 {formatLx(probe.value.direct)} + 間接{" "}
+          {formatLx(probe.value.indirect)} lx
+        </div>
+      )}
 
       <p style={{ margin: "8px 0 0", color: "#a89f8d", fontSize: 10, lineHeight: 1.5 }}>
         実験的機能（参考値）: 配光はビーム角からの近似でIES配光ではありません。実照度(lux)を保証するものではありません。

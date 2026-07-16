@@ -271,9 +271,11 @@ export const SceneRoot = ({
       {isLuxLabEnabled() && (
         <LuxHeatmap
           project={floorProject}
+          fullProject={project}
           floorBounds={floorBounds}
           floorLevelM={floorLevelM}
           effectiveLightIds={effectiveLightIds}
+          upperVoidCeilingHeightM={upperVoid ? project.room.ceilingHeightM * 2 : undefined}
         />
       )}
       {!pathTraced && (

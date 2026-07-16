@@ -103,6 +103,17 @@ describe('Irradiance Probe フィールド', () => {
     expect(highOutsideVoid).toBe(0);
   });
 
+  it('床高をワールドYの基準に反映する', () => {
+    const field = new IrradianceProbeField(roomModel(), { floorY: 3 });
+    expect(field.origin.y).toBeCloseTo(3.25);
+    expect(Math.min(...field.positions.map((position) => position.y))).toBeCloseTo(3.25);
+    expect(field.validity.some((valid) => valid === 1)).toBe(true);
+    for (let index = 0; index < field.count; index++) {
+      if (field.validity[index] === 0) continue;
+      expect(field.positions[index]!.y).toBeLessThanOrEqual(3 + 2.75);
+    }
+  });
+
   it('床バウンス: 間接照度は正で、直接照度より小さい', () => {
     const field = new IrradianceProbeField(roomModel());
     runToCompletion(field.gatherPass(floorScene, [centerLight()], NO_OCCLUSION, 128));

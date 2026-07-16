@@ -573,14 +573,14 @@ export const WindowMesh = ({
       )}
 
       {style === "opening" && (
-        <mesh>
+        <mesh userData={{ luxIgnore: true }}>
           <boxGeometry args={[w, h, 0.012]} />
           <meshBasicMaterial color="#0a0908" transparent opacity={0.42} />
         </mesh>
       )}
 
       {selected && !pathTraced && (
-        <mesh position={[0, 0, -0.02]}>
+        <mesh position={[0, 0, -0.02]} userData={{ luxIgnore: true }}>
           <boxGeometry args={[w + 0.08, h + 0.08, 0.025]} />
           <meshBasicMaterial color="#f5c64d" wireframe />
         </mesh>

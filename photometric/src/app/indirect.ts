@@ -10,7 +10,11 @@
  */
 import type { SceneModel } from '../core/types';
 import type { OcclusionTester, PhotometricLight } from '../photometry/illuminance';
-import { IrradianceProbeField, type RadianceScene } from '../photometry/probes';
+import {
+  IrradianceProbeField,
+  type ProbeFieldConfig,
+  type RadianceScene,
+} from '../photometry/probes';
 
 export type IndirectStatus = 'idle' | 'computing' | 'ready';
 
@@ -36,11 +40,16 @@ const RELIGHT_PASSES: Pass[] = [
 
 export interface IndirectDeps {
   getModel(): SceneModel;
+  getProbeFieldConfig?(): ProbeFieldConfig;
   getRadianceScene(): RadianceScene;
   getLights(): PhotometricLight[];
   getOcclusion(): OcclusionTester;
   /** 各パス完了時（描画テクスチャ・ヒートマップ・UI更新） */
-  onPassCommitted(field: IrradianceProbeField, passIndex: number, isFinal: boolean): void;
+  onPassCommitted(
+    field: IrradianceProbeField,
+    passIndex: number,
+    isFinal: boolean,
+  ): void | Promise<void>;
   onStatusChanged(): void;
 }
 
@@ -62,6 +71,7 @@ export class IndirectController {
 
   /** シーン変更通知。操作停止後に自動再計算 */
   invalidate(kind: 'geometry' | 'lights'): void {
+    if (kind === 'geometry') this.field = null;
     this.pendingKind = this.pendingKind === 'geometry' ? 'geometry' : kind;
     this.runToken++;
     this.status = 'computing';
@@ -78,7 +88,10 @@ export class IndirectController {
     this.pendingKind = null;
 
     if (kind === 'geometry' || !this.field) {
-      this.field = new IrradianceProbeField(this.deps.getModel());
+      this.field = new IrradianceProbeField(
+        this.deps.getModel(),
+        this.deps.getProbeFieldConfig?.(),
+      );
     }
     const field = this.field;
     const passes = kind === 'lights' && field.canRelight() ? RELIGHT_PASSES : FULL_PASSES;
@@ -97,7 +110,8 @@ export class IndirectController {
       const finished = await this.driveSliced(gen, token);
       if (!finished) return; // 新しい変更で中断（再スケジュール済み）
       const isFinal = passIndex === passes.length - 1;
-      this.deps.onPassCommitted(field, passIndex, isFinal);
+      await this.deps.onPassCommitted(field, passIndex, isFinal);
+      if (token !== this.runToken) return;
     }
 
     this.lastComputeMs = performance.now() - start;
@@ -105,6 +119,22 @@ export class IndirectController {
     this.passLabel = '';
     this.progress = 1;
     this.deps.onStatusChanged();
+  }
+
+  /** 非表示化や破棄時に待機中・実行中の計算を止める */
+  cancel(): void {
+    window.clearTimeout(this.timer);
+    this.runToken++;
+    this.pendingKind = null;
+    this.status = 'idle';
+    this.passLabel = '';
+    this.progress = 0;
+    this.deps.onStatusChanged();
+  }
+
+  dispose(): void {
+    this.cancel();
+    this.field = null;
   }
 
   /** ジェネレータを約8ms/スライスで駆動。トークンが変わったら中断 */
@@ -118,7 +148,9 @@ export class IndirectController {
         const deadline = performance.now() + 8;
         let result = gen.next();
         while (!result.done && performance.now() < deadline) result = gen.next();
-        if (!result.done) {
+        if (token !== this.runToken) {
+          resolve(false);
+        } else if (!result.done) {
           this.progress = result.value;
           this.deps.onStatusChanged();
           window.setTimeout(step, 0);
