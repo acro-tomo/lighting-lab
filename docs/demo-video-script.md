@@ -1,75 +1,116 @@
-# LDK Lighting Lab — 3-minute demo video script
+# LDK Lighting Lab — Build Week demo script
 
-Target duration: 2 minutes 30 seconds to 2 minutes 50 seconds. Record in English, or record in Japanese with accurate English subtitles.
+Target duration: 2 minutes 25 seconds to 2 minutes 45 seconds.
 
-## 0:00–0:15 — Problem and product
+## この動画で伝える核心
 
-**Show:** The Demo LDK project in 2D.
+住宅購入者は、平面図と器具表だけでは「夜にその部屋がどう感じられるか」を判断できません。LDK Lighting Lab は、同じ間取り・同じカメラで二つの照明案を比較し、施工前に家族や設計者と方針を決めるためのアプリです。
 
-**Narration:**
+審査員に最後に残す一文：**Professional CAD does the engineering. LDK Lighting Lab helps the homeowner make the decision.**
 
-> Lighting decisions are often made before a home is built, when a floor plan and fixture schedule cannot show what the room will feel like at night. LDK Lighting Lab lets homeowners compare lighting layouts directly in their own floor plan.
+## What this demo must communicate
 
-## 0:15–0:35 — Start from a usable sample
+**Audience:** A homeowner planning lighting before wiring and construction are fixed.
 
-**Show:** The sample plan, then briefly open the import menu.
+**Problem:** A floor plan and fixture schedule show positions and specifications, but they do not show how the room will actually feel at night. Discovering a poor choice after construction is expensive.
 
-**Narration:**
+**Product value:** LDK Lighting Lab lets the homeowner compare two lighting intentions in the same room: a bright, functional scene and a warm, relaxed evening scene.
 
-> You can start immediately with this LDK sample, or import a PNG, JPG, or PDF floor plan. The 2D editor is where you place walls, windows, furniture, lights, stairs, and double-height zones.
+**Judge takeaway:** This is not a replacement for professional lighting CAD or certified lux calculation. It is a visual decision and communication tool for the homeowner before changes become costly.
 
-## 0:35–1:05 — Make a lighting decision
+## 0:00–0:18 — Make the problem concrete
 
-**Show:** Select a living-room downlight. Adjust brightness, color temperature, then choose a different fixture preset or add a pendant.
+**Purpose:** Establish who has the problem, why current documents are insufficient, and why the decision matters.
 
-**Narration:**
-
-> I can select a fixture and change its brightness, color temperature, and beam distribution. I can also place another fixture and compare a warmer, lower-light evening scene with a brighter option. This is designed for visual decisions, not certified lux calculations.
-
-## 1:05–1:35 — Compare in 3D
-
-**Show:** Switch to 3D Edit, then Realistic mode. Move the camera slightly once the result appears.
+**Show:** Open on the Demo LDK in 2D. Keep the floor plan and 3D preview visible together.
 
 **Narration:**
 
-> The fast Edit view keeps the workflow responsive. On supported hardware, Realistic mode progressively path traces the same scene, so I can inspect direct light and indirect light without leaving the project.
+> A lighting plan shows fixture symbols and specifications, but it cannot tell a homeowner whether the living room will feel calm, too dark, or harsh at night. Changing it after construction is expensive. LDK Lighting Lab turns that abstract plan into a visual choice.
 
-## 1:35–1:55 — Save the result
+## 0:18–0:33 — Put the decision in the homeowner's own room
 
-**Show:** Open Export / Render, save a comparison shot, then export PNG.
+**Purpose:** Show that this is not a fixed 3D showcase; it works with the user's floor plan.
 
-**Narration:**
-
-> When I have an option worth discussing, I save a comparison shot and export a watermarked PNG. Projects are autosaved locally in the browser and can also be exported as JSON.
-
-## 1:55–2:20 — Bilingual and mobile access
-
-**Show:** Switch JA to EN, resize or show a phone recording with the mobile settings sheet.
+**Show:** Briefly open the floor-plan import action, then return to the sample. Point to the aligned 2D room, furniture, and lights.
 
 **Narration:**
 
-> The same workflow is available in Japanese and English. On a phone, the canvas stays central, while editing actions and settings are available from compact controls.
+> I can start with this sample or import my own floor plan. In 2D, the room, furniture, and lights stay together, tying every change to how the space will be used.
 
-## 2:20–2:45 — Codex and GPT-5.6 contribution
+## 0:33–1:03 — Create two meaningful alternatives
 
-**Show:** Optional brief screen of the README or development record, then return to the app.
+**Purpose:** Demonstrate one real decision instead of listing controls.
+
+**Show:**
+
+1. Render and export a brighter, neutral scene as **Option A**.
+2. Select the living-room downlights.
+3. Lower their brightness and change them to 2700K.
+4. Turn on the TV-back indirect tape light.
+5. Keep the camera unchanged, then render and export the warmer result as **Option B**.
 
 **Narration:**
 
-> In the Build Week finalization, I used Codex with GPT-5.6 to inspect the existing rendering and data flow, harden the feedback setup, implement the bilingual interface, validate the app, and prepare the documentation. The existing editor and renderer were preserved instead of being replaced near the deadline.
+> Here is the decision: a bright, functional living room, or a warm, relaxed evening scene? I export the brighter scene as Option A. Then I lower the downlights, set them to 2700K, turn on indirect light behind the TV, and export Option B from the same camera. These are two intentions for the same room, not settings changed only to make a prettier render.
 
-## 2:45–2:55 — Close
+## 1:03–1:30 — Explain why 3D and path tracing matter
 
-**Show:** Final 3D view and exported image.
+**Purpose:** Connect the rendering technology to the homeowner's decision.
+
+**Show:** Switch from Edit to Realistic mode. Use the same scene and camera. Let the path tracer accumulate briefly, then point out the wall, ceiling, table, and TV area.
 
 **Narration:**
 
-> LDK Lighting Lab makes one early housing decision easier: see and compare the nighttime atmosphere before construction makes changes expensive.
+> Edit view stays responsive while I work. Realistic mode progressively path traces the same scene. Direct light shows what each fixture reaches; indirect light shows how the walls and ceiling shape the atmosphere. On less capable hardware, editing still works in the fast raster view.
+
+## 1:30–1:50 — Turn the render into a decision
+
+**Purpose:** Show the product outcome: comparison and communication, not rendering for its own sake.
+
+**Show:** In the video edit, place the two exported PNGs side by side and label them Option A and Option B. Then return to the live app on Option B.
+
+**Narration:**
+
+> The two exported results make the discussion concrete. Because the room and camera are unchanged, my family or designer can focus on one question: which lighting scene fits our evening? The editable project stays local and can be backed up as JSON.
+
+## 1:50–2:05 — Show that the workflow is accessible
+
+**Purpose:** Demonstrate that the intended users can actually use it.
+
+**Show:** Switch between English and Japanese, then show the phone layout with 2D, 3D, and the settings sheet.
+
+**Narration:**
+
+> The workflow is available in Japanese and English. On a phone, the plan and 3D view stay central, with editing actions and settings in compact controls.
+
+## 2:05–2:27 — Explain the Codex and GPT-5.6 contribution
+
+**Purpose:** Address the Build Week implementation criterion without interrupting the product story.
+
+**Show:** Briefly show the development record or README, then return to the finished comparison.
+
+**Narration:**
+
+> For this Build Week release, I used Codex with GPT-5.6 as the main development partner. It inspected the React and Three.js architecture, found deployment and feedback risks, implemented the bilingual interface, validated desktop and mobile flows, and prepared the public documentation. The existing editor and renderer were preserved.
+
+## 2:27–2:40 — State the product boundary and close
+
+**Purpose:** Leave the judge with the exact category and value of the product.
+
+**Show:** End on the edited side-by-side comparison, then cut back to the warm live 3D scene.
+
+**Narration:**
+
+> LDK Lighting Lab is not a certified lux calculator. Professional CAD does the engineering. LDK Lighting Lab helps the homeowner see, compare, and communicate the decision before construction makes change expensive.
 
 ## Recording checklist
 
-- Use a real deployed build or the approved local build; do not show secrets or Cloudflare settings.
-- Keep the cursor slow and intentional. Do not wait for full path-tracing convergence in the recording.
-- If Realistic mode is slow on the recording machine, show Edit view first and state that Realistic mode is optional and hardware-dependent.
-- Include spoken references to what was built, how Codex was used, and how GPT-5.6 supported decisions.
-- Verify the final published video is public, under three minutes, and has English narration or English subtitles.
+- Follow one homeowner decision from Option A to Option B; do not turn the video into a feature inventory.
+- Use the deployed application and the same scene and camera for the before-and-after comparison.
+- Keep Option A and Option B visibly different in brightness, color temperature, and indirect light.
+- The current app does not expose a saved-shot gallery. Build the side-by-side comparison from the two exported PNGs in the video edit, and do not claim that an in-app gallery exists.
+- Do not claim physical accuracy or certified illuminance.
+- If Realistic mode is slow, show Edit first and explain that path tracing is hardware-dependent.
+- Do not show GitHub tokens, Cloudflare secrets, private feedback issues, or personal floor plans.
+- Keep the published video public, under three minutes, with English narration or accurate English subtitles.

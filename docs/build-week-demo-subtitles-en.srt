@@ -1,34 +1,39 @@
 1
-00:00:00,000 --> 00:00:12,000
-Lighting decisions are often made from a plan and fixture schedule,
-before anyone can feel the room at night.
+00:00:00,000 --> 00:00:18,000
+A lighting plan cannot tell a homeowner whether the room
+will feel calm, too dark, or harsh at night.
 
 2
-00:00:12,000 --> 00:00:25,000
-This sample project opens directly in the 2D editor.
-I select a light, adjust brightness, and choose a warmer color temperature.
+00:00:18,000 --> 00:00:33,000
+Start with the sample or import your own floor plan.
+Each lighting change stays connected to how the room will be used.
 
 3
-00:00:25,000 --> 00:00:37,000
-The fast Edit view keeps adjustments responsive.
-Realistic mode progressively path traces the same scene on supported hardware.
+00:00:33,000 --> 00:01:03,000
+Bright and functional, or warm and relaxed?
+Export Option A, then create and export Option B from the same camera.
 
 4
-00:00:37,000 --> 00:00:48,000
-Save a comparison and export a watermarked PNG.
-Projects autosave locally and can also be exported as JSON.
+00:01:03,000 --> 00:01:30,000
+Edit mode stays responsive. Realistic mode shows how direct and indirect light
+shape the same scene. Fast raster editing remains available as a fallback.
 
 5
-00:00:48,000 --> 00:00:59,000
-The interface switches between Japanese and English.
-On a phone, 2D, 3D, settings, and editing remain compact and accessible.
+00:01:30,000 --> 00:01:50,000
+Compare the two exported results from the same room and camera,
+then decide which lighting scene fits the family's evening.
 
 6
-00:00:59,000 --> 00:01:12,000
-For this Build Week release, Codex with GPT-5.6 supported inspection,
-bilingual implementation, feedback hardening, documentation, and validation.
+00:01:50,000 --> 00:02:05,000
+The workflow is available in Japanese and English,
+with compact 2D, 3D, and editing controls on a phone.
 
 7
-00:01:12,000 --> 00:01:20,200
-LDK Lighting Lab helps people compare a home's nighttime atmosphere
-before construction makes changes expensive.
+00:02:05,000 --> 00:02:27,000
+Codex with GPT-5.6 inspected the architecture, found release risks,
+implemented the bilingual UI, validated the flows, and prepared public documentation.
+
+8
+00:02:27,000 --> 00:02:40,000
+Professional CAD does the engineering.
+LDK Lighting Lab helps the homeowner make the decision.
