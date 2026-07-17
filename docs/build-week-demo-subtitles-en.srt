@@ -1,0 +1,34 @@
+1
+00:00:00,000 --> 00:00:12,000
+Lighting decisions are often made from a plan and fixture schedule,
+before anyone can feel the room at night.
+
+2
+00:00:12,000 --> 00:00:25,000
+This sample project opens directly in the 2D editor.
+I select a light, adjust brightness, and choose a warmer color temperature.
+
+3
+00:00:25,000 --> 00:00:37,000
+The fast Edit view keeps adjustments responsive.
+Realistic mode progressively path traces the same scene on supported hardware.
+
+4
+00:00:37,000 --> 00:00:48,000
+Save a comparison and export a watermarked PNG.
+Projects autosave locally and can also be exported as JSON.
+
+5
+00:00:48,000 --> 00:00:59,000
+The interface switches between Japanese and English.
+On a phone, 2D, 3D, settings, and editing remain compact and accessible.
+
+6
+00:00:59,000 --> 00:01:12,000
+For this Build Week release, Codex with GPT-5.6 supported inspection,
+bilingual implementation, feedback hardening, documentation, and validation.
+
+7
+00:01:12,000 --> 00:01:20,200
+LDK Lighting Lab helps people compare a home's nighttime atmosphere
+before construction makes changes expensive.

@@ -1,0 +1,13 @@
+Lighting decisions are often made from a plan and fixture schedule, before anyone can feel the room at night. LDK Lighting Lab gives homeowners a practical way to compare those choices in their own floor plan.
+
+This sample project opens directly in the 2D editor. I select a living-room downlight, lower its brightness, and choose a warmer color temperature. The purpose is visual comparison, not certified lux calculation.
+
+The fast Edit view keeps adjustments responsive. In Realistic mode, supported hardware progressively path traces the same scene so you can inspect both direct and indirect light.
+
+When a direction is worth sharing, you can save a comparison and export a watermarked PNG. Projects autosave locally in the browser and can also be exported as JSON.
+
+The interface switches between Japanese and English. On a phone, the workspace stays focused while the 2D and 3D views, settings, and editing actions remain available from compact controls.
+
+For this Build Week release, I used Codex with GPT-5.6 to inspect the existing app, implement and verify the bilingual interface, harden feedback delivery, document the product, and validate the release. The existing editor and renderer were preserved.
+
+LDK Lighting Lab helps people see and compare a home's nighttime atmosphere before construction makes changes expensive.
