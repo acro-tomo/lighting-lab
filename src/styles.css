@@ -150,13 +150,6 @@ h2 {
   gap: 7px;
 }
 
-.header-action-group > span {
-  color: #8f8779;
-  font-size: 10px;
-  font-weight: 760;
-  letter-spacing: 0.08em;
-}
-
 .header-action-group > div {
   display: flex;
   align-items: center;
@@ -168,8 +161,7 @@ h2 {
   border-left: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.header-help-group .intro-help-btn {
-  min-width: 58px;
+.intro-help-btn {
   white-space: nowrap;
 }
 
@@ -235,9 +227,6 @@ h2 {
     gap: 5px;
   }
 
-  .header-action-group > span {
-    display: none;
-  }
 }
 
 /* 3D集中表示: 左右パネルを畳み、3Dビューを横長に最大化する。
@@ -2661,22 +2650,16 @@ h2 {
   }
 
   .header-action-group {
-    display: grid;
-    gap: 5px;
-  }
-
-  .header-action-group > span {
-    color: #8f8779;
-    font-size: 10px;
-  }
-
-  .header-action-group > div {
     width: 100%;
   }
 
-  .header-action-group > div:not(.view-mode-toggle) {
+  .header-action-group:first-of-type > div {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .header-action-group > .view-mode-toggle {
+    width: 100%;
   }
 
   .header-action-group + .header-action-group {
@@ -2686,12 +2669,8 @@ h2 {
     border-left: 0;
   }
 
-  .header-help-group {
-    grid-template-columns: auto minmax(0, 1fr);
-    align-items: center;
-  }
-
-  .header-help-group .intro-help-btn {
+  .header-action-group > .intro-help-btn,
+  .header-action-group > .primary-action {
     width: 100%;
   }
 
