@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { HeaderBar } from "./components/HeaderBar";
 import { Inspector } from "./components/Inspector";
 import { Plan2D } from "./components/Plan2D";
@@ -20,8 +20,10 @@ import { useKeyboardShortcuts } from "./app/hooks/useKeyboardShortcuts";
 import { useEditModeControls } from "./app/hooks/useEditModeControls";
 import { useAddObjectHandlers } from "./app/hooks/useAddObjectHandlers";
 import { useRenderPipeline } from "./app/hooks/useRenderPipeline";
+import { useI18n } from "./i18n";
 
 export const App = () => {
+  const { language, t } = useI18n();
   const project = useProjectStore((state) => state.project);
   const selection = useProjectStore((state) => state.selection);
   const compareShots = useProjectStore((state) => state.compareShots);
@@ -45,10 +47,14 @@ export const App = () => {
   const setDaylight = useProjectStore((state) => state.setDaylight);
   const setCeilingHeight = useProjectStore((state) => state.setCeilingHeight);
   const setActiveFloor = useProjectStore((state) => state.setActiveFloor);
-  const [notice, setNotice] = useState("IndexedDBに自動保存します。");
+  const [notice, setNotice] = useState(() => t("IndexedDBに自動保存します。"));
   const [outputOpen, setOutputOpen] = useState(false);
   const [daylightOpen, setDaylightOpen] = useState(false);
   const [showIntro, setShowIntro] = useState(false);
+
+  useEffect(() => {
+    setNotice(t("IndexedDBに自動保存します。"));
+  }, [language, t]);
 
   useProjectPersistence(project, setProject, setCompareShots, setNotice);
 
@@ -128,7 +134,7 @@ export const App = () => {
     try {
       const result = await floorPlanFileToDataUrl(file);
       const activeFloor = project.activeFloor ?? 1;
-      const floorLabel = activeFloor === 2 ? "2階" : "1階";
+      const floorLabel = activeFloor === 2 ? t("2階") : t("1階");
       const firstFloorPlan = project.backgroundPlan;
       const backgroundPlan: FloorPlanBackground = {
         dataUrl: result.dataUrl,
@@ -142,7 +148,7 @@ export const App = () => {
       }
       setBackgroundPlan(backgroundPlan);
       const ceilingInput = window.prompt(
-        "天井高をmmで入力してください。",
+        t("天井高をmmで入力してください。"),
         String(Math.round(project.room.ceilingHeightM * 1000))
       );
       const ceilingMm = ceilingInput === null ? NaN : Number(ceilingInput);
@@ -152,19 +158,19 @@ export const App = () => {
       // 間取り図に沿って一から壁を引けるよう、既存ジオメトリの一括削除を促す。
       // キャンセル時は背景だけ読み込み、既存オブジェクトは残す（誤消し防止）。
       const cleared = window.confirm(
-        `${floorLabel}の間取り図を読み込みました。${floorLabel}の壁・窓・家具・照明・吹き抜けだけを削除して、まっさらな状態にしますか？\n（キャンセルすると既存のまま背景だけ読み込みます。Cmd+Zで元に戻せます）`
+        t("{floor}の間取り図を読み込みました。{floor}の壁・窓・家具・照明・吹き抜けだけを削除して、まっさらな状態にしますか？\n（キャンセルすると既存のまま背景だけ読み込みます。Cmd+Zで元に戻せます）", { floor: floorLabel })
       );
       if (cleared) clearActiveFloorGeometry();
       const alignmentNotice = backgroundPlan.alignmentPending
-        ? " 1階基準で仮合わせしたので、背景合わせで位置を確認してください。"
+        ? ` ${t("1階基準で仮合わせしたので、背景合わせで位置を確認してください。")}`
         : "";
       setNotice(
         cleared
-          ? `${file.name} を${floorLabel}背景に読み込み、${floorLabel}の既存オブジェクトを削除しました。${alignmentNotice}`
-          : `${file.name} を${floorLabel}の平面図背景として読み込みました。${alignmentNotice}`
+          ? t("{fileName} を{floor}背景に読み込み、{floor}の既存オブジェクトを削除しました。{alignmentNotice}", { fileName: file.name, floor: floorLabel, alignmentNotice })
+          : t("{fileName} を{floor}の平面図背景として読み込みました。{alignmentNotice}", { fileName: file.name, floor: floorLabel, alignmentNotice })
       );
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "間取り図を読み込めませんでした。");
+      setNotice(error instanceof Error ? t(error.message) : t("間取り図を読み込めませんでした。"));
     }
   };
 
@@ -176,9 +182,9 @@ export const App = () => {
       );
       setProject(parsed);
       setCompareShots(Array.isArray(parsed.compareShots) ? parsed.compareShots : []);
-      setNotice(`${file.name} を読み込みました。`);
+      setNotice(t("{fileName} を読み込みました。", { fileName: file.name }));
     } catch {
-      setNotice("プロジェクトJSONの形式が不正です。読み込みを中止しました。");
+      setNotice(t("プロジェクトJSONの形式が不正です。読み込みを中止しました。"));
     }
   };
 
@@ -223,39 +229,39 @@ export const App = () => {
           />
           <span className="toolbar-status-chip" aria-live="polite">
             {pendingAdd === "door" || pendingAdd?.startsWith("window") || isWallLightAddKind(pendingAdd)
-              ? "壁を選択"
+              ? t("壁をクリックして設置（Escで終了）")
               : pendingAdd
-                ? "配置中"
+                ? t("クリックした位置に配置")
                 : mode === "wall"
-                  ? "壁を描画中"
+                  ? t("タップ、または押して引いて壁を作成。Enter/ダブルクリックで終了")
                   : planEditMode
-                    ? "間取り編集"
-                    : "選択・配置"}
+                    ? t("壁を選択・ドラッグで移動。Deleteで削除")
+                    : t("クリックで選択、選択後ドラッグで移動")}
           </span>
-          <div className="floor-toggle" role="group" aria-label="階切替">
+          <div className="floor-toggle" role="group" aria-label={t("階切替")}>
             <button
               className={(project.activeFloor ?? 1) === 1 ? "floor-toggle-btn is-active" : "floor-toggle-btn"}
               onClick={() => setActiveFloor(1)}
-              title="1階を編集"
+              title={t("1階を編集")}
             >
-              1階
+              {t("1階")}
             </button>
             <button
               className={(project.activeFloor ?? 1) === 2 ? "floor-toggle-btn is-active" : "floor-toggle-btn"}
               onClick={() => setActiveFloor(2)}
-              title="2階を編集（1階の壁を薄く表示して作図補助）"
+              title={t("2階を編集（1階の壁を薄く表示して作図補助）")}
             >
-              2階
+              {t("2階")}
             </button>
           </div>
           {(project.activeFloor ?? 1) === 2 && (
-            <span className="floor-hint">2階編集中 — 1階の壁を薄く表示して作図補助</span>
+            <span className="floor-hint">{t("2階編集中 — 1階の壁を薄く表示して作図補助")}</span>
           )}
-          <div className="mobile-edit-actions" aria-label="スマホ編集操作">
-            <button type="button" onClick={undo} aria-label="元に戻す">↶</button>
-            <button type="button" onClick={redo} aria-label="やり直す">↷</button>
-            <button type="button" onClick={handleMobileDelete} disabled={!canDeleteSelection}>削除</button>
-            <button type="button" onClick={handleMobileClear} disabled={!pendingAdd && !selection}>解除</button>
+          <div className="mobile-edit-actions" aria-label={t("スマホ編集操作")}>
+            <button type="button" onClick={undo} aria-label={t("元に戻す")}>↶</button>
+            <button type="button" onClick={redo} aria-label={t("やり直す")}>↷</button>
+            <button type="button" onClick={handleMobileDelete} disabled={!canDeleteSelection}>{t("削除")}</button>
+            <button type="button" onClick={handleMobileClear} disabled={!pendingAdd && !selection}>{t("解除")}</button>
           </div>
         </div>
       </div>
@@ -276,7 +282,7 @@ export const App = () => {
             setFocusViewport(false);
           }}
         />
-        <section className="viewport-panel" aria-label="3D表示">
+        <section className="viewport-panel" aria-label={t("3D表示")}>
           <div className="viewport-toolbar">
             <div className="viewport-title">
               <div>
@@ -285,8 +291,8 @@ export const App = () => {
               <button
                 type="button"
                 className="focus-toggle"
-                title={focusViewport ? "通常表示に戻す" : "3Dを最大化"}
-                aria-label={focusViewport ? "通常表示に戻す" : "3Dを最大化"}
+                title={focusViewport ? t("通常表示に戻す") : t("3Dを最大化")}
+                aria-label={focusViewport ? t("通常表示に戻す") : t("3Dを最大化")}
                 onClick={() => {
                   setFocusViewport((current) => !current);
                   setFocusPlan(false);
@@ -300,13 +306,13 @@ export const App = () => {
               {viewMode === "realistic" ? (
                 <strong>
                   {liveTrace.phase === "building"
-                    ? "リアル準備中"
+                    ? t("BVH生成中…")
                     : liveTrace.phase === "converged"
-                      ? `リアル ${liveTrace.samples} samples`
-                      : `リアル ${liveTrace.samples} samples`}
+                      ? t("間接光リアル描画 / {count} samples 収束済み", { count: liveTrace.samples })
+                      : t("間接光リアル描画 / {count} samples 収束中", { count: liveTrace.samples })}
                 </strong>
               ) : (
-                <strong>編集プレビュー</strong>
+                <strong>{t("編集プレビュー")} / {t("露出")} {project.camera.exposure.toFixed(2)}</strong>
               )}
             </div>
 
@@ -319,7 +325,7 @@ export const App = () => {
                     className={daylightOpen ? "daylight-toggle is-active" : "daylight-toggle"}
                     onClick={() => setDaylightOpen((open) => !open)}
                   >
-                    ☀ 日光{dl.enabled ? `（${formatHour(dl.hour)}）` : "（OFF）"}
+                    ☀ {t("日光")}{dl.enabled ? ` (${formatHour(dl.hour)})` : ` (${t("OFF")})`}
                   </button>
                   {daylightOpen && (
                     <div className="daylight-popover">
@@ -329,10 +335,10 @@ export const App = () => {
                           checked={dl.enabled}
                           onChange={(event) => setDaylight({ enabled: event.target.checked })}
                         />
-                        日光を有効にする
+                        {t("日光を有効にする")}
                       </label>
                       <label className="daylight-row">
-                        時刻
+                        {t("時刻")}
                         <input
                           type="range"
                           min={0}
@@ -346,22 +352,22 @@ export const App = () => {
                       </label>
                       <div className="daylight-grid">
                         <label>
-                          月
+                          {t("月")}
                           <input type="number" min={1} max={12} value={dl.month} disabled={!dl.enabled}
                             onChange={(event) => setDaylight({ month: Number(event.target.value) })} />
                         </label>
                         <label>
-                          日
+                          {t("日")}
                           <input type="number" min={1} max={31} value={dl.day} disabled={!dl.enabled}
                             onChange={(event) => setDaylight({ day: Number(event.target.value) })} />
                         </label>
                         <label>
-                          北方位°
+                          {t("北方位°")}
                           <input type="number" min={-180} max={180} value={dl.northOffsetDeg} disabled={!dl.enabled}
                             onChange={(event) => setDaylight({ northOffsetDeg: Number(event.target.value) })} />
                         </label>
                         <label>
-                          緯度°
+                          {t("緯度°")}
                           <input type="number" min={-60} max={60} value={dl.latitudeDeg} disabled={!dl.enabled}
                             onChange={(event) => setDaylight({ latitudeDeg: Number(event.target.value) })} />
                         </label>
@@ -374,31 +380,31 @@ export const App = () => {
           </div>
 
           {outputOpen && (
-            <div className="output-popover" aria-label="出力 / レンダリング">
+            <div className="output-popover" aria-label={t("出力 / レンダリング")}>
               <div className="output-row">
                 <label>
-                  品質
+                  {t("品質")}
                   <select
                     value={pathTraceMode}
                     disabled={renderProgress.status === "running"}
                     onChange={(event) => setPathTraceMode(event.target.value as PathTraceMode)}
                   >
-                    <option value="standard">標準 256 samples</option>
-                    <option value="high">高品質 512 samples</option>
-                    <option value="ultra">最高 1024 samples</option>
+                    <option value="standard">{t("標準")} 256 samples</option>
+                    <option value="high">{t("高品質")} 512 samples</option>
+                    <option value="ultra">{t("最高")} 1024 samples</option>
                   </select>
                 </label>
                 <label>
-                  診断
+                  {t("診断")}
                   <select
                     value={debugMode}
                     disabled={renderProgress.status === "running"}
                     onChange={(event) => setDebugMode(event.target.value as RenderDebugMode)}
                   >
-                    <option value="beauty">通常</option>
-                    <option value="material">マテリアル</option>
-                    <option value="normals">法線</option>
-                    <option value="frontback">表裏</option>
+                    <option value="beauty">{t("通常")}</option>
+                    <option value="material">{t("マテリアル")}</option>
+                    <option value="normals">{t("法線")}</option>
+                    <option value="frontback">{t("表裏")}</option>
                   </select>
                 </label>
               </div>
@@ -407,14 +413,14 @@ export const App = () => {
                   className="primary-action"
                   onClick={renderProgress.status === "running" ? stopRender : captureCompare}
                 >
-                  {renderProgress.status === "running" ? "レンダリング停止" : "レンダリング開始"}
+                  {renderProgress.status === "running" ? t("レンダリング停止") : t("レンダリング開始")}
                 </button>
-                <button onClick={exportPng}>PNG書き出し</button>
+                <button onClick={exportPng}>{t("PNG書き出し")}</button>
               </div>
               <div className="output-progress">
                 <strong>{renderProgress.samples}/{renderProgress.targetSamples} samples</strong>
                 <span className="render-message">{renderProgress.message}</span>
-                <span>{elapsedSeconds}s / 残り {estimatedRemainingSeconds}s</span>
+                <span>{elapsedSeconds}s / {t("残り")} {estimatedRemainingSeconds}s</span>
                 <progress value={renderPercent} max={100} />
               </div>
             </div>
@@ -454,11 +460,11 @@ export const App = () => {
       <button
         type="button"
         className={mobileSettingsOpen ? "mobile-settings-backdrop is-open" : "mobile-settings-backdrop"}
-        aria-label="設定を閉じる"
+        aria-label={t("設定を閉じる")}
         onClick={() => setMobileSettingsOpen(false)}
       />
       <div className="mobile-bottom-bar">
-        <nav className="mobile-view-tabs" aria-label="スマホ表示切替">
+        <nav className="mobile-view-tabs" aria-label={t("スマホ表示切替")}>
           <button
             type="button"
             className={mobileView === "plan" ? "is-active" : ""}
@@ -477,8 +483,8 @@ export const App = () => {
         <button
           type="button"
           className={mobileSettingsOpen ? "mobile-settings-button is-active" : "mobile-settings-button"}
-          aria-label="設定を開く"
-          title="設定"
+          aria-label={t("設定を開く")}
+          title={t("設定")}
           onClick={() => setMobileSettingsOpen((open) => !open)}
         >
           ⚙

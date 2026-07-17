@@ -4,6 +4,7 @@ import { renderPathTracedImage, sampleCountByMode, type PathTraceMode, type Rend
 import type { RenderContext } from "../../rendering/renderContext";
 import type { CompareShot, Project } from "../../types";
 import { downloadDataUrl, withWatermark } from "../appUtils";
+import { useI18n } from "../../i18n";
 
 type RenderProgressState = {
   status: "idle" | "running" | "complete" | "stopped" | "error";
@@ -25,6 +26,7 @@ export const useRenderPipeline = ({
   addCompareShot: (shot: CompareShot) => void;
   setNotice: (notice: string) => void;
 }) => {
+  const { t } = useI18n();
   const [canvasElement, setCanvasElement] = useState<HTMLCanvasElement | null>(null);
   const [renderContext, setRenderContext] = useState<RenderContext | null>(null);
   const [compareOpen, setCompareOpen] = useState(false);
@@ -38,7 +40,7 @@ export const useRenderPipeline = ({
     samples: 0,
     targetSamples: sampleCountByMode.standard,
     elapsedMs: 0,
-    message: "待機中"
+    message: t("待機中")
   });
   const renderAbortRef = useRef<AbortController | null>(null);
   const renderingRef = useRef(false);
@@ -54,10 +56,10 @@ export const useRenderPipeline = ({
     setRenderProgress((current) => ({
       ...current,
       status: "stopped",
-      message: "シーン変更によりレンダリングをリセットしました。"
+      message: t("シーン変更によりレンダリングをリセットしました。")
     }));
-    setNotice("カメラ、家具、照明、材質が変更されたためレンダリングを停止しました。");
-  }, [project, setNotice]);
+    setNotice(t("カメラ、家具、照明、材質が変更されたためレンダリングを停止しました。"));
+  }, [project, setNotice, t]);
 
   const exportPng = useCallback(async () => {
     if (lastPathTracedImage) {
@@ -66,18 +68,18 @@ export const useRenderPipeline = ({
       return;
     }
     if (!canvasElement) {
-      setNotice("3Dキャンバスがまだ準備できていません。");
+      setNotice(t("3Dキャンバスがまだ準備できていません。"));
       return;
     }
     const raw = canvasElement.toDataURL("image/png");
     const stamped = await withWatermark(raw);
     downloadDataUrl("ldk-lighting-lab-preview.png", stamped);
-  }, [canvasElement, lastPathTracedImage, setNotice]);
+  }, [canvasElement, lastPathTracedImage, setNotice, t]);
 
   const captureCompare = useCallback(() => {
     if (renderingRef.current) return;
     if (!renderContext) {
-      setNotice("レンダリングを開始できませんでした。3D表示を確認してください。");
+      setNotice(t("レンダリングを開始できませんでした。3D表示を確認してください。"));
       return;
     }
 
@@ -90,9 +92,9 @@ export const useRenderPipeline = ({
       samples: 0,
       targetSamples: sampleCountByMode[pathTraceMode],
       elapsedMs: 0,
-      message: "BVH生成とpath tracingを開始しています。"
+      message: t("BVH生成とpath tracingを開始しています。")
     });
-    setNotice("three-gpu-pathtracerで最終レンダリングを開始しました。");
+    setNotice(t("three-gpu-pathtracerで最終レンダリングを開始しました。"));
 
     void renderPathTracedImage({
       context: renderContext,
@@ -108,12 +110,12 @@ export const useRenderPipeline = ({
             : "";
         const message =
           progress.phase === "bvh"
-            ? `BVH生成中${buildPercent}`
+            ? `${t("BVH生成中")}${buildPercent}`
             : progress.phase === "sampling"
-              ? "path tracing中"
+              ? t("path tracing中")
               : progress.phase === "complete"
-                ? "レンダリング完了"
-                : "準備中";
+                ? t("レンダリング完了")
+                : t("準備中");
         setRenderProgress({
           status: "running",
           samples: progress.samples,
@@ -126,10 +128,10 @@ export const useRenderPipeline = ({
       .then((result) => {
         const shot: CompareShot = {
           id: `shot-${Date.now()}`,
-          name: `案 ${compareShots.length + 1}`,
+          name: t("案 {count}", { count: compareShots.length + 1 }),
           dataUrl: result.dataUrl,
           createdAt: new Date().toISOString(),
-          cameraViewName: "視点",
+          cameraViewName: t("視点"),
           lightingSceneName: "",
           renderer: "pathtraced",
           samples: result.samples,
@@ -143,26 +145,26 @@ export const useRenderPipeline = ({
           samples: result.samples,
           targetSamples: result.samples,
           elapsedMs: result.elapsedMs,
-          message: "完了"
+          message: t("完了")
         });
-        setNotice(`Path traced ${result.samples} samples の比較画像を保存しました。`);
+        setNotice(t("{samples} samples のパストレース比較画像を保存しました。", { samples: result.samples }));
       })
       .catch((error: unknown) => {
         const aborted = error instanceof DOMException && error.name === "AbortError";
         setRenderProgress((current) => ({
           ...current,
           status: aborted ? "stopped" : "error",
-          message: aborted ? "停止しました" : error instanceof Error ? error.message : "レンダリングに失敗しました。"
+          message: aborted ? t("停止しました") : error instanceof Error ? error.message : t("レンダリングに失敗しました。")
         }));
         if (!aborted) {
-          setNotice(error instanceof Error ? error.message : "レンダリングに失敗しました。");
+          setNotice(error instanceof Error ? error.message : t("レンダリングに失敗しました。"));
         }
       })
       .finally(() => {
         renderAbortRef.current = null;
         renderingRef.current = false;
       });
-  }, [addCompareShot, compareShots.length, debugMode, pathTraceMode, project, renderContext, setNotice]);
+  }, [addCompareShot, compareShots.length, debugMode, pathTraceMode, project, renderContext, setNotice, t]);
 
   const stopRender = useCallback(() => {
     renderAbortRef.current?.abort();

@@ -3,6 +3,7 @@ import { projectSchema } from "../../schema/projectSchema";
 import { loadProjectFromIndexedDb, saveProjectToIndexedDb } from "../../storage/projectStorage";
 import type { CompareShot, Project } from "../../types";
 import { migrateLoadedProject } from "../appUtils";
+import { useI18n } from "../../i18n";
 
 // 初回読込（共有デモ or IndexedDB復元）とデバウンス自動保存をまとめて扱う。
 export const useProjectPersistence = (
@@ -11,6 +12,7 @@ export const useProjectPersistence = (
   setCompareShots: (shots: CompareShot[]) => void,
   setNotice: (notice: string) => void
 ) => {
+  const { t } = useI18n();
   const loadedOnce = useRef(false);
 
   useEffect(() => {
@@ -34,12 +36,12 @@ export const useProjectPersistence = (
       );
       setProject(parsed);
       setCompareShots(Array.isArray(parsed.compareShots) ? parsed.compareShots : []);
-      setNotice("デモの間取りを読み込みました。照明や家具を動かして夜の見え方を試せます。");
+      setNotice(t("デモの間取りを読み込みました。照明や家具を動かして夜の見え方を試せます。"));
     };
 
     loadProjectFromIndexedDb()
       .catch(() => {
-        setNotice("自動保存データを読めませんでした。デモプロジェクトで起動しています。");
+        setNotice(t("自動保存データを読めませんでした。デモプロジェクトで起動しています。"));
         return undefined;
       })
       .then(async (savedProject) => {
@@ -48,14 +50,14 @@ export const useProjectPersistence = (
           const useDemo =
             !savedProject ||
             window.confirm(
-              "共有リンクのデモ間取りを読み込みますか？\nOK: デモを開く（作業中のプロジェクトはデモで上書き保存されます）\nキャンセル: 前回の続きを開く"
+              t("共有リンクのデモ間取りを読み込みますか？\nOK: デモを開く（作業中のプロジェクトはデモで上書き保存されます）\nキャンセル: 前回の続きを開く")
             );
           if (useDemo) {
             try {
               await loadSharedDemo();
               return;
             } catch {
-              setNotice("デモデータを読み込めませんでした。通常どおり起動します。");
+              setNotice(t("デモデータを読み込めませんでした。通常どおり起動します。"));
             }
           }
         }
@@ -68,15 +70,15 @@ export const useProjectPersistence = (
           if (Array.isArray(parsed.compareShots)) {
             setCompareShots(parsed.compareShots);
           }
-          setNotice("前回のプロジェクトをIndexedDBから復元しました。");
+          setNotice(t("前回のプロジェクトをIndexedDBから復元しました。"));
         }
       });
-  }, [setCompareShots, setNotice, setProject]);
+  }, [setCompareShots, setNotice, setProject, t]);
 
   useEffect(() => {
     const flush = () =>
       saveProjectToIndexedDb(project).catch(() => {
-        setNotice("IndexedDBへの自動保存に失敗しました。JSON保存を使ってください。");
+        setNotice(t("IndexedDBへの自動保存に失敗しました。JSON保存を使ってください。"));
       });
     const handle = window.setTimeout(flush, 500);
     // 配置直後にすぐリロード/タブを閉じてもデバウンス前の変更を失わないよう、
@@ -92,5 +94,5 @@ export const useProjectPersistence = (
       document.removeEventListener("visibilitychange", onHide);
       window.removeEventListener("pagehide", flush);
     };
-  }, [project, setNotice]);
+  }, [project, setNotice, t]);
 };
