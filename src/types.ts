@@ -259,6 +259,11 @@ export type Daylight = {
   latitudeDeg: number;     // 緯度。既定 35（東京付近）
 };
 
+export type InterFloorStructure = {
+  kind: "wood" | "rc" | "custom";
+  thicknessM: number;
+};
+
 export type Project = {
   id: string;
   name: string;
@@ -274,6 +279,8 @@ export type Project = {
      * undefined/未設定は 0(従来通り)。
      */
     floorLevelM?: number;
+    /** 階間床の表示用設定。未設定は厚さ 0m として扱う（後方互換）。 */
+    interFloorStructure?: InterFloorStructure;
   };
   materials: MaterialPreset[];
   walls: WallSegment[];

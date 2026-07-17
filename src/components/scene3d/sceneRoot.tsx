@@ -40,7 +40,7 @@ import {
   usePrefersTouchControls
 } from "./touchControls";
 import type { Scene3DProps } from "./types";
-import { computeUpperVoidRegion, UpperVoidLevel } from "./upperVoid";
+import { computeUpperVoidRegion, upperBoundaryWalls, UpperVoidLevel } from "./upperVoid";
 
 export const SceneRoot = ({
   project,
@@ -86,17 +86,24 @@ export const SceneRoot = ({
 
   // 1階表示中だけ、吹き抜け(1階void)を介して上方に繋がる「2階の連続床領域」を抽出する。
   // 2階壁・1階voidが無ければ null（既定の2階なしデモは従来どおり不変）。
+  const lowerVoids = useMemo(() => project.voids.filter((v) => (v.floor ?? 1) === 1), [project.voids]);
   const upperVoid = useMemo(() => {
     if (activeFloor !== 1) return null;
     const upperWalls = project.walls.filter((w) => (w.floor ?? 1) === 2);
-    const lowerVoids = project.voids.filter((v) => (v.floor ?? 1) === 1);
     return computeUpperVoidRegion(upperWalls, lowerVoids);
-  }, [activeFloor, project.walls, project.voids]);
+  }, [activeFloor, project.walls, lowerVoids]);
   const upperWalls = useMemo(() => project.walls.filter((w) => (w.floor ?? 1) === 2), [project.walls]);
+  const upperWindows = useMemo(() => project.windows.filter((windowItem) => (windowItem.floor ?? 1) === 2), [project.windows]);
+  const upperVoidWindows = useMemo(() => {
+    if (!upperVoid) return [];
+    const wallIds = new Set(upperBoundaryWalls(upperVoid, upperWalls, lowerVoids).map((wall) => wall.id));
+    return upperWindows.filter((windowItem) => wallIds.has(windowItem.wallId));
+  }, [upperVoid, upperWalls, upperWindows, lowerVoids]);
   const upperCeilingMaterial =
     materialMap.get("cal-ceiling-white") ?? materialMap.get("wall-white") ?? project.materials[0];
   // 室内仕上げ床のレベル。室内オブジェクト(家具/照明)も床と同じだけ持ち上げる。未設定(=0)で従来同一。
   const floorLevelM = project.room.floorLevelM ?? 0;
+  const interFloorThicknessM = project.room.interFloorStructure?.thicknessM ?? 0;
   const floorBounds = useMemo(() => computeFloorBounds(floorProject), [floorProject]);
   const floorAreaM2 = floorBounds.sizeX * floorBounds.sizeZ;
   const effectiveLightIds = useMemo(
@@ -124,7 +131,7 @@ export const SceneRoot = ({
   // 非物理なので、窓なしとパストレ常駐時は使わない。
   const daylightFill = useMemo(() => {
     if (!sunUp) return null;
-    const openingAreaM2 = floorProject.windows.reduce((area, opening) => {
+    const openingAreaM2 = [...floorProject.windows, ...upperVoidWindows].reduce((area, opening) => {
       const style = opening.style ?? (opening.hasGlass ? "window" : "opening");
       return style === "door" ? area : area + opening.widthM * opening.heightM;
     }, 0);
@@ -140,7 +147,7 @@ export const SceneRoot = ({
       ground: "#7d7568",
       intensity: (DAYLIGHT_FILL_BASE_INTENSITY + DAYLIGHT_FILL_ALTITUDE_GAIN * sinAlt) * openingScale
     };
-  }, [floorAreaM2, floorProject.windows, sunUp, sun.altitudeDeg]);
+  }, [floorAreaM2, floorProject.windows, upperVoidWindows, sunUp, sun.altitudeDeg]);
 
   // 高速ラスター用の擬似間接光（バウンスフィル）。点いている照明の総光束と平均色温度に
   // 連動した暖色フィルで、直接ビームの外にある壁・天井もぼんやり持ち上がる＝反射の近似。
@@ -258,8 +265,11 @@ export const SceneRoot = ({
             <UpperVoidLevel
               region={upperVoid}
               upperWalls={upperWalls}
-              floorY={project.room.ceilingHeightM}
-              ceilingY={project.room.ceilingHeightM * 2}
+              upperWindows={upperWindows}
+              lowerVoids={lowerVoids}
+              floorY={project.room.ceilingHeightM + interFloorThicknessM}
+              ceilingY={project.room.ceilingHeightM * 2 + interFloorThicknessM}
+              floorThicknessM={interFloorThicknessM}
               wallHeightM={project.room.ceilingHeightM}
               floorMaterial={floorMaterial}
               floorTexture={floorTexture}
@@ -291,7 +301,7 @@ export const SceneRoot = ({
           floorBounds={floorBounds}
           floorLevelM={floorLevelM}
           effectiveLightIds={effectiveLightIds}
-          upperVoidCeilingHeightM={upperVoid ? project.room.ceilingHeightM * 2 : undefined}
+          upperVoidCeilingHeightM={upperVoid ? project.room.ceilingHeightM * 2 + interFloorThicknessM : undefined}
         />
       )}
       {!pathTraced && (

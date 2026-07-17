@@ -1,5 +1,5 @@
 import type { StateCreator } from "zustand";
-import type { Daylight, Project } from "../../types";
+import type { Daylight, InterFloorStructure, Project } from "../../types";
 import { cloneProject } from "../../utils/units";
 import type { ProjectStore } from "../projectStore";
 import { withHistory } from "./historySlice";
@@ -21,6 +21,7 @@ export interface SceneSlice {
   setShowCeiling: (value: boolean) => void;
   setCeilingHeight: (value: number) => void;
   setFloorLevel: (value: number) => void;
+  setInterFloorStructure: (value: InterFloorStructure) => void;
 }
 
 export const createSceneSlice: StateCreator<ProjectStore, [], [], SceneSlice> = (set) => ({
@@ -57,6 +58,15 @@ export const createSceneSlice: StateCreator<ProjectStore, [], [], SceneSlice> = 
     set((state) => {
       const nextProject = cloneProject(state.project);
       nextProject.room = { ...nextProject.room, floorLevelM: Math.max(0, value) };
+      return withHistory(state, nextProject);
+    }),
+  setInterFloorStructure: (value) =>
+    set((state) => {
+      const nextProject = cloneProject(state.project);
+      nextProject.room = {
+        ...nextProject.room,
+        interFloorStructure: { ...value, thicknessM: Math.max(0, value.thicknessM) }
+      };
       return withHistory(state, nextProject);
     })
 });

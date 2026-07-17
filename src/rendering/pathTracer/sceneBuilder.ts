@@ -8,6 +8,12 @@ import { addBox, addHorizontalPanel, addInteriorWallPanel } from "./geometry";
 import { addFixtureLights, sunColorForAltitude } from "./lights";
 import { diagnosticMaterial, makeMaterial, makeTransparentMaterial, materialMap, voidOutsideFaceIndex } from "./materials";
 import type { RenderDebugMode } from "./qualityPresets";
+import {
+  buildUpperSlabGeometry,
+  buildUpperSlabVoidEdgeGeometry,
+  computeUpperVoidRegion,
+  upperBoundaryWalls
+} from "../../components/scene3d/upperVoid";
 
 const ceilingPieces = (project: Project) => {
   const voidArea = project.voids[0];
@@ -34,6 +40,26 @@ export const buildPathTraceScene = (
 ): { scene: THREE.Scene; skyEnv: SkyEnvironment | null } => {
   const scene = new THREE.Scene();
   const materials = materialMap(project.materials);
+  const lowerProject: Project = {
+    ...project,
+    activeFloor: 1,
+    walls: project.walls.filter((wall) => (wall.floor ?? 1) === 1),
+    windows: project.windows.filter((windowItem) => (windowItem.floor ?? 1) === 1),
+    voids: project.voids.filter((voidArea) => (voidArea.floor ?? 1) === 1),
+    furniture: project.furniture.filter((item) => (item.floor ?? 1) === 1),
+    lights: project.lights.filter((fixture) => (fixture.floor ?? 1) === 1),
+    ceilingZones: (project.ceilingZones ?? []).filter((zone) => (zone.floor ?? 1) === 1),
+    floorZones: (project.floorZones ?? []).filter((zone) => (zone.floor ?? 1) === 1)
+  };
+  const upperWalls = project.walls.filter((wall) => (wall.floor ?? 1) === 2);
+  const upperWindows = project.windows.filter((windowItem) => (windowItem.floor ?? 1) === 2);
+  const upperVoidRegion = computeUpperVoidRegion(upperWalls, lowerProject.voids);
+  const visibleUpperWalls = upperVoidRegion ? upperBoundaryWalls(upperVoidRegion, upperWalls, lowerProject.voids) : [];
+  const visibleUpperWallIds = new Set(visibleUpperWalls.map((wall) => wall.id));
+  const visibleUpperWindows = upperWindows.filter((windowItem) => visibleUpperWallIds.has(windowItem.wallId));
+  const interFloorThicknessM = project.room.interFloorStructure?.thicknessM ?? 0;
+  const upperFloorY = project.room.ceilingHeightM + interFloorThicknessM;
+  const upperCeilingY = upperFloorY + project.room.ceilingHeightM;
 
   // 日光・空（編集シーン=常駐パストレと同一の Sky 環境・露出・太陽式。WYSIWYG厳守）。
   const daylight = project.daylight ?? DEFAULT_DAYLIGHT;
@@ -101,15 +127,15 @@ export const buildPathTraceScene = (
   }
 
   const floorMaterial = makeMaterial(materials.get("cal-floor-oak") ?? materials.get("floor-oak"), "#9d754a");
-  addHorizontalPanel(scene, project.room.widthM, project.room.depthM, 0, 1, floorMaterial, "floor", debugMode);
+  addHorizontalPanel(scene, lowerProject.room.widthM, lowerProject.room.depthM, 0, 1, floorMaterial, "floor", debugMode);
 
   const ceilingMaterial = makeMaterial(materials.get("cal-ceiling-white") ?? materials.get("wall-white"), "#eee8dd");
-  ceilingPieces(project).forEach((piece) => {
+  ceilingPieces(lowerProject).forEach((piece) => {
     addHorizontalPanel(
       scene,
       piece.width,
       piece.depth,
-      project.room.ceilingHeightM,
+      lowerProject.room.ceilingHeightM,
       -1,
       ceilingMaterial,
       "ceiling",
@@ -120,11 +146,11 @@ export const buildPathTraceScene = (
   });
 
   // 吹き抜けを上階天井まで側面と上蓋で囲い、黒背景に抜ける「穴」を防ぐ。
-  const wallMaxHeight = project.walls.reduce((max, wall) => Math.max(max, wall.heightM), project.room.ceilingHeightM);
+  const wallMaxHeight = lowerProject.walls.reduce((max, wall) => Math.max(max, wall.heightM), lowerProject.room.ceilingHeightM);
   const upperCeilingHeight =
-    wallMaxHeight > project.room.ceilingHeightM + 0.05 ? wallMaxHeight : project.room.ceilingHeightM + 1.4;
-  project.voids.forEach((voidArea) => {
-    const lowerY = project.room.ceilingHeightM;
+    wallMaxHeight > lowerProject.room.ceilingHeightM + 0.05 ? wallMaxHeight : lowerProject.room.ceilingHeightM + 1.4;
+  if (!upperVoidRegion) lowerProject.voids.forEach((voidArea) => {
+    const lowerY = lowerProject.room.ceilingHeightM;
     const height = upperCeilingHeight - lowerY;
     if (height <= 0.02) return;
     const midY = (lowerY + upperCeilingHeight) / 2;
@@ -156,12 +182,12 @@ export const buildPathTraceScene = (
   });
 
   const wallNormalFallback = (() => {
-    if (project.walls.length === 0) return { x: 0, z: 0 };
+    if (lowerProject.walls.length === 0) return { x: 0, z: 0 };
     let minX = Infinity;
     let maxX = -Infinity;
     let minZ = Infinity;
     let maxZ = -Infinity;
-    for (const wall of project.walls) {
+    for (const wall of lowerProject.walls) {
       minX = Math.min(minX, wall.start.x, wall.end.x);
       maxX = Math.max(maxX, wall.start.x, wall.end.x);
       minZ = Math.min(minZ, wall.start.z, wall.end.z);
@@ -170,11 +196,12 @@ export const buildPathTraceScene = (
     return { x: (minX + maxX) / 2, z: (minZ + maxZ) / 2 };
   })();
 
-  project.walls.forEach((wall) => {
+  const addWall = (sourceWall: Project["walls"][number], windows: Project["windows"], baseY = 0, wallHeightM = sourceWall.heightM) => {
+    const wall = { ...sourceWall, heightM: wallHeightM };
     const dx = wall.end.x - wall.start.x;
     const dz = wall.end.z - wall.start.z;
     const length = Math.hypot(dx, dz);
-    const wallWindows = project.windows.filter((windowItem) => windowItem.wallId === wall.id);
+    const wallWindows = windows.filter((windowItem) => windowItem.wallId === wall.id);
     // 手すりは「抜け」が要るのでソリッドパネルにせず笠木+縦支柱で組む（編集シーンと寸法/間隔を揃える）。
     if (wall.kind === "railing") {
       const cx = (wall.start.x + wall.end.x) / 2;
@@ -185,15 +212,15 @@ export const buildPathTraceScene = (
       const railMaterial = makeMaterial(materials.get(wall.materialId), "#e2ddd2");
       const railDepth = Math.min(wall.thicknessM, 0.06);
       // 笠木（上桟）と下桟。addBox は size.x を rotationY 後のローカルX(壁方向)に取る。
-      addBox(scene, [length, 0.05, railDepth], [cx, wall.heightM - 0.025, cz], railMaterial, angle, "wall", debugMode);
-      addBox(scene, [length, 0.05, railDepth], [cx, 0.05, cz], railMaterial, angle, "wall", debugMode);
+      addBox(scene, [length, 0.05, railDepth], [cx, baseY + wall.heightM - 0.025, cz], railMaterial, angle, "wall", debugMode);
+      addBox(scene, [length, 0.05, railDepth], [cx, baseY + 0.05, cz], railMaterial, angle, "wall", debugMode);
       // 縦支柱を約0.11m間隔で両端含めて配置。
       const postCount = Math.max(2, Math.round(length / 0.11) + 1);
       for (let i = 0; i < postCount; i++) {
         const t = i / (postCount - 1) - 0.5;
         const px = cx + ux * length * t;
         const pz = cz + uz * length * t;
-        addBox(scene, [0.04, wall.heightM, 0.04], [px, wall.heightM / 2, pz], railMaterial, angle, "wall", debugMode);
+        addBox(scene, [0.04, wall.heightM, 0.04], [px, baseY + wall.heightM / 2, pz], railMaterial, angle, "wall", debugMode);
       }
       return;
     }
@@ -203,40 +230,73 @@ export const buildPathTraceScene = (
       makeMaterial(materials.get(wall.materialId), "#e2ddd2"),
       debugMode,
       wallWindows,
-      wallNormalFallback
+      wallNormalFallback,
+      baseY
     );
-  });
+  };
+  lowerProject.walls.forEach((wall) => addWall(wall, lowerProject.windows));
 
-  project.windows.forEach((windowItem) => {
-    const wall = project.walls.find((item) => item.id === windowItem.wallId);
+  const addWindow = (windowItem: Project["windows"][number], walls: Project["walls"], baseY = 0) => {
+    const wall = walls.find((item) => item.id === windowItem.wallId);
     if (!wall) return;
     const x = wall.start.x + (wall.end.x - wall.start.x) * windowItem.centerRatio;
     const z = wall.start.z + (wall.end.z - wall.start.z) * windowItem.centerRatio;
     const angle = Math.atan2(wall.end.z - wall.start.z, wall.end.x - wall.start.x);
-    const y = windowItem.sillHeightM + windowItem.heightM / 2;
+    const y = baseY + windowItem.sillHeightM + windowItem.heightM / 2;
     const style = windowItem.style ?? (windowItem.hasGlass ? "window" : "opening");
     if (style === "door") {
       addBox(scene, [windowItem.widthM, windowItem.heightM, 0.04], [x, y, z - 0.02], makeMaterial(undefined, "#9d8b73"), -angle, "furniture", debugMode);
       return;
     }
-    const material =
-      style === "window"
-        ? new THREE.MeshPhysicalMaterial({
-            color: "#bcd4e0",
-            roughness: 0.03,
-            metalness: 0,
-            transmission: 0.95,
-            transparent: true,
-            opacity: 1.0,
-            ior: 1.5
-          })
-        : makeMaterial(undefined, "#0a0908");
-    addBox(scene, [windowItem.widthM, windowItem.heightM, 0.018], [x, y, z - 0.014], material, -angle, style === "window" ? "glass" : "backface", debugMode);
-  });
+    if (style !== "window") return;
+    const material = new THREE.MeshPhysicalMaterial({
+      color: "#bcd4e0",
+      roughness: 0.03,
+      metalness: 0,
+      transmission: 0.95,
+      transparent: true,
+      opacity: 1.0,
+      ior: 1.5
+    });
+    addBox(scene, [windowItem.widthM, windowItem.heightM, 0.018], [x, y, z - 0.014], material, -angle, "glass", debugMode);
+  };
+  lowerProject.windows.forEach((windowItem) => addWindow(windowItem, lowerProject.walls));
 
-  project.furniture.forEach((item) => addFurniture(scene, item, materials, debugMode));
+  if (upperVoidRegion) {
+    const upperFloorGeo = buildUpperSlabGeometry(upperVoidRegion, true, true);
+    const upperFloorBottomGeo = interFloorThicknessM > 0.001 ? buildUpperSlabGeometry(upperVoidRegion, true, false) : null;
+    const upperFloorVoidEdgeGeo = buildUpperSlabVoidEdgeGeometry(upperVoidRegion, interFloorThicknessM);
+    const upperCeilingGeo = buildUpperSlabGeometry(upperVoidRegion, false, false);
+    const addSlab = (
+      geometry: THREE.BufferGeometry,
+      y: number,
+      material: THREE.Material,
+      role: "floor" | "ceiling",
+      doubleSided = false
+    ) => {
+      const slabMaterial = diagnosticMaterial(role, debugMode, doubleSided ? material.clone() : material);
+      if (doubleSided) slabMaterial.side = THREE.DoubleSide;
+      const mesh = new THREE.Mesh(geometry, slabMaterial);
+      mesh.position.y = y;
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      mesh.userData.role = role;
+      scene.add(mesh);
+    };
+    if (upperFloorGeo) addSlab(upperFloorGeo, upperFloorY, floorMaterial, "floor");
+    if (upperFloorBottomGeo) addSlab(upperFloorBottomGeo, upperFloorY - interFloorThicknessM, ceilingMaterial, "ceiling");
+    if (upperFloorVoidEdgeGeo) addSlab(upperFloorVoidEdgeGeo, upperFloorY, floorMaterial, "floor", true);
+    if (upperCeilingGeo) addSlab(upperCeilingGeo, upperCeilingY, ceilingMaterial, "ceiling");
+    visibleUpperWalls.forEach((wall) => {
+      const wallHeightM = wall.kind === "half" || wall.kind === "railing" ? wall.heightM : project.room.ceilingHeightM;
+      addWall(wall, visibleUpperWindows, upperFloorY, wallHeightM);
+    });
+    visibleUpperWindows.forEach((windowItem) => addWindow(windowItem, visibleUpperWalls, upperFloorY));
+  }
 
-  addFixtureLights(scene, project, debugMode);
+  lowerProject.furniture.forEach((item) => addFurniture(scene, item, materials, debugMode));
+
+  addFixtureLights(scene, lowerProject, debugMode);
 
   scene.updateMatrixWorld(true);
   console.info("[lighting-calibration] path trace scene", {

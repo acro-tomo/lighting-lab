@@ -67,7 +67,8 @@ export const addInteriorWallPanel = (
   material: THREE.Material,
   debugMode: RenderDebugMode,
   windows: WindowOpening[] = [],
-  roomCenter: { x: number; z: number } = { x: 0, z: 0 }
+  roomCenter: { x: number; z: number } = { x: 0, z: 0 },
+  baseY = 0
 ) => {
   const { start: wallStart, end: wallEnd, heightM: height } = wall;
   const dx = wallEnd.x - wallStart.x;
@@ -75,7 +76,7 @@ export const addInteriorWallPanel = (
   const length = Math.hypot(dx, dz);
   if (length <= 0.001) return null;
 
-  const midpoint = new THREE.Vector3((wallStart.x + wallEnd.x) / 2, height / 2, (wallStart.z + wallEnd.z) / 2);
+  const midpoint = new THREE.Vector3((wallStart.x + wallEnd.x) / 2, baseY + height / 2, (wallStart.z + wallEnd.z) / 2);
   const inward = wallInwardNormal(wall, roomCenter);
   const normal = new THREE.Vector3(inward.x, 0, inward.z);
   const rotationY = Math.atan2(normal.x, normal.z);

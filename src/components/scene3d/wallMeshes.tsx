@@ -572,7 +572,7 @@ export const WindowMesh = ({
         </>
       )}
 
-      {style === "opening" && (
+      {style === "opening" && !pathTraced && (
         <mesh userData={{ luxIgnore: true }}>
           <boxGeometry args={[w, h, 0.012]} />
           <meshBasicMaterial color="#0a0908" transparent opacity={0.42} />

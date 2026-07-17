@@ -220,7 +220,13 @@ const baseProjectSchema = z
         widthM: z.number().positive(),
         depthM: z.number().positive(),
         ceilingHeightM: z.number().positive(),
-        floorLevelM: z.number().min(0).optional()
+        floorLevelM: z.number().min(0).optional(),
+        interFloorStructure: z
+          .object({
+            kind: z.enum(["wood", "rc", "custom"]),
+            thicknessM: z.number().min(0)
+          })
+          .optional()
       })
       .passthrough(),
     materials: z.array(z.object({ id: z.string(), name: z.string() }).passthrough()).min(1),

@@ -1,9 +1,9 @@
 import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import type { RenderDebugMode } from "../../rendering/pathTracer";
-import type { MaterialPreset, VoidArea, WallSegment } from "../../types";
+import type { MaterialPreset, VoidArea, WallSegment, WindowOpening } from "../../types";
 import { debugColorForRole } from "./materials";
-import { WallMesh } from "./wallMeshes";
+import { WallMesh, WindowMesh } from "./wallMeshes";
 
 // 吹き抜け(void)を介して1階と上方に繋がる「2階の床領域」を、グリッド・フラッドフィルで抽出する。
 // 2階壁を越えない（間仕切りも含む）連続領域だけを塗り、それを2階床/壁/天井の生成に使う。
@@ -139,7 +139,7 @@ export const computeUpperVoidRegion = (
 // 2階の連続領域(セル集合)から、指定Yレベルに水平スラブを張る BufferGeometry を作る。
 // excludeVoid=true なら voidフットプリントのセルは抜く（見上げて吹き抜けが抜ける）。
 // faceUp=true で法線+Y(床, 下から見える)、false で-Y(天井, 下から見える)。
-const buildUpperSlabGeometry = (
+export const buildUpperSlabGeometry = (
   region: UpperVoidRegion,
   excludeVoid: boolean,
   faceUp: boolean
@@ -173,10 +173,67 @@ const buildUpperSlabGeometry = (
   return geo;
 };
 
+export const buildUpperSlabVoidEdgeGeometry = (region: UpperVoidRegion, thicknessM: number): THREE.BufferGeometry | null => {
+  if (thicknessM <= 0.001) return null;
+  const { cell, cols, rows, originX, originZ, filled, voidMask } = region;
+  const positions: number[] = [];
+  const idx = (c: number, r: number) => r * cols + c;
+  const isVoid = (c: number, r: number) => c >= 0 && c < cols && r >= 0 && r < rows && voidMask[idx(c, r)] === 1;
+  const pushQuad = (a: [number, number], b: [number, number]) => {
+    positions.push(a[0], 0, a[1], b[0], 0, b[1], b[0], -thicknessM, b[1]);
+    positions.push(a[0], 0, a[1], b[0], -thicknessM, b[1], a[0], -thicknessM, a[1]);
+  };
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const i = idx(c, r);
+      if (!filled[i] || voidMask[i]) continue;
+      const x0 = originX + c * cell;
+      const x1 = x0 + cell;
+      const z0 = originZ + r * cell;
+      const z1 = z0 + cell;
+      if (isVoid(c, r - 1)) pushQuad([x0, z0], [x1, z0]);
+      if (isVoid(c + 1, r)) pushQuad([x1, z0], [x1, z1]);
+      if (isVoid(c, r + 1)) pushQuad([x1, z1], [x0, z1]);
+      if (isVoid(c - 1, r)) pushQuad([x0, z1], [x0, z0]);
+    }
+  }
+  if (positions.length === 0) return null;
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geo.computeVertexNormals();
+  return geo;
+};
+
 // 連続領域に隣接する2階壁だけを抽出する（領域境界の壁）。壁中心線を細かくサンプルし、
 // 壁厚の外側に塗れたセルが在れば「面している」とみなす。これにより吹き抜けホールを
 // 囲う2階の壁だけを上方へ立ち上げ、無関係な2階奥の壁は出さない。
-const upperBoundaryWalls = (region: UpperVoidRegion, upperWalls: WallSegment[]): WallSegment[] => {
+const overlapsOpenVoidSide = (wall: WallSegment, voidArea: VoidArea): boolean => {
+  const dx = wall.end.x - wall.start.x;
+  const dz = wall.end.z - wall.start.z;
+  const tolerance = wall.thicknessM / 2 + 0.1;
+  const overlaps = (a0: number, a1: number, b0: number, b1: number) =>
+    Math.min(Math.max(a0, a1), Math.max(b0, b1)) >= Math.max(Math.min(a0, a1), Math.min(b0, b1)) - tolerance;
+  const sides = new Set(voidArea.openSides ?? []);
+  if ((sides.has("north") || sides.has("south")) && Math.abs(dz) <= tolerance) {
+    const sideZ = sides.has("north") && Math.abs((wall.start.z + wall.end.z) / 2 - (voidArea.center.z - voidArea.size.z / 2)) <= tolerance
+      ? voidArea.center.z - voidArea.size.z / 2
+      : sides.has("south") && Math.abs((wall.start.z + wall.end.z) / 2 - (voidArea.center.z + voidArea.size.z / 2)) <= tolerance
+        ? voidArea.center.z + voidArea.size.z / 2
+        : null;
+    if (sideZ !== null && overlaps(wall.start.x, wall.end.x, voidArea.center.x - voidArea.size.x / 2, voidArea.center.x + voidArea.size.x / 2)) return true;
+  }
+  if ((sides.has("west") || sides.has("east")) && Math.abs(dx) <= tolerance) {
+    const sideX = sides.has("west") && Math.abs((wall.start.x + wall.end.x) / 2 - (voidArea.center.x - voidArea.size.x / 2)) <= tolerance
+      ? voidArea.center.x - voidArea.size.x / 2
+      : sides.has("east") && Math.abs((wall.start.x + wall.end.x) / 2 - (voidArea.center.x + voidArea.size.x / 2)) <= tolerance
+        ? voidArea.center.x + voidArea.size.x / 2
+        : null;
+    if (sideX !== null && overlaps(wall.start.z, wall.end.z, voidArea.center.z - voidArea.size.z / 2, voidArea.center.z + voidArea.size.z / 2)) return true;
+  }
+  return false;
+};
+
+export const upperBoundaryWalls = (region: UpperVoidRegion, upperWalls: WallSegment[], lowerVoids: VoidArea[]): WallSegment[] => {
   const { cell, cols, rows, originX, originZ, filled } = region;
   const idx = (c: number, r: number) => r * cols + c;
   const filledAt = (x: number, z: number): boolean => {
@@ -204,7 +261,7 @@ const upperBoundaryWalls = (region: UpperVoidRegion, upperWalls: WallSegment[]):
         adjacent = true;
       }
     }
-    if (adjacent) result.push(wall);
+    if (adjacent && !lowerVoids.some((voidArea) => overlapsOpenVoidSide(wall, voidArea))) result.push(wall);
   }
   return result;
 };
@@ -214,8 +271,11 @@ const upperBoundaryWalls = (region: UpperVoidRegion, upperWalls: WallSegment[]):
 export const UpperVoidLevel = ({
   region,
   upperWalls,
+  upperWindows,
+  lowerVoids,
   floorY,
   ceilingY,
+  floorThicknessM,
   wallHeightM,
   floorMaterial,
   floorTexture,
@@ -225,8 +285,11 @@ export const UpperVoidLevel = ({
 }: {
   region: UpperVoidRegion;
   upperWalls: WallSegment[];
+  upperWindows: WindowOpening[];
+  lowerVoids: VoidArea[];
   floorY: number;
   ceilingY: number;
+  floorThicknessM: number;
   wallHeightM: number;
   floorMaterial: MaterialPreset;
   floorTexture: THREE.Texture | null;
@@ -236,8 +299,15 @@ export const UpperVoidLevel = ({
 }) => {
   // 2階床(voidを抜く・上面が下から見える)、天井(下面が下から見える)スラブ。
   const floorGeo = useMemo(() => buildUpperSlabGeometry(region, true, true), [region]);
+  const floorBottomGeo = useMemo(() => buildUpperSlabGeometry(region, true, false), [region]);
+  const floorVoidEdgeGeo = useMemo(() => buildUpperSlabVoidEdgeGeometry(region, floorThicknessM), [region, floorThicknessM]);
   const ceilingGeo = useMemo(() => buildUpperSlabGeometry(region, false, false), [region]);
-  const boundaryWalls = useMemo(() => upperBoundaryWalls(region, upperWalls), [region, upperWalls]);
+  const boundaryWalls = useMemo(() => upperBoundaryWalls(region, upperWalls, lowerVoids), [region, upperWalls, lowerVoids]);
+  const boundaryWindowIds = useMemo(() => new Set(boundaryWalls.map((wall) => wall.id)), [boundaryWalls]);
+  const boundaryWindows = useMemo(
+    () => upperWindows.filter((windowItem) => boundaryWindowIds.has(windowItem.wallId)),
+    [upperWindows, boundaryWindowIds]
+  );
   const upperFloorBounds = useMemo(
     () => ({
       centerX: region.originX + (region.cols * region.cell) / 2,
@@ -248,6 +318,8 @@ export const UpperVoidLevel = ({
     [region]
   );
   useEffect(() => () => floorGeo?.dispose(), [floorGeo]);
+  useEffect(() => () => floorBottomGeo?.dispose(), [floorBottomGeo]);
+  useEffect(() => () => floorVoidEdgeGeo?.dispose(), [floorVoidEdgeGeo]);
   useEffect(() => () => ceilingGeo?.dispose(), [ceilingGeo]);
 
   return (
@@ -257,6 +329,26 @@ export const UpperVoidLevel = ({
         <mesh position={[0, floorY, 0]} geometry={floorGeo} receiveShadow castShadow>
           <meshStandardMaterial
             map={debugMode === "beauty" ? floorTexture ?? undefined : undefined}
+            color={debugColorForRole("floor", debugMode, floorMaterial.baseColor)}
+            roughness={floorMaterial.roughness}
+            metalness={floorMaterial.metalness}
+            side={floorThicknessM > 0.001 ? THREE.FrontSide : THREE.DoubleSide}
+          />
+        </mesh>
+      )}
+      {floorThicknessM > 0.001 && floorBottomGeo && (
+        <mesh position={[0, floorY - floorThicknessM, 0]} geometry={floorBottomGeo} receiveShadow castShadow>
+          <meshStandardMaterial
+            color={debugColorForRole("ceiling", debugMode, ceilingMaterial.baseColor)}
+            roughness={ceilingMaterial.roughness}
+            metalness={ceilingMaterial.metalness}
+            side={THREE.FrontSide}
+          />
+        </mesh>
+      )}
+      {floorVoidEdgeGeo && (
+        <mesh position={[0, floorY, 0]} geometry={floorVoidEdgeGeo} receiveShadow castShadow>
+          <meshStandardMaterial
             color={debugColorForRole("floor", debugMode, floorMaterial.baseColor)}
             roughness={floorMaterial.roughness}
             metalness={floorMaterial.metalness}
@@ -283,7 +375,7 @@ export const UpperVoidLevel = ({
             // 通常壁は2階全高に揃えるが、腰壁/手すりは自前の低い高さを保つ（吹抜周りに回せる）。
             wall={{ ...wall, heightM: wall.kind === "half" || wall.kind === "railing" ? wall.heightM : wallHeightM }}
             walls={upperWalls}
-            windows={[]}
+            windows={boundaryWindows.filter((windowItem) => windowItem.wallId === wall.id)}
             material={materialMap.get(wall.materialId) ?? ceilingMaterial}
             roomCenter={new THREE.Vector3(region.originX + (region.cols * region.cell) / 2, 0, region.originZ + (region.rows * region.cell) / 2)}
             floorBounds={upperFloorBounds}
@@ -293,6 +385,18 @@ export const UpperVoidLevel = ({
             canEditWalls={false}
           />
         ))}
+        {boundaryWindows.map((windowItem) => {
+          return (
+            <WindowMesh
+              key={`upper-${windowItem.id}`}
+              windowItem={windowItem}
+              walls={upperWalls}
+              selected={false}
+              onSelect={() => {}}
+              debugMode={debugMode}
+            />
+          );
+        })}
       </group>
     </group>
   );
