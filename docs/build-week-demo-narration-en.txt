@@ -1,15 +1,17 @@
-Lighting simulation tools already exist, but most are built for specialists. For a homeowner who simply wants to ask, “What if I put a pendant here?”, reaching the first visual answer can require CAD knowledge and hours of setup. LDK Lighting Lab removes that barrier.
+When you build or renovate a home, lighting is decided from drawings and catalogs. But it's hard for a homeowner to imagine how it will actually look: how bright the room will feel, how walls and furniture will be lit, how the mood changes between warm and neutral white. And if something feels wrong after construction, moving a fixture costs real money.
 
-It runs in the browser without an account. I can start with this sample or import my own floor plan, set the scale from one known dimension, and trace the room. Walls, windows, furniture, stairs, and double-height spaces can be added with simple tools. I do not need a perfect building model—just enough of my home to judge lighting in context.
+Lighting Lab lets homeowners try different lighting plans in their own floor plan and check the room's atmosphere before construction—no CAD skills needed. It runs in the browser. You can import your own floor plan, or start from a prepared home, like this one.
 
-Now I can experiment. I choose a fixture, place it, and move it directly in 2D. After selecting it, I can change brightness, color temperature, fixture type, beam distribution, and aiming. I can try downlights, a pendant, or indirect light without rebuilding the room. If an idea does not work, I change it immediately. This short loop—from an idea to a visible result—is the main product.
+In this house, we're still deciding the dining lighting. I select the pendant over the table.
 
-The 2D view keeps placement understandable, while the fast 3D Edit view gives immediate feedback. On supported hardware, Realistic mode progressively path traces the same scene, revealing both direct and indirect light. If path tracing is unavailable or slow, the full placement and editing workflow still works in the fast raster view.
+First, color temperature: from a warm 2700K up to 3500K. The mood of the dining area changes immediately. Next, brightness—dimmer for a calmer table, brighter for family homework time. Then I simply drag the pendant to try a different position.
 
-When I find an idea worth keeping, I can render and export a watermarked PNG. The project autosaves locally in the browser and can also be saved as JSON, so I can return to the experiment or share the image for discussion.
+Switching to 3D, I can check how the table and its surroundings actually look. And when I want to judge the atmosphere of the whole room, Realistic mode renders the same scene with indirect light included—the way the room would feel at night.
 
-The interface switches between Japanese and English. On a phone, the plan and 3D view stay central, while editing actions and settings remain available from compact controls.
+Not convinced? I just keep trying: another position, a different spread of light, one more color temperature. Lighting Lab doesn't hand you a "correct" answer. It lets you explore until the lighting fits the way you live.
 
-For this Build Week release, I used Codex with GPT-5.6 as the main development partner. It inspected the existing React and Three.js architecture, hardened feedback and deployment, implemented the bilingual interface, validated desktop and mobile flows, and prepared the public documentation without replacing the existing editor and renderer.
+Under the hood, 2D editing and the 3D view stay in sync, each fixture exposes brightness, color temperature, and beam angle, and projects save and reload right in the browser—on PC, and on a phone.
 
-LDK Lighting Lab does not replace certified lighting calculations. Professional CAD is built for specialists. This app lets anyone recreate their home and try a lighting idea before committing to it.
+Codex with GPT-5.6 has been part of this project from the very beginning. During this Build Week, its most important role was as a critical reviewer: every design decision on the two hardest questions—does the light behave the way it would in a real room, and can it stay fast enough for a phone—was challenged and refined through Codex before it shipped. The result is what you've been watching: a fast renderer while you edit, and physically convincing path tracing when you judge the atmosphere. On top of that, this session delivered the mobile improvements, English support, automated tests, and the public release.
+
+Lighting Lab lets homeowners quickly try different lighting layouts, brightness levels, and color temperatures in their own floor plan—before construction.

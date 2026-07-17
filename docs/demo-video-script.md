@@ -1,113 +1,69 @@
-# LDK Lighting Lab — Build Week demo script
+# LDK Lighting Lab — final Build Week demo script
 
-Target duration: 2 minutes 30 seconds to 2 minutes 45 seconds.
+## English — final
 
-## この動画で伝える核心
+### 0:00–0:20 — Problem
 
-専門CADは高機能ですが、一般の住宅購入者が「ここに照明を置いたら、夜はどう見える？」を試すには、操作習得と3Dモデル作成の負担が大きすぎます。
+When you build or renovate a home, lighting is decided from drawings and catalogs. But it's hard for a homeowner to imagine how it will actually look: how bright the room will feel, how walls and furniture will be lit, how the mood changes between warm and neutral white. And if something feels wrong after construction, moving a fixture costs real money.
 
-LDK Lighting Lab は、自宅の間取りを短時間で再現し、照明の種類・位置・明るさ・色温度・配光を気軽に置いて試すためのWebアプリです。
+### 0:20–0:35 — Solution
 
-審査員に最後に残す一文：**Professional CAD is built for specialists. LDK Lighting Lab lets anyone try a lighting idea in their own home.**
+Lighting Lab lets homeowners try different lighting plans in their own floor plan and check the room's atmosphere before construction—no CAD skills needed. It runs in the browser. You can import your own floor plan, or start from a prepared home, like this one.
 
-## 0:00–0:18 — Show the barrier this product removes
+### 0:35–2:05 — Dining story
 
-**Purpose:** Explain why another lighting tool is needed when professional CAD already exists.
+In this house, we're still deciding the dining lighting. I select the pendant over the table.
 
-**Show:** Begin with the sample home in 2D and 3D. Add the question “What if I put a light here?” on screen.
+First, color temperature: from a warm 2700K up to 3500K. The mood of the dining area changes immediately. Next, brightness—dimmer for a calmer table, brighter for family homework time. Then I simply drag the pendant to try a different position.
 
-**Narration:**
+Switching to 3D, I can check how the table and its surroundings actually look. And when I want to judge the atmosphere of the whole room, Realistic mode renders the same scene with indirect light included—the way the room would feel at night.
 
-> Lighting simulation tools already exist, but most are built for specialists. For a homeowner who simply wants to ask, “What if I put a pendant here?”, reaching the first visual answer can require CAD knowledge and hours of setup. LDK Lighting Lab removes that barrier.
+Not convinced? I just keep trying: another position, a different spread of light, one more color temperature. Lighting Lab doesn't hand you a "correct" answer. It lets you explore until the lighting fits the way you live.
 
-## 0:18–0:45 — Recreate a home without building a full CAD model
+### 2:05–2:50 — Technology and Codex
 
-**Purpose:** Prove that users can reach their own room quickly.
+Under the hood, 2D editing and the 3D view stay in sync, each fixture exposes brightness, color temperature, and beam angle, and projects save and reload right in the browser—on PC, and on a phone.
 
-**Show:**
+Codex with GPT-5.6 has been part of this project from the very beginning. During this Build Week, its most important role was as a critical reviewer: every design decision on the two hardest questions—does the light behave the way it would in a real room, and can it stay fast enough for a phone—was challenged and refined through Codex before it shipped. The result is what you've been watching: a fast renderer while you edit, and physically convincing path tracing when you judge the atmosphere. On top of that, this session delivered the mobile improvements, English support, automated tests, and the public release.
 
-1. Open the floor-plan import action.
-2. Show PNG, JPG, and PDF support.
-3. Show scale calibration from a known dimension.
-4. Briefly show walls, windows, furniture, stairs, and a double-height void in the sample.
+### 2:50–3:00 — Closing
 
-**Narration:**
+Lighting Lab lets homeowners quickly try different lighting layouts, brightness levels, and color temperatures in their own floor plan—before construction.
 
-> It runs in the browser without an account. I can start with this sample or import my own floor plan, set the scale from one known dimension, and trace the room. Walls, windows, furniture, stairs, and double-height spaces can be added with simple tools. I do not need a perfect building model—just enough of my home to judge lighting in context.
+## 日本語訳 — 確定稿
 
-## 0:45–1:17 — Make experimentation the main event
+### 問題
 
-**Purpose:** Show the core loop: think of a lighting idea, place it, see it, and change it immediately.
+新築やリフォームでは、照明は図面とカタログから決めます。しかし施主には、実際の見え方を想像するのが難しい。部屋がどれくらい明るく感じられるか、壁や家具がどう照らされるか、電球色と温白色で雰囲気がどう変わるか。そして施工後に違和感に気付いても、器具を動かすには本当にお金がかかります。
 
-**Show:**
+### 解決策
 
-1. Open **+ Add** and choose a pendant or downlight.
-2. Place it in 2D and move it once.
-3. Change brightness and color temperature.
-4. Change the fixture or beam distribution.
-5. Turn the TV-back indirect light on and off.
+Lighting Labは、施主が自分の間取りでさまざまな照明計画を試し、施工前に部屋の雰囲気を確認できるツールです。CADの知識は要りません。ブラウザで動きます。自分の間取りを取り込むことも、この住宅のように準備済みのものから始めることもできます。
 
-**Narration:**
+### ダイニングのストーリー
 
-> Now I can experiment. I choose a fixture, place it, and move it directly in 2D. After selecting it, I can change brightness, color temperature, fixture type, beam distribution, and aiming. I can try downlights, a pendant, or indirect light without rebuilding the room. If an idea does not work, I change it immediately. This short loop—from an idea to a visible result—is the main product.
+この住宅では、ダイニングの照明をまだ検討中です。テーブルの上のペンダントを選択します。
 
-## 1:17–1:43 — Show why 3D and rendering help
+まず色温度。温かみのある2700Kから3500Kへ。ダイニングの雰囲気がその場で変わります。次に明るさ。落ち着いた食卓なら暗めに、家族が宿題をするなら明るめに。そしてペンダントをドラッグして、別の位置も試してみます。
 
-**Purpose:** Connect the rendering technology to quick experimentation rather than presenting it as a technical showcase.
+3Dに切り替えれば、テーブルとその周りが実際にどう見えるかを確認できます。部屋全体の雰囲気を判断したいときはRealisticモードへ。間接光まで含めて同じシーンを描画し、夜の部屋の感じ方が分かります。
 
-**Show:** Switch between the 2D plan and 3D Edit view. Then enable Realistic mode and hold long enough to show progressive convergence.
+納得できなければ、続けて試すだけです。別の位置、別の配光、もうひとつの色温度。Lighting Labは「正解」を教えるツールではありません。自分の暮らしに合う照明が見つかるまで、いろいろ試せるツールです。
 
-**Narration:**
+### 技術とCodex
 
-> The 2D view keeps placement understandable, while the fast 3D Edit view gives immediate feedback. On supported hardware, Realistic mode progressively path traces the same scene, revealing both direct and indirect light. If path tracing is unavailable or slow, the full placement and editing workflow still works in the fast raster view.
+中身の話をすると、2D編集と3D表示は連動し、各器具は明るさ・色温度・ビーム角を変更でき、プロジェクトはブラウザ内でそのまま保存・読み込みできます。PCでも、スマートフォンでも。
 
-## 1:43–1:58 — Keep the result useful outside the app
+CodexとGPT-5.6は、このプロジェクトの最初から関わってきました。今回のBuild Weekで最も重要だった役割は、批判的なレビュアーです。いちばん難しい2つの問い——光は現実の部屋と同じように振る舞うか、スマートフォンで快適に動く速度を保てるか——に関するすべての設計判断は、Codexの検証とブラッシュアップを経てから実装されています。その結果が、いままさに見ていただいたもの。編集中は高速なレンダラー、雰囲気を判断するときは物理的に説得力のあるパストレーシング、という構成です。加えて今回のセッションでは、モバイル改善、英語対応、自動テスト、公開準備も行いました。
 
-**Purpose:** Show that a quick experiment can be saved and discussed.
+### 結び
 
-**Show:** Open Export / Render, render one result, export a PNG, then show project save.
-
-**Narration:**
-
-> When I find an idea worth keeping, I can render and export a watermarked PNG. The project autosaves locally in the browser and can also be saved as JSON, so I can return to the experiment or share the image for discussion.
-
-## 1:58–2:12 — Show accessibility on phone and in English
-
-**Purpose:** Demonstrate that this is intended for ordinary users, not only desktop CAD operators.
-
-**Show:** Switch JA to EN, then show the phone layout with the 2D/3D tabs and settings sheet.
-
-**Narration:**
-
-> The interface switches between Japanese and English. On a phone, the plan and 3D view stay central, while editing actions and settings remain available from compact controls.
-
-## 2:12–2:32 — Explain the Codex and GPT-5.6 contribution
-
-**Purpose:** Address the Build Week implementation criterion after the product value is already clear.
-
-**Show:** Briefly show the development record or README, then return to the app.
-
-**Narration:**
-
-> For this Build Week release, I used Codex with GPT-5.6 as the main development partner. It inspected the existing React and Three.js architecture, hardened feedback and deployment, implemented the bilingual interface, validated desktop and mobile flows, and prepared the public documentation without replacing the existing editor and renderer.
-
-## 2:32–2:45 — Close on the product difference
-
-**Purpose:** State exactly where the product sits beside professional tools.
-
-**Show:** End on the live 2D and 3D views with the selected light visible in both.
-
-**Narration:**
-
-> LDK Lighting Lab does not replace certified lighting calculations. Professional CAD is built for specialists. This app lets anyone recreate their home and try a lighting idea before committing to it.
+Lighting Labは、自分の間取りでさまざまな照明配置・明るさ・色温度を気軽に試し、施工前に確認できる住宅照明シミュレーターです。
 
 ## Recording checklist
 
-- Make “easy to start” and “easy to try again” visible; do not turn the video into a rendering showcase.
-- Reach the first lighting edit within the first minute.
-- Show at least one new fixture placement, not only changes to the prepared sample.
-- Keep the same fixture visible in 2D and 3D so the connection is obvious.
-- Do not claim physical accuracy or certified illuminance.
-- Explain that path tracing is optional and hardware-dependent.
+- Keep the full video under three minutes, including pauses and transitions.
+- Use the dining pendant as the single story from 2D selection through Realistic mode.
+- Show the actual 2700K and 3500K controls, brightness adjustment, drag, beam-angle control, 3D view, and Realistic mode.
+- Do not claim certified illuminance or guaranteed post-construction appearance.
 - Do not show GitHub tokens, Cloudflare secrets, private feedback issues, or personal floor plans.
-- Keep the published video public, under three minutes, with English narration or accurate English subtitles.
