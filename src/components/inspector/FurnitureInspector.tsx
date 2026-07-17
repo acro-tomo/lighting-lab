@@ -13,6 +13,11 @@ export const FurnitureInspector = ({
   updateFurniture: (id: string, patch: Partial<FurnitureItem>) => void;
 }) => (
   <div className="form-grid">
+    <header className="selection-inspector-heading">
+      <p>選択中の家具</p>
+      <h2>{item.name}</h2>
+      <span>{item.type === "sofa" ? "ソファ" : item.type === "tv" ? "TV" : "家具"}</span>
+    </header>
     <TextField label="名前" value={item.name} onChange={(name) => updateFurniture(item.id, { name })} />
     <PlacementGuide
       project={project}

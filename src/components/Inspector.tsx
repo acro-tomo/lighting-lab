@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Project, Selection } from "../types";
+import type { InterFloorStructure, Project, Selection } from "../types";
 import { useProjectStore } from "../store/projectStore";
 import { ColorTempPresets } from "./inspector/ColorTempPresets";
 import { LightInspector, BulkLightInspector } from "./inspector/LightInspector";
@@ -8,6 +8,8 @@ import { WallInspector } from "./inspector/WallInspector";
 import { WindowInspector } from "./inspector/WindowInspector";
 import { VoidInspector } from "./inspector/VoidInspector";
 import { CeilingZoneInspector, FloorZoneInspector } from "./inspector/ZoneInspectors";
+import { NumberField } from "./inspector/fields";
+import { mToMm, mmToM } from "../utils/units";
 
 type InspectorProps = {
   project: Project;
@@ -39,6 +41,7 @@ export const Inspector = ({ project, selection, canEditWalls, onCloseMobileSetti
   const setAllWallsMaterial = useProjectStore((state) => state.setAllWallsMaterial);
   const select = useProjectStore((state) => state.select);
   const setFloorLevel = useProjectStore((state) => state.setFloorLevel);
+  const setInterFloorStructure = useProjectStore((state) => state.setInterFloorStructure);
   const [disclaimerOpen, setDisclaimerOpen] = useState(false);
 
   const selectedLightId =
@@ -64,6 +67,7 @@ export const Inspector = ({ project, selection, canEditWalls, onCloseMobileSetti
     selection?.kind === "floorZone"
       ? (project.floorZones ?? []).find((zone) => zone.id === selection.id)
       : undefined;
+  const interFloorStructure = project.room.interFloorStructure;
 
   const totalActiveLumens = project.lights.reduce((sum, light) => {
     return sum + ((light.enabled !== false) ? light.lumens * (light.dimmer ?? 100) * 0.01 : 0);
@@ -93,8 +97,8 @@ export const Inspector = ({ project, selection, canEditWalls, onCloseMobileSetti
         {!hasObjectSelection && (
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">Room settings</p>
-              <h2>部屋設定</h2>
+              <p className="eyebrow">Select a light first</p>
+              <h2>照明を選ぶ</h2>
             </div>
           </div>
         )}
@@ -145,7 +149,70 @@ export const Inspector = ({ project, selection, canEditWalls, onCloseMobileSetti
             </div>
           </section>
 
-          <section className="panel-block">
+          <section className="panel-block inspector-light-picker">
+            <div className="panel-heading compact">
+              <h2>照明一覧</h2>
+            </div>
+            <label className="field">
+              <span>選択して明るさ・色温度を調整</span>
+              <select
+                value=""
+                onChange={(event) => {
+                  const value = event.target.value;
+                  if (value) select({ kind: "light", id: value });
+                }}
+              >
+                <option value="">— 照明を選択 —</option>
+                {project.lights.map((light) => (
+                  <option key={light.id} value={light.id}>
+                    {light.name}（{light.enabled !== false ? `${Math.round(light.dimmer ?? 100)}%` : "OFF"}）
+                  </option>
+                ))}
+              </select>
+            </label>
+          </section>
+
+          <details className="room-settings-details">
+            <summary>部屋全体の設定 +</summary>
+            <div className="panel-heading compact">
+              <h2>階間床</h2>
+            </div>
+            <label className="field">
+              <span>構造</span>
+              <select
+                value={interFloorStructure?.kind ?? ""}
+                onChange={(event) => {
+                  const kind = event.target.value as InterFloorStructure["kind"];
+                  const thicknessM =
+                    kind === "wood"
+                      ? 0.24
+                      : kind === "rc"
+                        ? 0.2
+                        : interFloorStructure?.thicknessM ?? 0;
+                  setInterFloorStructure({ kind, thicknessM });
+                }}
+              >
+                <option value="" disabled>— 構造を選択 —</option>
+                <option value="wood">木造（初期 240mm）</option>
+                <option value="rc">RC（初期 200mm）</option>
+                <option value="custom">自由入力</option>
+              </select>
+            </label>
+            {interFloorStructure && (
+              <NumberField
+                label="階間床の厚さ"
+                unit="mm"
+                value={mToMm(interFloorStructure.thicknessM)}
+                min={0}
+                onChange={(value) =>
+                  setInterFloorStructure({
+                    ...interFloorStructure,
+                    thicknessM: mmToM(value)
+                  })
+                }
+              />
+            )}
+            <p className="field-hint">表示用の設定であり、構造計算には使用しません。</p>
             <div className="panel-heading compact">
               <h2>メインクロス（壁全体）</h2>
             </div>
@@ -165,11 +232,9 @@ export const Inspector = ({ project, selection, canEditWalls, onCloseMobileSetti
                 ))}
               </select>
             </label>
-          </section>
-
-          <section className="panel-block room-light-settings">
+            <section className="room-light-settings">
             <div className="panel-heading compact">
-              <h2>照明一覧</h2>
+              <h2>全照明を一括調整</h2>
             </div>
             <div className="room-wide-warning">
               <strong>部屋全体に適用</strong>
@@ -179,24 +244,8 @@ export const Inspector = ({ project, selection, canEditWalls, onCloseMobileSetti
               <span>全照明の色温度を一括変更</span>
               <ColorTempPresets value={NaN} onSelect={setAllColorTemperature} />
             </label>
-            <label className="field">
-              <span>照明を選択</span>
-              <select
-                value=""
-                onChange={(event) => {
-                  const value = event.target.value;
-                  if (value) select({ kind: "light", id: value });
-                }}
-              >
-                <option value="">— 照明を選択 —</option>
-                {project.lights.map((light) => (
-                  <option key={light.id} value={light.id}>
-                    {light.name}（{light.enabled !== false ? `${Math.round(light.dimmer ?? 100)}%` : "OFF"}）
-                  </option>
-                ))}
-              </select>
-            </label>
-          </section>
+            </section>
+          </details>
         </>
       )}
 

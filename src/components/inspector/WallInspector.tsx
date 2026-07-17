@@ -1,6 +1,6 @@
 import type { MaterialPreset, Project, WallSegment } from "../../types";
 import { mToMm, mmToM } from "../../utils/units";
-import { NumberField, TextField } from "./fields";
+import { AdvancedPositionDetails, NumberField, TextField } from "./fields";
 
 const readImageAsDataUrl = (file: File) =>
   new Promise<string>((resolve, reject) => {
@@ -23,17 +23,15 @@ export const WallInspector = ({
 }) => {
   const material = project.materials.find((item) => item.id === wall.materialId);
   const tile = material?.textureSizeM ?? { w: 0.92, h: 0.92 };
+  const lengthMm = Math.round(Math.hypot(wall.end.x - wall.start.x, wall.end.z - wall.start.z) * 1000);
   return (
   <div className="form-grid">
+    <header className="selection-inspector-heading">
+      <p>選択中の壁</p>
+      <h2>{wall.name}</h2>
+      <span>長さ {lengthMm.toLocaleString("ja-JP")}mm</span>
+    </header>
     <TextField label="名前" value={wall.name} onChange={(name) => updateWall(wall.id, { name })} />
-    <div className="field-row">
-      <NumberField label="始点X" unit="mm" value={mToMm(wall.start.x)} onChange={(value) => updateWall(wall.id, { start: { ...wall.start, x: mmToM(value) } })} />
-      <NumberField label="始点Z" unit="mm" value={mToMm(wall.start.z)} onChange={(value) => updateWall(wall.id, { start: { ...wall.start, z: mmToM(value) } })} />
-    </div>
-    <div className="field-row">
-      <NumberField label="終点X" unit="mm" value={mToMm(wall.end.x)} onChange={(value) => updateWall(wall.id, { end: { ...wall.end, x: mmToM(value) } })} />
-      <NumberField label="終点Z" unit="mm" value={mToMm(wall.end.z)} onChange={(value) => updateWall(wall.id, { end: { ...wall.end, z: mmToM(value) } })} />
-    </div>
     <div className="field-row">
       <NumberField label="厚み" unit="mm" value={mToMm(wall.thicknessM)} min={20} onChange={(value) => updateWall(wall.id, { thicknessM: mmToM(value) })} />
       <NumberField label="高さ" unit="mm" value={mToMm(wall.heightM)} min={100} onChange={(value) => updateWall(wall.id, { heightM: mmToM(value) })} />
@@ -84,6 +82,18 @@ export const WallInspector = ({
         ))}
       </select>
     </label>
+
+    <AdvancedPositionDetails>
+      <p className="field-hint">始終点は間取りのトレース調整用です。通常は壁の描画・ドラッグで編集します。</p>
+      <div className="field-row">
+        <NumberField label="始点X" unit="mm" value={mToMm(wall.start.x)} onChange={(value) => updateWall(wall.id, { start: { ...wall.start, x: mmToM(value) } })} />
+        <NumberField label="始点Z" unit="mm" value={mToMm(wall.start.z)} onChange={(value) => updateWall(wall.id, { start: { ...wall.start, z: mmToM(value) } })} />
+      </div>
+      <div className="field-row">
+        <NumberField label="終点X" unit="mm" value={mToMm(wall.end.x)} onChange={(value) => updateWall(wall.id, { end: { ...wall.end, x: mmToM(value) } })} />
+        <NumberField label="終点Z" unit="mm" value={mToMm(wall.end.z)} onChange={(value) => updateWall(wall.id, { end: { ...wall.end, z: mmToM(value) } })} />
+      </div>
+    </AdvancedPositionDetails>
 
     {material && (
       <section className="wallpaper-block">

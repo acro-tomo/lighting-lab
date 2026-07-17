@@ -30,7 +30,7 @@ export const EditToolbar = ({
         className={isPlanEditMode ? "tool plan-mode-button is-active" : "tool plan-mode-button"}
         onClick={() => onPlanEditModeChange(!isPlanEditMode)}
       >
-        間取り編集
+        {isPlanEditMode ? "間取り編集中" : "間取り編集"}
       </button>
 
       {isPlanEditMode && (
@@ -48,7 +48,7 @@ export const EditToolbar = ({
         className={pendingAdd ? "add-button is-active" : "add-button"}
         onClick={() => setMenuOpen(true)}
       >
-        ＋追加
+        {pendingAdd ? "配置中" : "＋追加"}
       </button>
 
       {menuOpen && <AddObjectMenu onClose={() => setMenuOpen(false)} onAdd={onAdd} />}

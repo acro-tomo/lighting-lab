@@ -205,8 +205,6 @@ export const App = () => {
           onImportFloorPlan={handleImportFloorPlan}
           onImportProject={handleImportProject}
           onExportProject={exportProject}
-          onToggleOutput={() => setOutputOpen((current) => !current)}
-          outputOpen={outputOpen}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           onShowIntro={() => setShowIntro(true)}
@@ -221,16 +219,16 @@ export const App = () => {
             onAdd={handleStartAdd}
             pendingAdd={pendingAdd}
           />
-          <span className="toolbar-hint">
+          <span className="toolbar-status-chip" aria-live="polite">
             {pendingAdd === "door" || pendingAdd?.startsWith("window") || isWallLightAddKind(pendingAdd)
-              ? "壁をクリックして設置（Escで終了）"
+              ? "壁を選択"
               : pendingAdd
-                ? "クリックした位置に配置"
+                ? "配置中"
                 : mode === "wall"
-                  ? "タップ、または押して引いて壁を作成。Enter/ダブルクリックで終了"
+                  ? "壁を描画中"
                   : planEditMode
-                    ? "壁を選択・ドラッグで移動。Deleteで削除"
-                    : "クリックで選択、選択後ドラッグで移動"}
+                    ? "間取り編集"
+                    : "選択・配置"}
           </span>
           <div className="floor-toggle" role="group" aria-label="階切替">
             <button
@@ -280,8 +278,7 @@ export const App = () => {
           <div className="viewport-toolbar">
             <div className="viewport-title">
               <div>
-                <p className="eyebrow">3D Preview</p>
-                <h2>3D Preview</h2>
+                <h2>3D</h2>
               </div>
               <button
                 type="button"
@@ -301,15 +298,24 @@ export const App = () => {
               {viewMode === "realistic" ? (
                 <strong>
                   {liveTrace.phase === "building"
-                    ? "BVH生成中…"
+                    ? "リアル準備中"
                     : liveTrace.phase === "converged"
-                      ? `間接光リアル描画 / ${liveTrace.samples} samples 収束済み`
-                      : `間接光リアル描画 / ${liveTrace.samples} samples 収束中`}
+                      ? `リアル ${liveTrace.samples} samples`
+                      : `リアル ${liveTrace.samples} samples`}
                 </strong>
               ) : (
-                <strong>編集プレビュー / 露出 {project.camera.exposure.toFixed(2)}</strong>
+                <strong>編集プレビュー</strong>
               )}
             </div>
+
+            <button
+              type="button"
+              className={outputOpen ? "output-toggle is-active" : "output-toggle"}
+              aria-expanded={outputOpen}
+              onClick={() => setOutputOpen((current) => !current)}
+            >
+              出力
+            </button>
 
             {(() => {
               const dl = project.daylight ?? DEFAULT_DAYLIGHT;
@@ -465,14 +471,14 @@ export const App = () => {
             className={mobileView === "plan" ? "is-active" : ""}
             onClick={() => openMobileView("plan")}
           >
-            2D
+            間取り
           </button>
           <button
             type="button"
             className={mobileView === "scene" ? "is-active" : ""}
             onClick={() => openMobileView("scene")}
           >
-            3D
+            3D表示
           </button>
         </nav>
         <button

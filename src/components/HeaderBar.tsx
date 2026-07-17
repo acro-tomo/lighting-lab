@@ -7,8 +7,6 @@ type HeaderBarProps = {
   onImportFloorPlan: (file: File) => void;
   onImportProject: (file: File) => void;
   onExportProject: () => void;
-  onToggleOutput: () => void;
-  outputOpen: boolean;
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
   onShowIntro: () => void;
@@ -19,8 +17,6 @@ export const HeaderBar = ({
   onImportFloorPlan,
   onImportProject,
   onExportProject,
-  onToggleOutput,
-  outputOpen,
   viewMode,
   onViewModeChange,
   onShowIntro
@@ -72,32 +68,39 @@ export const HeaderBar = ({
             event.currentTarget.value = "";
           }}
         />
-        <button onClick={() => { planInputRef.current?.click(); setMobileMenuOpen(false); }}>間取り図の読込</button>
-        <button onClick={() => { onExportProject(); setMobileMenuOpen(false); }}>プロジェクト保存</button>
-        <button onClick={() => { projectInputRef.current?.click(); setMobileMenuOpen(false); }}>プロジェクト読込</button>
-        <div className="view-mode-toggle" role="group" aria-label="表示モード">
-          <button
-            className={viewMode === "raster" ? "view-mode-btn is-active" : "view-mode-btn"}
-            onClick={() => { onViewModeChange("raster"); setMobileMenuOpen(false); }}
-            title="編集（高速ラスター）"
-          >
-            編集
-          </button>
-          <button
-            className={viewMode === "realistic" ? "view-mode-btn is-active" : "view-mode-btn"}
-            onClick={() => { onViewModeChange("realistic"); setMobileMenuOpen(false); }}
-            title="リアル（常駐パストレ）"
-          >
-            リアル
+        <div className="header-action-group" aria-label="ファイル操作">
+          <span>ファイル</span>
+          <div>
+            <button onClick={() => { planInputRef.current?.click(); setMobileMenuOpen(false); }}>間取り図を読む</button>
+            <button onClick={() => { projectInputRef.current?.click(); setMobileMenuOpen(false); }}>プロジェクトを読む</button>
+            <button onClick={() => { onExportProject(); setMobileMenuOpen(false); }}>保存</button>
+          </div>
+        </div>
+        <div className="header-action-group" aria-label="表示モード">
+          <span>表示</span>
+          <div className="view-mode-toggle" role="group" aria-label="表示モード">
+            <button
+              className={viewMode === "raster" ? "view-mode-btn is-active" : "view-mode-btn"}
+              onClick={() => { onViewModeChange("raster"); setMobileMenuOpen(false); }}
+              title="編集（高速ラスター）"
+            >
+              編集
+            </button>
+            <button
+              className={viewMode === "realistic" ? "view-mode-btn is-active" : "view-mode-btn"}
+              onClick={() => { onViewModeChange("realistic"); setMobileMenuOpen(false); }}
+              title="リアル（常駐パストレ）"
+            >
+              リアル
+            </button>
+          </div>
+        </div>
+        <div className="header-action-group header-help-group" aria-label="ヘルプ">
+          <span>ヘルプ</span>
+          <button className="intro-help-btn" onClick={() => { onShowIntro(); setMobileMenuOpen(false); }} title="使い方を見る" aria-label="使い方を見る">
+            使い方
           </button>
         </div>
-        {/* レンダリング(パストレ)は普段使わないため出力ポップオーバーに集約（要望: PathTracer邪魔）。 */}
-        <button className={outputOpen ? "primary-action is-active" : "primary-action"} onClick={() => { onToggleOutput(); setMobileMenuOpen(false); }}>
-          出力 / レンダリング
-        </button>
-        <button className="intro-help-btn" onClick={() => { onShowIntro(); setMobileMenuOpen(false); }} title="使い方を見る" aria-label="使い方を見る">
-          ?
-        </button>
       </nav>
     </header>
   );

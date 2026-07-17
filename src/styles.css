@@ -144,6 +144,35 @@ h2 {
   gap: 8px;
 }
 
+.header-action-group {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.header-action-group > span {
+  color: #8f8779;
+  font-size: 10px;
+  font-weight: 760;
+  letter-spacing: 0.08em;
+}
+
+.header-action-group > div {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.header-action-group + .header-action-group {
+  padding-left: 9px;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.header-help-group .intro-help-btn {
+  min-width: 58px;
+  white-space: nowrap;
+}
+
 .mobile-menu-button {
   display: none;
 }
@@ -184,6 +213,31 @@ h2 {
   /* 右(インスペクタ)を狭め、中央の3Dを最優先で広げる（要望: 右は1列分でいい・3Dを大きく）。 */
   grid-template-columns: 300px minmax(560px, 1fr) 288px;
   min-height: 0;
+}
+
+@media (min-width: 900px) and (max-width: 1179px) {
+  html,
+  body,
+  #app {
+    min-width: 900px;
+  }
+
+  .workspace {
+    grid-template-columns: minmax(230px, 0.8fr) minmax(360px, 1.4fr) minmax(240px, 0.8fr);
+  }
+
+  .plan-panel,
+  .inspector-panel {
+    padding: 12px;
+  }
+
+  .header-actions {
+    gap: 5px;
+  }
+
+  .header-action-group > span {
+    display: none;
+  }
 }
 
 /* 3D集中表示: 左右パネルを畳み、3Dビューを横長に最大化する。
@@ -250,6 +304,7 @@ h2 {
 .viewport-panel {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
+  position: relative;
   /* ツールバーのポップオーバー(日光など)が下のシーンへはみ出せるよう visible にし、
      キャンバスのはみ出しは scene-stage 側で clip する。 */
   overflow: visible;
@@ -307,9 +362,31 @@ h2 {
   color: #fff6d9;
 }
 
-.toolbar-hint {
-  color: #8f8779;
+.output-toggle {
+  min-height: 32px;
+  border: 1px solid rgba(245, 198, 77, 0.5);
+  border-radius: 7px;
+  padding: 6px 10px;
+  color: #fff5cc;
+  background: rgba(245, 198, 77, 0.1);
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.output-toggle:hover,
+.output-toggle.is-active {
+  background: rgba(245, 198, 77, 0.2);
+}
+
+.toolbar-status-chip {
+  flex: 0 0 auto;
+  border: 1px solid rgba(245, 198, 77, 0.22);
+  border-radius: 999px;
+  padding: 5px 9px;
+  color: #d9ccaf;
+  background: rgba(245, 198, 77, 0.06);
   font-size: 11px;
+  font-weight: 700;
 }
 
 .render-message {
@@ -1428,7 +1505,7 @@ h2 {
   background: rgba(245, 198, 77, 0.18);
 }
 
-@media (max-width: 1280px) {
+@media (min-width: 1180px) and (max-width: 1280px) {
   .workspace {
     grid-template-columns: 280px minmax(460px, 1fr) 268px;
   }
@@ -1473,6 +1550,10 @@ h2 {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.plan-mode-button {
+  font-weight: 700;
 }
 
 .edit-toolbar-mode {
@@ -1838,6 +1919,34 @@ h2 {
   font-size: 13px;
 }
 
+.selection-inspector-heading {
+  display: grid;
+  gap: 3px;
+  padding-bottom: 2px;
+}
+
+.selection-inspector-heading p,
+.selection-inspector-heading h2,
+.selection-inspector-heading span {
+  margin: 0;
+}
+
+.selection-inspector-heading p {
+  color: #8f8779;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.selection-inspector-heading h2 {
+  color: #fff7da;
+  font-size: 18px;
+}
+
+.selection-inspector-heading span {
+  color: #cfc7b8;
+  font-size: 13px;
+}
+
 .light-status {
   color: #8f8779;
   font-size: 11px;
@@ -1986,11 +2095,11 @@ h2 {
   min-width: 28px;
 }
 
-/* 出力 / レンダリング ポップオーバー（ヘッダー下に固定表示） */
+/* 出力 / レンダリング ポップオーバー（3Dツールバーの直下） */
 .output-popover {
-  position: fixed;
-  top: 80px;
-  right: 18px;
+  position: absolute;
+  top: 58px;
+  right: 16px;
   z-index: 55;
   display: flex;
   flex-direction: column;
@@ -2080,6 +2189,38 @@ h2 {
 .floor-hint {
   color: #b8a96a;
   font-size: 11px;
+}
+
+.room-settings-details {
+  display: grid;
+  gap: 12px;
+  padding: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.room-settings-details summary {
+  color: #cfc7b8;
+  font-size: 12px;
+  font-weight: 760;
+  cursor: pointer;
+  list-style: none;
+}
+
+.room-settings-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.room-settings-details[open] summary {
+  color: #f5c64d;
+}
+
+.room-light-settings {
+  display: grid;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .mobile-edit-actions,
@@ -2536,6 +2677,41 @@ h2 {
     font-size: 11px;
   }
 
+  .header-action-group {
+    display: grid;
+    gap: 5px;
+  }
+
+  .header-action-group > span {
+    color: #8f8779;
+    font-size: 10px;
+  }
+
+  .header-action-group > div {
+    width: 100%;
+  }
+
+  .header-action-group > div:not(.view-mode-toggle) {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .header-action-group + .header-action-group {
+    padding-top: 7px;
+    padding-left: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-left: 0;
+  }
+
+  .header-help-group {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+  }
+
+  .header-help-group .intro-help-btn {
+    width: 100%;
+  }
+
   .view-mode-toggle {
     width: 100%;
   }
@@ -2556,7 +2732,7 @@ h2 {
     background: transparent;
   }
 
-  .toolbar-hint,
+  .toolbar-status-chip,
   .floor-hint {
     display: none;
   }
@@ -2571,6 +2747,13 @@ h2 {
   .add-button,
   .floor-toggle-btn {
     min-height: 36px;
+  }
+
+  .edit-toolbar .tool,
+  .add-button {
+    padding-right: 9px;
+    padding-left: 9px;
+    font-size: 11px;
   }
 
   .floor-toggle {
@@ -2785,6 +2968,12 @@ h2 {
     white-space: nowrap;
   }
 
+  .output-toggle {
+    min-height: 32px;
+    padding: 6px 9px;
+    font-size: 11px;
+  }
+
   .render-status {
     flex: 0 0 auto;
     min-width: 0;
@@ -2823,6 +3012,7 @@ h2 {
   }
 
   .output-popover {
+    position: fixed;
     top: auto;
     right: 10px;
     bottom: calc(58px + env(safe-area-inset-bottom));
