@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useI18n } from "../i18n";
 import { AddObjectMenu } from "./editToolbar/AddObjectMenu";
 import type { EditMode } from "./editToolbar/types";
 
@@ -21,6 +22,7 @@ export const EditToolbar = ({
   onAdd,
   pendingAdd
 }: EditToolbarProps) => {
+  const { t } = useI18n();
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -30,7 +32,7 @@ export const EditToolbar = ({
         className={isPlanEditMode ? "tool plan-mode-button is-active" : "tool plan-mode-button"}
         onClick={() => onPlanEditModeChange(!isPlanEditMode)}
       >
-        間取り編集
+        {t("間取り編集")}
       </button>
 
       {isPlanEditMode && (
@@ -39,7 +41,7 @@ export const EditToolbar = ({
           className={mode === "wall" ? "tool wall-draw-button is-active" : "tool wall-draw-button"}
           onClick={() => onModeChange(mode === "wall" ? "select" : "wall")}
         >
-          壁を引く
+          {t("壁を引く")}
         </button>
       )}
 
@@ -48,7 +50,7 @@ export const EditToolbar = ({
         className={pendingAdd ? "add-button is-active" : "add-button"}
         onClick={() => setMenuOpen(true)}
       >
-        ＋追加
+        {t("＋追加")}
       </button>
 
       {menuOpen && <AddObjectMenu onClose={() => setMenuOpen(false)} onAdd={onAdd} />}

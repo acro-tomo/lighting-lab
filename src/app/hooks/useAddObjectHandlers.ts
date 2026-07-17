@@ -22,6 +22,7 @@ import { getWindowPreset } from "../../data/windowCatalog";
 import { ceilingMountHeightAt } from "../../utils/ceiling";
 import { wallMountedLightPlacementOnSurface } from "../../utils/fixtureMounting";
 import type { CeilingZone, FloorZone, FurnitureItem, LightFixture, Project, VoidArea, WindowOpening } from "../../types";
+import { useI18n } from "../../i18n";
 
 // 配置情報。床に置く物は at(x,z)、壁に付く物(窓/扉)は wallId+centerRatio を使う。
 type PlaceOpts = { at?: { x: number; z: number }; wallId?: string; centerRatio?: number };
@@ -58,6 +59,7 @@ export const useAddObjectHandlers = ({
   setMode: (mode: EditMode) => void;
   setNotice: (notice: string) => void;
 }) => {
+  const { t } = useI18n();
   const handleAddObject = useCallback(
     (kind: string, opts: PlaceOpts = {}) => {
       const { at, wallId, centerRatio } = opts;
@@ -128,7 +130,7 @@ export const useAddObjectHandlers = ({
     let nextKind = kind;
     if (kind === "ceilingZone") {
       const defaultHeightMm = Math.round((project.room.ceilingHeightM - 0.3) * 1000);
-      const input = window.prompt("下げ天井の下端高さをmmで入力してください。", String(defaultHeightMm));
+      const input = window.prompt(t("下げ天井の下端高さをmmで入力してください。"), String(defaultHeightMm));
       const lowerHeightM = input === null ? NaN : Number(input) / 1000;
       if (Number.isFinite(lowerHeightM) && lowerHeightM > 1.6 && lowerHeightM < project.room.ceilingHeightM) {
         nextKind = `ceilingZone:${project.room.ceilingHeightM - lowerHeightM}`;
@@ -138,12 +140,12 @@ export const useAddObjectHandlers = ({
     setMode("select");
     setNotice(
       nextKind === "door" || nextKind.startsWith("window") || isWallLightAddKind(nextKind)
-        ? "設置したい壁をクリックしてください。Escで終了。"
+        ? t("設置したい壁をクリックしてください。Escで終了。")
         : isLightAddKind(nextKind)
-          ? "配置したい位置をクリックしてください。配置後は選択してCmd+C / Cmd+Vで複製できます。"
-          : "配置したい位置をクリックしてください。"
+          ? t("配置したい位置をクリックしてください。配置後は選択してCmd+C / Cmd+Vで複製できます。")
+          : t("配置したい位置をクリックしてください。")
     );
-  }, [project.room.ceilingHeightM, setMode, setNotice, setPendingAdd]);
+  }, [project.room.ceilingHeightM, setMode, setNotice, setPendingAdd, t]);
 
   // 床に置く物の配置（クリック位置）。連続配置はせず、複製はCmd+C / Cmd+Vに寄せる。
   const handlePlaceObject = useCallback(
@@ -154,11 +156,11 @@ export const useAddObjectHandlers = ({
       setMode("select");
       setNotice(
         isLightAddKind(pendingAdd)
-          ? "配置しました。選択してCmd+C / Cmd+Vで複製できます。"
-          : "配置しました。選択後にドラッグで微調整できます。"
+          ? t("配置しました。選択してCmd+C / Cmd+Vで複製できます。")
+          : t("配置しました。選択後にドラッグで微調整できます。")
       );
     },
-    [pendingAdd, handleAddObject, setMode, setNotice, setPendingAdd]
+    [pendingAdd, handleAddObject, setMode, setNotice, setPendingAdd, t]
   );
 
   // 壁に付く物(窓/扉/壁付スポット)の配置。Plan2D がクリック点を最寄り壁へ射影して渡す。
@@ -184,15 +186,15 @@ export const useAddObjectHandlers = ({
         }
         setPendingAdd(null);
         setMode("select");
-        setNotice("壁に設置しました。選択してCmd+C / Cmd+Vで複製できます。");
+        setNotice(t("壁に設置しました。選択してCmd+C / Cmd+Vで複製できます。"));
         return;
       }
       handleAddObject(pendingAdd, { wallId, centerRatio });
       setPendingAdd(null);
       setMode("select");
-      setNotice("壁に設置しました。選択後に壁上をドラッグして位置を調整できます。");
+      setNotice(t("壁に設置しました。選択後に壁上をドラッグして位置を調整できます。"));
     },
-    [pendingAdd, handleAddObject, addLight, project, setMode, setNotice, setPendingAdd]
+    [pendingAdd, handleAddObject, addLight, project, setMode, setNotice, setPendingAdd, t]
   );
 
   return { handleAddObject, handleStartAdd, handlePlaceObject, handlePlaceOnWall };

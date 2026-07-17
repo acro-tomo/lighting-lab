@@ -1,6 +1,7 @@
 import type { MaterialPreset, Project, WallSegment } from "../../types";
 import { mToMm, mmToM } from "../../utils/units";
 import { NumberField, TextField } from "./fields";
+import { useI18n } from "../../i18n";
 
 const readImageAsDataUrl = (file: File) =>
   new Promise<string>((resolve, reject) => {
@@ -21,25 +22,26 @@ export const WallInspector = ({
   updateWall: (id: string, patch: Partial<WallSegment>) => void;
   updateMaterial: (id: string, patch: Partial<MaterialPreset>) => void;
 }) => {
+  const { t } = useI18n();
   const material = project.materials.find((item) => item.id === wall.materialId);
   const tile = material?.textureSizeM ?? { w: 0.92, h: 0.92 };
   return (
   <div className="form-grid">
-    <TextField label="名前" value={wall.name} onChange={(name) => updateWall(wall.id, { name })} />
+    <TextField label={t("名前")} value={wall.name} onChange={(name) => updateWall(wall.id, { name })} />
     <div className="field-row">
-      <NumberField label="始点X" unit="mm" value={mToMm(wall.start.x)} onChange={(value) => updateWall(wall.id, { start: { ...wall.start, x: mmToM(value) } })} />
-      <NumberField label="始点Z" unit="mm" value={mToMm(wall.start.z)} onChange={(value) => updateWall(wall.id, { start: { ...wall.start, z: mmToM(value) } })} />
+      <NumberField label={t("始点X")} unit="mm" value={mToMm(wall.start.x)} onChange={(value) => updateWall(wall.id, { start: { ...wall.start, x: mmToM(value) } })} />
+      <NumberField label={t("始点Z")} unit="mm" value={mToMm(wall.start.z)} onChange={(value) => updateWall(wall.id, { start: { ...wall.start, z: mmToM(value) } })} />
     </div>
     <div className="field-row">
-      <NumberField label="終点X" unit="mm" value={mToMm(wall.end.x)} onChange={(value) => updateWall(wall.id, { end: { ...wall.end, x: mmToM(value) } })} />
-      <NumberField label="終点Z" unit="mm" value={mToMm(wall.end.z)} onChange={(value) => updateWall(wall.id, { end: { ...wall.end, z: mmToM(value) } })} />
+      <NumberField label={t("終点X")} unit="mm" value={mToMm(wall.end.x)} onChange={(value) => updateWall(wall.id, { end: { ...wall.end, x: mmToM(value) } })} />
+      <NumberField label={t("終点Z")} unit="mm" value={mToMm(wall.end.z)} onChange={(value) => updateWall(wall.id, { end: { ...wall.end, z: mmToM(value) } })} />
     </div>
     <div className="field-row">
-      <NumberField label="厚み" unit="mm" value={mToMm(wall.thicknessM)} min={20} onChange={(value) => updateWall(wall.id, { thicknessM: mmToM(value) })} />
-      <NumberField label="高さ" unit="mm" value={mToMm(wall.heightM)} min={100} onChange={(value) => updateWall(wall.id, { heightM: mmToM(value) })} />
+      <NumberField label={t("厚み")} unit="mm" value={mToMm(wall.thicknessM)} min={20} onChange={(value) => updateWall(wall.id, { thicknessM: mmToM(value) })} />
+      <NumberField label={t("高さ")} unit="mm" value={mToMm(wall.heightM)} min={100} onChange={(value) => updateWall(wall.id, { heightM: mmToM(value) })} />
     </div>
     <label className="field">
-      <span>種別</span>
+      <span>{t("種別")}</span>
       <select
         value={wall.kind ?? "wall"}
         onChange={(event) => {
@@ -50,14 +52,14 @@ export const WallInspector = ({
           else updateWall(wall.id, { kind: "wall", heightM: project.room.ceilingHeightM });
         }}
       >
-        <option value="wall">通常壁</option>
-        <option value="half">腰壁</option>
-        <option value="railing">手すり</option>
+        <option value="wall">{t("通常壁")}</option>
+        <option value="half">{t("腰壁")}</option>
+        <option value="railing">{t("手すり")}</option>
       </select>
-      <p className="field-hint">腰壁/手すりは吹き抜けまわりの表現に使えます。高さは上の欄で微調整可。</p>
+      <p className="field-hint">{t("腰壁/手すりは吹き抜けまわりの表現に使えます。高さは上の欄で微調整可。")}</p>
     </label>
     <label className="field">
-      <span>内側方向</span>
+      <span>{t("内側方向")}</span>
       <select
         value={wall.innerSide ?? "center"}
         onChange={(event) => {
@@ -65,21 +67,21 @@ export const WallInspector = ({
           updateWall(wall.id, { innerSide: v === "center" ? undefined : (v as "left" | "right") });
         }}
       >
-        <option value="center">中央（既定）</option>
-        <option value="left">左（start→end向きで左）</option>
-        <option value="right">右（start→end向きで右）</option>
+        <option value="center">{t("中央（既定）")}</option>
+        <option value="left">{t("左（start→end向きで左）")}</option>
+        <option value="right">{t("右（start→end向きで右）")}</option>
       </select>
-      <p className="field-hint">start→endへ向かって室内側がどちらか。背景間取り図の内壁線にトレース線を合わせるとき使う</p>
+      <p className="field-hint">{t("start→endへ向かって室内側がどちらか。背景間取り図の内壁線にトレース線を合わせるとき使う")}</p>
     </label>
     <label className="field">
-      <span>素材</span>
+      <span>{t("素材")}</span>
       <select
         value={wall.materialId}
         onChange={(event) => updateWall(wall.id, { materialId: event.target.value })}
       >
         {project.materials.map((item) => (
           <option key={item.id} value={item.id}>
-            {item.name}
+            {t(item.name)}
           </option>
         ))}
       </select>
@@ -87,9 +89,9 @@ export const WallInspector = ({
 
     {material && (
       <section className="wallpaper-block">
-        <p className="field-hint">壁紙はこの素材「{material.name}」を使う全ての壁に反映されます。</p>
+        <p className="field-hint">{t("壁紙はこの素材「{name}」を使う全ての壁に反映されます。", { name: t(material.name) })}</p>
         <label className="field">
-          <span>壁紙画像</span>
+          <span>{t("壁紙画像")}</span>
           <input
             type="file"
             accept="image/png,image/jpeg,image/webp"
@@ -108,14 +110,14 @@ export const WallInspector = ({
         {material.textureDataUrl && (
           <>
             <div className="wallpaper-preview">
-              <img src={material.textureDataUrl} alt="壁紙プレビュー" />
+              <img src={material.textureDataUrl} alt={t("壁紙プレビュー")} />
             </div>
             <div className="field-row">
-              <NumberField label="柄の幅" unit="mm" value={mToMm(tile.w)} min={50} onChange={(value) => updateMaterial(material.id, { textureSizeM: { w: mmToM(value), h: tile.h } })} />
-              <NumberField label="柄の高さ" unit="mm" value={mToMm(tile.h)} min={50} onChange={(value) => updateMaterial(material.id, { textureSizeM: { w: tile.w, h: mmToM(value) } })} />
+              <NumberField label={t("柄の幅")} unit="mm" value={mToMm(tile.w)} min={50} onChange={(value) => updateMaterial(material.id, { textureSizeM: { w: mmToM(value), h: tile.h } })} />
+              <NumberField label={t("柄の高さ")} unit="mm" value={mToMm(tile.h)} min={50} onChange={(value) => updateMaterial(material.id, { textureSizeM: { w: tile.w, h: mmToM(value) } })} />
             </div>
             <button className="ghost-button" onClick={() => updateMaterial(material.id, { textureDataUrl: undefined })}>
-              壁紙を外す
+              {t("壁紙を外す")}
             </button>
           </>
         )}

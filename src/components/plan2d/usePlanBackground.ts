@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FloorPlanBackground, Project, Vec2M } from "../../types";
 import type { ContentBox, PlanSize } from "./types";
+import { useI18n } from "../../i18n";
 
 // 背景画像レイヤ: 縮尺未設定時のフィット配置(defaultPlacement)、2階の背景合わせモード、
 // 縮尺キャリブレーション(画像px2点+実距離mm→placement)、描画用transform(bgRender)。
@@ -27,6 +28,7 @@ export const usePlanBackground = ({
   worldToSvg: (point: Vec2M) => { x: number; y: number };
   setBackgroundPlan: (backgroundPlan: FloorPlanBackground) => void;
 }) => {
+  const { language, t } = useI18n();
   const [scaleModalOpen, setScaleModalOpen] = useState(false);
   const [backgroundAlignMode, setBackgroundAlignMode] = useState(false);
   const canAlignBackground = activeFloor === 2 && Boolean(activeBackground);
@@ -149,12 +151,12 @@ export const usePlanBackground = ({
   }, [bgNaturalSize, placement, planSize.pxPerM, contentBox]);
 
   const scaleLabel = activeBackground?.alignmentPending
-    ? "1階基準で仮合わせ（要確認）"
+    ? t("1階基準で仮合わせ（要確認）")
     : activeBackground?.scale
-    ? `実寸合わせ済み（${Math.round(activeBackground.scale.millimeters).toLocaleString("ja-JP")}mm基準）`
+    ? t("実寸合わせ済み（{millimeters}mm基準）", { millimeters: Math.round(activeBackground.scale.millimeters).toLocaleString(language === "ja" ? "ja-JP" : "en-US") })
     : activeBackground
-    ? "縮尺未設定（フィット表示）"
-    : "背景なし";
+    ? t("縮尺未設定（フィット表示）")
+    : t("背景なし");
 
   return {
     scaleModalOpen,

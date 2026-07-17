@@ -16,7 +16,12 @@ const browser = await chromium.launch({
   headless,
   args: ["--use-gl=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist", "--disable-dev-shm-usage"]
 });
-const page = await browser.newPage({ viewport: { width: 1440, height: 960 }, deviceScaleFactor: 1 });
+const page = await browser.newPage({
+  viewport: { width: 1440, height: 960 },
+  deviceScaleFactor: 1,
+  // この回帰チェックは日本語の操作ラベルを対象にする。
+  locale: "ja-JP"
+});
 
 page.on("console", (message) => {
   if (message.type() === "error") {
@@ -35,7 +40,8 @@ page.on("response", (response) => {
   }
 });
 
-await page.goto(url, { waitUntil: "networkidle" });
+// Worker / 3D renderer が常駐するため networkidle を待たず、後続の canvas 待機で起動完了を確認する。
+await page.goto(url, { waitUntil: "domcontentloaded" });
 try {
   await page.locator("canvas").first().waitFor({ state: "attached", timeout: canvasTimeoutMs });
 } catch (error) {

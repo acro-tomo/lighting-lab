@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useProjectStore } from "../../store/projectStore";
 import type { Selection } from "../../types";
+import { useI18n } from "../../i18n";
 
 // Cmd/Ctrl+Z(Shift)/C/V、Esc、Delete/Backspaceの全体キーボードショートカット。
 export const useKeyboardShortcuts = ({
@@ -26,6 +27,7 @@ export const useKeyboardShortcuts = ({
   setNotice: (notice: string) => void;
   planEditMode: boolean;
 }) => {
+  const { t } = useI18n();
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z" && event.shiftKey) {
@@ -51,7 +53,7 @@ export const useKeyboardShortcuts = ({
         // 配置待ち中は Esc で配置モードを終了し、選択もクリアする。
         if (pendingAdd) {
           setPendingAdd(null);
-          setNotice("配置を終了しました。");
+          setNotice(t("配置を終了しました。"));
         }
         select(null);
       } else if (event.key === "Delete" || event.key === "Backspace") {
@@ -68,5 +70,5 @@ export const useKeyboardShortcuts = ({
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [copySelection, deleteSelection, pasteSelection, pendingAdd, planEditMode, redo, select, setNotice, setPendingAdd, undo]);
+  }, [copySelection, deleteSelection, pasteSelection, pendingAdd, planEditMode, redo, select, setNotice, setPendingAdd, t, undo]);
 };

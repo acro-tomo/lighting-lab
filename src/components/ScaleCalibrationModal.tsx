@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useI18n } from "../i18n";
 
 type Pixel = { x: number; y: number };
 type Orientation = "horizontal" | "vertical";
@@ -31,6 +32,7 @@ export const ScaleCalibrationModal = ({
   onConfirm,
   onCancel
 }: ScaleCalibrationModalProps) => {
+  const { t } = useI18n();
   const stageRef = useRef<HTMLDivElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const dragRef = useRef<DragState>(null);
@@ -256,12 +258,12 @@ export const ScaleCalibrationModal = ({
   };
 
   return (
-    <div className="scale-modal-backdrop" role="dialog" aria-modal="true" aria-label="縮尺合わせ">
+    <div className="scale-modal-backdrop" role="dialog" aria-modal="true" aria-label={t("縮尺合わせ")}>
       <div className="scale-modal">
         <div className="scale-modal-header">
-          <h2>縮尺合わせ</h2>
+          <h2>{t("縮尺合わせ")}</h2>
           <p className="scale-modal-help">
-            実距離を入力し、表示された線に間取り図の同じ長さの部分を合わせてください。画像はドラッグ、二本指ピンチで調整できます。
+            {t("実距離を入力し、表示された線に間取り図の同じ長さの部分を合わせてください。画像はドラッグ、二本指ピンチで調整できます。")}
           </p>
         </div>
 
@@ -281,7 +283,7 @@ export const ScaleCalibrationModal = ({
             <img
               ref={imageRef}
               src={imageUrl}
-              alt="間取り図"
+              alt={t("間取り図")}
               className="scale-modal-image"
               style={{
                 width: naturalSize.width,
@@ -313,7 +315,7 @@ export const ScaleCalibrationModal = ({
                     className="scale-modal-guide-label"
                     textAnchor="middle"
                   >
-                    {Number.isFinite(mm) && mm > 0 ? `${Math.round(mm).toLocaleString("ja-JP")}mm` : "実距離"}
+                    {Number.isFinite(mm) && mm > 0 ? `${Math.round(mm).toLocaleString("ja-JP")}mm` : t("実距離")}
                   </text>
                 </>
               )}
@@ -323,7 +325,7 @@ export const ScaleCalibrationModal = ({
 
         <div className="scale-modal-controls">
           <label className="scale-modal-field">
-            実距離 (mm)
+            {t("実距離")} (mm)
             <input
               type="number"
               min={1}
@@ -331,24 +333,24 @@ export const ScaleCalibrationModal = ({
               onChange={(event) => setMillimeters(event.target.value)}
             />
           </label>
-          <div className="scale-modal-toggle" role="group" aria-label="ガイド線の向き">
+          <div className="scale-modal-toggle" role="group" aria-label={t("ガイド線の向き")}>
             <button
               type="button"
               className={orientation === "horizontal" ? "is-active" : ""}
               onClick={() => setOrientation("horizontal")}
             >
-              横
+              {t("横")}
             </button>
             <button
               type="button"
               className={orientation === "vertical" ? "is-active" : ""}
               onClick={() => setOrientation("vertical")}
             >
-              縦
+              {t("縦")}
             </button>
           </div>
           <label className="scale-modal-field scale-modal-zoom">
-            画像倍率
+            {t("画像倍率")}
             <input
               type="range"
               min={0.25}
@@ -364,15 +366,15 @@ export const ScaleCalibrationModal = ({
             />
           </label>
           <span className="scale-modal-status">
-            {referenceWithinImage ? `画像上 ${Math.round(referencePixels)}px` : "線が画像から外れています"}
+            {referenceWithinImage ? `${t("画像上")} ${Math.round(referencePixels)}px` : t("線が画像から外れています")}
           </span>
           <div className="scale-modal-actions">
             <button onClick={resetImageTransform}>
-              リセット
+              {t("リセット")}
             </button>
-            <button onClick={onCancel}>キャンセル</button>
+            <button onClick={onCancel}>{t("キャンセル")}</button>
             <button className="primary" onClick={handleConfirm} disabled={!canConfirm}>
-              確定
+              {t("確定")}
             </button>
           </div>
         </div>

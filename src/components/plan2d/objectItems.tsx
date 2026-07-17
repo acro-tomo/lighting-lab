@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import type { FurnitureItem, LightFixture, Project, Selection, Vec2M } from "../../types";
+import { useI18n } from "../../i18n";
 import { TOUCH_TAP_MAX_MOVE_PX } from "./constants";
 import type { ResizeEdge, ResizeKind } from "./types";
 
@@ -25,6 +26,7 @@ export const FurniturePlanItem = ({
   svgToWorld: (clientX: number, clientY: number) => Vec2M;
   canDrag: boolean;
 }) => {
+  const { t } = useI18n();
   const center = worldToSvg({ x: item.position.x, z: item.position.z });
   const width = item.size.x * planSize.pxPerM;
   const depth = item.size.z * planSize.pxPerM;
@@ -58,7 +60,7 @@ export const FurniturePlanItem = ({
         <rect x={-width / 2} y={-depth / 2} width={width} height={depth} rx="8" />
       )}
       <text x={-width / 2 + 6} y={-depth / 2 - 8} className="plan-label">
-        {item.name}
+        {t(item.name)}
       </text>
     </g>
   );
@@ -87,6 +89,7 @@ export const LightPlanItem = ({
   svgToWorld: (clientX: number, clientY: number) => Vec2M;
   canDrag: boolean;
 }) => {
+  const { t } = useI18n();
   const center = worldToSvg({ x: fixture.position.x, z: fixture.position.z });
   const target = fixture.target ? worldToSvg({ x: fixture.target.x, z: fixture.target.z }) : null;
   const radius = fixture.type === "downlight" ? (selected ? 6 : 4) : (selected ? 11 : 8);
@@ -138,7 +141,7 @@ export const LightPlanItem = ({
       {target && <line x1={center.x} y1={center.y} x2={target.x} y2={target.y} className="plan-aim-line" />}
       <circle cx={center.x} cy={center.y} r={radius} />
       <text x={center.x + radius + 5} y={center.y - radius - 2} className="plan-label">
-        {fixture.name}
+        {t(fixture.name)}
       </text>
     </g>
   );

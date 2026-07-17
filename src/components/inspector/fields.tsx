@@ -1,4 +1,5 @@
 import type { ChangeEvent, ReactNode } from "react";
+import { useI18n } from "../../i18n";
 
 export const NumberField = ({
   label,
@@ -52,9 +53,10 @@ export const TextField = ({
   </label>
 );
 
-export const AdvancedPositionDetails = ({ children }: { children: ReactNode }) => (
-  <details className="advanced-position-details">
-    <summary>詳細 +</summary>
+export const AdvancedPositionDetails = ({ children }: { children: ReactNode }) => {
+  const { t } = useI18n();
+  return <details className="advanced-position-details">
+    <summary>{t("詳細 +")}</summary>
     <div className="advanced-position-fields">{children}</div>
-  </details>
-);
+  </details>;
+};

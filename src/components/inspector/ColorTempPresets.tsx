@@ -13,17 +13,18 @@ export const ColorTempPresets = ({
   value: number;
   onSelect: (kelvin: number) => void;
 }) => (
-  <div className="chip-row">
+  <ColorTempPresetButtons value={value} onSelect={onSelect} />
+);
+
+const ColorTempPresetButtons = ({ value, onSelect }: { value: number; onSelect: (kelvin: number) => void }) => {
+  const { t } = useI18n();
+  return <div className="chip-row">
     {colorTempPresets.map((preset) => (
-      <button
-        key={preset.kelvin}
-        type="button"
-        className={Math.abs(value - preset.kelvin) <= 100 ? "chip is-active" : "chip"}
-        onClick={() => onSelect(preset.kelvin)}
-      >
-        {preset.label}
+      <button key={preset.kelvin} type="button" className={Math.abs(value - preset.kelvin) <= 100 ? "chip is-active" : "chip"} onClick={() => onSelect(preset.kelvin)}>
+        {t(preset.label)}
         <span>{preset.kelvin}K</span>
       </button>
     ))}
-  </div>
-);
+  </div>;
+};
+import { useI18n } from "../../i18n";

@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import { useLuxLabStore } from "../../utils/luxLab";
+import { useI18n } from "../../i18n";
 
 // 照度ヒートマップ（?lux=1 隠し機能）の HUD パネル。3Dビューポート
 // （.scene-stage, position:relative）内に絶対配置する DOM overlay。
@@ -47,6 +48,7 @@ const formatLx = (value: number): string =>
   value >= 100 ? Math.round(value).toString() : value.toFixed(1);
 
 export const LuxPanel = () => {
+  const { t } = useI18n();
   const visible = useLuxLabStore((state) => state.visible);
   const heightM = useLuxLabStore((state) => state.heightM);
   const scaleMax = useLuxLabStore((state) => state.scaleMax);
@@ -60,19 +62,19 @@ export const LuxPanel = () => {
   return (
     <div style={panelStyle}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <strong style={{ fontSize: 12 }}>照度ヒートマップ</strong>
+        <strong style={{ fontSize: 12 }}>{t("照度ヒートマップ")}</strong>
         <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
           <input
             type="checkbox"
             checked={visible}
             onChange={(event) => setVisible(event.target.checked)}
           />
-          表示
+          {t("表示")}
         </label>
       </div>
 
       <div style={rowStyle}>
-        <span>計算面高さ</span>
+        <span>{t("計算面高さ")}</span>
         <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
           <input
             type="number"
@@ -91,7 +93,7 @@ export const LuxPanel = () => {
       </div>
 
       <div style={rowStyle}>
-        <span>スケール</span>
+        <span>{t("スケール")}</span>
         <span style={{ display: "flex", gap: 4, flex: 1, maxWidth: 130 }}>
           <button type="button" style={scaleButtonStyle(scaleMax === 300)} onClick={() => setScaleMax(300)}>
             0-300
@@ -114,42 +116,42 @@ export const LuxPanel = () => {
       </div>
 
       <div style={rowStyle}>
-        <span>間接光</span>
+        <span>{t("間接光")}</span>
         <span>
           {calculation.status === "computing"
             ? `${calculation.label} ${Math.round(calculation.progress * 100)}%`
             : calculation.status === "ready"
-              ? "計算完了"
-              : "停止中"}
+              ? t("計算完了")
+              : t("停止中")}
         </span>
       </div>
 
       <div style={rowStyle}>
-        <span>平均 / 最大</span>
+        <span>{t("平均 / 最大")}</span>
         <span>{stats ? `${formatLx(stats.mean.total)} / ${formatLx(stats.max.total)} lx` : "—"}</span>
       </div>
 
       {stats && (
         <div style={{ color: "#bcb3a3", fontSize: 11, textAlign: "right" }}>
-          <div>直接 {formatLx(stats.mean.direct)} / {formatLx(stats.max.direct)} lx</div>
-          <div>間接 {formatLx(stats.mean.indirect)} / {formatLx(stats.max.indirect)} lx</div>
+          <div>{t("直接")} {formatLx(stats.mean.direct)} / {formatLx(stats.max.direct)} lx</div>
+          <div>{t("間接")} {formatLx(stats.mean.indirect)} / {formatLx(stats.max.indirect)} lx</div>
         </div>
       )}
 
       <div style={rowStyle}>
-        <span>クリック位置</span>
+        <span>{t("クリック位置")}</span>
         <span>{probe ? `(${probe.x.toFixed(2)}, ${probe.z.toFixed(2)})` : "—"}</span>
       </div>
 
       {probe && (
         <div style={{ color: "#bcb3a3", fontSize: 11, textAlign: "right" }}>
-          合計 {formatLx(probe.value.total)} = 直接 {formatLx(probe.value.direct)} + 間接{" "}
+          {t("合計")} {formatLx(probe.value.total)} = {t("直接")} {formatLx(probe.value.direct)} + {t("間接")} {" "}
           {formatLx(probe.value.indirect)} lx
         </div>
       )}
 
       <p style={{ margin: "8px 0 0", color: "#a89f8d", fontSize: 10, lineHeight: 1.5 }}>
-        実験的機能（参考値）: 配光はビーム角からの近似でIES配光ではありません。実照度(lux)を保証するものではありません。
+        {t("実験的機能（参考値）: 配光はビーム角からの近似でIES配光ではありません。実照度(lux)を保証するものではありません。")}
       </p>
     </div>
   );

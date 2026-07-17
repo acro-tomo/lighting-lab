@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+  <title id="title">LDK Lighting Lab screenshot placeholder</title>
+  <desc id="desc">Replace this placeholder with a verified application screenshot before release.</desc>
+  <rect width="1200" height="675" fill="#171512"/>
+  <rect x="48" y="48" width="1104" height="579" rx="24" fill="#24211c" stroke="#f5c64d" stroke-width="3"/>
+  <text x="600" y="315" fill="#fffaf0" font-family="system-ui, sans-serif" font-size="48" text-anchor="middle">LDK Lighting Lab</text>
+  <text x="600" y="375" fill="#d7cebc" font-family="system-ui, sans-serif" font-size="24" text-anchor="middle">Verified screenshots will be added before release.</text>
+</svg>

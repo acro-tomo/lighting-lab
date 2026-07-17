@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Project, Selection, WallSegment } from "../types";
 import { useProjectStore } from "../store/projectStore";
+import { useI18n } from "../i18n";
 import { DEFAULT_DAYLIGHT } from "../utils/sun";
 import { ScaleCalibrationModal } from "./ScaleCalibrationModal";
 import type { EditMode } from "./EditToolbar";
@@ -52,6 +53,7 @@ export const Plan2D = ({
   focusPlan,
   onToggleFocusPlan
 }: Plan2DProps) => {
+  const { t } = useI18n();
   // 壁トレースのタッチ状態は useWallTrace（後始末）と usePlanPointerGestures（判定）の
   // 両方が触るため、本体で ref を作って両フックへ渡す。
   const touchWallTraceRef = useRef<TouchWallTraceState>(null);
@@ -353,19 +355,19 @@ export const Plan2D = ({
   };
 
   return (
-    <section className="plan-panel" aria-label="2D平面図エディタ">
+    <section className="plan-panel" aria-label={t("2D平面図エディタ")}>
       <div className="panel-heading">
         <div>
           <p className="eyebrow">2D Plan</p>
-          <h2>平面配置</h2>
+          <h2>{t("平面配置")}</h2>
         </div>
         <div className="panel-heading-actions">
           <span className="unit-chip">{scaleLabel}</span>
           <button
             type="button"
             className="focus-toggle"
-            title={focusPlan ? "通常表示に戻す" : "2Dを最大化"}
-            aria-label={focusPlan ? "通常表示に戻す" : "2Dを最大化"}
+            title={focusPlan ? t("通常表示に戻す") : t("2Dを最大化")}
+            aria-label={focusPlan ? t("通常表示に戻す") : t("2Dを最大化")}
             onClick={onToggleFocusPlan}
           >
             {focusPlan ? "🗗" : "⤢"}
@@ -374,15 +376,15 @@ export const Plan2D = ({
       </div>
 
       <div className="plan-meta">
-        <span>ズーム {Math.round(zoom * 100)}%</span>
-        <button type="button" onClick={() => zoomAtCenter(1.2)} aria-label="拡大">+</button>
-        <button type="button" onClick={() => zoomAtCenter(1 / 1.2)} aria-label="縮小">-</button>
+        <span>{t("ズーム")} {Math.round(zoom * 100)}%</span>
+        <button type="button" onClick={() => zoomAtCenter(1.2)} aria-label={t("拡大")}>+</button>
+        <button type="button" onClick={() => zoomAtCenter(1 / 1.2)} aria-label={t("縮小")}>-</button>
         {/* zoom=1/pan=0 がコンテンツbbox全体のフィット表示（座標系をbbox基準にしたため）。 */}
-        <button type="button" onClick={() => scheduleViewport(1, { x: 0, y: 0 }, true)}>全体表示</button>
+        <button type="button" onClick={() => scheduleViewport(1, { x: 0, y: 0 }, true)}>{t("全体表示")}</button>
         {/* 縮尺合わせは専用モーダルで実施。背景画像があるときだけ押せる。 */}
         {activeBackground && (
           <button type="button" onClick={() => setScaleModalOpen(true)}>
-            縮尺
+            {t("縮尺")}
           </button>
         )}
         {canAlignBackground && (
@@ -391,18 +393,18 @@ export const Plan2D = ({
             className={backgroundAlignMode ? "is-active" : ""}
             onClick={() => setBackgroundAlignMode((current) => !current)}
           >
-            背景合わせ
+            {t("背景合わせ")}
           </button>
         )}
         {backgroundAlignMode && (
           <>
             {project.backgroundPlan?.placement && (
               <button type="button" onClick={resetBackgroundToFirstFloor}>
-                1階基準
+                {t("1階基準")}
               </button>
             )}
             <button type="button" className="primary-action" onClick={confirmBackgroundAlignment}>
-              完了
+              {t("完了")}
             </button>
           </>
         )}
@@ -430,48 +432,48 @@ export const Plan2D = ({
               <text x="0" y="-12" className="plan-compass-n">N</text>
             </g>
           </svg>
-          <span className="plan-compass-label">北 {Math.round(northOffsetDeg) % 360}°</span>
+          <span className="plan-compass-label">{t("北")} {Math.round(northOffsetDeg) % 360}°</span>
         </div>
       </div>
 
       <p className="tool-help">
-        {backgroundAlignMode && "1階の薄い壁を目安に、二階の背景画像をドラッグして位置を合わせます。終わったら完了。"}
-        {!backgroundAlignMode && isWallLightAddKind(pendingAdd) && "壁または吹き抜け内周に近づけると青くハイライト。クリックで壁付け照明を設置。"}
-        {!backgroundAlignMode && isWallOpening(pendingAdd) && !isWallLightAddKind(pendingAdd) && "壁に近づけると青くハイライト。その壁をクリックで設置。設置後は壁上をドラッグで位置調整。"}
-        {!backgroundAlignMode && pendingAdd && !isWallOpening(pendingAdd) && "クリックした位置にオブジェクトを配置します。"}
-        {!backgroundAlignMode && !pendingAdd && mode === "select" && !canEditWalls && "オブジェクトをクリックで選択、ドラッグで移動。何もない所のドラッグで平面図をパン。Deleteで削除。"}
-        {!backgroundAlignMode && !pendingAdd && mode === "select" && canEditWalls && "壁をクリックで選択、ドラッグで移動。Deleteで削除。何もない所のドラッグで平面図をパン。"}
-        {!backgroundAlignMode && !pendingAdd && mode === "wall" && "角に近づけてタップ、または押して引いて離すと壁を作成。スマホは水平/垂直へ強めにスナップします。内側は下のボタンで指定できます。"}
+        {backgroundAlignMode && t("1階の薄い壁を目安に、二階の背景画像をドラッグして位置を合わせます。終わったら完了。")}
+        {!backgroundAlignMode && isWallLightAddKind(pendingAdd) && t("壁または吹き抜け内周に近づけると青くハイライト。クリックで壁付け照明を設置。")}
+        {!backgroundAlignMode && isWallOpening(pendingAdd) && !isWallLightAddKind(pendingAdd) && t("壁に近づけると青くハイライト。その壁をクリックで設置。設置後は壁上をドラッグで位置調整。")}
+        {!backgroundAlignMode && pendingAdd && !isWallOpening(pendingAdd) && t("クリックした位置にオブジェクトを配置します。")}
+        {!backgroundAlignMode && !pendingAdd && mode === "select" && !canEditWalls && t("オブジェクトをクリックで選択、ドラッグで移動。何もない所のドラッグで平面図をパン。Deleteで削除。")}
+        {!backgroundAlignMode && !pendingAdd && mode === "select" && canEditWalls && t("壁をクリックで選択、ドラッグで移動。Deleteで削除。何もない所のドラッグで平面図をパン。")}
+        {!backgroundAlignMode && !pendingAdd && mode === "wall" && t("角に近づけてタップ、または押して引いて離すと壁を作成。スマホは水平/垂直へ強めにスナップします。内側は下のボタンで指定できます。")}
       </p>
 
       {canEditWalls && mode === "wall" && !pendingAdd && (
-        <div className="wall-trace-controls" role="toolbar" aria-label="壁作成">
-          <button type="button" onClick={undoWallPoint} disabled={wallDraft.length === 0}>1点戻す</button>
-          <div className="wall-side-toggle" role="group" aria-label="壁の内側">
+        <div className="wall-trace-controls" role="toolbar" aria-label={t("壁作成")}>
+          <button type="button" onClick={undoWallPoint} disabled={wallDraft.length === 0}>{t("1点戻す")}</button>
+          <div className="wall-side-toggle" role="group" aria-label={t("壁の内側")}>
             <button
               type="button"
               className={draftInnerSide === undefined ? "is-active" : ""}
               onClick={() => setDraftInnerSide(undefined)}
             >
-              中央
+              {t("中央")}
             </button>
             <button
               type="button"
               className={draftInnerSide === "left" ? "is-active" : ""}
               onClick={() => setDraftInnerSide("left")}
             >
-              左
+              {t("左")}
             </button>
             <button
               type="button"
               className={draftInnerSide === "right" ? "is-active" : ""}
               onClick={() => setDraftInnerSide("right")}
             >
-              右
+              {t("右")}
             </button>
           </div>
-          <button type="button" className="primary-action" onClick={finishWallTrace}>完了</button>
-          <button type="button" onClick={finishWallTrace}>中止</button>
+          <button type="button" className="primary-action" onClick={finishWallTrace}>{t("完了")}</button>
+          <button type="button" onClick={finishWallTrace}>{t("中止")}</button>
         </div>
       )}
 
