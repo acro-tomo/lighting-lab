@@ -304,7 +304,6 @@ h2 {
 .viewport-panel {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  position: relative;
   /* ツールバーのポップオーバー(日光など)が下のシーンへはみ出せるよう visible にし、
      キャンバスのはみ出しは scene-stage 側で clip する。 */
   overflow: visible;
@@ -360,22 +359,6 @@ h2 {
 
 .render-status strong {
   color: #fff6d9;
-}
-
-.output-toggle {
-  min-height: 32px;
-  border: 1px solid rgba(245, 198, 77, 0.5);
-  border-radius: 7px;
-  padding: 6px 10px;
-  color: #fff5cc;
-  background: rgba(245, 198, 77, 0.1);
-  font-size: 12px;
-  font-weight: 760;
-}
-
-.output-toggle:hover,
-.output-toggle.is-active {
-  background: rgba(245, 198, 77, 0.2);
 }
 
 .toolbar-status-chip {
@@ -2095,11 +2078,11 @@ h2 {
   min-width: 28px;
 }
 
-/* 出力 / レンダリング ポップオーバー（3Dツールバーの直下） */
+/* 出力 / レンダリング ポップオーバー（ヘッダー起点） */
 .output-popover {
-  position: absolute;
-  top: 58px;
-  right: 16px;
+  position: fixed;
+  top: 80px;
+  right: 18px;
   z-index: 55;
   display: flex;
   flex-direction: column;
@@ -2966,12 +2949,6 @@ h2 {
   .viewport-title h2 {
     font-size: 13px;
     white-space: nowrap;
-  }
-
-  .output-toggle {
-    min-height: 32px;
-    padding: 6px 9px;
-    font-size: 11px;
   }
 
   .render-status {

@@ -7,6 +7,8 @@ type HeaderBarProps = {
   onImportFloorPlan: (file: File) => void;
   onImportProject: (file: File) => void;
   onExportProject: () => void;
+  onToggleOutput: () => void;
+  outputOpen: boolean;
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
   onShowIntro: () => void;
@@ -17,6 +19,8 @@ export const HeaderBar = ({
   onImportFloorPlan,
   onImportProject,
   onExportProject,
+  onToggleOutput,
+  outputOpen,
   viewMode,
   onViewModeChange,
   onShowIntro
@@ -94,6 +98,15 @@ export const HeaderBar = ({
               リアル
             </button>
           </div>
+        </div>
+        <div className="header-action-group" aria-label="出力">
+          <span>出力</span>
+          <button
+            className={outputOpen ? "primary-action is-active" : "primary-action"}
+            onClick={() => { onToggleOutput(); setMobileMenuOpen(false); }}
+          >
+            レンダリング
+          </button>
         </div>
         <div className="header-action-group header-help-group" aria-label="ヘルプ">
           <span>ヘルプ</span>

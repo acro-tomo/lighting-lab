@@ -205,6 +205,8 @@ export const App = () => {
           onImportFloorPlan={handleImportFloorPlan}
           onImportProject={handleImportProject}
           onExportProject={exportProject}
+          onToggleOutput={() => setOutputOpen((current) => !current)}
+          outputOpen={outputOpen}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           onShowIntro={() => setShowIntro(true)}
@@ -307,15 +309,6 @@ export const App = () => {
                 <strong>編集プレビュー</strong>
               )}
             </div>
-
-            <button
-              type="button"
-              className={outputOpen ? "output-toggle is-active" : "output-toggle"}
-              aria-expanded={outputOpen}
-              onClick={() => setOutputOpen((current) => !current)}
-            >
-              出力
-            </button>
 
             {(() => {
               const dl = project.daylight ?? DEFAULT_DAYLIGHT;
