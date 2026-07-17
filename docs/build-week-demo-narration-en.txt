@@ -1,15 +1,15 @@
-A lighting plan shows fixture symbols and specifications, but it cannot tell a homeowner whether the living room will feel calm, too dark, or harsh at night. Changing it after construction is expensive. LDK Lighting Lab turns that abstract plan into a visual choice.
+Lighting simulation tools already exist, but most are built for specialists. For a homeowner who simply wants to ask, “What if I put a pendant here?”, reaching the first visual answer can require CAD knowledge and hours of setup. LDK Lighting Lab removes that barrier.
 
-I can start with this sample or import my own floor plan. In 2D, the room, furniture, and lights stay together, tying every change to how the space will be used.
+It runs in the browser without an account. I can start with this sample or import my own floor plan, set the scale from one known dimension, and trace the room. Walls, windows, furniture, stairs, and double-height spaces can be added with simple tools. I do not need a perfect building model—just enough of my home to judge lighting in context.
 
-Here is the decision: a bright, functional living room, or a warm, relaxed evening scene? I export the brighter scene as Option A. Then I lower the downlights, set them to 2700K, turn on indirect light behind the TV, and export Option B from the same camera. These are two intentions for the same room, not settings changed only to make a prettier render.
+Now I can experiment. I choose a fixture, place it, and move it directly in 2D. After selecting it, I can change brightness, color temperature, fixture type, beam distribution, and aiming. I can try downlights, a pendant, or indirect light without rebuilding the room. If an idea does not work, I change it immediately. This short loop—from an idea to a visible result—is the main product.
 
-Edit view stays responsive while I work. Realistic mode progressively path traces the same scene. Direct light shows what each fixture reaches; indirect light shows how the walls and ceiling shape the atmosphere. On less capable hardware, editing still works in the fast raster view.
+The 2D view keeps placement understandable, while the fast 3D Edit view gives immediate feedback. On supported hardware, Realistic mode progressively path traces the same scene, revealing both direct and indirect light. If path tracing is unavailable or slow, the full placement and editing workflow still works in the fast raster view.
 
-The two exported results make the discussion concrete. Because the room and camera are unchanged, my family or designer can focus on one question: which lighting scene fits our evening? The editable project stays local and can be backed up as JSON.
+When I find an idea worth keeping, I can render and export a watermarked PNG. The project autosaves locally in the browser and can also be saved as JSON, so I can return to the experiment or share the image for discussion.
 
-The workflow is available in Japanese and English. On a phone, the plan and 3D view stay central, with editing actions and settings in compact controls.
+The interface switches between Japanese and English. On a phone, the plan and 3D view stay central, while editing actions and settings remain available from compact controls.
 
-For this Build Week release, I used Codex with GPT-5.6 as the main development partner. It inspected the React and Three.js architecture, found deployment and feedback risks, implemented the bilingual interface, validated desktop and mobile flows, and prepared the public documentation. The existing editor and renderer were preserved.
+For this Build Week release, I used Codex with GPT-5.6 as the main development partner. It inspected the existing React and Three.js architecture, hardened feedback and deployment, implemented the bilingual interface, validated desktop and mobile flows, and prepared the public documentation without replacing the existing editor and renderer.
 
-LDK Lighting Lab is not a certified lux calculator. Professional CAD does the engineering. LDK Lighting Lab helps the homeowner see, compare, and communicate the decision before construction makes change expensive.
+LDK Lighting Lab does not replace certified lighting calculations. Professional CAD is built for specialists. This app lets anyone recreate their home and try a lighting idea before committing to it.

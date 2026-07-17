@@ -1,39 +1,39 @@
 1
 00:00:00,000 --> 00:00:18,000
-A lighting plan cannot tell a homeowner whether the room
-will feel calm, too dark, or harsh at night.
+Professional lighting tools exist, but reaching the first visual answer
+can require CAD knowledge and hours of setup.
 
 2
-00:00:18,000 --> 00:00:33,000
-Start with the sample or import your own floor plan.
-Each lighting change stays connected to how the room will be used.
+00:00:18,000 --> 00:00:45,000
+Import a floor plan, set one known dimension, and trace only enough
+of the home to judge lighting in context.
 
 3
-00:00:33,000 --> 00:01:03,000
-Bright and functional, or warm and relaxed?
-Export Option A, then create and export Option B from the same camera.
+00:00:45,000 --> 00:01:17,000
+Place a fixture, move it, and immediately change brightness,
+color temperature, fixture type, beam distribution, and aiming.
 
 4
-00:01:03,000 --> 00:01:30,000
-Edit mode stays responsive. Realistic mode shows how direct and indirect light
-shape the same scene. Fast raster editing remains available as a fallback.
+00:01:17,000 --> 00:01:43,000
+2D keeps placement clear. Fast 3D gives immediate feedback.
+Realistic mode adds progressive direct and indirect lighting when supported.
 
 5
-00:01:30,000 --> 00:01:50,000
-Compare the two exported results from the same room and camera,
-then decide which lighting scene fits the family's evening.
+00:01:43,000 --> 00:01:58,000
+Export a watermarked PNG, autosave locally,
+or save the editable project as JSON.
 
 6
-00:01:50,000 --> 00:02:05,000
-The workflow is available in Japanese and English,
+00:01:58,000 --> 00:02:12,000
+Use the workflow in Japanese or English,
 with compact 2D, 3D, and editing controls on a phone.
 
 7
-00:02:05,000 --> 00:02:27,000
-Codex with GPT-5.6 inspected the architecture, found release risks,
-implemented the bilingual UI, validated the flows, and prepared public documentation.
+00:02:12,000 --> 00:02:32,000
+Codex with GPT-5.6 inspected and hardened the existing app,
+implemented the bilingual UI, validated it, and prepared the documentation.
 
 8
-00:02:27,000 --> 00:02:40,000
-Professional CAD does the engineering.
-LDK Lighting Lab helps the homeowner make the decision.
+00:02:32,000 --> 00:02:45,000
+Professional CAD is built for specialists.
+LDK Lighting Lab lets anyone try a lighting idea in their own home.
