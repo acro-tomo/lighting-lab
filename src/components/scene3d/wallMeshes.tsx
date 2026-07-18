@@ -7,6 +7,7 @@ import type { RenderDebugMode } from "../../rendering/pathTracer";
 import { useProjectStore } from "../../store/projectStore";
 import type { MaterialPreset, Project, Selection, VoidArea, WallSegment, WindowOpening } from "../../types";
 import { wallInwardNormal } from "../../utils/wallGeometry";
+import { wallOpeningsForWall } from "../../utils/wallOpenings";
 import { isWallPending, useEditMode, usePathTraced, usePlacement } from "./contexts";
 import { useFloorDrag } from "./dragHooks";
 import { debugColorForRole, useWallpaperTexture } from "./materials";
@@ -264,7 +265,7 @@ export const WallMesh = ({
   // パネルの並ぶローカル +X 軸（rotationY適用後の(1,0,0)）に窓中心を射影して
   // cx を求めることで、壁の向きやrotationの符号によらず WindowMesh と必ず一致する。
   const localXAxis = new THREE.Vector3(Math.cos(rotationY), 0, -Math.sin(rotationY));
-  const holes = windows.map((windowItem) => {
+  const holes = wallOpeningsForWall(wall, walls, windows).map((windowItem) => {
     const wx = wall.start.x + (wall.end.x - wall.start.x) * windowItem.centerRatio;
     const wz = wall.start.z + (wall.end.z - wall.start.z) * windowItem.centerRatio;
     const cxCentered = new THREE.Vector3(wx - midpointVector.x, 0, wz - midpointVector.z).dot(localXAxis);

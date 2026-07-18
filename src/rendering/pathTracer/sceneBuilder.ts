@@ -2,6 +2,7 @@ import * as THREE from "three";
 import type { Project } from "../../types";
 import { visibleVoidSides } from "../../utils/fixtureMounting";
 import { DEFAULT_DAYLIGHT, sunVector } from "../../utils/sun";
+import { wallOpeningsForWall } from "../../utils/wallOpenings";
 import { buildSkyEnvironment, SKY_ENVIRONMENT_INTENSITY, SUN_INTENSITY_FACTOR, type SkyEnvironment } from "../skyEnvironment";
 import { addFurniture } from "./furniture";
 import { addBox, addHorizontalPanel, addInteriorWallPanel } from "./geometry";
@@ -196,12 +197,18 @@ export const buildPathTraceScene = (
     return { x: (minX + maxX) / 2, z: (minZ + maxZ) / 2 };
   })();
 
-  const addWall = (sourceWall: Project["walls"][number], windows: Project["windows"], baseY = 0, wallHeightM = sourceWall.heightM) => {
+  const addWall = (
+    sourceWall: Project["walls"][number],
+    walls: Project["walls"],
+    windows: Project["windows"],
+    baseY = 0,
+    wallHeightM = sourceWall.heightM
+  ) => {
     const wall = { ...sourceWall, heightM: wallHeightM };
     const dx = wall.end.x - wall.start.x;
     const dz = wall.end.z - wall.start.z;
     const length = Math.hypot(dx, dz);
-    const wallWindows = windows.filter((windowItem) => windowItem.wallId === wall.id);
+    const wallWindows = wallOpeningsForWall(wall, walls, windows);
     // 手すりは「抜け」が要るのでソリッドパネルにせず笠木+縦支柱で組む（編集シーンと寸法/間隔を揃える）。
     if (wall.kind === "railing") {
       const cx = (wall.start.x + wall.end.x) / 2;
@@ -234,7 +241,7 @@ export const buildPathTraceScene = (
       baseY
     );
   };
-  lowerProject.walls.forEach((wall) => addWall(wall, lowerProject.windows));
+  lowerProject.walls.forEach((wall) => addWall(wall, lowerProject.walls, lowerProject.windows));
 
   const addWindow = (windowItem: Project["windows"][number], walls: Project["walls"], baseY = 0) => {
     const wall = walls.find((item) => item.id === windowItem.wallId);
@@ -290,7 +297,7 @@ export const buildPathTraceScene = (
     if (upperCeilingGeo) addSlab(upperCeilingGeo, upperCeilingY, ceilingMaterial, "ceiling");
     visibleUpperWalls.forEach((wall) => {
       const wallHeightM = wall.kind === "half" || wall.kind === "railing" ? wall.heightM : project.room.ceilingHeightM;
-      addWall(wall, visibleUpperWindows, upperFloorY, wallHeightM);
+      addWall(wall, upperWalls, upperWindows, upperFloorY, wallHeightM);
     });
     visibleUpperWindows.forEach((windowItem) => addWindow(windowItem, visibleUpperWalls, upperFloorY));
   }

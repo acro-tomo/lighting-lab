@@ -118,7 +118,7 @@ export const RoomShell = ({
           key={wall.id}
           wall={wall}
           walls={project.walls}
-          windows={project.windows.filter((windowItem) => windowItem.wallId === wall.id)}
+          windows={project.windows}
           material={materialMap.get(wall.materialId) ?? ceilingMaterial}
           roomCenter={roomCenter}
           floorBounds={floorBounds}
