@@ -14,6 +14,29 @@ const en: Record<string, string> = {
   "表示モード": "View mode",
   "編集": "Edit",
   "リアル": "Realistic",
+  "編集する": "Edit",
+  "仕上がりを見る": "View finished look",
+  "照明や家具を配置・調整する": "Place and adjust lights and furniture",
+  "光の反射を含めた仕上がりを確認する": "View the finished look with reflected light",
+  "高画質画像": "High-quality image",
+  "編集モード": "Edit mode",
+  "仕上がりを準備中…": "Preparing finished look…",
+  "仕上がり表示": "Finished look",
+  "画像を作る": "Create image",
+  "作成を中止": "Stop creating",
+  "画像を保存": "Save image",
+  "画像を作成中 {percent}%": "Creating image {percent}%",
+  "仕上がり画像": "Finished image",
+  "画像の作成を停止しました": "Image creation stopped",
+  "画像を作れませんでした。3D表示を確認してください": "Could not create the image. Check the 3D view.",
+  "高画質画像を作成しています": "Creating high-quality image",
+  "画像ができました": "Image is ready",
+  "画像を作れませんでした": "Could not create the image",
+  "この端末では高画質画像を作れません": "High-quality images are not available on this device",
+  "画像を作れませんでした。時間をおいてもう一度お試しください": "Could not create the image. Please try again later.",
+  "3D表示を準備中です。": "Preparing the 3D view.",
+  "画像を作ると、現在の3D表示を高画質で保存できます。": "Create an image to save the current 3D view in high quality.",
+  "床をクリック": "Click the floor",
   "出力 / レンダリング": "Export / Render",
   "使い方を見る": "How it works",
   "言語": "Language",
@@ -29,6 +52,7 @@ const en: Record<string, string> = {
   "自分の間取り図を取り込み、照明の位置・明るさ・色温度を変えて「夜の見え方」を比較できます。": "Import your floor plan, then compare the nighttime feel by changing fixture placement, brightness, and color temperature.",
   "ダウンライト・ペンダント・壁付スポットなど複数種の照明を自由に配置できます。": "Place downlights, pendants, wall spots, and other fixture types freely.",
   "Path Tracing による間接光レンダリングで雰囲気を視覚確認できます。": "Use path-traced indirect light to visually compare the atmosphere.",
+  "壁や床からの光の反射も含めた仕上がりを確認できます。": "View the finished look including light reflected from walls and floors.",
   "雰囲気比較用シミュレーションです。実照度（lux）の保証はしません。": "This is a visual simulation for comparing lighting layouts and atmosphere. It does not guarantee real illuminance (lux).",
   "基本操作": "Getting started",
   "スマホでは読み込み・保存・出力を開く": "On mobile, open import, save, and export from this menu.",
@@ -63,6 +87,7 @@ const en: Record<string, string> = {
   "プロパティインスペクター": "Properties inspector",
   "戻る": "Back",
   "部屋設定": "Room settings",
+  "照明や家具は、2Dまたは3D画面で直接選択できます。": "Select lights and furniture directly in the 2D or 3D view.",
   "部屋の集計": "Room summary",
   "家具を編集": "Edit furniture",
   "を編集": " settings",
@@ -346,11 +371,22 @@ const en: Record<string, string> = {
   ,"床": "Floor"
   ,"机高": "Desk height"
   ,"照度ヒートマップ": "Illuminance heatmap"
+  ,"明るさの目安": "Brightness guide"
+  ,"床面に表示": "Show on floor"
+  ,"色で表示": "Show in color"
+  ,"確認する高さ": "Height to check"
+  ,"表示範囲": "Display range"
+  ,"計算状態": "Calculation status"
+  ,"部屋の平均 / 最大": "Room average / maximum"
+  ,"選んだ場所": "Selected location"
+  ,"明るさを比べるための参考値です。実際の照度を保証するものではありません。": "A reference for comparing brightness. It does not guarantee actual illuminance."
   ,"表示": "Show"
   ,"計算面高さ": "Calculation plane"
   ,"スケール": "Scale"
   ,"間接光": "Indirect light"
   ,"計算完了": "Calculated"
+  ,"計算中 {percent}%": "Calculating {percent}%"
+  ,"表示の準備": "Display status"
   ,"停止中": "Stopped"
   ,"平均 / 最大": "Mean / max"
   ,"直接": "Direct"

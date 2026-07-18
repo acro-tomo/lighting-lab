@@ -86,25 +86,27 @@ export const HeaderBar = ({
             <button
               className={viewMode === "raster" ? "view-mode-btn is-active" : "view-mode-btn"}
               onClick={() => { onViewModeChange("raster"); setMobileMenuOpen(false); }}
-              title={t("編集（高速ラスター）")}
+              title={t("照明や家具を配置・調整する")}
+              aria-pressed={viewMode === "raster"}
             >
-              {t("編集")}
+              {t("編集する")}
             </button>
             <button
               className={viewMode === "realistic" ? "view-mode-btn is-active" : "view-mode-btn"}
               onClick={() => { onViewModeChange("realistic"); setMobileMenuOpen(false); }}
-              title={t("リアル（常駐パストレ）")}
+              title={t("光の反射を含めた仕上がりを確認する")}
+              aria-pressed={viewMode === "realistic"}
             >
-              {t("リアル")}
+              {t("仕上がりを見る")}
             </button>
           </div>
         </div>
-        <div className="header-action-group" aria-label={t("出力 / レンダリング")}>
+        <div className="header-action-group" aria-label={t("高画質画像")}>
           <button
             className={outputOpen ? "primary-action is-active" : "primary-action"}
             onClick={() => { onToggleOutput(); setMobileMenuOpen(false); }}
           >
-            {t("出力 / レンダリング")}
+            {t("高画質画像")}
           </button>
         </div>
         <div className="language-toggle" role="group" aria-label={t("言語")}>

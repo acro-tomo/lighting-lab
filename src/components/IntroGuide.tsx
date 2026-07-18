@@ -31,7 +31,7 @@ export const IntroGuide = ({ forceOpen, onClose }: IntroGuideProps) => {
         <ul className="intro-features">
           <li>{t("自分の間取り図を取り込み、照明の位置・明るさ・色温度を変えて「夜の見え方」を比較できます。")}</li>
           <li>{t("ダウンライト・ペンダント・壁付スポットなど複数種の照明を自由に配置できます。")}</li>
-          <li>{t("Path Tracing による間接光レンダリングで雰囲気を視覚確認できます。")}</li>
+          <li>{t("壁や床からの光の反射も含めた仕上がりを確認できます。")}</li>
         </ul>
         <p className="intro-disclaimer">
           {t("雰囲気比較用シミュレーションです。実照度（lux）の保証はしません。")}

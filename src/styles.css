@@ -56,7 +56,7 @@ button:disabled {
   position: relative;
   z-index: 80;
   display: grid;
-  grid-template-rows: 70px auto;
+  grid-template-rows: auto auto;
   min-width: 0;
   overflow: visible;
 }
@@ -301,7 +301,6 @@ h2 {
 
 .viewport-toolbar,
 .panel-heading,
-.summary-strip,
 .scene-strip,
 .compare-shot,
 .render-status {
@@ -959,8 +958,7 @@ h2 {
 
 .object-list,
 .panel-block,
-.disclaimer,
-.summary-strip {
+.disclaimer {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.045);
@@ -1007,16 +1005,6 @@ h2 {
   line-height: 1.6;
 }
 
-.summary-strip {
-  padding: 12px;
-}
-
-.summary-strip div {
-  display: grid;
-  gap: 3px;
-}
-
-.summary-strip span,
 .muted,
 .compare-shot span,
 .segmented small {
@@ -1031,11 +1019,6 @@ h2 {
   -webkit-box-orient: vertical;
   overflow: hidden;
   line-height: 1.35;
-}
-
-.summary-strip strong {
-  color: #fff7da;
-  font-size: 18px;
 }
 
 .form-grid {
@@ -1848,6 +1831,14 @@ h2 {
   font-weight: 760;
 }
 
+.inspector-empty-hint {
+  margin-top: 7px;
+  color: #a9a194;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
 /* インスペクターフッター：免責をさりげなく */
 .inspector-footer {
   margin-top: auto;
@@ -2094,7 +2085,7 @@ h2 {
   min-width: 28px;
 }
 
-/* 出力 / レンダリング ポップオーバー（ヘッダー起点） */
+/* 高画質画像ポップオーバー（ヘッダー起点） */
 .output-popover {
   position: fixed;
   top: 80px;
@@ -2672,8 +2663,9 @@ h2 {
   .view-mode-btn {
     min-height: 34px;
     padding: 6px 8px;
-    white-space: nowrap;
+    white-space: normal;
     font-size: 11px;
+    line-height: 1.25;
   }
 
   .header-action-group {
@@ -2682,7 +2674,7 @@ h2 {
 
   .header-action-group:first-of-type > div {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .header-action-group > .view-mode-toggle {
@@ -3058,10 +3050,6 @@ h2 {
     min-height: 92px;
   }
 
-  .summary-strip {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
   .chip-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -3136,7 +3124,6 @@ h2 {
   }
 
   .workspace.mobile-settings-open .inspector-panel > .panel-block,
-  .workspace.mobile-settings-open .inspector-panel > .summary-strip,
   .workspace.mobile-settings-open .inspector-panel > .inspector-footer {
     margin-right: 12px;
     margin-left: 12px;

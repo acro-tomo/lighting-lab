@@ -9,6 +9,7 @@ const url = process.argv.find((arg, index) => index > 1 && !arg.startsWith("--")
 const outputPath = shouldRender || shouldPeekRender
   ? "output/playwright/ldk-lighting-lab-pathtraced.png"
   : "output/playwright/ldk-lighting-lab.png";
+const introSeenStorageKey = "ldk-intro-seen";
 
 await mkdir("output/playwright", { recursive: true });
 
@@ -22,6 +23,9 @@ const page = await browser.newPage({
   // この回帰チェックは日本語の操作ラベルを対象にする。
   locale: "ja-JP"
 });
+await page.addInitScript((storageKey) => {
+  window.localStorage.setItem(storageKey, "1");
+}, introSeenStorageKey);
 
 page.on("console", (message) => {
   if (message.type() === "error") {
@@ -65,13 +69,14 @@ try {
 await page.waitForTimeout(1400);
 
 if (shouldRender || shouldPeekRender) {
-  await page.getByRole("button", { name: "レンダリング開始" }).click();
+  await page.getByRole("button", { name: "高画質画像" }).click();
+  await page.getByRole("button", { name: "画像を作る" }).click();
   if (shouldPeekRender) {
     await page.waitForTimeout(8000);
     console.log(`renderStatus=${await page.locator(".output-progress").innerText()}`);
   } else {
     await page.waitForFunction(
-      () => document.body.textContent?.includes("Path traced") || document.body.textContent?.includes("完了"),
+      () => document.body.textContent?.includes("仕上がり画像"),
       null,
       { timeout: 180000 }
     );

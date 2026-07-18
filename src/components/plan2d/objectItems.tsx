@@ -137,6 +137,7 @@ export const LightPlanItem = ({
       onPointerUp={handlePointerEnd}
       onPointerCancel={handlePointerEnd}
       className={selected ? "plan-light is-selected" : "plan-light"}
+      data-light-id={fixture.id}
     >
       {target && <line x1={center.x} y1={center.y} x2={target.x} y2={target.y} className="plan-aim-line" />}
       <circle cx={center.x} cy={center.y} r={radius} />

@@ -3,7 +3,7 @@ import { HeaderBar } from "./components/HeaderBar";
 import { Inspector } from "./components/Inspector";
 import { Plan2D } from "./components/Plan2D";
 import { Scene3D } from "./components/Scene3D";
-import { type PathTraceMode, type RenderDebugMode } from "./rendering/pathTracer";
+import type { PathTraceMode } from "./rendering/pathTracer";
 import { projectSchema } from "./schema/projectSchema";
 import { useProjectStore } from "./store/projectStore";
 import type { CompareShot, FloorPlanBackground, Project, Selection } from "./types";
@@ -91,16 +91,13 @@ export const App = () => {
     setViewMode,
     liveTrace,
     debugMode,
-    setDebugMode,
     lastPathTracedImage,
     renderProgress,
     exportPng,
     captureCompare,
     stopRender,
     handleLiveTraceStatus,
-    elapsedSeconds,
-    renderPercent,
-    estimatedRemainingSeconds
+    renderPercent
   } = useRenderPipeline({ project, compareShots, addCompareShot, setNotice });
 
   const { handleAddObject, handleStartAdd, handlePlaceObject, handlePlaceOnWall } = useAddObjectHandlers({
@@ -305,14 +302,12 @@ export const App = () => {
             <div className="render-status">
               {viewMode === "realistic" ? (
                 <strong>
-                  {liveTrace.phase === "building"
-                    ? t("BVH生成中…")
-                    : liveTrace.phase === "converged"
-                      ? t("間接光リアル描画 / {count} samples 収束済み", { count: liveTrace.samples })
-                      : t("間接光リアル描画 / {count} samples 収束中", { count: liveTrace.samples })}
+                  {liveTrace.phase === "converged"
+                    ? t("仕上がり表示")
+                    : t("仕上がりを準備中…")}
                 </strong>
               ) : (
-                <strong>{t("編集プレビュー")} / {t("露出")} {project.camera.exposure.toFixed(2)}</strong>
+                <strong>{t("編集モード")}</strong>
               )}
             </div>
 
@@ -380,7 +375,7 @@ export const App = () => {
           </div>
 
           {outputOpen && (
-            <div className="output-popover" aria-label={t("出力 / レンダリング")}>
+            <div className="output-popover" aria-label={t("高画質画像")}>
               <div className="output-row">
                 <label>
                   {t("品質")}
@@ -389,22 +384,9 @@ export const App = () => {
                     disabled={renderProgress.status === "running"}
                     onChange={(event) => setPathTraceMode(event.target.value as PathTraceMode)}
                   >
-                    <option value="standard">{t("標準")} 256 samples</option>
-                    <option value="high">{t("高品質")} 512 samples</option>
-                    <option value="ultra">{t("最高")} 1024 samples</option>
-                  </select>
-                </label>
-                <label>
-                  {t("診断")}
-                  <select
-                    value={debugMode}
-                    disabled={renderProgress.status === "running"}
-                    onChange={(event) => setDebugMode(event.target.value as RenderDebugMode)}
-                  >
-                    <option value="beauty">{t("通常")}</option>
-                    <option value="material">{t("マテリアル")}</option>
-                    <option value="normals">{t("法線")}</option>
-                    <option value="frontback">{t("表裏")}</option>
+                    <option value="standard">{t("標準")}</option>
+                    <option value="high">{t("高品質")}</option>
+                    <option value="ultra">{t("最高")}</option>
                   </select>
                 </label>
               </div>
@@ -413,15 +395,21 @@ export const App = () => {
                   className="primary-action"
                   onClick={renderProgress.status === "running" ? stopRender : captureCompare}
                 >
-                  {renderProgress.status === "running" ? t("レンダリング停止") : t("レンダリング開始")}
+                  {renderProgress.status === "running" ? t("作成を中止") : t("画像を作る")}
                 </button>
-                <button onClick={exportPng}>{t("PNG書き出し")}</button>
+                {lastPathTracedImage && <button onClick={exportPng}>{t("画像を保存")}</button>}
               </div>
               <div className="output-progress">
-                <strong>{renderProgress.samples}/{renderProgress.targetSamples} samples</strong>
-                <span className="render-message">{renderProgress.message}</span>
-                <span>{elapsedSeconds}s / {t("残り")} {estimatedRemainingSeconds}s</span>
-                <progress value={renderPercent} max={100} />
+                {renderProgress.status === "running" ? (
+                  <>
+                    <strong>{t("画像を作成中 {percent}%", { percent: renderPercent })}</strong>
+                    <progress value={renderPercent} max={100} />
+                  </>
+                ) : lastPathTracedImage ? (
+                  <strong>{t("画像ができました")}</strong>
+                ) : (
+                  <span>{t("画像を作ると、現在の3D表示を高画質で保存できます。")}</span>
+                )}
               </div>
             </div>
           )}
@@ -443,9 +431,9 @@ export const App = () => {
               canEditWalls={planEditMode}
             />
             {lastPathTracedImage && (
-              <div className="pathtrace-result" aria-label="Path traced result">
-                <div>Path traced result / {pathTraceMode} samples</div>
-                <img src={lastPathTracedImage} alt="Path traced render result" />
+              <div className="pathtrace-result" aria-label={t("高画質画像")}>
+                <div>{t("仕上がり画像")}</div>
+                <img src={lastPathTracedImage} alt={t("仕上がり画像")} />
               </div>
             )}
           </div>

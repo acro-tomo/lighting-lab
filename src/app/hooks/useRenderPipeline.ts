@@ -56,9 +56,9 @@ export const useRenderPipeline = ({
     setRenderProgress((current) => ({
       ...current,
       status: "stopped",
-      message: t("シーン変更によりレンダリングをリセットしました。")
+      message: t("画像の作成を停止しました")
     }));
-    setNotice(t("カメラ、家具、照明、材質が変更されたためレンダリングを停止しました。"));
+    setNotice(t("画像の作成を停止しました"));
   }, [project, setNotice, t]);
 
   const exportPng = useCallback(async () => {
@@ -68,7 +68,7 @@ export const useRenderPipeline = ({
       return;
     }
     if (!canvasElement) {
-      setNotice(t("3Dキャンバスがまだ準備できていません。"));
+      setNotice(t("3D表示を準備中です。"));
       return;
     }
     const raw = canvasElement.toDataURL("image/png");
@@ -79,7 +79,7 @@ export const useRenderPipeline = ({
   const captureCompare = useCallback(() => {
     if (renderingRef.current) return;
     if (!renderContext) {
-      setNotice(t("レンダリングを開始できませんでした。3D表示を確認してください。"));
+      setNotice(t("画像を作れませんでした。3D表示を確認してください"));
       return;
     }
 
@@ -92,9 +92,9 @@ export const useRenderPipeline = ({
       samples: 0,
       targetSamples: sampleCountByMode[pathTraceMode],
       elapsedMs: 0,
-      message: t("BVH生成とpath tracingを開始しています。")
+      message: t("高画質画像を作成しています")
     });
-    setNotice(t("three-gpu-pathtracerで最終レンダリングを開始しました。"));
+    setNotice(t("高画質画像を作成しています"));
 
     void renderPathTracedImage({
       context: renderContext,
@@ -104,24 +104,12 @@ export const useRenderPipeline = ({
       maxWidth: project.camera.resolutionWidth,
       signal: abortController.signal,
       onProgress: (progress) => {
-        const buildPercent =
-          typeof progress.buildProgress === "number"
-            ? ` ${Math.round(progress.buildProgress * 100)}%`
-            : "";
-        const message =
-          progress.phase === "bvh"
-            ? `${t("BVH生成中")}${buildPercent}`
-            : progress.phase === "sampling"
-              ? t("path tracing中")
-              : progress.phase === "complete"
-                ? t("レンダリング完了")
-                : t("準備中");
         setRenderProgress({
           status: "running",
           samples: progress.samples,
           targetSamples: progress.targetSamples,
           elapsedMs: progress.elapsedMs,
-          message
+          message: progress.phase === "complete" ? t("画像ができました") : t("高画質画像を作成しています")
         });
       }
     })
@@ -145,19 +133,22 @@ export const useRenderPipeline = ({
           samples: result.samples,
           targetSamples: result.samples,
           elapsedMs: result.elapsedMs,
-          message: t("完了")
+          message: t("画像ができました")
         });
-        setNotice(t("{samples} samples のパストレース比較画像を保存しました。", { samples: result.samples }));
+        setNotice(t("画像ができました"));
       })
       .catch((error: unknown) => {
         const aborted = error instanceof DOMException && error.name === "AbortError";
+        const errorMessage = error instanceof Error && error.message.includes("WebGL2")
+          ? t("この端末では高画質画像を作れません")
+          : t("画像を作れませんでした。時間をおいてもう一度お試しください");
         setRenderProgress((current) => ({
           ...current,
           status: aborted ? "stopped" : "error",
-          message: aborted ? t("停止しました") : error instanceof Error ? error.message : t("レンダリングに失敗しました。")
+          message: aborted ? t("画像の作成を停止しました") : errorMessage
         }));
         if (!aborted) {
-          setNotice(error instanceof Error ? error.message : t("レンダリングに失敗しました。"));
+          setNotice(errorMessage);
         }
       })
       .finally(() => {
@@ -174,19 +165,9 @@ export const useRenderPipeline = ({
     setLiveTrace(status);
   }, []);
 
-  const elapsedSeconds = (renderProgress.elapsedMs / 1000).toFixed(1);
   const renderPercent = renderProgress.targetSamples
     ? Math.min(100, Math.round((renderProgress.samples / renderProgress.targetSamples) * 100))
     : 0;
-  const estimatedRemainingSeconds =
-    renderProgress.status === "running" && renderProgress.samples > 1
-      ? Math.max(
-          0,
-          ((renderProgress.elapsedMs / renderProgress.samples) *
-            (renderProgress.targetSamples - renderProgress.samples)) /
-            1000
-        ).toFixed(1)
-      : "-";
 
   return {
     canvasElement,
@@ -208,8 +189,6 @@ export const useRenderPipeline = ({
     captureCompare,
     stopRender,
     handleLiveTraceStatus,
-    elapsedSeconds,
-    renderPercent,
-    estimatedRemainingSeconds
+    renderPercent
   };
 };

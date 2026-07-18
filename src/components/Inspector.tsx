@@ -73,9 +73,6 @@ export const Inspector = ({ project, selection, canEditWalls, onCloseMobileSetti
       : undefined;
   const interFloorStructure = project.room.interFloorStructure;
 
-  const totalActiveLumens = project.lights.reduce((sum, light) => {
-    return sum + ((light.enabled !== false) ? light.lumens * (light.dimmer ?? 100) * 0.01 : 0);
-  }, 0);
   const hasObjectSelection = selection !== null || selectedLightIds.length > 0;
   const mobileTitle = selectedLight
     ? `${languageLightType(t, selectedLight.type)}${t("を編集")}`
@@ -101,8 +98,8 @@ export const Inspector = ({ project, selection, canEditWalls, onCloseMobileSetti
         {!hasObjectSelection && (
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">Room settings</p>
               <h2>{t("部屋設定")}</h2>
+              <p className="inspector-empty-hint">{t("照明や家具は、2Dまたは3D画面で直接選択できます。")}</p>
             </div>
           </div>
         )}
@@ -138,47 +135,6 @@ export const Inspector = ({ project, selection, canEditWalls, onCloseMobileSetti
 
       {!hasObjectSelection && (
         <>
-          <section className="summary-strip" aria-label={t("部屋の集計")}>
-            <div>
-              <span>{t("照明")}</span>
-              <strong>{project.lights.length}</strong>
-            </div>
-            <div>
-              <span>{t("家具")}</span>
-              <strong>{project.furniture.length}</strong>
-            </div>
-            <div>
-              <span>{t("有効lm")}</span>
-              <strong>{Math.round(totalActiveLumens).toLocaleString("ja-JP")}</strong>
-            </div>
-          </section>
-
-          <section className="panel-block inspector-light-picker">
-            <div className="panel-heading compact">
-              <h2>{t("照明一覧")}</h2>
-            </div>
-            <label className="field">
-              <span>{t("選択して明るさ・色温度を調整")}</span>
-              <select
-                value=""
-                onChange={(event) => {
-                  const value = event.target.value;
-                  if (value) select({ kind: "light", id: value });
-                }}
-              >
-                <option value="">{t("— 照明を選択 —")}</option>
-                {project.lights.map((light) => (
-                  <option key={light.id} value={light.id}>
-                    {t("{name}（{state}）", {
-                      name: t(light.name),
-                      state: light.enabled !== false ? `${Math.round(light.dimmer ?? 100)}%` : t("OFF")
-                    })}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </section>
-
           <details className="room-settings-details">
             <summary>{t("部屋全体の設定 +")}</summary>
             <div className="panel-heading compact">

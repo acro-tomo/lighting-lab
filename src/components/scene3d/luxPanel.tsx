@@ -62,19 +62,19 @@ export const LuxPanel = () => {
   return (
     <div style={panelStyle}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <strong style={{ fontSize: 12 }}>{t("照度ヒートマップ")}</strong>
+        <strong style={{ fontSize: 12 }}>{t("明るさの目安")}</strong>
         <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
           <input
             type="checkbox"
             checked={visible}
             onChange={(event) => setVisible(event.target.checked)}
           />
-          {t("表示")}
+          {t("色で表示")}
         </label>
       </div>
 
       <div style={rowStyle}>
-        <span>{t("計算面高さ")}</span>
+        <span>{t("確認する高さ")}</span>
         <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
           <input
             type="number"
@@ -93,7 +93,7 @@ export const LuxPanel = () => {
       </div>
 
       <div style={rowStyle}>
-        <span>{t("スケール")}</span>
+        <span>{t("表示範囲")}</span>
         <span style={{ display: "flex", gap: 4, flex: 1, maxWidth: 130 }}>
           <button type="button" style={scaleButtonStyle(scaleMax === 300)} onClick={() => setScaleMax(300)}>
             0-300
@@ -116,10 +116,10 @@ export const LuxPanel = () => {
       </div>
 
       <div style={rowStyle}>
-        <span>{t("間接光")}</span>
+        <span>{t("表示の準備")}</span>
         <span>
           {calculation.status === "computing"
-            ? `${calculation.label} ${Math.round(calculation.progress * 100)}%`
+            ? t("計算中 {percent}%", { percent: Math.round(calculation.progress * 100) })
             : calculation.status === "ready"
               ? t("計算完了")
               : t("停止中")}
@@ -127,31 +127,17 @@ export const LuxPanel = () => {
       </div>
 
       <div style={rowStyle}>
-        <span>{t("平均 / 最大")}</span>
+        <span>{t("部屋の平均 / 最大")}</span>
         <span>{stats ? `${formatLx(stats.mean.total)} / ${formatLx(stats.max.total)} lx` : "—"}</span>
       </div>
 
-      {stats && (
-        <div style={{ color: "#bcb3a3", fontSize: 11, textAlign: "right" }}>
-          <div>{t("直接")} {formatLx(stats.mean.direct)} / {formatLx(stats.max.direct)} lx</div>
-          <div>{t("間接")} {formatLx(stats.mean.indirect)} / {formatLx(stats.max.indirect)} lx</div>
-        </div>
-      )}
-
       <div style={rowStyle}>
-        <span>{t("クリック位置")}</span>
-        <span>{probe ? `(${probe.x.toFixed(2)}, ${probe.z.toFixed(2)})` : "—"}</span>
+        <span>{t("選んだ場所")}</span>
+        <span>{probe ? `${formatLx(probe.value.total)} lx` : t("床をクリック")}</span>
       </div>
 
-      {probe && (
-        <div style={{ color: "#bcb3a3", fontSize: 11, textAlign: "right" }}>
-          {t("合計")} {formatLx(probe.value.total)} = {t("直接")} {formatLx(probe.value.direct)} + {t("間接")} {" "}
-          {formatLx(probe.value.indirect)} lx
-        </div>
-      )}
-
       <p style={{ margin: "8px 0 0", color: "#a89f8d", fontSize: 10, lineHeight: 1.5 }}>
-        {t("実験的機能（参考値）: 配光はビーム角からの近似でIES配光ではありません。実照度(lux)を保証するものではありません。")}
+        {t("明るさを比べるための参考値です。実際の照度を保証するものではありません。")}
       </p>
     </div>
   );
