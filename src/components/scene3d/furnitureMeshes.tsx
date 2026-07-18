@@ -386,14 +386,16 @@ const FurniturePrimitive = ({
   metalness: number;
 }) => {
   if (item.type === "roundTable") {
+    const topT = Math.min(0.08, item.size.y * 0.14);
+    const legH = item.size.y - topT;
     return (
       <>
-        <mesh castShadow receiveShadow position={[0, item.size.y / 2, 0]}>
-          <cylinderGeometry args={[item.size.x / 2, item.size.x / 2, 0.08, 72]} />
+        <mesh castShadow receiveShadow position={[0, item.size.y / 2 - topT / 2, 0]}>
+          <cylinderGeometry args={[item.size.x / 2, item.size.x / 2, topT, 72]} />
           <meshStandardMaterial color={color} roughness={roughness} metalness={metalness} />
         </mesh>
-        <mesh castShadow position={[0, item.size.y / 4, 0]}>
-          <cylinderGeometry args={[0.055, 0.085, item.size.y / 2, 32]} />
+        <mesh castShadow receiveShadow position={[0, -topT / 2, 0]}>
+          <cylinderGeometry args={[0.055, 0.085, legH, 32]} />
           <meshStandardMaterial color="#1d1c19" roughness={0.44} metalness={0.6} />
         </mesh>
       </>
@@ -581,19 +583,50 @@ const FurniturePrimitive = ({
   }
 
   if (item.type === "kitchen") {
+    const { x: w, y: h, z: d } = item.size;
+    const counterY = h / 2 + 0.035;
+    const sinkW = Math.min(w * 0.34, 0.62);
+    const sinkD = d * 0.52;
+    const cooktopW = Math.min(w * 0.34, 0.62);
+    const cooktopD = d * 0.56;
+    const burnerRadius = Math.min(cooktopW, cooktopD) * 0.13;
     return (
       <>
         <mesh castShadow receiveShadow>
-          <boxGeometry args={[item.size.x, item.size.y, item.size.z]} />
+          <boxGeometry args={[w, h, d]} />
           <meshStandardMaterial color={color} roughness={roughness} metalness={metalness} />
         </mesh>
-        <mesh position={[0, item.size.y / 2 + 0.035, 0]} castShadow receiveShadow>
-          <boxGeometry args={[item.size.x + 0.08, 0.07, item.size.z + 0.08]} />
+        <mesh position={[0, counterY, 0]} castShadow receiveShadow>
+          <boxGeometry args={[w + 0.08, 0.07, d + 0.08]} />
           <meshStandardMaterial color="#b8b4aa" roughness={0.38} />
         </mesh>
-        {[-0.85, 0, 0.85].map((x) => (
-          <mesh key={x} position={[x, 0.02, item.size.z / 2 + 0.012]}>
-            <boxGeometry args={[0.62, 0.64, 0.018]} />
+        <mesh position={[-w * 0.25, counterY + 0.041, 0]} receiveShadow>
+          <boxGeometry args={[sinkW, 0.018, sinkD]} />
+          <meshStandardMaterial color="#6f7679" roughness={0.24} metalness={0.72} />
+        </mesh>
+        <mesh position={[w * 0.25, counterY + 0.043, 0]} receiveShadow>
+          <boxGeometry args={[cooktopW, 0.022, cooktopD]} />
+          <meshStandardMaterial color="#090a0a" roughness={0.16} metalness={0.18} />
+        </mesh>
+        {[-1, 1].flatMap((xSide) =>
+          [-1, 1].map((zSide) => (
+            <mesh
+              key={`${xSide}-${zSide}`}
+              position={[
+                w * 0.25 + xSide * cooktopW * 0.24,
+                counterY + 0.057,
+                zSide * cooktopD * 0.24
+              ]}
+              receiveShadow
+            >
+              <cylinderGeometry args={[burnerRadius, burnerRadius, 0.012, 28]} />
+              <meshStandardMaterial color="#242626" roughness={0.5} metalness={0.5} />
+            </mesh>
+          ))
+        )}
+        {[-0.34, 0, 0.34].map((xRatio) => (
+          <mesh key={xRatio} position={[xRatio * w, 0.02, d / 2 + 0.012]}>
+            <boxGeometry args={[w * 0.27, h * 0.72, 0.018]} />
             <meshStandardMaterial color="#0c0c0b" roughness={0.78} />
           </mesh>
         ))}
@@ -754,24 +787,28 @@ const FurniturePrimitive = ({
   }
 
   if (item.type === "washstand") {
-    // 洗面化粧台: カウンター＋下部キャビネット＋上部の鏡板。
     const { x: w, y: h, z: d } = item.size;
-    const counterY = h * 0.45;
+    const cabinetH = Math.min(h * 0.48, 0.86);
+    const counterY = -h / 2 + cabinetH;
+    const bowlRadius = Math.min(w, d) * 0.28;
+    const mirrorBottom = counterY + 0.14;
+    const mirrorH = Math.max(0.12, h / 2 - mirrorBottom - 0.06);
     return (
       <>
-        {/* 下部キャビネット */}
-        <mesh castShadow receiveShadow position={[0, -h / 2 + counterY / 2, 0]}>
-          <boxGeometry args={[w, counterY, d]} />
+        <mesh castShadow receiveShadow position={[0, -h / 2 + cabinetH / 2, 0]}>
+          <boxGeometry args={[w, cabinetH, d]} />
           <meshStandardMaterial color="#e9e7e1" roughness={0.5} metalness={metalness} />
         </mesh>
-        {/* カウンター天板 */}
-        <mesh castShadow receiveShadow position={[0, -h / 2 + counterY + 0.02, 0]}>
+        <mesh castShadow receiveShadow position={[0, counterY + 0.02, 0]}>
           <boxGeometry args={[w + 0.03, 0.04, d + 0.03]} />
           <meshStandardMaterial color="#f4f3ef" roughness={0.3} metalness={metalness} />
         </mesh>
-        {/* 鏡板（背面寄り上部） */}
-        <mesh receiveShadow position={[0, h / 2 - h * 0.18, -d / 2 + 0.02]}>
-          <boxGeometry args={[w * 0.86, h * 0.34, 0.02]} />
+        <mesh position={[0, counterY + 0.052, 0]} scale={[1.45, 0.45, 1]} receiveShadow>
+          <sphereGeometry args={[bowlRadius, 28, 14]} />
+          <meshStandardMaterial color="#f7f7f4" roughness={0.22} />
+        </mesh>
+        <mesh receiveShadow position={[0, mirrorBottom + mirrorH / 2, -d / 2 + 0.02]}>
+          <boxGeometry args={[w * 0.86, mirrorH, 0.02]} />
           <meshStandardMaterial color="#aab4bc" roughness={0.08} metalness={0.55} />
         </mesh>
       </>
@@ -779,23 +816,21 @@ const FurniturePrimitive = ({
   }
 
   if (item.type === "toilet") {
-    // 便器（ボウル）＋背面タンクの2段構成。
     const { x: w, y: h, z: d } = item.size;
-    const bowlH = h * 0.55;
-    const tankH = h * 0.45;
+    const bowlH = h * 0.46;
+    const bowlY = -h / 2 + bowlH / 2;
+    const seatY = -h / 2 + bowlH + 0.018;
+    const tankH = h * 0.64;
     return (
       <>
-        {/* ボウル */}
-        <mesh castShadow receiveShadow position={[0, -h / 2 + bowlH / 2, d * 0.12]}>
-          <boxGeometry args={[w * 0.7, bowlH, d * 0.72]} />
+        <mesh castShadow receiveShadow position={[0, bowlY, d * 0.12]} scale={[w * 0.72, bowlH, d * 0.72]}>
+          <sphereGeometry args={[0.5, 32, 18]} />
           <meshStandardMaterial color="#f3f3f1" roughness={0.25} metalness={metalness} />
         </mesh>
-        {/* 便座（上面） */}
-        <mesh receiveShadow position={[0, -h / 2 + bowlH + 0.015, d * 0.12]}>
-          <boxGeometry args={[w * 0.76, 0.04, d * 0.78]} />
+        <mesh receiveShadow position={[0, seatY, d * 0.12]} rotation={[Math.PI / 2, 0, 0]} scale={[w * 0.62, d * 0.62, 0.05]}>
+          <torusGeometry args={[0.5, 0.1, 12, 32]} />
           <meshStandardMaterial color="#fafafa" roughness={0.3} />
         </mesh>
-        {/* 背面タンク */}
         <mesh castShadow receiveShadow position={[0, h / 2 - tankH / 2, -d / 2 + d * 0.16]}>
           <boxGeometry args={[w * 0.82, tankH, d * 0.3]} />
           <meshStandardMaterial color="#f3f3f1" roughness={0.25} metalness={metalness} />
@@ -805,18 +840,28 @@ const FurniturePrimitive = ({
   }
 
   if (item.type === "bathtub") {
-    // 浴槽: 外箱＋内側を浅く窪ませた湯面。窪みは薄い縁を残した内箱で表現する。
     const { x: w, y: h, z: d } = item.size;
     const rim = Math.min(w, d) * 0.12;
     return (
       <>
-        <mesh castShadow receiveShadow>
-          <boxGeometry args={[w, h, d]} />
+        {[-1, 1].map((side) => (
+          <mesh key={`long-${side}`} castShadow receiveShadow position={[0, 0, side * (d / 2 - rim / 2)]}>
+            <boxGeometry args={[w, h, rim]} />
+            <meshStandardMaterial color="#eef0f0" roughness={0.3} metalness={metalness} />
+          </mesh>
+        ))}
+        {[-1, 1].map((side) => (
+          <mesh key={`short-${side}`} castShadow receiveShadow position={[side * (w / 2 - rim / 2), 0, 0]}>
+            <boxGeometry args={[rim, h, d - rim * 2]} />
+            <meshStandardMaterial color="#eef0f0" roughness={0.3} metalness={metalness} />
+          </mesh>
+        ))}
+        <mesh position={[0, -h / 2 + 0.04, 0]} receiveShadow>
+          <boxGeometry args={[w - rim * 2, 0.08, d - rim * 2]} />
           <meshStandardMaterial color="#eef0f0" roughness={0.3} metalness={metalness} />
         </mesh>
-        {/* 内側の窪み（湯面を兼ねた青みがかった面） */}
-        <mesh position={[0, h / 2 - 0.06, 0]}>
-          <boxGeometry args={[w - rim * 2, 0.06, d - rim * 2]} />
+        <mesh position={[0, h * 0.12, 0]} receiveShadow>
+          <boxGeometry args={[w - rim * 2, 0.025, d - rim * 2]} />
           <meshStandardMaterial color="#cfe0e6" roughness={0.12} metalness={0.1} />
         </mesh>
       </>
@@ -826,12 +871,12 @@ const FurniturePrimitive = ({
   if (item.type === "desk") {
     // デスク: 天板＋4本脚。
     const { x: w, y: h, z: d } = item.size;
-    const topT = 0.04;
-    const legW = 0.05;
+    const topT = Math.min(0.04, h * 0.1);
+    const legW = Math.min(0.05, w * 0.08, d * 0.1);
     const legY = -h / 2 + (h - topT) / 2;
     const legH = h - topT;
-    const offX = w / 2 - legW / 2 - 0.02;
-    const offZ = d / 2 - legW / 2 - 0.02;
+    const offX = w / 2 - legW / 2 - Math.min(0.02, w * 0.03);
+    const offZ = d / 2 - legW / 2 - Math.min(0.02, d * 0.03);
     return (
       <>
         <mesh castShadow receiveShadow position={[0, h / 2 - topT / 2, 0]}>
