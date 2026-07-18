@@ -401,37 +401,181 @@ const FurniturePrimitive = ({
   }
 
   if (item.type === "chair") {
+    const { x: w, y: h, z: d } = item.size;
+    const seatT = Math.min(0.1, h * 0.12);
+    const seatY = -h / 2 + h * 0.47;
+    const legH = h * 0.42;
+    const legW = Math.min(0.05, w * 0.12, d * 0.12);
+    const legY = -h / 2 + legH / 2;
+    const legX = w / 2 - legW / 2 - w * 0.06;
+    const legZ = d / 2 - legW / 2 - d * 0.06;
+    const backD = Math.min(0.08, d * 0.16);
+    const backH = h / 2 - seatY;
     return (
       <>
-        <mesh castShadow receiveShadow position={[0, -0.08, 0]}>
-          <boxGeometry args={[item.size.x, 0.1, item.size.z]} />
+        <mesh castShadow receiveShadow position={[0, seatY, 0]}>
+          <boxGeometry args={[w, seatT, d]} />
           <meshStandardMaterial color={color} roughness={roughness} metalness={metalness} />
         </mesh>
-        <mesh castShadow receiveShadow position={[0, 0.26, -item.size.z / 2 + 0.06]}>
-          <boxGeometry args={[item.size.x, 0.72, 0.09]} />
+        <mesh castShadow receiveShadow position={[0, (h / 2 + seatY) / 2, -d / 2 + backD / 2]}>
+          <boxGeometry args={[w, backH, backD]} />
           <meshStandardMaterial color={color} roughness={roughness} metalness={metalness} />
         </mesh>
+        {[
+          [legX, legZ],
+          [-legX, legZ],
+          [legX, -legZ],
+          [-legX, -legZ]
+        ].map(([x, z], index) => (
+          <mesh key={index} castShadow receiveShadow position={[x, legY, z]}>
+            <boxGeometry args={[legW, legH, legW]} />
+            <meshStandardMaterial color={color} roughness={roughness} metalness={metalness} />
+          </mesh>
+        ))}
       </>
     );
   }
 
   if (item.type === "sofa") {
+    const { x: w, y: h, z: d } = item.size;
+    const baseH = h * 0.28;
+    const backD = Math.min(0.2, d * 0.22);
+    const backH = h * 0.66;
+    const armW = Math.min(0.22, Math.max(0.1, w * 0.1));
+    const armH = h * 0.58;
+    const frontInset = d * 0.06;
+    const seatD = d - backD - frontInset;
+    const seatZ = (backD - frontInset) / 2;
+    const cushionH = h * 0.15;
+    const cushionY = -h / 2 + baseH + cushionH / 2 + 0.015;
+    const cushionCount = w >= 1.8 ? 3 : w >= 1.15 ? 2 : 1;
+    const cushionGap = Math.min(0.025, w * 0.015);
+    const innerW = w - armW * 2 - cushionGap * 2;
+    const cushionW = (innerW - cushionGap * (cushionCount - 1)) / cushionCount;
     return (
       <>
-        <mesh castShadow receiveShadow position={[0, -0.08, 0]}>
-          <boxGeometry args={[item.size.x, 0.35, item.size.z]} />
+        <mesh castShadow receiveShadow position={[0, -h / 2 + baseH / 2, 0]}>
+          <boxGeometry args={[w, baseH, d]} />
           <meshStandardMaterial color={color} roughness={roughness} />
         </mesh>
-        <mesh castShadow receiveShadow position={[0, 0.22, -item.size.z / 2 + 0.1]}>
-          <boxGeometry args={[item.size.x, 0.72, 0.2]} />
+        <mesh castShadow receiveShadow position={[0, h / 2 - backH / 2, -d / 2 + backD / 2]}>
+          <boxGeometry args={[w - armW * 2, backH, backD]} />
           <meshStandardMaterial color={color} roughness={roughness} />
         </mesh>
-        {[-0.62, 0, 0.62].map((x) => (
-          <mesh key={x} castShadow receiveShadow position={[x, 0.14, 0.12]}>
-            <boxGeometry args={[0.58, 0.18, 0.52]} />
+        {[-1, 1].map((side) => (
+          <mesh
+            key={side}
+            castShadow
+            receiveShadow
+            position={[side * (w / 2 - armW / 2), -h / 2 + armH / 2, seatZ]}
+          >
+            <boxGeometry args={[armW, armH, d - frontInset]} />
+            <meshStandardMaterial color={color} roughness={roughness} />
+          </mesh>
+        ))}
+        {Array.from({ length: cushionCount }).map((_, index) => (
+          <mesh
+            key={index}
+            castShadow
+            receiveShadow
+            position={[-innerW / 2 + cushionW / 2 + index * (cushionW + cushionGap), cushionY, seatZ]}
+          >
+            <boxGeometry args={[cushionW, cushionH, seatD]} />
             <meshStandardMaterial color="#817b70" roughness={0.96} />
           </mesh>
         ))}
+      </>
+    );
+  }
+
+  if (item.type === "rectTable") {
+    const { x: w, y: h, z: d } = item.size;
+    const topT = Math.min(0.08, h * 0.14);
+    const legH = h - topT;
+    const legW = Math.min(0.07, w * 0.08, d * 0.12);
+    const legX = w / 2 - legW / 2 - w * 0.04;
+    const legZ = d / 2 - legW / 2 - d * 0.06;
+    return (
+      <>
+        <mesh castShadow receiveShadow position={[0, h / 2 - topT / 2, 0]}>
+          <boxGeometry args={[w, topT, d]} />
+          <meshStandardMaterial color={color} roughness={roughness} metalness={metalness} />
+        </mesh>
+        {[
+          [legX, legZ],
+          [-legX, legZ],
+          [legX, -legZ],
+          [-legX, -legZ]
+        ].map(([x, z], index) => (
+          <mesh key={index} castShadow receiveShadow position={[x, -topT / 2, z]}>
+            <boxGeometry args={[legW, legH, legW]} />
+            <meshStandardMaterial color="#3a342b" roughness={0.6} metalness={metalness} />
+          </mesh>
+        ))}
+      </>
+    );
+  }
+
+  if (item.type === "cupboard") {
+    const { x: w, y: h, z: d } = item.size;
+    const doorGap = Math.min(0.014, w * 0.02);
+    const doorD = Math.min(0.035, d * 0.08);
+    const doorW = (w - doorGap * 3) / 2;
+    const handleH = Math.min(0.32, h * 0.2);
+    return (
+      <>
+        <mesh castShadow receiveShadow position={[0, 0, -doorD / 2]}>
+          <boxGeometry args={[w, h, d - doorD]} />
+          <meshStandardMaterial color={color} roughness={roughness} metalness={metalness} />
+        </mesh>
+        {[-1, 1].map((side) => (
+          <mesh
+            key={side}
+            castShadow
+            receiveShadow
+            position={[side * (doorW / 2 + doorGap / 2), 0, d / 2 - doorD / 2]}
+          >
+            <boxGeometry args={[doorW, h - doorGap * 2, doorD]} />
+            <meshStandardMaterial color={color} roughness={roughness} metalness={metalness} />
+          </mesh>
+        ))}
+        {[-1, 1].map((side) => (
+          <mesh key={side} position={[side * (doorGap / 2 + 0.028), 0, d / 2 + 0.012]} castShadow>
+            <boxGeometry args={[0.018, handleH, 0.025]} />
+            <meshStandardMaterial color="#6e6b65" roughness={0.36} metalness={0.55} />
+          </mesh>
+        ))}
+      </>
+    );
+  }
+
+  if (item.type === "counter") {
+    const { x: w, y: h, z: d } = item.size;
+    const topT = Math.min(0.07, h * 0.1);
+    const supportT = Math.min(0.08, w * 0.06);
+    const supportH = h - topT;
+    const backT = Math.min(0.05, d * 0.14);
+    const panelH = supportH * 0.65;
+    return (
+      <>
+        <mesh castShadow receiveShadow position={[0, h / 2 - topT / 2, 0]}>
+          <boxGeometry args={[w, topT, d]} />
+          <meshStandardMaterial color={color} roughness={roughness} metalness={metalness} />
+        </mesh>
+        {[-1, 1].map((side) => (
+          <mesh key={side} castShadow receiveShadow position={[side * (w / 2 - supportT / 2), -topT / 2, 0]}>
+            <boxGeometry args={[supportT, supportH, d]} />
+            <meshStandardMaterial color={color} roughness={roughness} metalness={metalness} />
+          </mesh>
+        ))}
+        <mesh
+          castShadow
+          receiveShadow
+          position={[0, -h / 2 + panelH / 2, -d / 2 + backT / 2]}
+        >
+          <boxGeometry args={[w - supportT * 2, panelH, backT]} />
+          <meshStandardMaterial color={color} roughness={roughness} metalness={metalness} />
+        </mesh>
       </>
     );
   }
