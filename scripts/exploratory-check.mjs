@@ -220,26 +220,28 @@ try {
 
   if (shouldPeekRealistic) {
     await step("peek realistic mode", async () => {
-      await activate(page.locator(".view-mode-toggle button").filter({ hasText: "仕上がりを見る" }));
-      await assertTextVisible(/仕上がりを準備中|仕上がり表示/);
+      const finishedLookButton = page.locator(".view-mode-toggle button").filter({ hasText: "仕上がり" });
+      await activate(finishedLookButton);
+      await page.locator('.view-mode-toggle button[aria-pressed="true"]').filter({ hasText: "仕上がり" }).waitFor();
       await page.waitForTimeout(1200);
-      await activate(page.locator(".view-mode-toggle button").filter({ hasText: "編集する" }));
-      await assertTextVisible(/編集モード/);
+      const editButton = page.locator(".view-mode-toggle button").filter({ hasText: "編集" });
+      await activate(editButton);
+      await page.locator('.view-mode-toggle button[aria-pressed="true"]').filter({ hasText: "編集" }).waitFor();
     });
   } else {
     await step("confirm realistic control exists", async () => {
-      await page.locator(".view-mode-toggle button").filter({ hasText: "仕上がりを見る" }).waitFor({ state: "visible" });
+      await page.locator(".view-mode-toggle button").filter({ hasText: "仕上がり" }).waitFor({ state: "visible" });
       console.log("realisticModeSkipped=set EXPLORATORY_CHECK_REALISTIC=true or pass --realistic to exercise live path tracing");
     });
   }
 
   await step("open output controls without rendering", async () => {
-    await activate(page.getByRole("button", { name: "高画質画像" }));
+    await activate(page.getByRole("button", { name: "仕上がり画像を作る" }));
     const output = page.locator(".output-popover");
     await output.waitFor({ state: "visible", timeout: interactionTimeoutMs });
     await output.locator("select").first().waitFor({ state: "visible", timeout: interactionTimeoutMs });
     await output.getByRole("button", { name: "画像を作る" }).waitFor({ state: "visible", timeout: interactionTimeoutMs });
-    await activate(page.getByRole("button", { name: "高画質画像" }));
+    await activate(page.getByRole("button", { name: "仕上がり画像を作る" }));
   });
 
   await step("open help dialog", async () => {

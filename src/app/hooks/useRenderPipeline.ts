@@ -92,9 +92,9 @@ export const useRenderPipeline = ({
       samples: 0,
       targetSamples: sampleCountByMode[pathTraceMode],
       elapsedMs: 0,
-      message: t("高画質画像を作成しています")
+      message: t("仕上がり画像を作成しています")
     });
-    setNotice(t("高画質画像を作成しています"));
+    setNotice(t("仕上がり画像を作成しています"));
 
     void renderPathTracedImage({
       context: renderContext,
@@ -109,7 +109,7 @@ export const useRenderPipeline = ({
           samples: progress.samples,
           targetSamples: progress.targetSamples,
           elapsedMs: progress.elapsedMs,
-          message: progress.phase === "complete" ? t("画像ができました") : t("高画質画像を作成しています")
+          message: progress.phase === "complete" ? t("画像ができました") : t("仕上がり画像を作成しています")
         });
       }
     })
@@ -140,7 +140,7 @@ export const useRenderPipeline = ({
       .catch((error: unknown) => {
         const aborted = error instanceof DOMException && error.name === "AbortError";
         const errorMessage = error instanceof Error && error.message.includes("WebGL2")
-          ? t("この端末では高画質画像を作れません")
+          ? t("この端末では仕上がり画像を作れません")
           : t("画像を作れませんでした。時間をおいてもう一度お試しください");
         setRenderProgress((current) => ({
           ...current,

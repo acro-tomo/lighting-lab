@@ -69,7 +69,7 @@ try {
 await page.waitForTimeout(1400);
 
 if (shouldRender || shouldPeekRender) {
-  await page.getByRole("button", { name: "高画質画像" }).click();
+  await page.getByRole("button", { name: "仕上がり画像を作る" }).click();
   await page.getByRole("button", { name: "画像を作る" }).click();
   if (shouldPeekRender) {
     await page.waitForTimeout(8000);

@@ -1,17 +1,12 @@
 import { useRef, useState } from "react";
 import { useI18n } from "../i18n";
 import type { Project } from "../types";
-import type { ViewMode } from "./Scene3D";
 
 type HeaderBarProps = {
   project: Project;
   onImportFloorPlan: (file: File) => void;
   onImportProject: (file: File) => void;
   onExportProject: () => void;
-  onToggleOutput: () => void;
-  outputOpen: boolean;
-  viewMode: ViewMode;
-  onViewModeChange: (mode: ViewMode) => void;
   onShowIntro: () => void;
 };
 
@@ -20,10 +15,6 @@ export const HeaderBar = ({
   onImportFloorPlan,
   onImportProject,
   onExportProject,
-  onToggleOutput,
-  outputOpen,
-  viewMode,
-  onViewModeChange,
   onShowIntro
 }: HeaderBarProps) => {
   const { language, setLanguage, t } = useI18n();
@@ -80,34 +71,6 @@ export const HeaderBar = ({
             <button onClick={() => { projectInputRef.current?.click(); setMobileMenuOpen(false); }}>{t("プロジェクト読込")}</button>
             <button onClick={() => { onExportProject(); setMobileMenuOpen(false); }}>{t("プロジェクト保存")}</button>
           </div>
-        </div>
-        <div className="header-action-group" aria-label={t("表示モード")}>
-          <div className="view-mode-toggle" role="group" aria-label={t("表示モード")}>
-            <button
-              className={viewMode === "raster" ? "view-mode-btn is-active" : "view-mode-btn"}
-              onClick={() => { onViewModeChange("raster"); setMobileMenuOpen(false); }}
-              title={t("照明や家具を配置・調整する")}
-              aria-pressed={viewMode === "raster"}
-            >
-              {t("編集する")}
-            </button>
-            <button
-              className={viewMode === "realistic" ? "view-mode-btn is-active" : "view-mode-btn"}
-              onClick={() => { onViewModeChange("realistic"); setMobileMenuOpen(false); }}
-              title={t("光の反射を含めた仕上がりを確認する")}
-              aria-pressed={viewMode === "realistic"}
-            >
-              {t("仕上がりを見る")}
-            </button>
-          </div>
-        </div>
-        <div className="header-action-group" aria-label={t("高画質画像")}>
-          <button
-            className={outputOpen ? "primary-action is-active" : "primary-action"}
-            onClick={() => { onToggleOutput(); setMobileMenuOpen(false); }}
-          >
-            {t("高画質画像")}
-          </button>
         </div>
         <div className="language-toggle" role="group" aria-label={t("言語")}>
           <button

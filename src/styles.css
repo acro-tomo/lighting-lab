@@ -317,6 +317,18 @@ h2 {
   border-bottom: 1px solid rgba(255, 255, 255, 0.09);
 }
 
+.viewport-view-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.viewport-output-wrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
 .render-status {
   justify-content: flex-start;
   border-radius: 7px;
@@ -1770,13 +1782,31 @@ h2 {
   opacity: 0.4;
 }
 
-/* 編集/リアル 切替トグル（ヘッダーに常時表示） */
+/* 3D表示の編集/仕上がり切替 */
 .view-mode-toggle {
-  display: flex;
-  align-items: center;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 180px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 7px;
   overflow: hidden;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.view-mode-toggle::before {
+  position: absolute;
+  inset: 2px auto 2px 2px;
+  width: calc(50% - 3px);
+  border-radius: 5px;
+  background: #f5c64d;
+  content: "";
+  transform: translateX(0);
+  transition: transform 160ms ease;
+}
+
+.viewport-view-actions.is-realistic .view-mode-toggle::before {
+  transform: translateX(100%);
 }
 
 .language-toggle {
@@ -1807,28 +1837,50 @@ h2 {
 }
 
 .view-mode-btn {
+  position: relative;
+  z-index: 1;
   min-height: 34px;
   border: 0;
   border-radius: 0;
   padding: 8px 11px;
   color: #e8e2d7;
-  background: rgba(255, 255, 255, 0.055);
+  background: transparent;
   font-size: 13px;
+  font-weight: 700;
   cursor: pointer;
-}
-
-.view-mode-btn + .view-mode-btn {
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.view-mode-btn:hover {
-  background: rgba(255, 255, 255, 0.11);
 }
 
 .view-mode-btn.is-active {
   color: #1b1608;
-  background: #f5c64d;
   font-weight: 760;
+}
+
+.viewport-output-button {
+  min-height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 7px;
+  padding: 7px 11px;
+  color: #e8e2d7;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.viewport-view-actions.is-realistic .viewport-output-button {
+  border-color: rgba(245, 198, 77, 0.72);
+  color: #fff0bc;
+}
+
+.viewport-output-button.is-open {
+  color: #1b1608;
+  background: #f5c64d;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .view-mode-toggle::before {
+    transition: none;
+  }
 }
 
 .inspector-empty-hint {
@@ -2085,11 +2137,11 @@ h2 {
   min-width: 28px;
 }
 
-/* 高画質画像ポップオーバー（ヘッダー起点） */
+/* 仕上がり画像ポップオーバー（3D操作起点） */
 .output-popover {
-  position: fixed;
-  top: 80px;
-  right: 18px;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
   z-index: 55;
   display: flex;
   flex-direction: column;
@@ -2659,8 +2711,7 @@ h2 {
     display: none;
   }
 
-  .header-actions button,
-  .view-mode-btn {
+  .header-actions button {
     min-height: 34px;
     padding: 6px 8px;
     white-space: normal;
@@ -2677,10 +2728,6 @@ h2 {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .header-action-group > .view-mode-toggle {
-    width: 100%;
-  }
-
   .header-action-group + .header-action-group {
     padding-top: 7px;
     padding-left: 0;
@@ -2693,19 +2740,11 @@ h2 {
     width: 100%;
   }
 
-  .view-mode-toggle {
-    width: 100%;
-  }
-
   .language-toggle {
     width: 100%;
   }
 
   .header-actions .language-toggle button {
-    flex: 1 1 0;
-  }
-
-  .view-mode-btn {
     flex: 1 1 0;
   }
 
@@ -2941,6 +2980,12 @@ h2 {
     flex-wrap: nowrap;
     overflow-x: auto;
     padding: 6px 8px;
+  }
+
+  .viewport-view-actions,
+  .view-mode-toggle,
+  .viewport-output-wrap {
+    flex: 0 0 auto;
   }
 
   .viewport-title {

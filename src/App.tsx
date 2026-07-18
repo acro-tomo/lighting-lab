@@ -208,10 +208,6 @@ export const App = () => {
           onImportFloorPlan={handleImportFloorPlan}
           onImportProject={handleImportProject}
           onExportProject={exportProject}
-          onToggleOutput={() => setOutputOpen((current) => !current)}
-          outputOpen={outputOpen}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
           onShowIntro={() => setShowIntro(true)}
         />
         {/* 操作＋追加ツールバー: 2D/3D 両パネル共通の1インスタンス。 */}
@@ -299,17 +295,81 @@ export const App = () => {
               </button>
             </div>
 
-            <div className="render-status">
-              {viewMode === "realistic" ? (
-                <strong>
-                  {liveTrace.phase === "converged"
-                    ? t("仕上がり表示")
-                    : t("仕上がりを準備中…")}
-                </strong>
-              ) : (
-                <strong>{t("編集モード")}</strong>
-              )}
+            <div className={viewMode === "realistic" ? "viewport-view-actions is-realistic" : "viewport-view-actions"}>
+              <div className="view-mode-toggle" role="group" aria-label={t("表示モード")}>
+                <button
+                  className={viewMode === "raster" ? "view-mode-btn is-active" : "view-mode-btn"}
+                  onClick={() => setViewMode("raster")}
+                  title={t("照明や家具を配置・調整する")}
+                  aria-pressed={viewMode === "raster"}
+                >
+                  {t("編集")}
+                </button>
+                <button
+                  className={viewMode === "realistic" ? "view-mode-btn is-active" : "view-mode-btn"}
+                  onClick={() => setViewMode("realistic")}
+                  title={t("光の反射を含めた仕上がりを確認する")}
+                  aria-pressed={viewMode === "realistic"}
+                >
+                  {t("仕上がり")}
+                </button>
+              </div>
+              <div className="viewport-output-wrap">
+                <button
+                  type="button"
+                  className={outputOpen ? "viewport-output-button is-open" : "viewport-output-button"}
+                  aria-expanded={outputOpen}
+                  aria-controls="finished-image-popover"
+                  onClick={() => setOutputOpen((current) => !current)}
+                >
+                  {t("仕上がり画像を作る")}
+                </button>
+
+                {outputOpen && (
+                  <div id="finished-image-popover" className="output-popover" aria-label={t("仕上がり画像を作る")}>
+                    <div className="output-row">
+                      <label>
+                        {t("品質")}
+                        <select
+                          value={pathTraceMode}
+                          disabled={renderProgress.status === "running"}
+                          onChange={(event) => setPathTraceMode(event.target.value as PathTraceMode)}
+                        >
+                          <option value="standard">{t("標準")}</option>
+                          <option value="high">{t("高品質")}</option>
+                          <option value="ultra">{t("最高")}</option>
+                        </select>
+                      </label>
+                    </div>
+                    <div className="output-row">
+                      <button
+                        className="primary-action"
+                        onClick={renderProgress.status === "running" ? stopRender : captureCompare}
+                      >
+                        {renderProgress.status === "running" ? t("作成を中止") : t("画像を作る")}
+                      </button>
+                      {lastPathTracedImage && <button onClick={exportPng}>{t("画像を保存")}</button>}
+                    </div>
+                    <div className="output-progress">
+                      {renderProgress.status === "running" ? (
+                        <>
+                          <strong>{t("画像を作成中 {percent}%", { percent: renderPercent })}</strong>
+                          <progress value={renderPercent} max={100} />
+                        </>
+                      ) : lastPathTracedImage ? (
+                        <strong>{t("画像ができました")}</strong>
+                      ) : (
+                        <span>{t("仕上がり画像を作ると、現在の3D表示を保存できます。")}</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
+
+            {viewMode === "realistic" && liveTrace.phase !== "converged" && (
+              <div className="render-status"><strong>{t("仕上がりを準備中…")}</strong></div>
+            )}
 
             {(() => {
               const dl = project.daylight ?? DEFAULT_DAYLIGHT;
@@ -374,46 +434,6 @@ export const App = () => {
             })()}
           </div>
 
-          {outputOpen && (
-            <div className="output-popover" aria-label={t("高画質画像")}>
-              <div className="output-row">
-                <label>
-                  {t("品質")}
-                  <select
-                    value={pathTraceMode}
-                    disabled={renderProgress.status === "running"}
-                    onChange={(event) => setPathTraceMode(event.target.value as PathTraceMode)}
-                  >
-                    <option value="standard">{t("標準")}</option>
-                    <option value="high">{t("高品質")}</option>
-                    <option value="ultra">{t("最高")}</option>
-                  </select>
-                </label>
-              </div>
-              <div className="output-row">
-                <button
-                  className="primary-action"
-                  onClick={renderProgress.status === "running" ? stopRender : captureCompare}
-                >
-                  {renderProgress.status === "running" ? t("作成を中止") : t("画像を作る")}
-                </button>
-                {lastPathTracedImage && <button onClick={exportPng}>{t("画像を保存")}</button>}
-              </div>
-              <div className="output-progress">
-                {renderProgress.status === "running" ? (
-                  <>
-                    <strong>{t("画像を作成中 {percent}%", { percent: renderPercent })}</strong>
-                    <progress value={renderPercent} max={100} />
-                  </>
-                ) : lastPathTracedImage ? (
-                  <strong>{t("画像ができました")}</strong>
-                ) : (
-                  <span>{t("画像を作ると、現在の3D表示を高画質で保存できます。")}</span>
-                )}
-              </div>
-            </div>
-          )}
-
           <div className="scene-stage">
             <Scene3D
               project={project}
@@ -431,7 +451,7 @@ export const App = () => {
               canEditWalls={planEditMode}
             />
             {lastPathTracedImage && (
-              <div className="pathtrace-result" aria-label={t("高画質画像")}>
+              <div className="pathtrace-result" aria-label={t("仕上がり画像")}>
                 <div>{t("仕上がり画像")}</div>
                 <img src={lastPathTracedImage} alt={t("仕上がり画像")} />
               </div>
