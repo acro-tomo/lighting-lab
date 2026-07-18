@@ -69,6 +69,7 @@ try {
 await page.waitForTimeout(1400);
 
 if (shouldRender || shouldPeekRender) {
+  await page.locator(".view-mode-toggle button").filter({ hasText: "仕上がり" }).click();
   await page.getByRole("button", { name: "仕上がり画像を作る" }).click();
   await page.getByRole("button", { name: "画像を作る" }).click();
   if (shouldPeekRender) {

@@ -235,13 +235,19 @@ try {
     });
   }
 
-  await step("open output controls without rendering", async () => {
-    await activate(page.getByRole("button", { name: "仕上がり画像を作る" }));
+  await step("show and hide finished image controls", async () => {
+    await activate(page.locator(".view-mode-toggle button").filter({ hasText: "仕上がり" }));
+    const outputButton = page.getByRole("button", { name: "仕上がり画像を作る" });
+    await outputButton.waitFor({ state: "visible", timeout: interactionTimeoutMs });
+    await activate(outputButton);
     const output = page.locator(".output-popover");
     await output.waitFor({ state: "visible", timeout: interactionTimeoutMs });
     await output.locator("select").first().waitFor({ state: "visible", timeout: interactionTimeoutMs });
     await output.getByRole("button", { name: "画像を作る" }).waitFor({ state: "visible", timeout: interactionTimeoutMs });
-    await activate(page.getByRole("button", { name: "仕上がり画像を作る" }));
+    await activate(outputButton);
+    await output.waitFor({ state: "hidden", timeout: interactionTimeoutMs });
+    await activate(page.locator(".view-mode-toggle button").filter({ hasText: "編集" }));
+    await outputButton.waitFor({ state: "hidden", timeout: interactionTimeoutMs });
   });
 
   await step("open help dialog", async () => {
