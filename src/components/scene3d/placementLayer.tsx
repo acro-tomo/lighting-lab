@@ -2,7 +2,7 @@ import type { ThreeEvent } from "@react-three/fiber";
 import { useState } from "react";
 import { isCeilingLightAddKind, isWallLightAddKind } from "../../data/fixtureAddKinds";
 import { getFurniturePreset } from "../../data/furnitureCatalog";
-import { getWindowPreset } from "../../data/windowCatalog";
+import { windowPresetFromAddKind } from "../../data/windowCatalog";
 import type { LightFixture, Project } from "../../types";
 import { ceilingMountHeightAt } from "../../utils/ceiling";
 import type { WallHover } from "./contexts";
@@ -153,18 +153,26 @@ export const PlacementLayer = ({
       );
     }
     if (!windowWall) return null;
+    const { wall: seg } = windowWall;
+    let ratio = windowWall.ratio;
     let w = 0.85;
     let h = 2.0;
     let sill = 0;
     if (pendingAdd.startsWith("window")) {
-      const preset = getWindowPreset(pendingAdd.slice("window:".length));
+      const preset = windowPresetFromAddKind(pendingAdd);
       if (preset) {
         w = preset.widthM;
         h = preset.heightM;
         sill = preset.sillHeightM;
+        const wallLengthM = Math.hypot(seg.end.x - seg.start.x, seg.end.z - seg.start.z);
+        if (wallLengthM > 0 && preset.widthM <= wallLengthM) {
+          const halfRatio = preset.widthM / wallLengthM / 2;
+          ratio = Math.min(1 - halfRatio, Math.max(halfRatio, ratio));
+        } else {
+          ratio = 0.5;
+        }
       }
     }
-    const { wall: seg, ratio } = windowWall;
     const x = seg.start.x + (seg.end.x - seg.start.x) * ratio;
     const z = seg.start.z + (seg.end.z - seg.start.z) * ratio;
     const angle = Math.atan2(seg.end.z - seg.start.z, seg.end.x - seg.start.x);

@@ -18,7 +18,7 @@ import {
   newWindow,
   newWindowFromPreset
 } from "../../data/objectFactory";
-import { getWindowPreset } from "../../data/windowCatalog";
+import { windowPresetFromAddKind } from "../../data/windowCatalog";
 import { ceilingMountHeightAt } from "../../utils/ceiling";
 import { wallMountedLightPlacementOnSurface } from "../../utils/fixtureMounting";
 import type { CeilingZone, FloorZone, FurnitureItem, LightFixture, Project, VoidArea, WindowOpening } from "../../types";
@@ -81,7 +81,7 @@ export const useAddObjectHandlers = ({
       }
       // 窓カタログ: kind = "window:<presetId>"。クリックした壁に設置。
       if (kind.startsWith("window:")) {
-        const preset = getWindowPreset(kind.slice("window:".length));
+        const preset = windowPresetFromAddKind(kind);
         if (preset) {
           addWindow(
             newWindowFromPreset(preset, project, { wallId, centerRatio }),
@@ -189,7 +189,19 @@ export const useAddObjectHandlers = ({
         setNotice(t("壁に設置しました。選択してCmd+C / Cmd+Vで複製できます。"));
         return;
       }
-      handleAddObject(pendingAdd, { wallId, centerRatio });
+      const windowPreset = windowPresetFromAddKind(pendingAdd);
+      let placementCenterRatio = centerRatio;
+      if (windowPreset) {
+        const wall = project.walls.find((item) => item.id === wallId);
+        const wallLengthM = wall ? Math.hypot(wall.end.x - wall.start.x, wall.end.z - wall.start.z) : 0;
+        if (!wall || windowPreset.widthM > wallLengthM || windowPreset.sillHeightM + windowPreset.heightM > wall.heightM) {
+          setNotice(t("この壁には入りません。窓を小さくして選び直してください。"));
+          return;
+        }
+        const halfRatio = windowPreset.widthM / wallLengthM / 2;
+        placementCenterRatio = Math.min(1 - halfRatio, Math.max(halfRatio, centerRatio));
+      }
+      handleAddObject(pendingAdd, { wallId, centerRatio: placementCenterRatio });
       setPendingAdd(null);
       setMode("select");
       setNotice(t("壁に設置しました。選択後に壁上をドラッグして位置を調整できます。"));

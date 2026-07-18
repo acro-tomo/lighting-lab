@@ -1565,7 +1565,7 @@ h2 {
 }
 
 .add-modal {
-  width: min(420px, 90vw);
+  width: min(500px, 90vw);
   padding: 18px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 14px;
@@ -1624,6 +1624,50 @@ h2 {
   height: 36px;
 }
 
+.add-category-list {
+  display: grid;
+  max-height: calc(80vh - 120px);
+  overflow-y: auto;
+}
+
+.add-category-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 58px;
+  padding: 9px 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f3efe7;
+  background: transparent;
+  text-align: left;
+}
+
+.add-category-item:hover {
+  color: #fff5cc;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.add-category-icon {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+}
+
+.add-category-copy {
+  display: grid;
+  gap: 2px;
+}
+
+.add-category-copy strong {
+  font-size: 13px;
+}
+
+.add-category-copy small {
+  color: #8f8779;
+  font-size: 10px;
+}
+
 /* 第2画面ヘッダー: 戻るボタン + タイトル */
 .add-modal-nav {
   display: flex;
@@ -1659,26 +1703,23 @@ h2 {
   overflow-x: hidden;
 }
 
-/* 第2画面のアイテムグリッド: 3列で形状アイコン付き */
+/* 詳細アイテムは形と説明を横並びで比較する */
 .add-modal-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: minmax(0, 1fr);
 }
 
-/* アイテムボタン: アイコン上、ラベル下 */
 .add-item-button {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 5px;
-  padding: 10px 8px 9px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 9px;
+  gap: 10px;
+  min-height: 58px;
+  padding: 8px 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   color: #f3efe7;
-  background: rgba(255, 255, 255, 0.04);
+  background: transparent;
   cursor: pointer;
-  text-align: center;
+  text-align: left;
 }
 
 .add-item-button:hover {
@@ -1694,16 +1735,86 @@ h2 {
 }
 
 .add-item-label {
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 700;
   line-height: 1.3;
   word-break: keep-all;
 }
 
 .add-item-hint {
+  margin-left: auto;
+  max-width: 52%;
   color: #8f8779;
   font-size: 10px;
   font-style: normal;
   line-height: 1.2;
+}
+
+.add-window-size {
+  display: grid;
+  gap: 16px;
+  padding: 6px 2px 2px;
+}
+
+.add-window-size > .add-item-icon {
+  width: 58px;
+  height: 58px;
+  margin: 0 auto;
+}
+
+.add-window-size > p {
+  color: #cfc7b8;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.add-window-size-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.add-window-size-fields label {
+  display: grid;
+  gap: 6px;
+  color: #cfc7b8;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.add-window-size-fields label > div {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.add-window-size-fields input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  padding: 9px;
+  color: #f3efe7;
+  background: transparent;
+}
+
+.add-window-size-fields em {
+  padding-right: 9px;
+  color: #8f8779;
+  font-size: 11px;
+  font-style: normal;
+}
+
+.add-window-confirm {
+  min-height: 40px;
+  border-radius: 7px;
+  color: #1b1608;
+  background: #f5c64d;
+  font-size: 13px;
+  font-weight: 760;
 }
 
 /* 日光ポップオーバー */
@@ -3102,6 +3213,7 @@ h2 {
   }
 
   .add-group-list,
+  .add-category-list,
   .add-modal-scroll {
     min-height: 0;
     overflow-y: auto;
@@ -3116,12 +3228,8 @@ h2 {
     min-height: 52px;
   }
 
-  .add-modal-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .add-item-button {
-    min-height: 92px;
+    min-height: 60px;
   }
 
   .chip-row {

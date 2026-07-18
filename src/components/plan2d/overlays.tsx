@@ -121,18 +121,41 @@ export const WallTargetHighlight = ({
   wallTarget,
   project,
   worldToSvg,
-  pxPerM
+  pxPerM,
+  previewWidthM
 }: {
   wallTarget: { wallId: string; ratio: number };
   project: Project;
   worldToSvg: (point: Vec2M) => { x: number; y: number };
   pxPerM: number;
+  previewWidthM?: number;
 }) => {
+  const previewLine = (start: Vec2M, end: Vec2M) => {
+    if (previewWidthM === undefined) return { start, end };
+    const lengthM = Math.hypot(end.x - start.x, end.z - start.z);
+    if (previewWidthM > lengthM) return { start, end };
+    const halfSpanRatio = previewWidthM / lengthM / 2;
+    const centerRatio = Math.min(1 - halfSpanRatio, Math.max(halfSpanRatio, wallTarget.ratio));
+    const startRatio = centerRatio - halfSpanRatio;
+    const endRatio = centerRatio + halfSpanRatio;
+    return {
+      start: {
+        x: start.x + (end.x - start.x) * startRatio,
+        z: start.z + (end.z - start.z) * startRatio
+      },
+      end: {
+        x: start.x + (end.x - start.x) * endRatio,
+        z: start.z + (end.z - start.z) * endRatio
+      }
+    };
+  };
+
   const voidTarget = parseVoidWallId(wallTarget.wallId);
   if (voidTarget) {
     const voidArea = project.voids.find((candidate) => candidate.id === voidTarget.voidId);
     if (!voidArea) return null;
-    const line = voidSideLine(voidArea, voidTarget.side);
+    const targetLine = voidSideLine(voidArea, voidTarget.side);
+    const line = previewLine(targetLine.start, targetLine.end);
     const s = worldToSvg(line.start);
     const e = worldToSvg(line.end);
     return (
@@ -151,8 +174,9 @@ export const WallTargetHighlight = ({
   }
   const wall = project.walls.find((candidate) => candidate.id === wallTarget.wallId);
   if (!wall) return null;
-  const s = worldToSvg(wall.start);
-  const e = worldToSvg(wall.end);
+  const line = previewLine(wall.start, wall.end);
+  const s = worldToSvg(line.start);
+  const e = worldToSvg(line.end);
   return (
     <line
       x1={s.x}

@@ -24,3 +24,21 @@ export const windowCatalog: WindowPreset[] = [
 ];
 
 export const getWindowPreset = (id: string) => windowCatalog.find((preset) => preset.id === id);
+
+const WINDOW_ADD_PREFIX = "window:";
+
+export const windowAddKind = (presetId: string, widthM?: number, heightM?: number) => {
+  if (widthM === undefined || heightM === undefined) return `${WINDOW_ADD_PREFIX}${presetId}`;
+  return `${WINDOW_ADD_PREFIX}${presetId}:${Math.round(widthM * 1000)}:${Math.round(heightM * 1000)}`;
+};
+
+export const windowPresetFromAddKind = (kind: string): WindowPreset | undefined => {
+  if (!kind.startsWith(WINDOW_ADD_PREFIX)) return undefined;
+  const [presetId, widthMmText, heightMmText] = kind.slice(WINDOW_ADD_PREFIX.length).split(":");
+  const preset = getWindowPreset(presetId);
+  if (!preset) return undefined;
+  const widthMm = Number(widthMmText);
+  const heightMm = Number(heightMmText);
+  if (!Number.isFinite(widthMm) || !Number.isFinite(heightMm) || widthMm <= 0 || heightMm <= 0) return preset;
+  return { ...preset, widthM: widthMm / 1000, heightM: heightMm / 1000 };
+};

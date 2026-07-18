@@ -1,7 +1,7 @@
 import type { FurniturePreset } from "../../data/furnitureCatalog";
 import { furnitureCatalog } from "../../data/furnitureCatalog";
 import type { WindowPreset } from "../../data/windowCatalog";
-import { windowCatalog } from "../../data/windowCatalog";
+import { windowPresetFromAddKind } from "../../data/windowCatalog";
 import { fixtureModelFromAddKind } from "../../data/fixtureAddKinds";
 
 // --- アイコン SVG ヘルパー ---
@@ -18,13 +18,20 @@ function LightIcon({ kind }: { kind: string }) {
           ? "linelight"
           : "downlight";
   if (iconKind === "downlight") {
-    // ダウンライト: 天井埋め込み円 + 放射線
+    const spread = model ? Math.max(4, Math.min(13, model.beamAngleDeg / 9)) : 8;
+    const isUniversal = model?.aimable === true;
     return (
       <svg viewBox="0 0 40 40" className="add-item-icon" aria-hidden>
-        <circle cx="20" cy="14" r="7" fill="rgba(245,198,77,0.7)" stroke="rgba(245,198,77,0.9)" strokeWidth="1.5" />
-        <line x1="20" y1="22" x2="14" y2="34" stroke="rgba(245,198,77,0.5)" strokeWidth="1.5" />
-        <line x1="20" y1="22" x2="20" y2="36" stroke="rgba(245,198,77,0.5)" strokeWidth="1.5" />
-        <line x1="20" y1="22" x2="26" y2="34" stroke="rgba(245,198,77,0.5)" strokeWidth="1.5" />
+        <path d="M8 8h24" fill="none" stroke="rgba(220,210,190,0.8)" strokeWidth="1.5" />
+        {isUniversal ? (
+          <ellipse cx="21" cy="14" rx="7" ry="5" transform="rotate(-22 21 14)" fill="none" stroke="rgba(245,198,77,0.9)" strokeWidth="1.8" />
+        ) : (
+          <>
+            <path d="M13 9v6c0 4 14 4 14 0V9" fill="none" stroke="rgba(245,198,77,0.9)" strokeWidth="1.8" />
+            {model?.glareless && <path d="M16 10v5c0 2 8 2 8 0v-5" fill="none" stroke="rgba(220,210,190,0.75)" strokeWidth="1.4" />}
+          </>
+        )}
+        <path d={`M20 20L${20 - spread} 35M20 20L${20 + spread} 35`} fill="none" stroke="rgba(245,198,77,0.58)" strokeWidth="1.4" />
       </svg>
     );
   }
@@ -32,8 +39,8 @@ function LightIcon({ kind }: { kind: string }) {
     // 壁付スポット: 壁板 + 傾いたスポット
     return (
       <svg viewBox="0 0 40 40" className="add-item-icon" aria-hidden>
-        <rect x="4" y="4" width="6" height="32" rx="2" fill="rgba(200,190,170,0.35)" stroke="rgba(200,190,170,0.6)" strokeWidth="1" />
-        <ellipse cx="22" cy="16" rx="9" ry="6" transform="rotate(-20 22 16)" fill="rgba(245,198,77,0.65)" stroke="rgba(245,198,77,0.9)" strokeWidth="1.5" />
+        <rect x="4" y="4" width="6" height="32" rx="2" fill="none" stroke="rgba(200,190,170,0.75)" strokeWidth="1.5" />
+        <ellipse cx="22" cy="16" rx="9" ry="6" transform="rotate(-20 22 16)" fill="none" stroke="rgba(245,198,77,0.9)" strokeWidth="1.5" />
         <line x1="14" y1="16" x2="10" y2="20" stroke="rgba(200,190,170,0.7)" strokeWidth="2" />
       </svg>
     );
@@ -43,8 +50,8 @@ function LightIcon({ kind }: { kind: string }) {
     return (
       <svg viewBox="0 0 40 40" className="add-item-icon" aria-hidden>
         <line x1="20" y1="2" x2="20" y2="14" stroke="rgba(200,190,170,0.7)" strokeWidth="1.5" />
-        <path d="M10 14 Q10 26 20 26 Q30 26 30 14 Z" fill="rgba(245,198,77,0.55)" stroke="rgba(245,198,77,0.85)" strokeWidth="1.5" />
-        <ellipse cx="20" cy="14" rx="10" ry="3" fill="rgba(200,190,170,0.3)" stroke="rgba(200,190,170,0.55)" strokeWidth="1" />
+        <path d="M10 14 Q10 26 20 26 Q30 26 30 14 Z" fill="none" stroke="rgba(245,198,77,0.85)" strokeWidth="1.5" />
+        <ellipse cx="20" cy="14" rx="10" ry="3" fill="none" stroke="rgba(200,190,170,0.75)" strokeWidth="1" />
       </svg>
     );
   }
@@ -52,8 +59,8 @@ function LightIcon({ kind }: { kind: string }) {
     // ライン照明: 横長バー + 下方グロー
     return (
       <svg viewBox="0 0 40 40" className="add-item-icon" aria-hidden>
-        <rect x="6" y="12" width="28" height="5" rx="2.5" fill="rgba(245,198,77,0.7)" stroke="rgba(245,198,77,0.9)" strokeWidth="1" />
-        <rect x="8" y="18" width="24" height="8" rx="1" fill="rgba(245,198,77,0.15)" />
+        <rect x="6" y="12" width="28" height="5" rx="2.5" fill="none" stroke="rgba(245,198,77,0.9)" strokeWidth="1.5" />
+        <path d="M9 20h22M12 25h16" stroke="rgba(245,198,77,0.55)" strokeWidth="1.5" strokeLinecap="round" />
       </svg>
     );
   }
@@ -87,7 +94,7 @@ function WindowIcon({ preset }: { preset: WindowPreset }) {
     return (
       <svg viewBox="0 0 40 40" className="add-item-icon" aria-hidden>
         <rect x={svgX} y={svgTop} width={svgW} height={svgH} rx="1"
-          fill="rgba(180,150,110,0.28)" stroke="rgba(200,175,130,0.85)" strokeWidth="1.5" />
+          fill="none" stroke="rgba(200,175,130,0.85)" strokeWidth="1.5" />
         <circle cx={svgX + svgW - 3} cy={svgTop + svgH * 0.5} r="2" fill="rgba(245,198,77,0.7)" />
       </svg>
     );
@@ -96,7 +103,7 @@ function WindowIcon({ preset }: { preset: WindowPreset }) {
   return (
     <svg viewBox="0 0 40 40" className="add-item-icon" aria-hidden>
       <rect x={svgX} y={svgTop} width={svgW} height={svgH} rx="1"
-        fill="rgba(150,210,240,0.18)" stroke="rgba(160,215,245,0.85)" strokeWidth="1.5" />
+      fill="none" stroke="rgba(160,215,245,0.85)" strokeWidth="1.5" />
       <line x1={svgX + svgW / 2} y1={svgTop} x2={svgX + svgW / 2} y2={svgTop + svgH}
         stroke="rgba(160,215,245,0.55)" strokeWidth="1" />
       {svgH > 10 && (
@@ -127,7 +134,7 @@ function FurnitureIcon({ preset }: { preset: FurniturePreset }) {
   const bx = ox + (W - bw) / 2;
   const by = oy + (H - bh) / 2;
 
-  const fill = "rgba(210,200,180,0.28)";
+  const fill = "none";
   const stroke = "rgba(220,210,190,0.75)";
   const sw = "1.5";
 
@@ -136,6 +143,19 @@ function FurnitureIcon({ preset }: { preset: FurniturePreset }) {
       return (
         <svg viewBox="0 0 40 40" className="add-item-icon" aria-hidden>
           <ellipse cx="20" cy="20" rx={bw / 2} ry={bh / 2} fill={fill} stroke={stroke} strokeWidth={sw} />
+        </svg>
+      );
+    case "rectTable":
+    case "desk":
+    case "counter":
+      return (
+        <svg viewBox="0 0 40 40" className="add-item-icon" aria-hidden>
+          <rect x={bx} y={by} width={bw} height={bh} rx="2" fill="none" stroke={stroke} strokeWidth={sw} />
+          <circle cx={bx + 4} cy={by + 4} r="1.5" fill={stroke} />
+          <circle cx={bx + bw - 4} cy={by + 4} r="1.5" fill={stroke} />
+          <circle cx={bx + 4} cy={by + bh - 4} r="1.5" fill={stroke} />
+          <circle cx={bx + bw - 4} cy={by + bh - 4} r="1.5" fill={stroke} />
+          {preset.type === "desk" && <path d={`M${bx + bw * 0.58} ${by + 3}h${bw * 0.3}v${Math.max(3, bh - 6)}h-${bw * 0.3}z`} fill="none" stroke={stroke} strokeWidth="1" />}
         </svg>
       );
     case "sofa": {
@@ -214,6 +234,27 @@ function FurnitureIcon({ preset }: { preset: FurniturePreset }) {
         </svg>
       );
     }
+    case "cupboard":
+    case "shelf":
+    case "shoeCabinet":
+      return (
+        <svg viewBox="0 0 40 40" className="add-item-icon" aria-hidden>
+          <rect x={bx} y={by} width={bw} height={bh} rx="1" fill="none" stroke={stroke} strokeWidth={sw} />
+          {[0.33, 0.66].map((ratio) => <line key={ratio} x1={bx + 2} y1={by + bh * ratio} x2={bx + bw - 2} y2={by + bh * ratio} stroke={stroke} strokeWidth="1" />)}
+        </svg>
+      );
+    case "fridge":
+    case "washer":
+      return (
+        <svg viewBox="0 0 40 40" className="add-item-icon" aria-hidden>
+          <rect x={bx} y={by} width={bw} height={bh} rx="2" fill="none" stroke={stroke} strokeWidth={sw} />
+          {preset.type === "washer" ? (
+            <circle cx="20" cy="20" r={Math.min(bw, bh) * 0.28} fill="none" stroke="rgba(160,210,240,0.75)" strokeWidth="1.5" />
+          ) : (
+            <><line x1={bx} y1={by + bh * 0.42} x2={bx + bw} y2={by + bh * 0.42} stroke={stroke} /><line x1={bx + bw - 4} y1={by + 4} x2={bx + bw - 4} y2={by + bh * 0.35} stroke={stroke} /></>
+          )}
+        </svg>
+      );
     case "rug": {
       // 薄い平板: 点線枠
       return (
@@ -314,8 +355,7 @@ export function ItemIcon({ kind }: { kind: string }) {
     return <LightIcon kind={kind} />;
   }
   if (kind.startsWith("window:")) {
-    const id = kind.slice("window:".length);
-    const preset = windowCatalog.find((p) => p.id === id);
+    const preset = windowPresetFromAddKind(kind);
     if (preset) return <WindowIcon preset={preset} />;
   }
   if (kind === "door") {
@@ -332,9 +372,9 @@ export function ItemIcon({ kind }: { kind: string }) {
 }
 
 // --- グループ第1画面のアイコン ---
-export function GroupIcon({ title }: { title: string }) {
-  switch (title) {
-    case "照明":
+export function GroupIcon({ groupId }: { groupId: string }) {
+  switch (groupId) {
+    case "lighting":
       return (
         <svg viewBox="0 0 40 40" className="add-group-icon" aria-hidden>
           <circle cx="20" cy="18" r="8" fill="rgba(245,198,77,0.65)" stroke="rgba(245,198,77,0.9)" strokeWidth="1.5" />
@@ -345,7 +385,7 @@ export function GroupIcon({ title }: { title: string }) {
           <line x1="30" y1="8" x2="33" y2="5" stroke="rgba(245,198,77,0.5)" strokeWidth="1.5" />
         </svg>
       );
-    case "窓":
+    case "window":
       return (
         <svg viewBox="0 0 40 40" className="add-group-icon" aria-hidden>
           <rect x="8" y="8" width="24" height="28" rx="1"
@@ -354,7 +394,7 @@ export function GroupIcon({ title }: { title: string }) {
           <line x1="8" y1="22" x2="32" y2="22" stroke="rgba(160,215,245,0.55)" strokeWidth="1" />
         </svg>
       );
-    case "建具":
+    case "door":
       return (
         <svg viewBox="0 0 40 40" className="add-group-icon" aria-hidden>
           <rect x="10" y="4" width="20" height="32" rx="1"
@@ -362,7 +402,7 @@ export function GroupIcon({ title }: { title: string }) {
           <circle cx="27" cy="20" r="2.5" fill="rgba(245,198,77,0.7)" />
         </svg>
       );
-    case "開口・構造":
+    case "structure":
       return (
         <svg viewBox="0 0 40 40" className="add-group-icon" aria-hidden>
           <rect x="6" y="6" width="28" height="28" rx="2"
@@ -370,7 +410,7 @@ export function GroupIcon({ title }: { title: string }) {
           <line x1="6" y1="6" x2="34" y2="34" stroke="rgba(177,204,222,0.45)" strokeWidth="1" strokeDasharray="3 3" />
         </svg>
       );
-    case "家具":
+    case "furniture":
       return (
         <svg viewBox="0 0 40 40" className="add-group-icon" aria-hidden>
           <rect x="5" y="12" width="30" height="18" rx="3"
@@ -382,4 +422,29 @@ export function GroupIcon({ title }: { title: string }) {
     default:
       return null;
   }
+}
+
+export function CategoryIcon({ categoryId }: { categoryId: string }) {
+  const stroke = "rgba(220,210,190,0.82)";
+  const accent = "rgba(245,198,77,0.9)";
+  if (["downlight", "pendant", "wall-light", "indirect"].includes(categoryId)) {
+    return (
+      <svg viewBox="0 0 40 40" className="add-category-icon" aria-hidden>
+        {categoryId === "downlight" && <><path d="M9 8h22M14 9v6c0 4 12 4 12 0V9" fill="none" stroke={stroke} strokeWidth="1.7" /><path d="M20 21l-8 14m8-14 8 14" stroke={accent} strokeWidth="1.4" /></>}
+        {categoryId === "pendant" && <><path d="M20 3v13" stroke={stroke} strokeWidth="1.7" /><path d="M11 25h18l-5-9h-8z" fill="none" stroke={accent} strokeWidth="1.7" /></>}
+        {categoryId === "wall-light" && <><path d="M8 5v30" stroke={stroke} strokeWidth="2" /><path d="m9 19 10-6 8 5-9 6z" fill="none" stroke={accent} strokeWidth="1.7" /></>}
+        {categoryId === "indirect" && <><path d="M6 15h28v6H6z" fill="none" stroke={stroke} strokeWidth="1.7" /><path d="M9 27h22" stroke={accent} strokeWidth="3" strokeLinecap="round" /></>}
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 40 40" className="add-category-icon" aria-hidden>
+      {categoryId === "living" && <><path d="M6 16h28v15H6zM9 13h22v8H9z" fill="none" stroke={stroke} strokeWidth="1.6" /></>}
+      {categoryId === "dining-work" && <><path d="M7 15h26v8H7zM11 23v10m18-10v10" fill="none" stroke={stroke} strokeWidth="1.6" /><circle cx="20" cy="10" r="3" fill="none" stroke={accent} /></>}
+      {categoryId === "kitchen" && <><path d="M5 12h30v18H5z" fill="none" stroke={stroke} strokeWidth="1.6" /><circle cx="27" cy="18" r="3" fill="none" stroke={accent} /><path d="M9 17h10v8H9z" fill="none" stroke={stroke} /></>}
+      {categoryId === "water" && <><path d="M8 12h24v20H8z" fill="none" stroke={stroke} strokeWidth="1.6" /><circle cx="20" cy="22" r="7" fill="none" stroke={accent} /></>}
+      {categoryId === "bed-storage" && <><path d="M5 15h30v16H5zM9 11h9v8H9z" fill="none" stroke={stroke} strokeWidth="1.6" /></>}
+      {categoryId === "free" && <><path d="m8 12 13-6 12 8-13 7zM8 12v16l12 7V21m13-7v15l-13 6" fill="none" stroke={accent} strokeWidth="1.6" /></>}
+    </svg>
+  );
 }

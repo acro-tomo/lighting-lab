@@ -6,6 +6,7 @@ import { DEFAULT_DAYLIGHT } from "../utils/sun";
 import { ScaleCalibrationModal } from "./ScaleCalibrationModal";
 import type { EditMode } from "./EditToolbar";
 import { isWallLightAddKind } from "../data/fixtureAddKinds";
+import { windowPresetFromAddKind } from "../data/windowCatalog";
 import { GESTURE_DEBUG, VIEW_PAD } from "./plan2d/constants";
 import { isWallOpening, snapPoint } from "./plan2d/geometry";
 import type { ResizeKind, TouchWallTraceState } from "./plan2d/types";
@@ -85,6 +86,8 @@ export const Plan2D = ({
 
   // 活性階。オブジェクトの所属階フィルタ・背景の切替・ゴースト壁の基準。
   const activeFloor = project.activeFloor ?? 1;
+  const pendingWindowPreset = pendingAdd ? windowPresetFromAddKind(pendingAdd) : undefined;
+  const pendingWindowWidthM = pendingWindowPreset?.style === "window" ? pendingWindowPreset.widthM : undefined;
   // 活性階に紐づく背景（2階なら backgroundPlan2、1階なら backgroundPlan）。
   const activeBackground = activeFloor === 2 ? project.backgroundPlan2 : project.backgroundPlan;
 
@@ -678,6 +681,7 @@ export const Plan2D = ({
               project={project}
               worldToSvg={worldToSvg}
               pxPerM={planSize.pxPerM}
+              previewWidthM={pendingWindowWidthM}
             />
           )}
 
