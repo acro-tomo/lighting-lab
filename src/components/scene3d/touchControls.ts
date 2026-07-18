@@ -48,6 +48,10 @@ export const TouchLook = ({
 }) => {
   const { camera, gl } = useThree();
   const pointersRef = useRef(new Map<number, TouchPoint>());
+  // キャンバス外(ヘッダー/下タブ等)に着地した指も含めたページ全体のタッチ数。
+  // ピンチの片指がUIバーに掛かるとキャンバス側は1本しか見えず、その1本を
+  // ルック回転として処理して視点が大きく振れてしまうため、window全体で数える。
+  const windowTouchesRef = useRef(new Set<number>());
   const touchStartRef = useRef<TouchPoint | null>(null);
   const lastTouchRef = useRef<TouchPoint | null>(null);
   const isLookingRef = useRef(false);
@@ -61,6 +65,13 @@ export const TouchLook = ({
       touchStartRef.current = null;
       lastTouchRef.current = null;
       isLookingRef.current = false;
+    };
+
+    const onWindowPointerDown = (event: PointerEvent) => {
+      if (event.pointerType === "touch") windowTouchesRef.current.add(event.pointerId);
+    };
+    const onWindowPointerEnd = (event: PointerEvent) => {
+      if (event.pointerType === "touch") windowTouchesRef.current.delete(event.pointerId);
     };
 
     const onPointerDown = (event: PointerEvent) => {
@@ -81,6 +92,15 @@ export const TouchLook = ({
       const point = { x: event.clientX, y: event.clientY };
       pointersRef.current.set(event.pointerId, point);
       if (pointersRef.current.size !== 1) return;
+
+      // 2本目の指がキャンバス外にあるピンチをルック回転として誤処理しない。
+      // 基準点を現在位置へ更新し続け、指が1本へ戻った時は現在位置から再開する。
+      if (windowTouchesRef.current.size >= 2) {
+        touchStartRef.current = point;
+        lastTouchRef.current = point;
+        isLookingRef.current = false;
+        return;
+      }
 
       const controls = controlsRef.current;
       // 選択済みオブジェクトのドラッグは pointerdown で controls を無効化する。
@@ -137,6 +157,7 @@ export const TouchLook = ({
 
     const clear = () => {
       pointersRef.current.clear();
+      windowTouchesRef.current.clear();
       resetLook();
     };
 
@@ -144,12 +165,18 @@ export const TouchLook = ({
     canvas.addEventListener("pointermove", onPointerMove, { capture: true, passive: false });
     canvas.addEventListener("pointerup", onPointerEnd, { capture: true });
     canvas.addEventListener("pointercancel", onPointerEnd, { capture: true });
+    window.addEventListener("pointerdown", onWindowPointerDown, { capture: true });
+    window.addEventListener("pointerup", onWindowPointerEnd, { capture: true });
+    window.addEventListener("pointercancel", onWindowPointerEnd, { capture: true });
     window.addEventListener("blur", clear);
     return () => {
       canvas.removeEventListener("pointerdown", onPointerDown, { capture: true });
       canvas.removeEventListener("pointermove", onPointerMove, { capture: true });
       canvas.removeEventListener("pointerup", onPointerEnd, { capture: true });
       canvas.removeEventListener("pointercancel", onPointerEnd, { capture: true });
+      window.removeEventListener("pointerdown", onWindowPointerDown, { capture: true });
+      window.removeEventListener("pointerup", onWindowPointerEnd, { capture: true });
+      window.removeEventListener("pointercancel", onWindowPointerEnd, { capture: true });
       window.removeEventListener("blur", clear);
       clear();
     };

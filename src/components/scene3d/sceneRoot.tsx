@@ -318,7 +318,10 @@ export const SceneRoot = ({
         ref={controlsRef}
         makeDefault
         enableDamping
-        enablePan
+        // タッチ端末はピンチ/ルックをカスタム実装が担う。OrbitControls側のタッチ処理を
+        // 完全に無効化しないと、window blur等でカスタム側の遮断が切れた瞬間に
+        // 古い panStart との差分で視点が一気に飛ぶ。
+        enablePan={!prefersTouchControls}
         enableRotate={!prefersTouchControls}
         enableZoom={!prefersTouchControls}
         screenSpacePanning
