@@ -537,18 +537,6 @@ export const WindowMesh = ({
 
       {style === "window" && (
         <>
-          <mesh>
-            <boxGeometry args={[w - f * 2, h - f * 2, 0.012]} />
-            <meshPhysicalMaterial
-              color={debugColorForRole("glass", debugMode, "#bcd4e0")}
-              roughness={0.03}
-              metalness={0}
-              transmission={0.95}
-              transparent
-              opacity={1.0}
-              ior={1.5}
-            />
-          </mesh>
           {/* 中桟（横） */}
           <mesh castShadow>
             <boxGeometry args={[w - f * 2, 0.035, 0.05]} />

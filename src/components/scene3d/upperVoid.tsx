@@ -233,7 +233,12 @@ const overlapsOpenVoidSide = (wall: WallSegment, voidArea: VoidArea): boolean =>
   return false;
 };
 
-export const upperBoundaryWalls = (region: UpperVoidRegion, upperWalls: WallSegment[], lowerVoids: VoidArea[]): WallSegment[] => {
+export const upperBoundaryWalls = (
+  region: UpperVoidRegion,
+  upperWalls: WallSegment[],
+  lowerVoids: VoidArea[],
+  includeOpenSides = false
+): WallSegment[] => {
   const { cell, cols, rows, originX, originZ, filled } = region;
   const idx = (c: number, r: number) => r * cols + c;
   const filledAt = (x: number, z: number): boolean => {
@@ -261,7 +266,7 @@ export const upperBoundaryWalls = (region: UpperVoidRegion, upperWalls: WallSegm
         adjacent = true;
       }
     }
-    if (adjacent && !lowerVoids.some((voidArea) => overlapsOpenVoidSide(wall, voidArea))) result.push(wall);
+    if (adjacent && (includeOpenSides || !lowerVoids.some((voidArea) => overlapsOpenVoidSide(wall, voidArea)))) result.push(wall);
   }
   return result;
 };

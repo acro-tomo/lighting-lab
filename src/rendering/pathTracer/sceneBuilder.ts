@@ -249,16 +249,17 @@ export const buildPathTraceScene = (
       return;
     }
     if (style !== "window") return;
-    const material = new THREE.MeshPhysicalMaterial({
-      color: "#bcd4e0",
-      roughness: 0.03,
-      metalness: 0,
-      transmission: 0.95,
-      transparent: true,
-      opacity: 1.0,
-      ior: 1.5
-    });
-    addBox(scene, [windowItem.widthM, windowItem.heightM, 0.018], [x, y, z - 0.014], material, -angle, "glass", debugMode);
+    const frameWidthM = 0.06;
+    const frameMaterial = makeMaterial(undefined, "#e7e3da");
+    const frameZ = z - 0.012;
+    const halfInnerWidthM = windowItem.widthM / 2 - frameWidthM / 2;
+    const frameOffsetX = Math.cos(angle) * halfInnerWidthM;
+    const frameOffsetZ = Math.sin(angle) * halfInnerWidthM;
+    addBox(scene, [windowItem.widthM, frameWidthM, 0.1], [x, y + windowItem.heightM / 2 - frameWidthM / 2, frameZ], frameMaterial, -angle, "furniture", debugMode);
+    addBox(scene, [windowItem.widthM, frameWidthM, 0.1], [x, y - windowItem.heightM / 2 + frameWidthM / 2, frameZ], frameMaterial, -angle, "furniture", debugMode);
+    addBox(scene, [frameWidthM, windowItem.heightM, 0.1], [x - frameOffsetX, y, frameZ - frameOffsetZ], frameMaterial, -angle, "furniture", debugMode);
+    addBox(scene, [frameWidthM, windowItem.heightM, 0.1], [x + frameOffsetX, y, frameZ + frameOffsetZ], frameMaterial, -angle, "furniture", debugMode);
+    addBox(scene, [windowItem.widthM - frameWidthM * 2, 0.035, 0.05], [x, y, frameZ], frameMaterial, -angle, "furniture", debugMode);
   };
   lowerProject.windows.forEach((windowItem) => addWindow(windowItem, lowerProject.walls));
 

@@ -96,7 +96,7 @@ export const SceneRoot = ({
   const upperWindows = useMemo(() => project.windows.filter((windowItem) => (windowItem.floor ?? 1) === 2), [project.windows]);
   const upperVoidWindows = useMemo(() => {
     if (!upperVoid) return [];
-    const wallIds = new Set(upperBoundaryWalls(upperVoid, upperWalls, lowerVoids).map((wall) => wall.id));
+    const wallIds = new Set(upperBoundaryWalls(upperVoid, upperWalls, lowerVoids, true).map((wall) => wall.id));
     return upperWindows.filter((windowItem) => wallIds.has(windowItem.wallId));
   }, [upperVoid, upperWalls, upperWindows, lowerVoids]);
   const upperCeilingMaterial =
