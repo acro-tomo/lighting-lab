@@ -238,8 +238,8 @@ export const demoProject: Project = {
       size: vec3(1.2, 0.72, 1.2),
       rotationYDeg: 0,
       materialId: "wall-gray",
-      color: "#403f3b",
-      roughness: 0.72,
+      color: "#4a4946",
+      roughness: 0.95,
       metalness: 0,
       castsShadow: true
     },
@@ -402,19 +402,19 @@ export const demoProject: Project = {
       name: "ダイニングペンダント",
       type: "pendant",
       model: "pendant",
-      position: vec3(0, 1.72, -0.4),
+      position: vec3(0, 1.95, -0.4),
       mountHeightM: ceilingM,
       rotationDeg: { x: -90, y: 0, z: 0 },
       target: vec3(0, 0.72, -0.4),
       lumens: 720,
       colorTemperatureK: 2700,
-      dimmer: 58,
+      dimmer: 8,
       enabled: true,
       beamAngleDeg: 70,
       penumbra: 0.65,
       castsShadow: true,
       note: "テーブル中心に吊るした想定",
-      cordLengthM: 0.8
+      cordLengthM: 0.55
     },
     {
       id: "light-kitchen-1",
