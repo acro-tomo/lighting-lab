@@ -155,10 +155,10 @@ export const FixtureMesh = ({
     if (controls) controls.enabled = false;
   };
 
-  const stopHeightDrag = (event: ThreeEvent<PointerEvent>) => {
+  const stopHeightDrag = (event: ThreeEvent<PointerEvent>, releaseCapture = true) => {
     if (!heightDragging.current) return;
     heightDragging.current = false;
-    (event.target as Element | null)?.releasePointerCapture?.(event.pointerId);
+    if (releaseCapture) (event.target as Element | null)?.releasePointerCapture?.(event.pointerId);
     if (controls) controls.enabled = true;
   };
 
@@ -240,6 +240,14 @@ export const FixtureMesh = ({
               stopHeightDrag(event);
               wasSelectedRef.current = false;
               setDragSnap(null);
+            }
+          : undefined
+      }
+      onLostPointerCapture={
+        editMode === "select"
+          ? (event: ThreeEvent<PointerEvent>) => {
+              drag.onLostPointerCapture(event);
+              stopHeightDrag(event, false);
             }
           : undefined
       }

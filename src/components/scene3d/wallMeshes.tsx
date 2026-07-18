@@ -9,7 +9,7 @@ import type { MaterialPreset, Project, Selection, VoidArea, WallSegment, WindowO
 import { wallInwardNormal } from "../../utils/wallGeometry";
 import { wallOpeningsForWall } from "../../utils/wallOpenings";
 import { isWallPending, useEditMode, usePathTraced, usePlacement } from "./contexts";
-import { useFloorDrag } from "./dragHooks";
+import { useWallAxisDrag } from "./dragHooks";
 import { debugColorForRole, useWallpaperTexture } from "./materials";
 import { eventHitsDragHandle, eventHitsOtherWall, eventHitsSelectable } from "./raycastUtils";
 import type { FloorBounds } from "./roomGeometry";
@@ -443,24 +443,21 @@ export const WindowMesh = ({
   const placement = usePlacement();
   const editMode = useEditMode();
   const updateWindow = useProjectStore((store) => store.updateWindow);
-  const floorLevelM = useProjectStore((store) => store.project.room.floorLevelM ?? 0);
-  // 窓の現在のワールド中心(x,z)。掴み位置の相対オフセットを保つため useFloorDrag の current に渡す。
   const centerX = wall ? wall.start.x + (wall.end.x - wall.start.x) * windowItem.centerRatio : 0;
   const centerZ = wall ? wall.start.z + (wall.end.z - wall.start.z) * windowItem.centerRatio : 0;
-  // 窓は壁に拘束されるので、床平面ヒット(x,z)を所属壁へ射影し centerRatio を再計算する。
-  // x,z は平面のY高さに依存しないため、平面Yは floorLevelM(室内床)に揃えれば十分。
+  const centerY = windowItem.sillHeightM + windowItem.heightM / 2;
   // 選択済みオブジェクトの再クリックで選択解除するトグル判定用。実際にドラッグが
   // 発生した場合（=移動操作）は解除しない、クリックのみ(移動なし)の時だけ解除する。
   const wasSelectedRef = useRef(false);
   const movedRef = useRef(false);
-  const drag = useFloorDrag(
-    { x: centerX, z: centerZ },
-    floorLevelM,
-    (x, z) => {
-      if (!wall) return;
+  const drag = useWallAxisDrag(
+    wall ?? null,
+    windowItem.centerRatio,
+    windowItem.widthM,
+    centerY,
+    (centerRatio) => {
       movedRef.current = true;
-      const { ratio } = projectPointOntoWall(x, z, wall);
-      updateWindow(windowItem.id, { centerRatio: Math.max(0, Math.min(1, ratio)) });
+      updateWindow(windowItem.id, { centerRatio });
     }
   );
   if (!wall) return null;
@@ -468,7 +465,7 @@ export const WindowMesh = ({
   const x = centerX;
   const z = centerZ;
   const angle = Math.atan2(wall.end.z - wall.start.z, wall.end.x - wall.start.x);
-  const y = windowItem.sillHeightM + windowItem.heightM / 2;
+  const y = centerY;
   const style = windowItem.style ?? (windowItem.hasGlass ? "window" : "opening");
   const kind = windowItem.hasGlass ? "window" : "opening";
   const w = windowItem.widthM;
@@ -483,6 +480,7 @@ export const WindowMesh = ({
     <group
       position={[x, y, z - 0.012]}
       rotation={[0, -angle, 0]}
+      userData={{ selectable: true }}
       // 選択は pointerdown で確定（onClick だと手前→背後へ click が伝播して選択転写が起きる）。
       onPointerDown={(event: ThreeEvent<PointerEvent>) => {
         // 配置中は既存の窓/扉の上に重ねて置けるよう、壁メッシュへ素通りさせる。
@@ -513,7 +511,14 @@ export const WindowMesh = ({
             }
           : undefined
       }
+      onLostPointerCapture={editMode === "select" ? drag.onLostPointerCapture : undefined}
     >
+      {!pathTraced && (
+        <mesh userData={{ luxIgnore: true }}>
+          <boxGeometry args={[w, h, 0.02]} />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} colorWrite={false} />
+        </mesh>
+      )}
       {/* 枠（窓・扉とも周囲に回す） */}
       {style !== "opening" && (
         <>
