@@ -76,6 +76,8 @@ export const Plan2D = ({
   const updateWall = useProjectStore((state) => state.updateWall);
   const addWall = useProjectStore((state) => state.addWall);
   const undo = useProjectStore((state) => state.undo);
+  const beginHistoryGroup = useProjectStore((state) => state.beginHistoryGroup);
+  const endHistoryGroup = useProjectStore((state) => state.endHistoryGroup);
   const setDaylight = useProjectStore((state) => state.setDaylight);
   // 3Dビューの現在カメラ位置/注視点(ワールドm)。null のとき平面図にマーカーを描かない。
   const liveCamera = useProjectStore((state) => state.liveCamera);
@@ -287,7 +289,9 @@ export const Plan2D = ({
     draftInnerSide,
     commitWallSegment,
     wallTracePoint,
-    touchWallTraceRef
+    touchWallTraceRef,
+    beginHistoryGroup,
+    endHistoryGroup
   });
 
   // pendingAdd 中・wall モード中は背景SVGにクリックを通す（オブジェクトは pointerEvents:none）。
@@ -418,13 +422,19 @@ export const Plan2D = ({
           className="plan-compass"
           ref={compassRef}
           onPointerDown={(event) => {
+            beginHistoryGroup();
             event.currentTarget.setPointerCapture(event.pointerId);
             handleCompassPointer(event);
           }}
           onPointerMove={(event) => {
             if (event.currentTarget.hasPointerCapture(event.pointerId)) handleCompassPointer(event);
           }}
-          onPointerUp={(event) => event.currentTarget.releasePointerCapture(event.pointerId)}
+          onPointerUp={(event) => {
+            event.currentTarget.releasePointerCapture(event.pointerId);
+            endHistoryGroup();
+          }}
+          onPointerCancel={endHistoryGroup}
+          onLostPointerCapture={endHistoryGroup}
         >
           <svg viewBox="-40 -40 80 80" className="plan-compass-dial">
             <circle cx="0" cy="0" r="34" className="plan-compass-ring" />
@@ -513,6 +523,9 @@ export const Plan2D = ({
           onPointerUp={handleCanvasPointerEnd}
           onPointerCancel={handleCanvasPointerEnd}
           onPointerLeave={handleCanvasPointerEnd}
+          onLostPointerCapture={(event) => {
+            if (event.pointerType !== "touch") handleCanvasPointerEnd(event);
+          }}
           onDoubleClick={() => {
             clearWallTrace();
           }}

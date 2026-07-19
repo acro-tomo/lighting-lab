@@ -73,6 +73,8 @@ export const FixtureMesh = ({
   const editMode = useEditMode();
   const placement = usePlacement();
   const updateLight = useProjectStore((store) => store.updateLight);
+  const beginHistoryGroup = useProjectStore((store) => store.beginHistoryGroup);
+  const endHistoryGroup = useProjectStore((store) => store.endHistoryGroup);
   const deleteSelection = useProjectStore((store) => store.deleteSelection);
   const project = useProjectStore((store) => store.project);
   const floorLevelM = useProjectStore((store) => store.project.room.floorLevelM ?? 0);
@@ -149,6 +151,7 @@ export const FixtureMesh = ({
     if (event.button !== 0) return;
     if (event.pointerType === "touch" && touchGuard.hasMultiTouch()) return;
     event.stopPropagation();
+    beginHistoryGroup();
     heightDragging.current = true;
     heightGrabY.current = fixture.position.y - heightFromRay(event);
     (event.target as Element | null)?.setPointerCapture?.(event.pointerId);
@@ -158,6 +161,7 @@ export const FixtureMesh = ({
   const stopHeightDrag = (event: ThreeEvent<PointerEvent>, releaseCapture = true) => {
     if (!heightDragging.current) return;
     heightDragging.current = false;
+    endHistoryGroup();
     if (releaseCapture) (event.target as Element | null)?.releasePointerCapture?.(event.pointerId);
     if (controls) controls.enabled = true;
   };
@@ -364,6 +368,8 @@ const LightAimHandle = ({ fixture }: { fixture: LightFixture }) => {
   const controls = useThree((state) => state.controls) as { enabled: boolean } | null;
   const touchGuard = useTouchDragGuard();
   const updateLight = useProjectStore((store) => store.updateLight);
+  const beginHistoryGroup = useProjectStore((store) => store.beginHistoryGroup);
+  const endHistoryGroup = useProjectStore((store) => store.endHistoryGroup);
   const project = useProjectStore((store) => store.project);
   const floorLevelM = useProjectStore((store) => store.project.room.floorLevelM ?? 0);
   const target = fixture.target ?? { x: fixture.position.x, y: 0, z: fixture.position.z };
@@ -407,6 +413,7 @@ const LightAimHandle = ({ fixture }: { fixture: LightFixture }) => {
     if (event.button !== 0) return;
     if (event.pointerType === "touch" && touchGuard.hasMultiTouch()) return;
     event.stopPropagation();
+    beginHistoryGroup();
     horizontalPlane.constant = -(floorLevelM + target.y);
     // レイが水平面とほぼ平行(カメラが面と同高)だと intersectPlane が外れるが、
     // ここで return するとドラッグが起動しない。掴みオフセット0でモードだけ確定し、
@@ -426,6 +433,7 @@ const LightAimHandle = ({ fixture }: { fixture: LightFixture }) => {
     if (event.button !== 0) return;
     if (event.pointerType === "touch" && touchGuard.hasMultiTouch()) return;
     event.stopPropagation();
+    beginHistoryGroup();
     dragRef.current = {
       mode: "height",
       grabX: 0,
@@ -468,6 +476,7 @@ const LightAimHandle = ({ fixture }: { fixture: LightFixture }) => {
     if (!dragRef.current.mode) return;
     event.stopPropagation();
     dragRef.current.mode = null;
+    endHistoryGroup();
     (event.target as Element | null)?.releasePointerCapture?.(event.pointerId);
     if (controls) controls.enabled = true;
   };
@@ -541,6 +550,8 @@ const FixtureHeightHandle = ({ fixture }: { fixture: LightFixture }) => {
   const controls = useThree((state) => state.controls) as { enabled: boolean } | null;
   const touchGuard = useTouchDragGuard();
   const updateLight = useProjectStore((store) => store.updateLight);
+  const beginHistoryGroup = useProjectStore((store) => store.beginHistoryGroup);
+  const endHistoryGroup = useProjectStore((store) => store.endHistoryGroup);
   const project = useProjectStore((store) => store.project);
   const floorLevelM = useProjectStore((store) => store.project.room.floorLevelM ?? 0);
   const minY = 0.3;
@@ -567,6 +578,7 @@ const FixtureHeightHandle = ({ fixture }: { fixture: LightFixture }) => {
     if (event.button !== 0) return;
     if (event.pointerType === "touch" && touchGuard.hasMultiTouch()) return;
     event.stopPropagation();
+    beginHistoryGroup();
     dragging.current = true;
     grabY.current = fixture.position.y - heightFromRay(event);
     (event.target as Element | null)?.setPointerCapture?.(event.pointerId);
@@ -576,6 +588,7 @@ const FixtureHeightHandle = ({ fixture }: { fixture: LightFixture }) => {
   const stopDrag = (event: ThreeEvent<PointerEvent>) => {
     if (!dragging.current) return;
     dragging.current = false;
+    endHistoryGroup();
     (event.target as Element | null)?.releasePointerCapture?.(event.pointerId);
     if (controls) controls.enabled = true;
   };

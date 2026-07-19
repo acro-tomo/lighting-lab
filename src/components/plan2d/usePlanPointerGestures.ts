@@ -84,7 +84,9 @@ export const usePlanPointerGestures = ({
   draftInnerSide,
   commitWallSegment,
   wallTracePoint,
-  touchWallTraceRef
+  touchWallTraceRef,
+  beginHistoryGroup,
+  endHistoryGroup
 }: {
   project: Project;
   mode: EditMode;
@@ -127,11 +129,13 @@ export const usePlanPointerGestures = ({
   commitWallSegment: (start: Vec2M, end: Vec2M, innerSide: "left" | "right" | undefined) => void;
   wallTracePoint: (raw: Vec2M, prev: Vec2M | undefined, origin: Vec2M | undefined, forceOrthogonal: boolean) => Vec2M;
   touchWallTraceRef: { current: TouchWallTraceState };
+  beginHistoryGroup: () => void;
+  endHistoryGroup: () => void;
 }) => {
   const touchPointersRef = useRef<Map<number, TouchPoint>>(new Map());
   const pinchRef = useRef<PinchState | null>(null);
   const touchTapRef = useRef<TouchTapState>(null);
-  const [dragging, setDragging] = useState<DragState>(null);
+  const [dragging, setDraggingState] = useState<DragState>(null);
   // 実機ジェスチャー診断用。?gdebug=1 で有効。カウンタはrefに集約し、move以外のイベントでのみ再描画する。
   const gestureDebugRef = useRef({ down: 0, up: 0, cancel: 0, leave: 0, lostcap: 0, last: "-", killer: "-" });
   const [, setGestureDebugTick] = useState(0);
@@ -160,10 +164,22 @@ export const usePlanPointerGestures = ({
   const [snapGuides, setSnapGuides] = useState<{ x: number | null; z: number | null }>({ x: null, z: null });
   const [furnitureWallGuide, setFurnitureWallGuide] = useState<FurnitureWallSnap | null>(null);
   // ダブルクリックで開始する辺ドラッグリサイズ（ドラッグ中の辺）。
-  const [resizing, setResizing] = useState<ResizeState>(null);
+  const [resizing, setResizingState] = useState<ResizeState>(null);
   // 窓/扉の追加待ち中、カーソル直下で設置先になる壁。クリック前に青くハイライトして
   // 「どの壁に付くか」を示し、無反応に見える問題を防ぐ。
   const [wallTarget, setWallTarget] = useState<{ wallId: string; ratio: number } | null>(null);
+
+  const setDragging = (next: DragState) => {
+    if (next && next.kind !== "pan") beginHistoryGroup();
+    else if (!next) endHistoryGroup();
+    setDraggingState(next);
+  };
+
+  const setResizing = (next: ResizeState) => {
+    if (next) beginHistoryGroup();
+    else endHistoryGroup();
+    setResizingState(next);
+  };
 
   // 窓/扉の追加待ちを抜けたら設置先ハイライトを消す。
   useEffect(() => {

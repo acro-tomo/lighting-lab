@@ -76,6 +76,7 @@ const ResizeHandle3D = ({
       onPointerMove={drag.onPointerMove}
       onPointerUp={drag.onPointerUp}
       onPointerCancel={drag.onPointerCancel}
+      onLostPointerCapture={drag.onLostPointerCapture}
     >
       <sphereGeometry args={[0.085, 16, 12]} />
       <meshBasicMaterial color={color} depthTest={false} transparent opacity={0.95} />
@@ -159,6 +160,8 @@ const FurnitureHeightHandle = ({
   const controls = useThree((state) => state.controls) as { enabled: boolean } | null;
   const touchGuard = useTouchDragGuard();
   const updateFurniture = useProjectStore((state) => state.updateFurniture);
+  const beginHistoryGroup = useProjectStore((state) => state.beginHistoryGroup);
+  const endHistoryGroup = useProjectStore((state) => state.endHistoryGroup);
   const floorLevelM = useProjectStore((state) => state.project.room.floorLevelM ?? 0);
   const minY = item.size.y * 0.5;
   const maxY = Math.max(minY, wallSnap.wall.heightM - item.size.y * 0.5);
@@ -187,6 +190,7 @@ const FurnitureHeightHandle = ({
     if (event.button !== 0) return;
     if (event.pointerType === "touch" && touchGuard.hasMultiTouch()) return;
     event.stopPropagation();
+    beginHistoryGroup();
     dragging.current = true;
     grabY.current = item.position.y - heightFromRay(event);
     onCenterSnapChange(false);
@@ -198,6 +202,7 @@ const FurnitureHeightHandle = ({
     if (!dragging.current) return;
     event.stopPropagation();
     dragging.current = false;
+    endHistoryGroup();
     onCenterSnapChange(false);
     (event.target as Element | null)?.releasePointerCapture?.(event.pointerId);
     if (controls) controls.enabled = true;

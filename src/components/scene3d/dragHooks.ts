@@ -2,6 +2,7 @@ import type { ThreeEvent } from "@react-three/fiber";
 import { useThree } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
+import { useProjectStore } from "../../store/projectStore";
 import type { WallSegment } from "../../types";
 import { useTouchDragGuard } from "./contexts";
 
@@ -30,6 +31,8 @@ export const useFloorDrag = (
 ) => {
   const camera = useThree((state) => state.camera);
   const controls = useThree((state) => state.controls) as { enabled: boolean } | null;
+  const beginHistoryGroup = useProjectStore((state) => state.beginHistoryGroup);
+  const endHistoryGroup = useProjectStore((state) => state.endHistoryGroup);
   const touchGuard = useTouchDragGuard();
   const dragState = useRef<PointerDragState | null>(null);
   const grab = useRef({ x: 0, z: 0 });
@@ -44,6 +47,7 @@ export const useFloorDrag = (
     if (releaseCapture) (event.target as Element | null)?.releasePointerCapture?.(event.pointerId);
     if (controls) controls.enabled = true;
     onEnd?.();
+    endHistoryGroup();
   };
 
   return {
@@ -67,6 +71,7 @@ export const useFloorDrag = (
         startY: event.clientY,
         hasMoved: false
       };
+      beginHistoryGroup();
       (event.target as Element | null)?.setPointerCapture?.(event.pointerId);
       if (controls) controls.enabled = false;
     },
@@ -107,6 +112,8 @@ export const useViewPlaneDrag = (
 ) => {
   const camera = useThree((state) => state.camera);
   const controls = useThree((state) => state.controls) as { enabled: boolean } | null;
+  const beginHistoryGroup = useProjectStore((state) => state.beginHistoryGroup);
+  const endHistoryGroup = useProjectStore((state) => state.endHistoryGroup);
   const touchGuard = useTouchDragGuard();
   const dragState = useRef<PointerDragState | null>(null);
   const grab = useRef({ x: 0, z: 0 });
@@ -127,6 +134,7 @@ export const useViewPlaneDrag = (
     dragState.current = null;
     if (releaseCapture) (event.target as Element | null)?.releasePointerCapture?.(event.pointerId);
     if (controls) controls.enabled = true;
+    endHistoryGroup();
   };
 
   return {
@@ -144,6 +152,7 @@ export const useViewPlaneDrag = (
         startY: event.clientY,
         hasMoved: false
       };
+      beginHistoryGroup();
       (event.target as Element | null)?.setPointerCapture?.(event.pointerId);
       if (controls) controls.enabled = false;
     },
@@ -184,6 +193,8 @@ export const useWallAxisDrag = (
   onMove: (centerRatio: number) => void
 ) => {
   const controls = useThree((state) => state.controls) as { enabled: boolean } | null;
+  const beginHistoryGroup = useProjectStore((state) => state.beginHistoryGroup);
+  const endHistoryGroup = useProjectStore((state) => state.endHistoryGroup);
   const touchGuard = useTouchDragGuard();
   const dragState = useRef<(PointerDragState & { grabRatio: number }) | null>(null);
   const wallStart = useMemo(() => new THREE.Vector3(), []);
@@ -212,6 +223,7 @@ export const useWallAxisDrag = (
     dragState.current = null;
     if (releaseCapture) (event.target as Element | null)?.releasePointerCapture?.(event.pointerId);
     if (controls) controls.enabled = true;
+    endHistoryGroup();
   };
 
   return {
@@ -230,6 +242,7 @@ export const useWallAxisDrag = (
         hasMoved: false,
         grabRatio: currentRatio - pointerRatio
       };
+      beginHistoryGroup();
       (event.target as Element | null)?.setPointerCapture?.(event.pointerId);
       if (controls) controls.enabled = false;
     },
@@ -261,14 +274,17 @@ export const useWallAxisDrag = (
 // 3Dビュー上で平面ヒットを取りながらドラッグするための汎用ハンドラ（リサイズハンドル用）。
 export const useHandleDrag = (getPlane: () => THREE.Plane, onHit: (point: THREE.Vector3) => void) => {
   const controls = useThree((state) => state.controls) as { enabled: boolean } | null;
+  const beginHistoryGroup = useProjectStore((state) => state.beginHistoryGroup);
+  const endHistoryGroup = useProjectStore((state) => state.endHistoryGroup);
   const touchGuard = useTouchDragGuard();
   const dragging = useRef(false);
   const hit = useMemo(() => new THREE.Vector3(), []);
-  const stopDrag = (event: ThreeEvent<PointerEvent>) => {
+  const stopDrag = (event: ThreeEvent<PointerEvent>, releaseCapture = true) => {
     if (!dragging.current) return;
     dragging.current = false;
-    (event.target as Element | null)?.releasePointerCapture?.(event.pointerId);
+    if (releaseCapture) (event.target as Element | null)?.releasePointerCapture?.(event.pointerId);
     if (controls) controls.enabled = true;
+    endHistoryGroup();
   };
   return {
     onPointerDown: (event: ThreeEvent<PointerEvent>) => {
@@ -276,6 +292,7 @@ export const useHandleDrag = (getPlane: () => THREE.Plane, onHit: (point: THREE.
       if (event.pointerType === "touch" && touchGuard.hasMultiTouch()) return;
       event.stopPropagation();
       dragging.current = true;
+      beginHistoryGroup();
       (event.target as Element | null)?.setPointerCapture?.(event.pointerId);
       if (controls) controls.enabled = false;
     },
@@ -292,7 +309,8 @@ export const useHandleDrag = (getPlane: () => THREE.Plane, onHit: (point: THREE.
     },
     onPointerCancel: (event: ThreeEvent<PointerEvent>) => {
       stopDrag(event);
-    }
+    },
+    onLostPointerCapture: (event: ThreeEvent<PointerEvent>) => stopDrag(event, false)
   };
 };
 

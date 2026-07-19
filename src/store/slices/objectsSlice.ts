@@ -16,6 +16,37 @@ import { cloneProject } from "../../utils/units";
 import type { ProjectStore } from "../projectStore";
 import { withHistory } from "./historySlice";
 
+const arePatchValuesEqual = (currentValue: unknown, nextValue: unknown): boolean => {
+  if (Object.is(currentValue, nextValue)) return true;
+  if (Array.isArray(currentValue) && Array.isArray(nextValue)) {
+    return (
+      currentValue.length === nextValue.length &&
+      currentValue.every((value, index) => Object.is(value, nextValue[index]))
+    );
+  }
+  if (
+    typeof currentValue === "object" &&
+    currentValue !== null &&
+    typeof nextValue === "object" &&
+    nextValue !== null
+  ) {
+    const currentRecord = currentValue as Record<string, unknown>;
+    const nextRecord = nextValue as Record<string, unknown>;
+    const currentKeys = Object.keys(currentRecord);
+    const nextKeys = Object.keys(nextRecord);
+    return (
+      currentKeys.length === nextKeys.length &&
+      currentKeys.every((key) => Object.is(currentRecord[key], nextRecord[key]))
+    );
+  }
+  return false;
+};
+
+const hasPatchChanges = <T extends object>(item: T, patch: Partial<T>): boolean =>
+  Object.entries(patch).some(
+    ([key, value]) => !arePatchValuesEqual((item as Record<string, unknown>)[key], value)
+  );
+
 // 家具/照明/壁/窓/void/天井ゾーン/床ゾーン・マテリアル・背景図の CRUD をまとめたスライス。
 export interface ObjectsSlice {
   addWall: (wall: WallSegment) => void;
@@ -105,6 +136,8 @@ export const createObjectsSlice: StateCreator<ProjectStore, [], [], ObjectsSlice
     }),
   updateCeilingZone: (id, patch) =>
     set((state) => {
+      const currentZone = (state.project.ceilingZones ?? []).find((zone) => zone.id === id);
+      if (!currentZone || !hasPatchChanges(currentZone, patch)) return {};
       const nextProject = cloneProject(state.project);
       nextProject.ceilingZones = (nextProject.ceilingZones ?? []).map((zone) =>
         zone.id === id ? { ...zone, ...patch } : zone
@@ -123,6 +156,8 @@ export const createObjectsSlice: StateCreator<ProjectStore, [], [], ObjectsSlice
     }),
   updateFloorZone: (id, patch) =>
     set((state) => {
+      const currentZone = (state.project.floorZones ?? []).find((zone) => zone.id === id);
+      if (!currentZone || !hasPatchChanges(currentZone, patch)) return {};
       const nextProject = cloneProject(state.project);
       nextProject.floorZones = (nextProject.floorZones ?? []).map((zone) =>
         zone.id === id ? { ...zone, ...patch } : zone
@@ -131,6 +166,8 @@ export const createObjectsSlice: StateCreator<ProjectStore, [], [], ObjectsSlice
     }),
   updateLight: (id, patch) =>
     set((state) => {
+      const currentLight = state.project.lights.find((light) => light.id === id);
+      if (!currentLight || !hasPatchChanges(currentLight, patch)) return {};
       const nextProject = cloneProject(state.project);
       nextProject.lights = nextProject.lights.map((light) => {
         if (light.id !== id) return light;
@@ -152,6 +189,10 @@ export const createObjectsSlice: StateCreator<ProjectStore, [], [], ObjectsSlice
   updateLights: (ids, patch) =>
     set((state) => {
       const idSet = new Set(ids);
+      const currentLights = state.project.lights.filter((light) => idSet.has(light.id));
+      if (currentLights.length === 0 || currentLights.every((light) => !hasPatchChanges(light, patch))) {
+        return {};
+      }
       const nextProject = cloneProject(state.project);
       nextProject.lights = nextProject.lights.map((light) =>
         idSet.has(light.id) ? { ...light, ...patch } : light
@@ -183,6 +224,8 @@ export const createObjectsSlice: StateCreator<ProjectStore, [], [], ObjectsSlice
     }),
   updateFurniture: (id, patch) =>
     set((state) => {
+      const currentItem = state.project.furniture.find((item) => item.id === id);
+      if (!currentItem || !hasPatchChanges(currentItem, patch)) return {};
       const nextProject = cloneProject(state.project);
       nextProject.furniture = nextProject.furniture.map((item) =>
         item.id === id ? { ...item, ...patch } : item
@@ -191,6 +234,8 @@ export const createObjectsSlice: StateCreator<ProjectStore, [], [], ObjectsSlice
     }),
   updateWall: (id, patch) =>
     set((state) => {
+      const currentWall = state.project.walls.find((wall) => wall.id === id);
+      if (!currentWall || !hasPatchChanges(currentWall, patch)) return {};
       const nextProject = cloneProject(state.project);
       nextProject.walls = nextProject.walls.map((wall) =>
         wall.id === id ? { ...wall, ...patch } : wall
@@ -199,6 +244,8 @@ export const createObjectsSlice: StateCreator<ProjectStore, [], [], ObjectsSlice
     }),
   updateWindow: (id, patch) =>
     set((state) => {
+      const currentWindow = state.project.windows.find((windowItem) => windowItem.id === id);
+      if (!currentWindow || !hasPatchChanges(currentWindow, patch)) return {};
       const nextProject = cloneProject(state.project);
       nextProject.windows = nextProject.windows.map((windowItem) =>
         windowItem.id === id ? { ...windowItem, ...patch } : windowItem
@@ -207,6 +254,8 @@ export const createObjectsSlice: StateCreator<ProjectStore, [], [], ObjectsSlice
     }),
   updateVoid: (id, patch) =>
     set((state) => {
+      const currentVoid = state.project.voids.find((voidArea) => voidArea.id === id);
+      if (!currentVoid || !hasPatchChanges(currentVoid, patch)) return {};
       const nextProject = cloneProject(state.project);
       nextProject.voids = nextProject.voids.map((voidArea) =>
         voidArea.id === id ? { ...voidArea, ...patch } : voidArea

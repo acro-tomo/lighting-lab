@@ -22,7 +22,8 @@ export const createProjectSlice: StateCreator<ProjectStore, [], [], ProjectSlice
       selection: null,
       selectedLightIds: [],
       history: [],
-      future: []
+      future: [],
+      historyGroupBase: null
     }),
   resetDemo: () =>
     set({
@@ -31,6 +32,7 @@ export const createProjectSlice: StateCreator<ProjectStore, [], [], ProjectSlice
       selectedLightIds: [],
       history: [],
       future: [],
+      historyGroupBase: null,
       compareShots: []
     }),
   // 間取り図トレース用に、部屋枠以外のジオメトリを一括削除してまっさらにする。
