@@ -1,7 +1,9 @@
 import { useEffect, useRef } from "react";
+import { demoProject } from "../../data/demoProject";
 import { projectSchema } from "../../schema/projectSchema";
 import { loadProjectFromIndexedDb, saveProjectToIndexedDb } from "../../storage/projectStorage";
 import type { CompareShot, Project } from "../../types";
+import { cloneProject } from "../../utils/units";
 import { migrateLoadedProject } from "../appUtils";
 import { useI18n } from "../../i18n";
 
@@ -19,16 +21,23 @@ export const useProjectPersistence = (
     if (loadedOnce.current) return;
     loadedOnce.current = true;
 
-    // 共有リンク（?demo=1）からの流入では共有デモの間取りを開く。
+    // ?demo=1 は配布用デモ、?demo=2 は標準デモを開く。
     // 読込後はクエリを消し、リロードでの再上書きと透かしURLの汚れを防ぐ。
     const url = new URL(window.location.href);
-    const demoRequested = url.searchParams.has("demo");
+    const demoVersion = url.searchParams.get("demo");
+    const demoRequested = demoVersion !== null;
     if (demoRequested) {
       url.searchParams.delete("demo");
       window.history.replaceState(null, "", url);
     }
 
-    const loadSharedDemo = async () => {
+    const loadRequestedDemo = async () => {
+      if (demoVersion === "2") {
+        setProject(cloneProject(demoProject));
+        setCompareShots([]);
+        setNotice(t("デモの間取りを読み込みました。照明や家具を動かして夜の見え方を試せます。"));
+        return;
+      }
       const response = await fetch(`${import.meta.env.BASE_URL}demo/share-demo-project.json`);
       if (!response.ok) throw new Error(`demo fetch failed: ${response.status}`);
       const parsed = await migrateLoadedProject(
@@ -54,7 +63,7 @@ export const useProjectPersistence = (
             );
           if (useDemo) {
             try {
-              await loadSharedDemo();
+              await loadRequestedDemo();
               return;
             } catch {
               setNotice(t("デモデータを読み込めませんでした。通常どおり起動します。"));
