@@ -115,7 +115,7 @@ export const PlacementGuide = ({
       <dl className="placement-guide-list">
         <div>
           <dt>{t("基準壁")}</dt>
-          <dd>{wallRelation ? wallRelation.wall.name : t("壁なし")}</dd>
+          <dd>{wallRelation ? t(wallRelation.wall.name) : t("壁なし")}</dd>
         </div>
         <div>
           <dt>{t("壁中心")}</dt>

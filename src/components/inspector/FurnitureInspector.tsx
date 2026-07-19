@@ -17,10 +17,10 @@ export const FurnitureInspector = ({
   return <div className="form-grid">
     <header className="selection-inspector-heading">
       <p>{t("選択中の家具")}</p>
-      <h2>{item.name}</h2>
+      <h2>{t(item.name)}</h2>
       <span>{item.type === "sofa" ? t("ソファ") : item.type === "tv" ? "TV" : t("家具")}</span>
     </header>
-    <TextField label={t("名前")} value={item.name} onChange={(name) => updateFurniture(item.id, { name })} />
+    <TextField label={t("名前")} value={t(item.name)} onChange={(name) => updateFurniture(item.id, { name })} />
     <PlacementGuide
       project={project}
       subject={{ id: item.id, name: item.name, kindLabel: t("家具"), position: item.position, floor: item.floor }}
@@ -35,7 +35,9 @@ export const FurnitureInspector = ({
         <option value="roundTable">{t("丸テーブル")}</option>
         <option value="rectTable">{t("角テーブル")}</option>
         <option value="chair">{t("椅子")}</option>
+        <option value="loungeChair">{t("ラウンジチェア")}</option>
         <option value="sofa">{t("ソファ")}</option>
+        <option value="plant">{t("大型植物")}</option>
         <option value="bed">{t("ベッド")}</option>
         <option value="kitchen">{t("キッチン")}</option>
         <option value="cupboard">{t("カップボード")}</option>

@@ -1,6 +1,6 @@
 {
-  "id": "demo-tropical-double-height-ldk",
-  "name": "大開口とターコイズソファのデモLDK",
+  "id": "demo-warm-brazilian-modernism",
+  "name": "Warm Brazilian Modernism — Forest House",
   "renderCalibrationVersion": 2,
   "room": {
     "widthM": 12.8,
@@ -9,619 +9,1537 @@
   },
   "materials": [
     {
-      "id": "stone-sand",
-      "name": "サンドベージュ石張り",
-      "baseColor": "#b79a75",
-      "roughness": 0.94,
-      "metalness": 0,
-      "emissiveColor": "#000000",
-      "emissiveIntensity": 0
-    },
-    {
-      "id": "wood-wall",
-      "name": "ナチュラル木張り壁",
-      "baseColor": "#c99762",
-      "roughness": 0.74,
+      "id": "wall-white",
+      "name": "暖白の手仕事左官",
+      "baseColor": "#d8c8b0",
+      "roughness": 0.96,
       "metalness": 0,
       "emissiveColor": "#000000",
       "emissiveIntensity": 0
     },
     {
       "id": "floor-oak",
-      "name": "明るいオーク床",
-      "baseColor": "#b98552",
-      "roughness": 0.58,
-      "metalness": 0,
-      "emissiveColor": "#000000",
-      "emissiveIntensity": 0
-    },
-    {
-      "id": "sofa-turquoise",
-      "name": "ターコイズファブリック",
-      "baseColor": "#20b8bc",
+      "name": "焼きセメント床",
+      "baseColor": "#8b8275",
       "roughness": 0.9,
       "metalness": 0,
       "emissiveColor": "#000000",
       "emissiveIntensity": 0
     },
     {
-      "id": "rug-ivory",
-      "name": "アイボリーラグ",
-      "baseColor": "#ded7c7",
-      "roughness": 0.98,
+      "id": "travertine",
+      "name": "ハニー色トラバーチン",
+      "baseColor": "#c7a777",
+      "roughness": 0.86,
       "metalness": 0,
       "emissiveColor": "#000000",
       "emissiveIntensity": 0
     },
     {
       "id": "walnut",
-      "name": "ウォールナット家具",
-      "baseColor": "#5a3823",
-      "roughness": 0.68,
+      "name": "深いウォルナット",
+      "baseColor": "#4a2f22",
+      "roughness": 0.7,
       "metalness": 0,
       "emissiveColor": "#000000",
       "emissiveIntensity": 0
     },
     {
-      "id": "chair-walnut",
-      "name": "ダイニングチェア木部",
-      "baseColor": "#65452e",
+      "id": "walnut-wall",
+      "name": "ウォルナット羽目板",
+      "baseColor": "#5a3928",
+      "roughness": 0.76,
+      "metalness": 0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "olive-boucle",
+      "name": "オリーブ色ブークレ",
+      "baseColor": "#68705a",
+      "roughness": 0.96,
+      "metalness": 0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "cognac-leather",
+      "name": "コニャックレザー",
+      "baseColor": "#995c35",
       "roughness": 0.78,
       "metalness": 0,
       "emissiveColor": "#000000",
       "emissiveIntensity": 0
     },
     {
-      "id": "kitchen-dark",
-      "name": "ダークブラウンキッチン",
-      "baseColor": "#29231e",
-      "roughness": 0.72,
-      "metalness": 0.05,
+      "id": "rug-oat",
+      "name": "厚手オートミールウール",
+      "baseColor": "#c8b89d",
+      "roughness": 0.99,
+      "metalness": 0,
       "emissiveColor": "#000000",
       "emissiveIntensity": 0
     },
     {
-      "id": "brick-red",
-      "name": "赤茶レンガ",
-      "baseColor": "#6f3528",
+      "id": "terracotta",
+      "name": "テラコッタ陶器",
+      "baseColor": "#a85f42",
+      "roughness": 0.9,
+      "metalness": 0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "mortar",
+      "name": "磨きモルタル",
+      "baseColor": "#77736b",
+      "roughness": 0.84,
+      "metalness": 0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "blackened-brass",
+      "name": "黒染め真鍮",
+      "baseColor": "#40362d",
+      "roughness": 0.38,
+      "metalness": 0.62,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "linen",
+      "name": "生成りリネン",
+      "baseColor": "#cfc4ad",
+      "roughness": 0.96,
+      "metalness": 0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "leaf-green",
+      "name": "深い植物グリーン",
+      "baseColor": "#4e5e3e",
       "roughness": 0.92,
       "metalness": 0,
       "emissiveColor": "#000000",
       "emissiveIntensity": 0
     },
     {
-      "id": "charcoal-wall",
-      "name": "チャコール壁",
-      "baseColor": "#242526",
-      "roughness": 0.88,
-      "metalness": 0,
-      "emissiveColor": "#000000",
-      "emissiveIntensity": 0
-    },
-    {
-      "id": "concrete-gray",
-      "name": "コンクリートグレー",
-      "baseColor": "#777874",
-      "roughness": 0.86,
-      "metalness": 0,
-      "emissiveColor": "#000000",
-      "emissiveIntensity": 0
-    },
-    {
-      "id": "stainless-steel",
-      "name": "ステンレス",
-      "baseColor": "#b7bdbe",
-      "roughness": 0.28,
-      "metalness": 0.88,
-      "emissiveColor": "#000000",
-      "emissiveIntensity": 0
-    },
-    {
       "id": "fridge-cream",
-      "name": "クリーム色冷蔵庫",
-      "baseColor": "#e6dfcf",
-      "roughness": 0.48,
-      "metalness": 0.08,
+      "name": "温かいアイボリー金属",
+      "baseColor": "#d8d1c1",
+      "roughness": 0.42,
+      "metalness": 0.12,
       "emissiveColor": "#000000",
       "emissiveIntensity": 0
     }
   ],
   "walls": [
     {
-      "id": "wall-north-wood",
-      "name": "ダイニング背面木張り壁",
-      "start": { "x": -6.4, "z": -4.8 },
-      "end": { "x": 2.8, "z": -4.8 },
+      "id": "wall-north-plaster",
+      "name": "北面 暖白左官壁",
+      "start": {
+        "x": -6.4,
+        "z": -4.8
+      },
+      "end": {
+        "x": -1.5,
+        "z": -4.8
+      },
       "thicknessM": 0.16,
       "heightM": 5.2,
-      "materialId": "wood-wall"
+      "materialId": "wall-white"
     },
     {
-      "id": "wall-north-brick",
-      "name": "キッチン横レンガ壁",
-      "start": { "x": 2.8, "z": -4.8 },
-      "end": { "x": 3.6, "z": -4.8 },
+      "id": "wall-north-walnut",
+      "name": "ダイニング背面 ウォルナット壁",
+      "start": {
+        "x": -1.5,
+        "z": -4.8
+      },
+      "end": {
+        "x": 3.1,
+        "z": -4.8
+      },
       "thicknessM": 0.16,
       "heightM": 5.2,
-      "materialId": "brick-red"
+      "materialId": "walnut-wall"
     },
     {
-      "id": "wall-north-charcoal",
-      "name": "キッチン背面チャコール壁",
-      "start": { "x": 3.6, "z": -4.8 },
-      "end": { "x": 6.4, "z": -4.8 },
+      "id": "wall-north-kitchen",
+      "name": "キッチン背面 トラバーチン壁",
+      "start": {
+        "x": 3.1,
+        "z": -4.8
+      },
+      "end": {
+        "x": 6.4,
+        "z": -4.8
+      },
       "thicknessM": 0.16,
       "heightM": 5.2,
-      "materialId": "charcoal-wall"
+      "materialId": "travertine"
     },
     {
-      "id": "wall-east-charcoal",
-      "name": "キッチン側チャコール壁",
-      "start": { "x": 6.4, "z": -4.8 },
-      "end": { "x": 6.4, "z": 4.8 },
+      "id": "wall-east-plaster",
+      "name": "東面 暖白左官壁",
+      "start": {
+        "x": 6.4,
+        "z": -4.8
+      },
+      "end": {
+        "x": 6.4,
+        "z": 4.8
+      },
       "thicknessM": 0.16,
       "heightM": 5.2,
-      "materialId": "charcoal-wall"
+      "materialId": "wall-white"
     },
     {
-      "id": "wall-south-wood",
-      "name": "リビング背面木張り壁",
-      "start": { "x": 6.4, "z": 4.8 },
-      "end": { "x": -6.4, "z": 4.8 },
+      "id": "wall-south-plaster",
+      "name": "南面 ギャラリー左官壁",
+      "start": {
+        "x": 6.4,
+        "z": 4.8
+      },
+      "end": {
+        "x": -6.4,
+        "z": 4.8
+      },
       "thicknessM": 0.16,
       "heightM": 5.2,
-      "materialId": "wood-wall"
+      "materialId": "wall-white"
     },
     {
-      "id": "wall-west-stone",
-      "name": "大開口石張り壁",
-      "start": { "x": -6.4, "z": 4.8 },
-      "end": { "x": -6.4, "z": -4.8 },
+      "id": "wall-west-travertine",
+      "name": "西面 大開口トラバーチン壁",
+      "start": {
+        "x": -6.4,
+        "z": 4.8
+      },
+      "end": {
+        "x": -6.4,
+        "z": -4.8
+      },
       "thicknessM": 0.18,
       "heightM": 5.2,
-      "materialId": "stone-sand"
+      "materialId": "travertine"
     }
   ],
   "windows": [
     {
-      "id": "window-west-south",
-      "name": "吹き抜け縦長窓 南",
-      "wallId": "wall-west-stone",
-      "centerRatio": 0.297,
-      "widthM": 0.8,
+      "id": "window-west-1",
+      "name": "西面 大開口 1",
+      "wallId": "wall-west-travertine",
+      "centerRatio": 0.17,
+      "widthM": 1.55,
       "heightM": 4.72,
-      "sillHeightM": 0.16,
-      "hasGlass": true
+      "sillHeightM": 0.12,
+      "hasGlass": true,
+      "style": "window"
     },
     {
-      "id": "window-west-center",
-      "name": "吹き抜け縦長窓 南中央",
-      "wallId": "wall-west-stone",
-      "centerRatio": 0.432,
-      "widthM": 0.8,
+      "id": "window-west-2",
+      "name": "西面 大開口 2",
+      "wallId": "wall-west-travertine",
+      "centerRatio": 0.39,
+      "widthM": 1.55,
       "heightM": 4.72,
-      "sillHeightM": 0.16,
-      "hasGlass": true
+      "sillHeightM": 0.12,
+      "hasGlass": true,
+      "style": "window"
     },
     {
-      "id": "window-west-north-center",
-      "name": "吹き抜け縦長窓 北中央",
-      "wallId": "wall-west-stone",
-      "centerRatio": 0.568,
-      "widthM": 0.8,
+      "id": "window-west-3",
+      "name": "西面 大開口 3",
+      "wallId": "wall-west-travertine",
+      "centerRatio": 0.61,
+      "widthM": 1.55,
       "heightM": 4.72,
-      "sillHeightM": 0.16,
-      "hasGlass": true
+      "sillHeightM": 0.12,
+      "hasGlass": true,
+      "style": "window"
     },
     {
-      "id": "window-west-north",
-      "name": "吹き抜け縦長窓 北",
-      "wallId": "wall-west-stone",
-      "centerRatio": 0.703,
-      "widthM": 0.8,
+      "id": "window-west-4",
+      "name": "西面 大開口 4",
+      "wallId": "wall-west-travertine",
+      "centerRatio": 0.83,
+      "widthM": 1.55,
       "heightM": 4.72,
-      "sillHeightM": 0.16,
-      "hasGlass": true
+      "sillHeightM": 0.12,
+      "hasGlass": true,
+      "style": "window"
     }
   ],
-  "voids": [],
-  "ceilingZones": [
-    {
-      "id": "ceiling-zone-dining-kitchen",
-      "name": "ダイニング・キッチン低天井",
-      "center": { "x": 2.9, "z": 0 },
-      "size": { "x": 7.0, "z": 9.6 },
-      "dropM": 2.7
-    }
-  ],
-  "floorZones": [],
   "furniture": [
     {
-      "id": "furniture-sofa-main",
-      "name": "ターコイズソファ メイン",
+      "id": "furniture-living-sofa",
+      "name": "低いオリーブブークレソファ",
       "type": "sofa",
-      "position": { "x": -2.3, "y": 0.42, "z": -0.55 },
-      "size": { "x": 3.3, "y": 0.84, "z": 1.0 },
-      "rotationYDeg": 0,
-      "materialId": "sofa-turquoise",
-      "color": "#20b8bc",
-      "roughness": 0.9,
+      "position": {
+        "x": -1.95,
+        "y": 0.39,
+        "z": 1
+      },
+      "size": {
+        "x": 3.2,
+        "y": 0.78,
+        "z": 1.02
+      },
+      "rotationYDeg": -90,
+      "materialId": "olive-boucle",
+      "color": "#68705a",
+      "roughness": 0.96,
       "metalness": 0,
       "castsShadow": true
     },
     {
-      "id": "furniture-sofa-return",
-      "name": "ターコイズソファ カウチ側",
-      "type": "sofa",
-      "position": { "x": -3.95, "y": 0.42, "z": 0.35 },
-      "size": { "x": 1.9, "y": 0.84, "z": 0.95 },
+      "id": "furniture-lounge-north",
+      "name": "Mole風ラウンジチェア 北",
+      "type": "loungeChair",
+      "position": {
+        "x": -4.7,
+        "y": 0.43,
+        "z": 0.05
+      },
+      "size": {
+        "x": 1.02,
+        "y": 0.86,
+        "z": 1.08
+      },
       "rotationYDeg": 90,
-      "materialId": "sofa-turquoise",
-      "color": "#20b8bc",
-      "roughness": 0.9,
+      "materialId": "cognac-leather",
+      "color": "#995c35",
+      "roughness": 0.78,
+      "metalness": 0,
+      "castsShadow": true
+    },
+    {
+      "id": "furniture-lounge-south",
+      "name": "Mole風ラウンジチェア 南",
+      "type": "loungeChair",
+      "position": {
+        "x": -4.7,
+        "y": 0.43,
+        "z": 1.9
+      },
+      "size": {
+        "x": 1.02,
+        "y": 0.86,
+        "z": 1.08
+      },
+      "rotationYDeg": 90,
+      "materialId": "cognac-leather",
+      "color": "#995c35",
+      "roughness": 0.78,
       "metalness": 0,
       "castsShadow": true
     },
     {
       "id": "furniture-living-rug",
-      "name": "大判アイボリーラグ",
+      "name": "厚手オートミールウールラグ",
       "type": "rug",
-      "position": { "x": -1.95, "y": 0.012, "z": 0.25 },
-      "size": { "x": 4.6, "y": 0.024, "z": 3.35 },
+      "position": {
+        "x": -3.3,
+        "y": 0.018,
+        "z": 1
+      },
+      "size": {
+        "x": 3.9,
+        "y": 0.036,
+        "z": 4
+      },
       "rotationYDeg": 0,
-      "materialId": "rug-ivory",
-      "color": "#ded7c7",
-      "roughness": 0.98,
+      "materialId": "rug-oat",
+      "color": "#c8b89d",
+      "roughness": 0.99,
       "metalness": 0,
       "castsShadow": false
     },
     {
       "id": "furniture-coffee-table",
-      "name": "低いウォールナットテーブル",
-      "type": "rectTable",
-      "position": { "x": -1.55, "y": 0.23, "z": 0.45 },
-      "size": { "x": 1.45, "y": 0.46, "z": 0.78 },
+      "name": "彫刻的トラバーチンローテーブル",
+      "type": "roundTable",
+      "position": {
+        "x": -3.35,
+        "y": 0.18,
+        "z": 0.95
+      },
+      "size": {
+        "x": 1.35,
+        "y": 0.36,
+        "z": 1.35
+      },
       "rotationYDeg": 0,
-      "materialId": "walnut",
-      "color": "#5a3823",
-      "roughness": 0.68,
-      "metalness": 0,
-      "castsShadow": true
-    },
-    {
-      "id": "furniture-side-table",
-      "name": "ソファサイドテーブル",
-      "type": "rectTable",
-      "position": { "x": -0.25, "y": 0.29, "z": -0.48 },
-      "size": { "x": 0.62, "y": 0.58, "z": 0.62 },
-      "rotationYDeg": 0,
-      "materialId": "walnut",
-      "color": "#5a3823",
-      "roughness": 0.68,
-      "metalness": 0,
-      "castsShadow": true
-    },
-    {
-      "id": "furniture-dining-table",
-      "name": "6人掛けダイニングテーブル",
-      "type": "rectTable",
-      "position": { "x": 0.55, "y": 0.375, "z": -2.85 },
-      "size": { "x": 2.25, "y": 0.75, "z": 0.95 },
-      "rotationYDeg": 0,
-      "materialId": "walnut",
-      "color": "#5a3823",
-      "roughness": 0.68,
-      "metalness": 0,
-      "castsShadow": true
-    },
-    {
-      "id": "furniture-chair-north-left",
-      "name": "ダイニングチェア 北左",
-      "type": "chair",
-      "position": { "x": -0.05, "y": 0.44, "z": -3.63 },
-      "size": { "x": 0.48, "y": 0.88, "z": 0.5 },
-      "rotationYDeg": 0,
-      "materialId": "chair-walnut",
-      "color": "#65452e",
-      "roughness": 0.78,
-      "metalness": 0,
-      "castsShadow": true
-    },
-    {
-      "id": "furniture-chair-north-right",
-      "name": "ダイニングチェア 北右",
-      "type": "chair",
-      "position": { "x": 1.15, "y": 0.44, "z": -3.63 },
-      "size": { "x": 0.48, "y": 0.88, "z": 0.5 },
-      "rotationYDeg": 0,
-      "materialId": "chair-walnut",
-      "color": "#65452e",
-      "roughness": 0.78,
-      "metalness": 0,
-      "castsShadow": true
-    },
-    {
-      "id": "furniture-chair-south-left",
-      "name": "ダイニングチェア 南左",
-      "type": "chair",
-      "position": { "x": -0.05, "y": 0.44, "z": -2.07 },
-      "size": { "x": 0.48, "y": 0.88, "z": 0.5 },
-      "rotationYDeg": 180,
-      "materialId": "chair-walnut",
-      "color": "#65452e",
-      "roughness": 0.78,
-      "metalness": 0,
-      "castsShadow": true
-    },
-    {
-      "id": "furniture-chair-south-right",
-      "name": "ダイニングチェア 南右",
-      "type": "chair",
-      "position": { "x": 1.15, "y": 0.44, "z": -2.07 },
-      "size": { "x": 0.48, "y": 0.88, "z": 0.5 },
-      "rotationYDeg": 180,
-      "materialId": "chair-walnut",
-      "color": "#65452e",
-      "roughness": 0.78,
-      "metalness": 0,
-      "castsShadow": true
-    },
-    {
-      "id": "furniture-chair-west",
-      "name": "ダイニングチェア 西",
-      "type": "chair",
-      "position": { "x": -0.9, "y": 0.44, "z": -2.85 },
-      "size": { "x": 0.48, "y": 0.88, "z": 0.5 },
-      "rotationYDeg": -90,
-      "materialId": "chair-walnut",
-      "color": "#65452e",
-      "roughness": 0.78,
-      "metalness": 0,
-      "castsShadow": true
-    },
-    {
-      "id": "furniture-chair-east",
-      "name": "ダイニングチェア 東",
-      "type": "chair",
-      "position": { "x": 2.0, "y": 0.44, "z": -2.85 },
-      "size": { "x": 0.48, "y": 0.88, "z": 0.5 },
-      "rotationYDeg": 90,
-      "materialId": "chair-walnut",
-      "color": "#65452e",
-      "roughness": 0.78,
-      "metalness": 0,
-      "castsShadow": true
-    },
-    {
-      "id": "furniture-kitchen-island-cabinet",
-      "name": "コンクリート調キッチンアイランド",
-      "type": "cupboard",
-      "position": { "x": 4.57, "y": 0.43, "z": -2.2 },
-      "size": { "x": 2.7, "y": 0.86, "z": 1.0 },
-      "rotationYDeg": 0,
-      "materialId": "concrete-gray",
-      "color": "#777874",
+      "materialId": "travertine",
+      "color": "#c7a777",
       "roughness": 0.86,
       "metalness": 0,
       "castsShadow": true
     },
     {
-      "id": "furniture-kitchen-island-worktop",
-      "name": "ウォールナットアイランド天板",
-      "type": "box",
-      "position": { "x": 4.57, "y": 0.91, "z": -2.2 },
-      "size": { "x": 2.84, "y": 0.08, "z": 1.08 },
+      "id": "furniture-living-side-table",
+      "name": "黒染め真鍮サイドテーブル",
+      "type": "roundTable",
+      "position": {
+        "x": -3.85,
+        "y": 0.25,
+        "z": 2.85
+      },
+      "size": {
+        "x": 0.48,
+        "y": 0.5,
+        "z": 0.48
+      },
+      "rotationYDeg": 0,
+      "materialId": "blackened-brass",
+      "color": "#40362d",
+      "roughness": 0.38,
+      "metalness": 0.62,
+      "castsShadow": true
+    },
+    {
+      "id": "furniture-living-console",
+      "name": "南壁ウォルナットコンソール",
+      "type": "counter",
+      "position": {
+        "x": -1.55,
+        "y": 0.39,
+        "z": 4.28
+      },
+      "size": {
+        "x": 2,
+        "y": 0.78,
+        "z": 0.38
+      },
       "rotationYDeg": 0,
       "materialId": "walnut",
-      "color": "#5a3823",
-      "roughness": 0.68,
+      "color": "#4a2f22",
+      "roughness": 0.7,
       "metalness": 0,
       "castsShadow": true
     },
     {
-      "id": "furniture-kitchen-back-counter",
-      "name": "壁付けダークキッチン",
-      "type": "kitchen",
-      "position": { "x": 4.35, "y": 0.46, "z": -4.25 },
-      "size": { "x": 2.3, "y": 0.92, "z": 0.92 },
+      "id": "furniture-living-plant",
+      "name": "西窓際フィカス",
+      "type": "plant",
+      "position": {
+        "x": -5.55,
+        "y": 0.95,
+        "z": 3.65
+      },
+      "size": {
+        "x": 1.15,
+        "y": 1.9,
+        "z": 1.15
+      },
       "rotationYDeg": 0,
-      "materialId": "kitchen-dark",
-      "color": "#29231e",
-      "roughness": 0.72,
-      "metalness": 0.05,
+      "materialId": "leaf-green",
+      "color": "#4e5e3e",
+      "roughness": 0.92,
+      "metalness": 0,
+      "castsShadow": true
+    },
+    {
+      "id": "furniture-dining-table",
+      "name": "6人掛けウォルナットダイニング",
+      "type": "rectTable",
+      "position": {
+        "x": 0.15,
+        "y": 0.375,
+        "z": -2.65
+      },
+      "size": {
+        "x": 2.15,
+        "y": 0.75,
+        "z": 0.95
+      },
+      "rotationYDeg": 0,
+      "materialId": "walnut",
+      "color": "#4a2f22",
+      "roughness": 0.7,
+      "metalness": 0,
+      "castsShadow": true
+    },
+    {
+      "id": "furniture-dining-chair-nw",
+      "name": "ダイニングチェア 北西",
+      "type": "chair",
+      "position": {
+        "x": -0.5,
+        "y": 0.41,
+        "z": -3.47
+      },
+      "size": {
+        "x": 0.52,
+        "y": 0.82,
+        "z": 0.52
+      },
+      "rotationYDeg": 0,
+      "materialId": "cognac-leather",
+      "color": "#995c35",
+      "roughness": 0.8,
+      "metalness": 0,
+      "castsShadow": true
+    },
+    {
+      "id": "furniture-dining-chair-ne",
+      "name": "ダイニングチェア 北東",
+      "type": "chair",
+      "position": {
+        "x": 0.8,
+        "y": 0.41,
+        "z": -3.47
+      },
+      "size": {
+        "x": 0.52,
+        "y": 0.82,
+        "z": 0.52
+      },
+      "rotationYDeg": 0,
+      "materialId": "cognac-leather",
+      "color": "#995c35",
+      "roughness": 0.8,
+      "metalness": 0,
+      "castsShadow": true
+    },
+    {
+      "id": "furniture-dining-chair-sw",
+      "name": "ダイニングチェア 南西",
+      "type": "chair",
+      "position": {
+        "x": -0.5,
+        "y": 0.41,
+        "z": -1.83
+      },
+      "size": {
+        "x": 0.52,
+        "y": 0.82,
+        "z": 0.52
+      },
+      "rotationYDeg": 180,
+      "materialId": "cognac-leather",
+      "color": "#995c35",
+      "roughness": 0.8,
+      "metalness": 0,
+      "castsShadow": true
+    },
+    {
+      "id": "furniture-dining-chair-se",
+      "name": "ダイニングチェア 南東",
+      "type": "chair",
+      "position": {
+        "x": 0.8,
+        "y": 0.41,
+        "z": -1.83
+      },
+      "size": {
+        "x": 0.52,
+        "y": 0.82,
+        "z": 0.52
+      },
+      "rotationYDeg": 180,
+      "materialId": "cognac-leather",
+      "color": "#995c35",
+      "roughness": 0.8,
+      "metalness": 0,
+      "castsShadow": true
+    },
+    {
+      "id": "furniture-dining-chair-west",
+      "name": "ダイニングチェア 西",
+      "type": "chair",
+      "position": {
+        "x": -1.32,
+        "y": 0.41,
+        "z": -2.65
+      },
+      "size": {
+        "x": 0.52,
+        "y": 0.82,
+        "z": 0.52
+      },
+      "rotationYDeg": -90,
+      "materialId": "cognac-leather",
+      "color": "#995c35",
+      "roughness": 0.8,
+      "metalness": 0,
+      "castsShadow": true
+    },
+    {
+      "id": "furniture-dining-chair-east",
+      "name": "ダイニングチェア 東",
+      "type": "chair",
+      "position": {
+        "x": 1.62,
+        "y": 0.41,
+        "z": -2.65
+      },
+      "size": {
+        "x": 0.52,
+        "y": 0.82,
+        "z": 0.52
+      },
+      "rotationYDeg": 90,
+      "materialId": "cognac-leather",
+      "color": "#995c35",
+      "roughness": 0.8,
+      "metalness": 0,
+      "castsShadow": true
+    },
+    {
+      "id": "furniture-dining-console",
+      "name": "ダイニング背面ウォルナット収納",
+      "type": "cupboard",
+      "position": {
+        "x": -0.15,
+        "y": 0.43,
+        "z": -4.38
+      },
+      "size": {
+        "x": 2.25,
+        "y": 0.86,
+        "z": 0.42
+      },
+      "rotationYDeg": 0,
+      "materialId": "walnut",
+      "color": "#4a2f22",
+      "roughness": 0.7,
+      "metalness": 0,
+      "castsShadow": true
+    },
+    {
+      "id": "furniture-dining-plant",
+      "name": "ダイニングのヤシ",
+      "type": "plant",
+      "position": {
+        "x": -2.45,
+        "y": 0.9,
+        "z": -3.85
+      },
+      "size": {
+        "x": 1.05,
+        "y": 1.8,
+        "z": 1.05
+      },
+      "rotationYDeg": 0,
+      "materialId": "leaf-green",
+      "color": "#4e5e3e",
+      "roughness": 0.92,
+      "metalness": 0,
+      "castsShadow": true
+    },
+    {
+      "id": "furniture-island-base",
+      "name": "木とモルタルのアイランド",
+      "type": "kitchen",
+      "position": {
+        "x": 4.65,
+        "y": 0.44,
+        "z": -2.25
+      },
+      "size": {
+        "x": 2.75,
+        "y": 0.88,
+        "z": 1.1
+      },
+      "rotationYDeg": 0,
+      "materialId": "mortar",
+      "color": "#77736b",
+      "roughness": 0.84,
+      "metalness": 0,
+      "castsShadow": true
+    },
+    {
+      "id": "furniture-island-top",
+      "name": "ウォルナットアイランド天板",
+      "type": "box",
+      "position": {
+        "x": 4.65,
+        "y": 0.91,
+        "z": -2.25
+      },
+      "size": {
+        "x": 2.9,
+        "y": 0.08,
+        "z": 1.18
+      },
+      "rotationYDeg": 0,
+      "materialId": "walnut",
+      "color": "#4a2f22",
+      "roughness": 0.7,
+      "metalness": 0,
+      "castsShadow": true
+    },
+    {
+      "id": "furniture-kitchen-back",
+      "name": "トラバーチン壁付キッチン",
+      "type": "kitchen",
+      "position": {
+        "x": 4.2,
+        "y": 0.46,
+        "z": -4.25
+      },
+      "size": {
+        "x": 2.05,
+        "y": 0.92,
+        "z": 0.9
+      },
+      "rotationYDeg": 0,
+      "materialId": "mortar",
+      "color": "#77736b",
+      "roughness": 0.84,
+      "metalness": 0,
+      "castsShadow": true
+    },
+    {
+      "id": "furniture-kitchen-cupboard",
+      "name": "ウォルナットトール収納",
+      "type": "cupboard",
+      "position": {
+        "x": 2.85,
+        "y": 1.1,
+        "z": -4.33
+      },
+      "size": {
+        "x": 0.72,
+        "y": 2.2,
+        "z": 0.58
+      },
+      "rotationYDeg": 0,
+      "materialId": "walnut",
+      "color": "#4a2f22",
+      "roughness": 0.7,
+      "metalness": 0,
       "castsShadow": true
     },
     {
       "id": "furniture-kitchen-fridge",
-      "name": "クリーム色冷蔵庫",
+      "name": "アイボリー冷蔵庫",
       "type": "fridge",
-      "position": { "x": 5.88, "y": 0.95, "z": -4.28 },
-      "size": { "x": 0.72, "y": 1.9, "z": 0.72 },
+      "position": {
+        "x": 5.75,
+        "y": 0.95,
+        "z": -4.28
+      },
+      "size": {
+        "x": 0.72,
+        "y": 1.9,
+        "z": 0.72
+      },
       "rotationYDeg": 0,
       "materialId": "fridge-cream",
-      "color": "#e6dfcf",
-      "roughness": 0.48,
-      "metalness": 0.08,
+      "color": "#d8d1c1",
+      "roughness": 0.42,
+      "metalness": 0.12,
       "castsShadow": true
     },
     {
-      "id": "furniture-kitchen-open-shelf",
-      "name": "キッチン背面オープン棚",
-      "type": "box",
-      "position": { "x": 3.72, "y": 1.58, "z": -4.62 },
-      "size": { "x": 0.95, "y": 0.08, "z": 0.25 },
-      "rotationYDeg": 0,
-      "materialId": "walnut",
-      "color": "#5a3823",
-      "roughness": 0.68,
+      "id": "furniture-stool-west",
+      "name": "コニャックカウンタースツール 西",
+      "type": "chair",
+      "position": {
+        "x": 3.85,
+        "y": 0.39,
+        "z": -1.35
+      },
+      "size": {
+        "x": 0.46,
+        "y": 0.78,
+        "z": 0.46
+      },
+      "rotationYDeg": 180,
+      "materialId": "cognac-leather",
+      "color": "#995c35",
+      "roughness": 0.8,
       "metalness": 0,
       "castsShadow": true
     },
     {
-      "id": "furniture-kitchen-hood-body",
-      "name": "ステンレスレンジフード",
-      "type": "box",
-      "position": { "x": 4.93, "y": 2.05, "z": -4.46 },
-      "size": { "x": 0.92, "y": 0.42, "z": 0.48 },
-      "rotationYDeg": 0,
-      "materialId": "stainless-steel",
-      "color": "#b7bdbe",
-      "roughness": 0.28,
-      "metalness": 0.88,
+      "id": "furniture-stool-center",
+      "name": "コニャックカウンタースツール 中央",
+      "type": "chair",
+      "position": {
+        "x": 4.65,
+        "y": 0.39,
+        "z": -1.35
+      },
+      "size": {
+        "x": 0.46,
+        "y": 0.78,
+        "z": 0.46
+      },
+      "rotationYDeg": 180,
+      "materialId": "cognac-leather",
+      "color": "#995c35",
+      "roughness": 0.8,
+      "metalness": 0,
       "castsShadow": true
     },
     {
-      "id": "furniture-kitchen-hood-chimney",
-      "name": "レンジフード煙突",
-      "type": "box",
-      "position": { "x": 4.93, "y": 2.38, "z": -4.58 },
-      "size": { "x": 0.42, "y": 0.24, "z": 0.24 },
-      "rotationYDeg": 0,
-      "materialId": "stainless-steel",
-      "color": "#b7bdbe",
-      "roughness": 0.28,
-      "metalness": 0.88,
+      "id": "furniture-stool-east",
+      "name": "コニャックカウンタースツール 東",
+      "type": "chair",
+      "position": {
+        "x": 5.45,
+        "y": 0.39,
+        "z": -1.35
+      },
+      "size": {
+        "x": 0.46,
+        "y": 0.78,
+        "z": 0.46
+      },
+      "rotationYDeg": 180,
+      "materialId": "cognac-leather",
+      "color": "#995c35",
+      "roughness": 0.8,
+      "metalness": 0,
       "castsShadow": true
+    },
+    {
+      "id": "furniture-kitchen-open-shelf",
+      "name": "キッチンの本と器のオープン棚",
+      "type": "shelf",
+      "position": {
+        "x": 2.05,
+        "y": 0.85,
+        "z": -4.4
+      },
+      "size": {
+        "x": 0.72,
+        "y": 1.7,
+        "z": 0.34
+      },
+      "rotationYDeg": 0,
+      "materialId": "walnut",
+      "color": "#4a2f22",
+      "roughness": 0.7,
+      "metalness": 0,
+      "castsShadow": true
+    },
+    {
+      "id": "furniture-kitchen-hood",
+      "name": "黒染め真鍮レンジフード",
+      "type": "box",
+      "position": {
+        "x": 4.45,
+        "y": 2.02,
+        "z": -4.45
+      },
+      "size": {
+        "x": 0.92,
+        "y": 0.44,
+        "z": 0.46
+      },
+      "rotationYDeg": 0,
+      "materialId": "blackened-brass",
+      "color": "#40362d",
+      "roughness": 0.38,
+      "metalness": 0.62,
+      "castsShadow": true
+    },
+    {
+      "id": "furniture-stair",
+      "name": "南東の彫刻的モルタル階段",
+      "type": "stair",
+      "position": {
+        "x": 4.9,
+        "y": 1.3,
+        "z": 2.75
+      },
+      "size": {
+        "x": 1.4,
+        "y": 2.6,
+        "z": 3.5
+      },
+      "rotationYDeg": 0,
+      "materialId": "mortar",
+      "color": "#77736b",
+      "roughness": 0.84,
+      "metalness": 0,
+      "castsShadow": true
+    },
+    {
+      "id": "furniture-stair-bench",
+      "name": "階段脇のウォルナットベンチ",
+      "type": "counter",
+      "position": {
+        "x": 2.85,
+        "y": 0.24,
+        "z": 4.25
+      },
+      "size": {
+        "x": 1.65,
+        "y": 0.48,
+        "z": 0.48
+      },
+      "rotationYDeg": 0,
+      "materialId": "walnut",
+      "color": "#4a2f22",
+      "roughness": 0.7,
+      "metalness": 0,
+      "castsShadow": true
+    },
+    {
+      "id": "furniture-east-plant",
+      "name": "階段脇のストレリチア",
+      "type": "plant",
+      "position": {
+        "x": 5.65,
+        "y": 0.9,
+        "z": 0.25
+      },
+      "size": {
+        "x": 1.05,
+        "y": 1.8,
+        "z": 1.05
+      },
+      "rotationYDeg": 0,
+      "materialId": "leaf-green",
+      "color": "#4e5e3e",
+      "roughness": 0.92,
+      "metalness": 0,
+      "castsShadow": true
+    },
+    {
+      "id": "furniture-gallery-console",
+      "name": "南壁ギャラリーコンソール",
+      "type": "counter",
+      "position": {
+        "x": 0.45,
+        "y": 0.4,
+        "z": 4.3
+      },
+      "size": {
+        "x": 1.8,
+        "y": 0.8,
+        "z": 0.38
+      },
+      "rotationYDeg": 0,
+      "materialId": "walnut",
+      "color": "#4a2f22",
+      "roughness": 0.7,
+      "metalness": 0,
+      "castsShadow": true
+    },
+    {
+      "id": "furniture-art-large",
+      "name": "テラコッタ抽象画 大",
+      "type": "box",
+      "position": {
+        "x": -0.3,
+        "y": 1.85,
+        "z": 4.69
+      },
+      "size": {
+        "x": 1.15,
+        "y": 1.5,
+        "z": 0.05
+      },
+      "rotationYDeg": 0,
+      "materialId": "terracotta",
+      "color": "#a85f42",
+      "roughness": 0.9,
+      "metalness": 0,
+      "castsShadow": true
+    },
+    {
+      "id": "furniture-art-small",
+      "name": "生成り抽象画 小",
+      "type": "box",
+      "position": {
+        "x": 0.95,
+        "y": 1.7,
+        "z": 4.69
+      },
+      "size": {
+        "x": 0.8,
+        "y": 1.1,
+        "z": 0.05
+      },
+      "rotationYDeg": 0,
+      "materialId": "linen",
+      "color": "#cfc4ad",
+      "roughness": 0.96,
+      "metalness": 0,
+      "castsShadow": true
+    },
+    {
+      "id": "furniture-bookcase",
+      "name": "東壁の建築書本棚",
+      "type": "shelf",
+      "position": {
+        "x": 6,
+        "y": 0.6,
+        "z": 1.8
+      },
+      "size": {
+        "x": 1.15,
+        "y": 1.2,
+        "z": 0.38
+      },
+      "rotationYDeg": -90,
+      "materialId": "walnut",
+      "color": "#4a2f22",
+      "roughness": 0.7,
+      "metalness": 0,
+      "castsShadow": true
+    },
+    {
+      "id": "furniture-pottery-tall",
+      "name": "テラコッタ陶器 高",
+      "type": "box",
+      "position": {
+        "x": 0.15,
+        "y": 1,
+        "z": 4.22
+      },
+      "size": {
+        "x": 0.28,
+        "y": 0.38,
+        "z": 0.28
+      },
+      "rotationYDeg": 0,
+      "materialId": "terracotta",
+      "color": "#a85f42",
+      "roughness": 0.9,
+      "metalness": 0,
+      "castsShadow": true
+    },
+    {
+      "id": "furniture-pottery-low",
+      "name": "トラバーチン陶器 低",
+      "type": "box",
+      "position": {
+        "x": 0.65,
+        "y": 0.94,
+        "z": 4.22
+      },
+      "size": {
+        "x": 0.24,
+        "y": 0.25,
+        "z": 0.24
+      },
+      "rotationYDeg": 0,
+      "materialId": "travertine",
+      "color": "#c7a777",
+      "roughness": 0.86,
+      "metalness": 0,
+      "castsShadow": true
+    },
+    {
+      "id": "furniture-kitchen-ceramic",
+      "name": "キッチン棚の陶器",
+      "type": "box",
+      "position": {
+        "x": 2.05,
+        "y": 1.35,
+        "z": -4.2
+      },
+      "size": {
+        "x": 0.26,
+        "y": 0.3,
+        "z": 0.26
+      },
+      "rotationYDeg": 0,
+      "materialId": "terracotta",
+      "color": "#a85f42",
+      "roughness": 0.9,
+      "metalness": 0,
+      "castsShadow": true
+    }
+  ],
+  "voids": [
+    {
+      "id": "void-stair-double-height",
+      "name": "南東階段上の吹き抜け",
+      "center": {
+        "x": 4.9,
+        "z": 2.7
+      },
+      "size": {
+        "x": 2.7,
+        "z": 3.9
+      },
+      "openSides": [
+        "south",
+        "east"
+      ]
     }
   ],
   "lights": [
     {
-      "id": "light-dining-pendant-left",
-      "name": "ダイニングペンダント 左",
+      "id": "light-cluster-1",
+      "name": "Bocci風クラスター 1",
+      "type": "pendant",
+      "model": "pendant-globe",
+      "position": {
+        "x": 2.7,
+        "y": 4.2,
+        "z": 0.9
+      },
+      "mountHeightM": 5.2,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 2.7,
+        "y": 1.4,
+        "z": 0.9
+      },
+      "lumens": 380,
+      "colorTemperatureK": 2700,
+      "dimmer": 78,
+      "enabled": true,
+      "beamAngleDeg": 100,
+      "penumbra": 0.85,
+      "castsShadow": true,
+      "note": "Hand-blown globe for the double-height stair",
+      "cordLengthM": 1
+    },
+    {
+      "id": "light-cluster-2",
+      "name": "Bocci風クラスター 2",
+      "type": "pendant",
+      "model": "pendant-globe",
+      "position": {
+        "x": 3.1,
+        "y": 3.6,
+        "z": 1.2
+      },
+      "mountHeightM": 5.2,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 3.1,
+        "y": 1.2,
+        "z": 1.2
+      },
+      "lumens": 360,
+      "colorTemperatureK": 2700,
+      "dimmer": 76,
+      "enabled": true,
+      "beamAngleDeg": 100,
+      "penumbra": 0.85,
+      "castsShadow": true,
+      "note": "Hand-blown globe for the double-height stair",
+      "cordLengthM": 1.6
+    },
+    {
+      "id": "light-cluster-3",
+      "name": "Bocci風クラスター 3",
+      "type": "pendant",
+      "model": "pendant-globe",
+      "position": {
+        "x": 3.5,
+        "y": 3,
+        "z": 1.5
+      },
+      "mountHeightM": 5.2,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 3.5,
+        "y": 1,
+        "z": 1.5
+      },
+      "lumens": 340,
+      "colorTemperatureK": 2700,
+      "dimmer": 74,
+      "enabled": true,
+      "beamAngleDeg": 100,
+      "penumbra": 0.85,
+      "castsShadow": true,
+      "note": "Hand-blown globe for the double-height stair",
+      "cordLengthM": 2.2
+    },
+    {
+      "id": "light-cluster-4",
+      "name": "Bocci風クラスター 4",
+      "type": "pendant",
+      "model": "pendant-globe",
+      "position": {
+        "x": 2.8,
+        "y": 2.5,
+        "z": 1.8
+      },
+      "mountHeightM": 5.2,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 2.8,
+        "y": 0.8,
+        "z": 1.8
+      },
+      "lumens": 320,
+      "colorTemperatureK": 2700,
+      "dimmer": 72,
+      "enabled": true,
+      "beamAngleDeg": 100,
+      "penumbra": 0.85,
+      "castsShadow": true,
+      "note": "Hand-blown globe for the double-height stair",
+      "cordLengthM": 2.7
+    },
+    {
+      "id": "light-cluster-5",
+      "name": "Bocci風クラスター 5",
+      "type": "pendant",
+      "model": "pendant-globe",
+      "position": {
+        "x": 3.4,
+        "y": 4,
+        "z": 2.1
+      },
+      "mountHeightM": 5.2,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 3.4,
+        "y": 1.3,
+        "z": 2.1
+      },
+      "lumens": 360,
+      "colorTemperatureK": 2700,
+      "dimmer": 76,
+      "enabled": true,
+      "beamAngleDeg": 100,
+      "penumbra": 0.85,
+      "castsShadow": true,
+      "note": "Hand-blown globe for the double-height stair",
+      "cordLengthM": 1.2
+    },
+    {
+      "id": "light-cluster-6",
+      "name": "Bocci風クラスター 6",
+      "type": "pendant",
+      "model": "pendant-globe",
+      "position": {
+        "x": 2.9,
+        "y": 3.3,
+        "z": 2.5
+      },
+      "mountHeightM": 5.2,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 2.9,
+        "y": 1.1,
+        "z": 2.5
+      },
+      "lumens": 340,
+      "colorTemperatureK": 2700,
+      "dimmer": 74,
+      "enabled": true,
+      "beamAngleDeg": 100,
+      "penumbra": 0.85,
+      "castsShadow": true,
+      "note": "Hand-blown globe for the double-height stair",
+      "cordLengthM": 1.9
+    },
+    {
+      "id": "light-cluster-7",
+      "name": "Bocci風クラスター 7",
+      "type": "pendant",
+      "model": "pendant-globe",
+      "position": {
+        "x": 3.5,
+        "y": 2.8,
+        "z": 2.8
+      },
+      "mountHeightM": 5.2,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 3.5,
+        "y": 0.9,
+        "z": 2.8
+      },
+      "lumens": 320,
+      "colorTemperatureK": 2700,
+      "dimmer": 72,
+      "enabled": true,
+      "beamAngleDeg": 100,
+      "penumbra": 0.85,
+      "castsShadow": true,
+      "note": "Hand-blown globe for the double-height stair",
+      "cordLengthM": 2.4
+    },
+    {
+      "id": "light-dining-west",
+      "name": "ダイニングペンダント 西",
       "type": "pendant",
       "model": "pendant",
-      "position": { "x": -0.05, "y": 2.05, "z": -2.85 },
-      "mountHeightM": 2.5,
-      "rotationDeg": { "x": -90, "y": 0, "z": 0 },
-      "target": { "x": -0.05, "y": 0.75, "z": -2.85 },
-      "lumens": 820,
+      "position": {
+        "x": -0.45,
+        "y": 1.95,
+        "z": -2.65
+      },
+      "mountHeightM": 2.65,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": -0.45,
+        "y": 0.75,
+        "z": -2.65
+      },
+      "lumens": 720,
       "colorTemperatureK": 2700,
-      "dimmer": 88,
+      "dimmer": 82,
       "enabled": true,
-      "beamAngleDeg": 72,
-      "penumbra": 0.65,
+      "beamAngleDeg": 90,
+      "penumbra": 0.8,
       "castsShadow": true,
-      "cordLengthM": 0.45
+      "note": "Warm light over the dining table",
+      "cordLengthM": 0.7
     },
     {
-      "id": "light-dining-pendant-right",
-      "name": "ダイニングペンダント 右",
+      "id": "light-dining-east",
+      "name": "ダイニングペンダント 東",
       "type": "pendant",
       "model": "pendant",
-      "position": { "x": 1.15, "y": 2.05, "z": -2.85 },
-      "mountHeightM": 2.5,
-      "rotationDeg": { "x": -90, "y": 0, "z": 0 },
-      "target": { "x": 1.15, "y": 0.75, "z": -2.85 },
-      "lumens": 820,
+      "position": {
+        "x": 0.75,
+        "y": 1.95,
+        "z": -2.65
+      },
+      "mountHeightM": 2.65,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 0.75,
+        "y": 0.75,
+        "z": -2.65
+      },
+      "lumens": 720,
       "colorTemperatureK": 2700,
-      "dimmer": 88,
+      "dimmer": 82,
       "enabled": true,
-      "beamAngleDeg": 72,
-      "penumbra": 0.65,
+      "beamAngleDeg": 90,
+      "penumbra": 0.8,
       "castsShadow": true,
-      "cordLengthM": 0.45
+      "note": "Warm light over the dining table",
+      "cordLengthM": 0.7
     },
     {
-      "id": "light-living-spot-west",
-      "name": "リビングスポット 西",
-      "type": "spotlight",
-      "model": "dl-universal",
-      "position": { "x": -4.05, "y": 5.08, "z": -1.0 },
-      "mountHeightM": 5.2,
-      "rotationDeg": { "x": -90, "y": 0, "z": 0 },
-      "target": { "x": -3.05, "y": 0.45, "z": -0.1 },
-      "lumens": 980,
-      "colorTemperatureK": 3000,
-      "dimmer": 80,
-      "enabled": true,
-      "beamAngleDeg": 40,
-      "penumbra": 0.5,
-      "castsShadow": true
-    },
-    {
-      "id": "light-living-spot-east",
-      "name": "リビングスポット 東",
-      "type": "spotlight",
-      "model": "dl-universal",
-      "position": { "x": -0.7, "y": 5.08, "z": -1.1 },
-      "mountHeightM": 5.2,
-      "rotationDeg": { "x": -90, "y": 0, "z": 0 },
-      "target": { "x": -1.45, "y": 0.4, "z": 0.35 },
-      "lumens": 980,
-      "colorTemperatureK": 3000,
-      "dimmer": 80,
-      "enabled": true,
-      "beamAngleDeg": 40,
-      "penumbra": 0.5,
-      "castsShadow": true
-    },
-    {
-      "id": "light-wall-wash-north",
-      "name": "木張り壁ウォールウォッシャー",
-      "type": "spotlight",
-      "model": "dl-universal",
-      "position": { "x": -2.4, "y": 5.08, "z": -3.85 },
-      "mountHeightM": 5.2,
-      "rotationDeg": { "x": -90, "y": 0, "z": 0 },
-      "target": { "x": -2.4, "y": 2.0, "z": -4.65 },
-      "lumens": 760,
-      "colorTemperatureK": 2700,
-      "dimmer": 70,
-      "enabled": true,
-      "beamAngleDeg": 40,
-      "penumbra": 0.5,
-      "castsShadow": true
-    },
-    {
-      "id": "light-kitchen-downlight-west",
-      "name": "キッチンダウンライト 西",
+      "id": "light-kitchen-west",
+      "name": "アイランドダウンライト 西",
       "type": "downlight",
       "model": "dl-diffuse",
-      "position": { "x": 3.75, "y": 2.46, "z": -2.2 },
-      "mountHeightM": 2.5,
-      "rotationDeg": { "x": -90, "y": 0, "z": 0 },
-      "target": { "x": 3.75, "y": 0.9, "z": -2.2 },
-      "lumens": 1100,
-      "colorTemperatureK": 3500,
-      "dimmer": 82,
+      "position": {
+        "x": 4,
+        "y": 2.61,
+        "z": -2.25
+      },
+      "mountHeightM": 2.65,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 4,
+        "y": 0.92,
+        "z": -2.25
+      },
+      "lumens": 780,
+      "colorTemperatureK": 3000,
+      "dimmer": 84,
       "enabled": true,
       "beamAngleDeg": 110,
       "penumbra": 0.95,
-      "castsShadow": true
+      "castsShadow": true,
+      "note": "Wide beam for the island worktop"
     },
     {
-      "id": "light-kitchen-downlight-east",
-      "name": "キッチンダウンライト 東",
+      "id": "light-kitchen-east",
+      "name": "アイランドダウンライト 東",
       "type": "downlight",
       "model": "dl-diffuse",
-      "position": { "x": 5.35, "y": 2.46, "z": -2.2 },
-      "mountHeightM": 2.5,
-      "rotationDeg": { "x": -90, "y": 0, "z": 0 },
-      "target": { "x": 5.35, "y": 0.9, "z": -2.2 },
-      "lumens": 1100,
-      "colorTemperatureK": 3500,
-      "dimmer": 82,
+      "position": {
+        "x": 5.3,
+        "y": 2.61,
+        "z": -2.25
+      },
+      "mountHeightM": 2.65,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 5.3,
+        "y": 0.92,
+        "z": -2.25
+      },
+      "lumens": 780,
+      "colorTemperatureK": 3000,
+      "dimmer": 84,
       "enabled": true,
       "beamAngleDeg": 110,
       "penumbra": 0.95,
-      "castsShadow": true
+      "castsShadow": true,
+      "note": "Wide beam for the island worktop"
+    },
+    {
+      "id": "light-art-west",
+      "name": "ギャラリーアートスポット 西",
+      "type": "spotlight",
+      "model": "dl-universal",
+      "position": {
+        "x": -0.3,
+        "y": 5.16,
+        "z": 3.15
+      },
+      "mountHeightM": 5.2,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": -0.3,
+        "y": 1.8,
+        "z": 4.65
+      },
+      "lumens": 560,
+      "colorTemperatureK": 2700,
+      "dimmer": 74,
+      "enabled": true,
+      "beamAngleDeg": 36,
+      "penumbra": 0.46,
+      "castsShadow": true,
+      "note": "Lights the south gallery wall art"
+    },
+    {
+      "id": "light-art-east",
+      "name": "ギャラリーアートスポット 東",
+      "type": "spotlight",
+      "model": "dl-universal",
+      "position": {
+        "x": 1,
+        "y": 5.16,
+        "z": 3.15
+      },
+      "mountHeightM": 5.2,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 1,
+        "y": 1.65,
+        "z": 4.65
+      },
+      "lumens": 520,
+      "colorTemperatureK": 2700,
+      "dimmer": 72,
+      "enabled": true,
+      "beamAngleDeg": 36,
+      "penumbra": 0.46,
+      "castsShadow": true,
+      "note": "Lights the south gallery wall art"
+    },
+    {
+      "id": "light-living-sculpture",
+      "name": "リビング彫刻スポット",
+      "type": "spotlight",
+      "model": "dl-universal",
+      "position": {
+        "x": -3.3,
+        "y": 5.16,
+        "z": -0.25
+      },
+      "mountHeightM": 5.2,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": -3.35,
+        "y": 0.4,
+        "z": 0.95
+      },
+      "lumens": 640,
+      "colorTemperatureK": 2700,
+      "dimmer": 76,
+      "enabled": true,
+      "beamAngleDeg": 40,
+      "penumbra": 0.5,
+      "castsShadow": true,
+      "note": "Highlights the coffee table and conversation area"
     }
   ],
   "camera": {
-    "position": { "x": 1.65, "y": 2.15, "z": 1.98 },
-    "target": { "x": -3.25, "y": 1.35, "z": -2.1 },
-    "fov": 68,
-    "exposure": 0.19,
+    "position": {
+      "x": 1.9,
+      "y": 2.35,
+      "z": 4.25
+    },
+    "target": {
+      "x": 1.1,
+      "y": 1.15,
+      "z": -1.15
+    },
+    "fov": 78,
+    "exposure": 0.2,
     "resolutionWidth": 1600
   },
   "daylight": {
     "enabled": true,
-    "month": 6,
-    "day": 15,
-    "hour": 14,
-    "northOffsetDeg": 0,
-    "latitudeDeg": 35
+    "month": 3,
+    "day": 21,
+    "hour": 16,
+    "northOffsetDeg": 25,
+    "latitudeDeg": -23.55
   },
+  "ceilingZones": [
+    {
+      "id": "ceiling-zone-dining-kitchen",
+      "name": "北東ダイニング・キッチンの低天井",
+      "center": {
+        "x": 2.5,
+        "z": -2.55
+      },
+      "size": {
+        "x": 7.4,
+        "z": 4.3
+      },
+      "dropM": 2.55
+    }
+  ],
+  "floorZones": [],
   "activeFloor": 1,
   "showCeiling": true
 }
