@@ -99,7 +99,7 @@ export const addFurniture = (
     const cushionGap = Math.min(0.025, w * 0.015);
     const innerW = w - armW * 2 - cushionGap * 2;
     const cushionW = (innerW - cushionGap * (cushionCount - 1)) / cushionCount;
-    const cushionMaterial = makeMaterial(undefined, "#817b70");
+    const cushionMaterial = makeMaterial(undefined, item.color ?? preset?.baseColor ?? "#777");
     cushionMaterial.roughness = 0.96;
     cushionMaterial.metalness = 0;
     addPart([w, baseH, d], [0, -h / 2 + baseH / 2, 0]);

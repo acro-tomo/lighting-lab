@@ -483,7 +483,7 @@ const FurniturePrimitive = ({
             position={[-innerW / 2 + cushionW / 2 + index * (cushionW + cushionGap), cushionY, seatZ]}
           >
             <boxGeometry args={[cushionW, cushionH, seatD]} />
-            <meshStandardMaterial color="#817b70" roughness={0.96} />
+            <meshStandardMaterial color={color} roughness={0.96} />
           </mesh>
         ))}
       </>
