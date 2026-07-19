@@ -236,6 +236,10 @@ export const useWallAxisDrag = (
     onPointerMove: (event: ThreeEvent<PointerEvent>) => {
       const state = dragState.current;
       if (!state || state.pointerId !== event.pointerId) return;
+      if (!wall) {
+        stopDrag(event);
+        return;
+      }
       if (event.pointerType === "touch" && touchGuard.hasMultiTouch()) {
         stopDrag(event);
         return;
