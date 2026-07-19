@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { Sky } from "three/examples/jsm/objects/Sky.js";
+import { DAYLIGHT_INTENSITY_SCALE } from "./daylightCalibration";
 
 export type SkyEnvironment = {
   texture: THREE.Texture;
@@ -8,8 +9,8 @@ export type SkyEnvironment = {
 
 // 昼光の較正値(開始値、視覚確認で詰める)。Sky 環境=間接光(skylight)、太陽 DirectionalLight=鋭い影と方向感。
 // Scene3D(常駐パストレ)と pathTracer.ts(PNG書き出し)で必ず同一値を使う(WYSIWYG)。
-export const SKY_ENVIRONMENT_INTENSITY = 0.8;
-export const SUN_INTENSITY_FACTOR = 1.4;
+export const SKY_ENVIRONMENT_INTENSITY = 0.8 * DAYLIGHT_INTENSITY_SCALE;
+export const SUN_INTENSITY_FACTOR = 1.4 * DAYLIGHT_INTENSITY_SCALE;
 
 export type SkyEnvironmentOptions = {
   turbidity?: number;

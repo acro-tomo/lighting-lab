@@ -1,12 +1,13 @@
 import type { LightFixture } from "../../types";
+import { DAYLIGHT_INTENSITY_SCALE } from "../../rendering/daylightCalibration";
 import type { FloorBounds } from "./roomGeometry";
 
 const LIGHT_EFFECT_MARGIN_M = 1.2;
 const REALTIME_SHADOW_LIGHT_LIMIT = 6;
-// 昼光ヘミライトの強度。パストレ（Sky環境 0.8 + GI）の昼の明るさに視覚合わせした値で、
+// 昼光ヘミライトの強度。旧露出でのパストレ（Sky環境 + GI）に視覚合わせした基準値で、
 // 高度 sin に比例して正午前後が最も明るくなる。
-export const DAYLIGHT_FILL_BASE_INTENSITY = 0.3;
-export const DAYLIGHT_FILL_ALTITUDE_GAIN = 1.5;
+export const DAYLIGHT_FILL_BASE_INTENSITY = 0.3 * DAYLIGHT_INTENSITY_SCALE;
+export const DAYLIGHT_FILL_ALTITUDE_GAIN = 1.5 * DAYLIGHT_INTENSITY_SCALE;
 export const DAYLIGHT_FILL_REFERENCE_OPENING_RATIO = 0.12;
 export const DAYLIGHT_FILL_MAX_OPENING_SCALE = 2;
 const RASTER_BOUNCE_REFERENCE_FLOOR_AREA_M2 = 5 * 4.5;
