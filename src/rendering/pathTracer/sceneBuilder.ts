@@ -145,6 +145,18 @@ export const buildPathTraceScene = (
       piece.z
     );
   });
+  lowerProject.ceilingZones?.forEach((zone) => {
+    const drop = Math.max(0.02, zone.dropM);
+    addBox(
+      scene,
+      [zone.size.x, drop, zone.size.z],
+      [zone.center.x, lowerProject.room.ceilingHeightM - drop / 2, zone.center.z],
+      ceilingMaterial,
+      0,
+      "ceiling",
+      debugMode
+    );
+  });
 
   // 吹き抜けを上階天井まで側面と上蓋で囲い、黒背景に抜ける「穴」を防ぐ。
   const wallMaxHeight = lowerProject.walls.reduce((max, wall) => Math.max(max, wall.heightM), lowerProject.room.ceilingHeightM);
