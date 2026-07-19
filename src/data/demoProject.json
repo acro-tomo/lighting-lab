@@ -187,8 +187,8 @@
       "id": "window-west-south",
       "name": "吹き抜け縦長窓 南",
       "wallId": "wall-west-stone",
-      "centerRatio": 0.16,
-      "widthM": 1.55,
+      "centerRatio": 0.297,
+      "widthM": 0.8,
       "heightM": 4.72,
       "sillHeightM": 0.16,
       "hasGlass": true
@@ -197,8 +197,8 @@
       "id": "window-west-center",
       "name": "吹き抜け縦長窓 南中央",
       "wallId": "wall-west-stone",
-      "centerRatio": 0.385,
-      "widthM": 1.55,
+      "centerRatio": 0.432,
+      "widthM": 0.8,
       "heightM": 4.72,
       "sillHeightM": 0.16,
       "hasGlass": true
@@ -207,8 +207,8 @@
       "id": "window-west-north-center",
       "name": "吹き抜け縦長窓 北中央",
       "wallId": "wall-west-stone",
-      "centerRatio": 0.615,
-      "widthM": 1.55,
+      "centerRatio": 0.568,
+      "widthM": 0.8,
       "heightM": 4.72,
       "sillHeightM": 0.16,
       "hasGlass": true
@@ -217,8 +217,8 @@
       "id": "window-west-north",
       "name": "吹き抜け縦長窓 北",
       "wallId": "wall-west-stone",
-      "centerRatio": 0.84,
-      "widthM": 1.55,
+      "centerRatio": 0.703,
+      "widthM": 0.8,
       "heightM": 4.72,
       "sillHeightM": 0.16,
       "hasGlass": true
