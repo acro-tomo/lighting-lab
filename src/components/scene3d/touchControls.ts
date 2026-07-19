@@ -55,6 +55,7 @@ export const TouchLook = ({
   const touchStartRef = useRef<TouchPoint | null>(null);
   const lastTouchRef = useRef<TouchPoint | null>(null);
   const isLookingRef = useRef(false);
+  const hadMultiTouchRef = useRef(false);
 
   useEffect(() => {
     const canvas = gl.domElement;
@@ -68,10 +69,17 @@ export const TouchLook = ({
     };
 
     const onWindowPointerDown = (event: PointerEvent) => {
-      if (event.pointerType === "touch") windowTouchesRef.current.add(event.pointerId);
+      if (event.pointerType !== "touch") return;
+      windowTouchesRef.current.add(event.pointerId);
+      if (windowTouchesRef.current.size >= 2) {
+        hadMultiTouchRef.current = true;
+        resetLook();
+      }
     };
     const onWindowPointerEnd = (event: PointerEvent) => {
-      if (event.pointerType === "touch") windowTouchesRef.current.delete(event.pointerId);
+      if (event.pointerType !== "touch") return;
+      windowTouchesRef.current.delete(event.pointerId);
+      if (windowTouchesRef.current.size === 0) hadMultiTouchRef.current = false;
     };
 
     const onPointerDown = (event: PointerEvent) => {
@@ -79,10 +87,13 @@ export const TouchLook = ({
       const point = { x: event.clientX, y: event.clientY };
       pointersRef.current.set(event.pointerId, point);
       if (pointersRef.current.size === 1) {
-        touchStartRef.current = point;
-        lastTouchRef.current = point;
-        isLookingRef.current = false;
+        if (!hadMultiTouchRef.current) {
+          touchStartRef.current = point;
+          lastTouchRef.current = point;
+          isLookingRef.current = false;
+        }
       } else {
+        hadMultiTouchRef.current = true;
         resetLook();
       }
     };
@@ -93,9 +104,8 @@ export const TouchLook = ({
       pointersRef.current.set(event.pointerId, point);
       if (pointersRef.current.size !== 1) return;
 
-      // 2本目の指がキャンバス外にあるピンチをルック回転として誤処理しない。
-      // 基準点を現在位置へ更新し続け、指が1本へ戻った時は現在位置から再開する。
-      if (windowTouchesRef.current.size >= 2) {
+      // 2本指を一度検出した接触シーケンスは、全指が離れるまでルックへ戻さない。
+      if (hadMultiTouchRef.current || windowTouchesRef.current.size >= 2) {
         touchStartRef.current = point;
         lastTouchRef.current = point;
         isLookingRef.current = false;
@@ -145,7 +155,7 @@ export const TouchLook = ({
     const onPointerEnd = (event: PointerEvent) => {
       if (event.pointerType !== "touch") return;
       pointersRef.current.delete(event.pointerId);
-      if (pointersRef.current.size === 1) {
+      if (pointersRef.current.size === 1 && !hadMultiTouchRef.current) {
         const [remainingTouch] = pointersRef.current.values();
         touchStartRef.current = remainingTouch;
         lastTouchRef.current = remainingTouch;
@@ -158,6 +168,7 @@ export const TouchLook = ({
     const clear = () => {
       pointersRef.current.clear();
       windowTouchesRef.current.clear();
+      hadMultiTouchRef.current = false;
       resetLook();
     };
 
@@ -307,6 +318,10 @@ export const TouchPinchDolly = ({
 
     const onPointerEnd = (event: PointerEvent) => {
       if (event.pointerType !== "touch") return;
+      if (pinchFrameRef.current !== null) {
+        cancelAnimationFrame(pinchFrameRef.current);
+        pinchFrameRef.current = null;
+      }
       pointersRef.current.delete(event.pointerId);
       const metrics = pinchMetrics();
       pinchDistanceRef.current = metrics?.distance ?? null;
