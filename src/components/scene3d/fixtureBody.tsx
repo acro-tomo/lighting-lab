@@ -83,6 +83,49 @@ export const FixtureBody = ({
   debugMode: RenderDebugMode;
 }) => {
   const bodyColor = debugColorForRole("fixture", debugMode, "#10100f");
+  if (fixture.model === "pendant-globe") {
+    const cordLength = fixture.cordLengthM ?? 0.8;
+    const glassColor = debugColorForRole("fixture", debugMode, "#f2d6a3");
+    return (
+      <>
+        <mesh position={[0, cordLength / 2, 0]}>
+          <cylinderGeometry args={[0.006, 0.006, cordLength, 10]} />
+          <meshStandardMaterial color="#11100f" roughness={0.5} metalness={0.55} />
+        </mesh>
+        <mesh position={[0, 0.137, 0]} castShadow>
+          <cylinderGeometry args={[0.032, 0.026, 0.07, 24]} />
+          <meshStandardMaterial
+            color="#171513"
+            roughness={0.35}
+            metalness={debugMode === "beauty" ? 0.62 : 0}
+          />
+        </mesh>
+        <mesh castShadow>
+          <sphereGeometry args={[0.145, 40, 24]} />
+          <meshPhysicalMaterial
+            color={glassColor}
+            roughness={0.16}
+            metalness={0}
+            transmission={debugMode === "beauty" ? 0.72 : 0}
+            thickness={0.025}
+            ior={1.42}
+            attenuationColor="#f4bd72"
+            attenuationDistance={0.8}
+          />
+        </mesh>
+        <mesh position={[0, -0.01, 0]}>
+          <sphereGeometry args={[0.055, 28, 18]} />
+          <meshStandardMaterial
+            color={debugColorForRole("fixture", debugMode, "#fff1d0")}
+            emissive={color}
+            emissiveIntensity={debugMode === "beauty" && active ? 1.1 : 0}
+            roughness={0.28}
+          />
+        </mesh>
+      </>
+    );
+  }
+
   if (fixture.type === "pendant") {
     return (
       <>
@@ -239,6 +282,19 @@ export const PhysicalLight = ({
   }
 
   if (fixture.type === "pendant") {
+    if (fixture.model === "pendant-globe") {
+      return (
+        <pointLight
+          color={color}
+          power={lumens}
+          distance={0}
+          decay={2}
+          position={[0, -0.01, 0]}
+          castShadow={castShadow}
+          shadow-mapSize={[1024, 1024]}
+        />
+      );
+    }
     // ペンダントは下方配光。全方向 pointLight だと天井まで照ってしまうため、
     // 真下向きの広角スポット(≈140°)にしてテーブル面を主に照らす。
     // 上方への漏れはシェード上面(不透明)でも遮るが、配光自体も下向きに限定する。

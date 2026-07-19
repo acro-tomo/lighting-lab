@@ -16,6 +16,8 @@ export type FurniturePreset = {
 
 export const furnitureCatalog: FurniturePreset[] = [
   { id: "sofa", label: "ソファ", type: "sofa", name: "ソファ", size: { x: 2.1, y: 0.84, z: 0.92 }, color: "#6f7480", roughness: 0.92 },
+  { id: "loungeChair", label: "ラウンジチェア", type: "loungeChair", name: "ラウンジチェア", size: { x: 0.92, y: 0.82, z: 0.98 }, color: "#9b633d", roughness: 0.82 },
+  { id: "plant", label: "大型植物", type: "plant", name: "大型植物", size: { x: 0.92, y: 1.9, z: 0.92 }, color: "#66704b", roughness: 0.9 },
   { id: "bed", label: "ベッド", type: "bed", name: "ベッド", size: { x: 1.5, y: 0.55, z: 2.05 }, color: "#d8d2c4", roughness: 0.9 },
   { id: "tv", label: "テレビ", type: "tv", name: "テレビ", size: { x: 1.45, y: 0.82, z: 0.07 } },
   { id: "kitchen", label: "キッチン", type: "kitchen", name: "キッチン", size: { x: 2.4, y: 0.9, z: 0.65 }, color: "#1d1d1b", roughness: 0.5, metalness: 0.12 },

@@ -69,8 +69,97 @@ export const addFixtureLights = (scene: THREE.Scene, project: Project, debugMode
     }
 
     if (fixture.type === "pendant") {
+      const cordLength = fixture.cordLengthM ?? 0.8;
+      const fixtureMaterial = (color: string, roughness: number, metalness = 0) =>
+        diagnosticMaterial(
+          "fixture",
+          debugMode,
+          new THREE.MeshStandardMaterial({ color, roughness, metalness })
+        );
+      const addPendantMesh = (geometry: THREE.BufferGeometry, y: number, material: THREE.Material) => {
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.set(fixture.position.x, fixture.position.y + y, fixture.position.z);
+        scene.add(mesh);
+      };
+
+      if (fixture.model === "pendant-globe") {
+        addPendantMesh(
+          new THREE.CylinderGeometry(0.006, 0.006, cordLength, 10),
+          cordLength / 2,
+          fixtureMaterial("#11100f", 0.5, 0.55)
+        );
+        addPendantMesh(
+          new THREE.CylinderGeometry(0.032, 0.026, 0.07, 24),
+          0.137,
+          fixtureMaterial("#171513", 0.35, 0.62)
+        );
+        addPendantMesh(
+          new THREE.SphereGeometry(0.145, 40, 24),
+          0,
+          diagnosticMaterial(
+            "fixture",
+            debugMode,
+            new THREE.MeshPhysicalMaterial({
+              color: "#f2d6a3",
+              roughness: 0.16,
+              metalness: 0,
+              transmission: 0.72,
+              thickness: 0.025,
+              ior: 1.42,
+              attenuationColor: "#f4bd72",
+              attenuationDistance: 0.8
+            })
+          )
+        );
+        const emitter = new THREE.Mesh(
+          new THREE.SphereGeometry(0.055, 28, 18),
+          diagnosticMaterial(
+            "fixture",
+            debugMode,
+            new THREE.MeshStandardMaterial({
+              color: "#fff1d0",
+              emissive: color,
+              emissiveIntensity: 1.1,
+              roughness: 0.28
+            })
+          )
+        );
+        emitter.position.set(fixture.position.x, fixture.position.y - 0.01, fixture.position.z);
+        scene.add(emitter);
+
+        const light = new THREE.PointLight(color, 1, 0, 2);
+        light.power = lumens;
+        light.position.copy(emitter.position);
+        scene.add(light);
+        return;
+      }
+
+      addPendantMesh(
+        new THREE.CylinderGeometry(0.012, 0.012, cordLength, 12),
+        cordLength / 2,
+        fixtureMaterial("#111111", 0.5, 0.6)
+      );
+      addPendantMesh(
+        new THREE.ConeGeometry(0.24, 0.22, 48, 1, true),
+        0,
+        diagnosticMaterial(
+          "fixture",
+          debugMode,
+          new THREE.MeshStandardMaterial({
+            color: "#10100f",
+            roughness: 0.36,
+            metalness: 0.7,
+            side: THREE.DoubleSide
+          })
+        )
+      );
+      addPendantMesh(
+        new THREE.CylinderGeometry(0.072, 0.072, 0.012, 32),
+        0.11,
+        fixtureMaterial("#10100f", 0.4, 0.5)
+      );
       const emitter = new THREE.Mesh(
-        new THREE.SphereGeometry(0.075, 24, 16),
+        new THREE.SphereGeometry(0.085, 24, 16),
         diagnosticMaterial(
           "fixture",
           debugMode,
@@ -85,23 +174,12 @@ export const addFixtureLights = (scene: THREE.Scene, project: Project, debugMode
       emitter.position.set(fixture.position.x, fixture.position.y - 0.08, fixture.position.z);
       scene.add(emitter);
 
-      // シェード上面の不透明キャップ。上方への光漏れ(天井照り)を遮る。
-      addBox(
-        scene,
-        [0.16, 0.012, 0.16],
-        [fixture.position.x, fixture.position.y + 0.03, fixture.position.z],
-        makeMaterial(undefined, "#15140f"),
-        0,
-        "fixture",
-        debugMode
-      );
-
       // 下方配光のスポット(≈140°)。全方向 pointLight だと天井まで照るのを防ぐ。
       const light = new THREE.SpotLight(color, 1, 0, THREE.MathUtils.degToRad(70), 0.5, 2);
       light.intensity = lumensToSpotlightPeakCandela(lumens, 140, 0.5);
       light.position.set(fixture.position.x, fixture.position.y - 0.08, fixture.position.z);
       light.castShadow = fixture.castsShadow;
-      light.target.position.set(fixture.position.x, 0.1, fixture.position.z);
+      light.target.position.set(targetPosition.x, targetPosition.y, targetPosition.z);
       light.target.updateMatrixWorld(true);
       scene.add(light);
       scene.add(light.target);

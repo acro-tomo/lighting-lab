@@ -443,6 +443,125 @@ const FurniturePrimitive = ({
     );
   }
 
+  if (item.type === "loungeChair") {
+    const { x: w, y: h, z: d } = item.size;
+    const frameT = Math.min(0.09, w * 0.1, d * 0.09);
+    const seatY = -h / 2 + h * 0.39;
+    const seatW = w * 0.78;
+    const sideX = w * 0.42;
+    const wood = "#35251a";
+    return (
+      <>
+        <mesh castShadow receiveShadow position={[0, seatY, d * 0.06]} rotation={[degToRad(10), 0, 0]}>
+          <boxGeometry args={[seatW, h * 0.16, d * 0.66]} />
+          <meshStandardMaterial color={color} roughness={roughness} metalness={metalness} />
+        </mesh>
+        <mesh
+          castShadow
+          receiveShadow
+          position={[0, h * 0.18, -d * 0.31]}
+          rotation={[degToRad(-18), 0, 0]}
+        >
+          <boxGeometry args={[w * 0.8, h * 0.48, d * 0.14]} />
+          <meshStandardMaterial color={color} roughness={roughness} metalness={metalness} />
+        </mesh>
+        {[-1, 1].flatMap((side) => [
+          <mesh
+            key={`${side}-runner`}
+            castShadow
+            receiveShadow
+            position={[side * sideX, -h / 2 + frameT, d * 0.02]}
+            rotation={[degToRad(8), 0, 0]}
+          >
+            <boxGeometry args={[frameT, frameT, d * 0.76]} />
+            <meshStandardMaterial color={wood} roughness={0.48} />
+          </mesh>,
+          <mesh
+            key={`${side}-front-leg`}
+            castShadow
+            receiveShadow
+            position={[side * sideX, -h / 2 + h * 0.2, d * 0.29]}
+            rotation={[0, 0, side * degToRad(-8)]}
+          >
+            <boxGeometry args={[frameT, h * 0.39, frameT]} />
+            <meshStandardMaterial color={wood} roughness={0.48} />
+          </mesh>,
+          <mesh
+            key={`${side}-back-leg`}
+            castShadow
+            receiveShadow
+            position={[side * sideX, -h / 2 + h * 0.26, -d * 0.27]}
+            rotation={[degToRad(-12), 0, side * degToRad(-6)]}
+          >
+            <boxGeometry args={[frameT, h * 0.52, frameT]} />
+            <meshStandardMaterial color={wood} roughness={0.48} />
+          </mesh>,
+          <mesh
+            key={`${side}-arm`}
+            castShadow
+            receiveShadow
+            position={[side * sideX, h * 0.07, -d * 0.01]}
+            rotation={[degToRad(14), 0, 0]}
+          >
+            <boxGeometry args={[frameT, frameT, d * 0.68]} />
+            <meshStandardMaterial color={wood} roughness={0.48} />
+          </mesh>
+        ])}
+      </>
+    );
+  }
+
+  if (item.type === "plant") {
+    const { x: w, y: h, z: d } = item.size;
+    const radius = Math.min(w, d);
+    const potH = h * 0.3;
+    const potY = -h / 2 + potH / 2;
+    const trunkBaseY = -h / 2 + potH;
+    const trunkH = h * 0.44;
+    const leaves: Array<[number, number, number, number, number, number]> = [
+      [0, h * 0.22, 0, 0.34, 0.2, 0.28],
+      [-0.19, h * 0.13, -0.07, 0.3, 0.16, 0.25],
+      [0.2, h * 0.12, 0.06, 0.28, 0.17, 0.24],
+      [-0.12, h * 0.3, 0.07, 0.26, 0.17, 0.22],
+      [0.15, h * 0.27, -0.08, 0.25, 0.16, 0.21],
+      [0.02, h * 0.36, 0.02, 0.22, 0.13, 0.2]
+    ];
+    return (
+      <>
+        <mesh castShadow receiveShadow position={[0, potY, 0]}>
+          <cylinderGeometry args={[radius * 0.29, radius * 0.36, potH, 28]} />
+          <meshStandardMaterial color="#a95737" roughness={0.82} />
+        </mesh>
+        <mesh receiveShadow position={[0, -h / 2 + potH + 0.006, 0]}>
+          <cylinderGeometry args={[radius * 0.27, radius * 0.27, 0.018, 24]} />
+          <meshStandardMaterial color="#302319" roughness={1} />
+        </mesh>
+        {[-0.12, 0, 0.12].map((xRatio, index) => (
+          <mesh
+            key={xRatio}
+            castShadow
+            position={[w * xRatio, trunkBaseY + trunkH / 2 - index * h * 0.025, d * (index - 1) * 0.035]}
+          >
+            <cylinderGeometry args={[radius * 0.025, radius * 0.035, trunkH - index * h * 0.05, 10]} />
+            <meshStandardMaterial color="#5b3b24" roughness={0.9} />
+          </mesh>
+        ))}
+        {leaves.map(([x, y, z, sx, sy, sz], index) => (
+          <mesh
+            key={index}
+            castShadow
+            receiveShadow
+            position={[w * x, y, d * z]}
+            scale={[w * sx, h * sy, d * sz]}
+          >
+            <sphereGeometry args={[1, 12, 8]} />
+            <meshStandardMaterial color={color} roughness={roughness} metalness={metalness} />
+          </mesh>
+        ))}
+      </>
+    );
+  }
+
   if (item.type === "sofa") {
     const { x: w, y: h, z: d } = item.size;
     const baseH = h * 0.28;

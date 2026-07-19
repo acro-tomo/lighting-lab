@@ -22,7 +22,7 @@ export const ADD_GROUPS: AddGroup[] = [
     title: "照明",
     categories: [
       { id: "downlight", title: "ダウンライト", hint: "天井に埋め込む", items: fixtureItems(["dl-diffuse", "dl-medium", "dl-narrow", "dl-glareless", "dl-universal"]) },
-      { id: "pendant", title: "ペンダント", hint: "天井から吊るす", items: fixtureItems(["pendant"]) },
+      { id: "pendant", title: "ペンダント", hint: "天井から吊るす", items: fixtureItems(["pendant", "pendant-globe"]) },
       { id: "wall-light", title: "壁の照明", hint: "壁に取り付ける", items: fixtureItems(["sp-wall", "bracket"]) },
       { id: "indirect", title: "間接照明", hint: "光源を隠して照らす", items: fixtureItems(["tape"]) }
     ]
@@ -58,7 +58,7 @@ export const ADD_GROUPS: AddGroup[] = [
     id: "furniture",
     title: "家具",
     categories: [
-      { id: "living", title: "リビング", items: furnitureItems(["sofa", "tv", "rug"]) },
+      { id: "living", title: "リビング", items: furnitureItems(["sofa", "loungeChair", "rug", "tv", "plant"]) },
       { id: "dining-work", title: "ダイニング・仕事", items: furnitureItems(["rectTable", "roundTable", "chair", "desk"]) },
       { id: "kitchen", title: "キッチン", items: furnitureItems(["kitchen", "cupboard", "fridge", "counter"]) },
       { id: "water", title: "水まわり", items: furnitureItems(["washer", "washstand", "toilet", "bathtub"]) },

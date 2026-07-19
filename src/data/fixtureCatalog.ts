@@ -14,6 +14,8 @@ export type FixtureModel = {
   glareless: boolean;
   /** カタログ標準の光束(lm)。 */
   defaultLumens: number;
+  /** モデル選択時に適用する標準色温度。未指定なら現在値を維持する。 */
+  defaultColorTemperatureK?: number;
   description: string;
 };
 
@@ -96,6 +98,18 @@ export const fixtureCatalog: FixtureModel[] = [
     description: "ダイニング等に吊るす全方向光"
   },
   {
+    id: "pendant-globe",
+    label: "乳白ガラスグローブ",
+    baseType: "pendant",
+    beamAngleDeg: 180,
+    penumbra: 1,
+    aimable: false,
+    glareless: false,
+    defaultLumens: 320,
+    defaultColorTemperatureK: 2700,
+    description: "薄い琥珀色の乳白ガラスがやわらかく光る小型ペンダント"
+  },
+  {
     id: "bracket",
     label: "ブラケット",
     baseType: "bracket",
@@ -133,5 +147,6 @@ export const applyFixtureModel = (model: FixtureModel): Partial<LightFixture> =>
   model: model.id,
   type: model.baseType,
   beamAngleDeg: model.beamAngleDeg,
-  penumbra: model.penumbra
+  penumbra: model.penumbra,
+  ...(model.defaultColorTemperatureK ? { colorTemperatureK: model.defaultColorTemperatureK } : {})
 });
