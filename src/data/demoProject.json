@@ -225,7 +225,15 @@
     }
   ],
   "voids": [],
-  "ceilingZones": [],
+  "ceilingZones": [
+    {
+      "id": "ceiling-zone-dining-kitchen",
+      "name": "ダイニング・キッチン低天井",
+      "center": { "x": 2.9, "z": 0 },
+      "size": { "x": 7.0, "z": 9.6 },
+      "dropM": 2.7
+    }
+  ],
   "floorZones": [],
   "furniture": [
     {
@@ -466,8 +474,8 @@
       "id": "furniture-kitchen-hood-chimney",
       "name": "レンジフード煙突",
       "type": "box",
-      "position": { "x": 4.93, "y": 3.18, "z": -4.58 },
-      "size": { "x": 0.42, "y": 1.85, "z": 0.24 },
+      "position": { "x": 4.93, "y": 2.38, "z": -4.58 },
+      "size": { "x": 0.42, "y": 0.24, "z": 0.24 },
       "rotationYDeg": 0,
       "materialId": "stainless-steel",
       "color": "#b7bdbe",
@@ -483,7 +491,7 @@
       "type": "pendant",
       "model": "pendant",
       "position": { "x": -0.05, "y": 2.05, "z": -2.85 },
-      "mountHeightM": 5.2,
+      "mountHeightM": 2.5,
       "rotationDeg": { "x": -90, "y": 0, "z": 0 },
       "target": { "x": -0.05, "y": 0.75, "z": -2.85 },
       "lumens": 820,
@@ -493,7 +501,7 @@
       "beamAngleDeg": 72,
       "penumbra": 0.65,
       "castsShadow": true,
-      "cordLengthM": 3.15
+      "cordLengthM": 0.45
     },
     {
       "id": "light-dining-pendant-right",
@@ -501,7 +509,7 @@
       "type": "pendant",
       "model": "pendant",
       "position": { "x": 1.15, "y": 2.05, "z": -2.85 },
-      "mountHeightM": 5.2,
+      "mountHeightM": 2.5,
       "rotationDeg": { "x": -90, "y": 0, "z": 0 },
       "target": { "x": 1.15, "y": 0.75, "z": -2.85 },
       "lumens": 820,
@@ -511,7 +519,7 @@
       "beamAngleDeg": 72,
       "penumbra": 0.65,
       "castsShadow": true,
-      "cordLengthM": 3.15
+      "cordLengthM": 0.45
     },
     {
       "id": "light-living-spot-west",
@@ -569,8 +577,8 @@
       "name": "キッチンダウンライト 西",
       "type": "downlight",
       "model": "dl-diffuse",
-      "position": { "x": 3.75, "y": 5.08, "z": -2.2 },
-      "mountHeightM": 5.2,
+      "position": { "x": 3.75, "y": 2.46, "z": -2.2 },
+      "mountHeightM": 2.5,
       "rotationDeg": { "x": -90, "y": 0, "z": 0 },
       "target": { "x": 3.75, "y": 0.9, "z": -2.2 },
       "lumens": 1100,
@@ -586,8 +594,8 @@
       "name": "キッチンダウンライト 東",
       "type": "downlight",
       "model": "dl-diffuse",
-      "position": { "x": 5.35, "y": 5.08, "z": -2.2 },
-      "mountHeightM": 5.2,
+      "position": { "x": 5.35, "y": 2.46, "z": -2.2 },
+      "mountHeightM": 2.5,
       "rotationDeg": { "x": -90, "y": 0, "z": 0 },
       "target": { "x": 5.35, "y": 0.9, "z": -2.2 },
       "lumens": 1100,
