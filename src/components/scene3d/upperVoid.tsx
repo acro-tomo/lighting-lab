@@ -380,7 +380,7 @@ export const UpperVoidLevel = ({
             // 通常壁は2階全高に揃えるが、腰壁/手すりは自前の低い高さを保つ（吹抜周りに回せる）。
             wall={{ ...wall, heightM: wall.kind === "half" || wall.kind === "railing" ? wall.heightM : wallHeightM }}
             walls={upperWalls}
-            windows={boundaryWindows.filter((windowItem) => windowItem.wallId === wall.id)}
+            windows={upperWindows}
             material={materialMap.get(wall.materialId) ?? ceilingMaterial}
             roomCenter={new THREE.Vector3(region.originX + (region.cols * region.cell) / 2, 0, region.originZ + (region.rows * region.cell) / 2)}
             floorBounds={upperFloorBounds}

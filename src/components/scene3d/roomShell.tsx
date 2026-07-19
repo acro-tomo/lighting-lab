@@ -11,10 +11,13 @@ import type {
   Project,
   Selection,
   VoidArea,
-  VoidSide
+  VoidSide,
+  WallSegment,
+  WindowOpening
 } from "../../types";
 import { voidCeilingHeightAt } from "../../utils/ceiling";
 import { visibleVoidSides, voidWallId } from "../../utils/fixtureMounting";
+import { voidWallPanelsWithOpenings } from "../../utils/wallOpenings";
 import { useEditMode, usePathTraced, usePlacement } from "./contexts";
 import { debugColorForRole } from "./materials";
 import { eventHitsDragHandle, eventHitsOtherWall } from "./raycastUtils";
@@ -109,6 +112,8 @@ export const RoomShell = ({
           // 2階を見せるときは側面を2階床レベルまでに留め、上蓋は出さない（2階床/天井へ抜く）。
           upperY={upperVoid ? project.room.ceilingHeightM : upperCeilingHeight}
           showLid={!upperVoid}
+          walls={project.walls}
+          windows={project.windows}
           material={ceilingMaterial}
           debugMode={debugMode}
         />
@@ -118,7 +123,7 @@ export const RoomShell = ({
           key={wall.id}
           wall={wall}
           walls={project.walls}
-          windows={project.windows.filter((windowItem) => windowItem.wallId === wall.id)}
+          windows={project.windows}
           material={materialMap.get(wall.materialId) ?? ceilingMaterial}
           roomCenter={roomCenter}
           floorBounds={floorBounds}
@@ -426,6 +431,8 @@ const VoidWell = ({
   voidArea,
   lowerY,
   upperY,
+  walls,
+  windows,
   material,
   debugMode,
   showLid = true
@@ -433,6 +440,8 @@ const VoidWell = ({
   voidArea: VoidArea;
   lowerY: number;
   upperY: number;
+  walls: WallSegment[];
+  windows: WindowOpening[];
   material: MaterialPreset;
   debugMode: RenderDebugMode;
   // 上蓋(天井蓋)を出すか。2階を見せるときは false にして上方へ抜く。
@@ -440,23 +449,26 @@ const VoidWell = ({
 }) => {
   const height = upperY - lowerY;
   if (height <= 0.02) return null;
-  const midY = (lowerY + upperY) / 2;
   const { center, size } = voidArea;
   const placement = usePlacement();
   const color = debugColorForRole("ceiling", debugMode, material.baseColor);
-  const sideConfigs = visibleVoidSides(voidArea).map((sideName) => ({
-    sideName,
-    position:
-      sideName === "north"
-        ? [center.x, midY, center.z - size.z / 2]
-        : sideName === "south"
-          ? [center.x, midY, center.z + size.z / 2]
-          : sideName === "west"
-            ? [center.x - size.x / 2, midY, center.z]
-            : [center.x + size.x / 2, midY, center.z],
-    args: sideName === "north" || sideName === "south" ? [size.x, height, 0.04] : [0.04, height, size.z],
-    outsideFaceIndex: voidOutsideFaceIndex(sideName)
-  })) as {
+  const sideConfigs = visibleVoidSides(voidArea).flatMap((sideName) =>
+    voidWallPanelsWithOpenings(voidArea, sideName, lowerY, upperY, walls, windows).map((panel, panelIndex) => ({
+      key: `${sideName}-${panelIndex}`,
+      sideName,
+      position:
+        sideName === "north"
+          ? [center.x + panel.cx, lowerY + panel.cy, center.z - size.z / 2]
+          : sideName === "south"
+            ? [center.x + panel.cx, lowerY + panel.cy, center.z + size.z / 2]
+            : sideName === "west"
+              ? [center.x - size.x / 2, lowerY + panel.cy, center.z + panel.cx]
+              : [center.x + size.x / 2, lowerY + panel.cy, center.z + panel.cx],
+      args: sideName === "north" || sideName === "south" ? [panel.w, panel.h, 0.04] : [0.04, panel.h, panel.w],
+      outsideFaceIndex: voidOutsideFaceIndex(sideName)
+    }))
+  ) as {
+    key: string;
     sideName: VoidSide;
     position: [number, number, number];
     args: [number, number, number];
@@ -538,7 +550,7 @@ const VoidWell = ({
     <group>
       {sideConfigs.map((config) => (
         <mesh
-          key={config.sideName}
+          key={config.key}
           position={config.position}
           receiveShadow
           castShadow
