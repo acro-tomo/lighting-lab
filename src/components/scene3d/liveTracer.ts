@@ -251,7 +251,7 @@ export const PathTracerController = ({
     // 見た目の意味（Neutralトーンマップ・固定露出）は変わらず、WYSIWYG を保つ。
     const denoiseQuad = new FullScreenQuad(
       new DenoiseMaterial({
-        premultipliedAlpha: gl.getContextAttributes().premultipliedAlpha,
+        premultipliedAlpha: gl.getContextAttributes()?.premultipliedAlpha ?? false,
         // 上流サンプル(three-gpu-pathtracer example)の既定値。sigma が大きいほど強く均す。
         sigma: 2.5,
         threshold: 0.1,
