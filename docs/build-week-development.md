@@ -44,6 +44,12 @@ These features existed before this Build Week finalization session. Codex did no
 - Pinned the existing Japanese-label regression checks to a Japanese Playwright locale.
 - Aligned Japanese README runtime-check commands with the preview server port used by English README and CI.
 
+### Final render and demo preparation
+
+- Fixed the completed path-traced PNG output so a valid floating-point render target is encoded into an opaque PNG instead of producing a black image on affected WebGL2 contexts.
+- Verified a completed High-quality (512-sample) dining render in a real browser.
+- Prepared a 2:24 English demo-video asset with Kokoro TTS narration. It demonstrates a dining-table pendant's 2700K to 3500K change, brightness, position, beam distribution, another fixture's aim direction, mobile 2D/3D views, and a completed Finished Look render.
+
 ## Technical decisions supported by GPT-5.6
 
 - **Keep the existing renderer architecture.** The raster editor remains the dependable baseline; live path tracing is optional and hardware-dependent. Replacing either renderer near the deadline would create disproportionate regression risk.
@@ -57,6 +63,7 @@ These features existed before this Build Week finalization session. Codex did no
 | --- | --- | --- |
 | `npm run typecheck` | Passed | Re-run after the final localization commits. |
 | `npm run build` | Passed | Vite reports an existing large-chunk warning; no build failure. |
+| Completed High-quality render | Passed | Real-browser verification produced a non-black 512-sample dining PNG. |
 | Desktop English UI | Passed | Language switch, sample labels, add menu, light inspector, renderer controls, and page title verified in a real browser. |
 | Mobile English UI | Passed | Verified at 390 × 844: menu, edit actions, settings sheet, material selector, lighting controls, and autosave text. |
 | Mobile Japanese return path | Passed | Verified switching back to Japanese. |
@@ -79,4 +86,3 @@ The local Headless Shell limitation must not be reported as a passing automated 
 - Certified illuminance calculations, DIALux-equivalent workflows, IES/LDT catalogs, and manufacturer fixture databases.
 - Automatic floor-plan recognition or PDF vectorization.
 - A renderer rewrite, authentication, billing, or a backend redesign.
-
