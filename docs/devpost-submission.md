@@ -74,7 +74,7 @@ The core 2D/3D editor and rendering features already existed before this finaliz
 
 1. Open the public demo URL and keep the included Demo LDK project.
 2. Use **JA / EN** in the header if needed.
-3. In 2D, select a light such as **Living-room downlight 1**.
+3. In 2D, select the **Dining pendant, west** light and compare its **Brightness**, **Color temperature**, and **Beam spread**.
 4. Change **Brightness** or choose a different **Color temperature** preset.
 5. Switch to **3D** and select **Finished look** if your browser supports it. The Edit view remains fully usable if it does not.
 6. Choose **Create finished image** to make a completed render, or save a comparison shot and export a PNG.
