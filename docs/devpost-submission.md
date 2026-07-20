@@ -19,6 +19,26 @@ Use this as a draft only. Do not submit or publish anything until the project ow
 
 Explore home lighting choices in your own floor plan before construction.
 
+## YouTube metadata draft
+
+**Title**
+
+`LDK Lighting Lab — Try Home Lighting Before Construction | OpenAI Build Week`
+
+**Description**
+
+LDK Lighting Lab lets homeowners compare fixture placement, brightness, color temperature, and beam distribution in their own floor plan before construction.
+
+In this demo, a dining-table pendant is adjusted from 2700K to 3500K, then compared by brightness, position, and beam distribution. The video also shows the synchronized 2D and 3D workflow, mobile view, and a completed high-quality Finished Look render.
+
+Built for OpenAI Build Week in the Apps for Your Life category. Codex with GPT-5.6 supported the Build Week finalization work: validating the existing app, reviewing renderer and mobile trade-offs, adding bilingual support, fixing completed-render PNG output, and preparing test and submission materials.
+
+Try the demo: `https://lighting-lab-46l.pages.dev/`
+
+Source code: `https://github.com/acro-tomo/lighting-lab`
+
+This is a visual simulator for lighting-layout and atmosphere comparison. It does not guarantee actual illuminance, light distribution, color, or the finished result.
+
 ## Project description
 
 Choosing residential lighting usually happens before construction, when a fixture schedule and a floor plan still make it difficult to imagine how the room will feel. LDK Lighting Lab is a browser-based visual simulator that helps homeowners compare lighting ideas in the context of their own layout.
@@ -74,5 +94,6 @@ The core 2D/3D editor and rendering features already existed before this finaliz
 - [ ] Production and Preview feedback secrets are confirmed.
 - [ ] Screenshot/thumbnail is replaced with a real product image.
 - [ ] Public YouTube video under 3 minutes is uploaded.
+- [ ] YouTube title, description, thumbnail, and public visibility are owner-approved.
 - [ ] `/feedback` Session ID is pasted.
 - [ ] Project title, URL, and all copy are owner-approved.
