@@ -62,8 +62,8 @@ const en: Record<string, string> = {
   "この大きさで配置": "Place at this size",
   "この壁には入りません。窓を小さくして選び直してください。": "It does not fit on this wall. Choose the window again with a smaller size.",
   "← 戻る": "← Back",
-  "自分の間取りで夜の照明を試す": "See your home lighting at night",
-  "自分の間取り図を取り込み、照明の位置・明るさ・色温度を変えて「夜の見え方」を比較できます。": "Import your floor plan, then compare the nighttime feel by changing fixture placement, brightness, and color temperature.",
+  "自分の間取りで照明を試す": "Explore lighting in your own floor plan",
+  "自分の間取り図を取り込み、照明の位置・明るさ・色温度を変えて、部屋の雰囲気を比較できます。": "Import your floor plan, then compare the room atmosphere by changing fixture placement, brightness, and color temperature.",
   "ダウンライト・ペンダント・壁付スポットなど複数種の照明を自由に配置できます。": "Place downlights, pendants, wall spots, and other fixture types freely.",
   "Path Tracing による間接光レンダリングで雰囲気を視覚確認できます。": "Use path-traced indirect light to visually compare the atmosphere.",
   "壁や床からの光の反射も含めた仕上がりを確認できます。": "View the finished look including light reflected from walls and floors.",
@@ -440,7 +440,7 @@ const en: Record<string, string> = {
   ,"ギャラリーアートスポット 西": "Gallery art spotlight, west"
   ,"ギャラリーアートスポット 東": "Gallery art spotlight, east"
   ,"リビング彫刻スポット": "Living room sculpture spotlight"
-  ,"デモの間取りを読み込みました。照明や家具を動かして夜の見え方を試せます。": "Loaded the demo floor plan. Move lights and furniture to compare the nighttime atmosphere."
+  ,"デモの間取りを読み込みました。照明や家具を動かして部屋の雰囲気を試せます。": "Loaded the demo floor plan. Move lights and furniture to compare the room atmosphere."
   ,"自動保存データを読めませんでした。デモプロジェクトで起動しています。": "Could not read autosaved data. Starting with the demo project."
   ,"共有リンクのデモ間取りを読み込みますか？\nOK: デモを開く（作業中のプロジェクトはデモで上書き保存されます）\nキャンセル: 前回の続きを開く": "Open the demo floor plan from this shared link?\nOK: Open demo (your current project will be replaced in autosave)\nCancel: Continue your previous project"
   ,"デモデータを読み込めませんでした。通常どおり起動します。": "Could not load demo data. Starting normally."
@@ -513,7 +513,7 @@ const en: Record<string, string> = {
   ,"首振りで照射方向を変えられるダウンライト": "Adjustable downlight that can be aimed."
   ,"壁面に取り付け、向きを変えられるスポット": "Wall-mounted spotlight with an adjustable aim."
   ,"ダイニング等に吊るす全方向光": "Omnidirectional pendant light for a dining area and more."
-  ,"壁付の補助照明・常夜灯寄り": "Wall-mounted accent or night light."
+  ,"壁付の補助・アクセント照明": "Wall-mounted accent light."
   ,"棚下・壁裏の間接照明": "Indirect light for under shelves or behind walls."
   ,"テレビ": "TV"
   ,"デスク": "Desk"
@@ -604,13 +604,13 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
     document.documentElement.lang = language;
     const english = language === "en";
     document.title = english
-      ? "LDK Lighting Lab — Compare home lighting at night"
-      : "LDK Lighting Lab — 自分の間取りで夜の照明を比較するシミュレーター";
+      ? "LDK Lighting Lab — Compare home lighting in your floor plan"
+      : "LDK Lighting Lab — 自分の間取りで照明を比較するシミュレーター";
     document.querySelector('meta[name="description"]')?.setAttribute(
       "content",
       english
-        ? "Compare home lighting layouts, brightness, and color temperature in your floor plan before construction. This visual simulator does not guarantee real illuminance (lux)."
-        : "自分の間取りを取り込み、照明の位置・明るさ・色温度を変えながら“夜の見え方”をブラウザで比較できる無料ツール。インストール不要。※雰囲気比較用で実照度(lux)は保証しません。"
+        ? "Compare home lighting layouts, brightness, color temperature, and room atmosphere in your floor plan before construction. This visual simulator does not guarantee real illuminance (lux)."
+        : "自分の間取りを取り込み、照明の位置・明るさ・色温度を変えながら、照明による部屋の雰囲気をブラウザで比較できる無料ツール。インストール不要。※雰囲気比較用で実照度(lux)は保証しません。"
     );
   }, [language]);
 

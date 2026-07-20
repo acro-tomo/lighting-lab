@@ -35,7 +35,7 @@ export const useProjectPersistence = (
       if (demoVersion === "2") {
         setProject(cloneProject(demoProject));
         setCompareShots([]);
-        setNotice(t("デモの間取りを読み込みました。照明や家具を動かして夜の見え方を試せます。"));
+        setNotice(t("デモの間取りを読み込みました。照明や家具を動かして部屋の雰囲気を試せます。"));
         return;
       }
       const response = await fetch(`${import.meta.env.BASE_URL}demo/share-demo-project.json`);
@@ -45,7 +45,7 @@ export const useProjectPersistence = (
       );
       setProject(parsed);
       setCompareShots(Array.isArray(parsed.compareShots) ? parsed.compareShots : []);
-      setNotice(t("デモの間取りを読み込みました。照明や家具を動かして夜の見え方を試せます。"));
+      setNotice(t("デモの間取りを読み込みました。照明や家具を動かして部屋の雰囲気を試せます。"));
     };
 
     loadProjectFromIndexedDb()
