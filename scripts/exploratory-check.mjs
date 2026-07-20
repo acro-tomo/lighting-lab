@@ -191,7 +191,7 @@ try {
       await activate(page.getByRole("menuitem", { name: /吹き抜け/ }));
       await assertTextVisible(/クリックした位置に配置/);
       await page.keyboard.press("Escape");
-      await assertTextVisible("クリックで選択・ドラッグで移動");
+      await assertTextVisible("クリックで選択、選択後ドラッグで移動");
     });
 
     await step("pan 2d plan and toggle plan focus", async () => {
