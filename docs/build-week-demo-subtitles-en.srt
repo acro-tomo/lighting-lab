@@ -1,49 +1,48 @@
 1
-00:00:00,000 --> 00:00:14,000
-Lighting is chosen from drawings and catalogs,
-but homeowners cannot easily imagine the atmosphere it will create.
+00:00:00,050 --> 00:00:20,602
+Lighting is chosen from drawings and catalogs, but homeowners cannot easily
+imagine the atmosphere it will create.
 
 2
-00:00:14,000 --> 00:00:28,000
-How bright will the room feel? How will warm and neutral light change it?
-Fixing a poor choice after construction costs real money.
+00:00:20,602 --> 00:00:25,132
+Fixing a poor choice after construction can cost real money.
 
 3
-00:00:28,000 --> 00:00:42,000
+00:00:25,132 --> 00:00:40,632
 Lighting Lab lets homeowners try lighting plans in their own floor plan,
-with no CAD skills required.
+with no CAD skills required. Import your own floor plan in the browser.
 
 4
-00:00:42,000 --> 00:00:53,000
-Import your own floor plan, then select a light.
-Change its color temperature from 2700K to 3500K.
+00:00:40,632 --> 00:00:53,661
+Select a light and change its color temperature
+from warm 2700K to 3500K.
 
 5
-00:00:53,000 --> 00:01:08,000
+00:00:53,661 --> 00:01:04,941
 Lower or raise brightness, compare another position,
 and adjust how widely the light spreads.
 
 6
-00:01:08,000 --> 00:01:27,000
+00:01:04,941 --> 00:01:19,044
 Try several options in 2D, then switch to 3D
 to see the walls, furniture, and room as a whole.
 
 7
-00:01:27,000 --> 00:01:43,000
+00:01:19,044 --> 00:01:34,058
 The finished look includes indirect light.
 Compare options until they fit how you want to use the room.
 
 8
-00:01:43,000 --> 00:01:56,000
+00:01:34,058 --> 00:01:45,073
 2D and 3D stay in sync, and projects save and reopen
 in the browser—on a PC or a phone.
 
 9
-00:01:56,000 --> 00:02:18,000
+00:01:45,073 --> 00:02:12,264
 Codex with GPT-5.6 reviewed believable lighting and everyday-device performance,
 then supported mobile improvements, English, tests, and the public release.
 
 10
-00:02:18,000 --> 00:02:29,000
+00:02:12,264 --> 00:02:22,617
 Compare color temperature, brightness, position, and distribution
 in your own floor plan—before construction.

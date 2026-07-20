@@ -83,6 +83,7 @@ const recordDesktop = async (browser) => {
   await step("desktop demo=2 scene ready", () => waitForScene(page));
   await hideTransientNotices(page);
   await pause(page, 31_000);
+  await hideTransientNotices(page);
 
   await page.getByRole("button", { name: "Import floor plan" }).hover();
   await pause(page, 4_000);
@@ -118,9 +119,6 @@ const recordDesktop = async (browser) => {
   await step("maximize 3D", () => page.getByRole("button", { name: "Maximize 3D" }).click());
   await pause(page, 14_000);
 
-  await step("enable finished look", () => page.getByRole("button", { name: /^(Realistic|Finished look)$/ }).click());
-  await pause(page, 40_000);
-
   await context.close();
   return video.path();
 };
@@ -134,6 +132,7 @@ const recordMobile = async (browser) => {
   await step("mobile demo=2 scene ready", () => waitForScene(page));
   await hideTransientNotices(page);
   await pause(page, 5_000);
+  await hideTransientNotices(page);
   await page.getByRole("button", { name: "3D" }).click();
   await pause(page, 7_000);
   await page.getByRole("button", { name: "Open settings" }).click();
