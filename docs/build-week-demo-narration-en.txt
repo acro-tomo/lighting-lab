@@ -1,17 +1,19 @@
-Choosing lighting for a new or renovated home usually happens from drawings and catalogs. But homeowners cannot easily imagine the atmosphere it will create: how bright the room will feel, how walls and furniture will be lit, or how warm and neutral light will change the space. Fixing a poor choice after construction can cost real money.
+Choosing lighting for a new or renovated home usually starts with drawings and catalogs. For a homeowner, it is hard to imagine what the room will actually feel like. Will it feel bright enough? How much will warmer or cooler light change the atmosphere? Finding out after construction can make moving a fixture expensive.
 
-Lighting Lab lets homeowners try different lighting plans in their own floor plan before construction, with no CAD skills required. It runs directly in the browser, and you can import your own floor plan to recreate your home.
+Lighting Lab lets you explore those choices before construction. It runs in a browser. You can load your own floor plan, recreate the room, and try ideas without learning a complex CAD tool.
 
-Here, I select a light and change its color temperature from a warm 2700K to 3500K. The atmosphere of the room changes immediately.
+Here, I select a light. First, color temperature. I change it from twenty-seven hundred Kelvin to thirty-five hundred Kelvin. The room changes immediately.
 
-Next, I lower and raise the brightness for different activities. Then I move the light to compare another position and adjust how widely it spreads light.
+Then I compare brightness. I move the light, and adjust the beam to make the light narrower or wider.
 
-Because these changes happen directly in the 2D floor plan, I can quickly try several options. Switching to 3D shows how the lighting affects the walls, furniture, and the room as a whole. For a more complete view, the finished look includes indirect light.
+Each change appears in the two-D floor plan, so I can try another option quickly. In three-D, I can see how the lighting affects the furniture, walls, and room as a whole.
 
-Lighting Lab does not choose the "correct" lighting for me. It gives me a quick way to compare different options until they fit how I want to use the room.
+Finished Look adds indirect light for a more complete view.
 
-The 2D editor and 3D view stay in sync, and projects can be saved and reopened directly in the browser—on a PC or a phone.
+Lighting Lab does not tell me there is one correct answer. It lets me compare options until the room feels right for the way I want to use it.
 
-Codex with GPT-5.6 has supported this project from the beginning, especially by reviewing two difficult questions: whether lighting changes remain believable, and whether the app stays responsive on everyday devices. During Build Week, Codex also supported the mobile improvements, English interface, automated tests, and public release.
+The two-D editor and three-D view stay synchronized. Projects can be saved and reopened in the browser, on a computer or a phone.
 
-Lighting Lab helps homeowners compare lighting color temperature, brightness, position, and distribution in their own floor plan—before construction.
+Codex with GPT five point six supported this project from the start. During Build Week, it reviewed lighting behavior and performance, and helped deliver the mobile experience, English interface, automated tests, and public release.
+
+Lighting Lab helps homeowners explore color temperature, brightness, position, and light distribution, in their own floor plan, before construction.

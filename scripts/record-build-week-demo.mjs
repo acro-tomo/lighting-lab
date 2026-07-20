@@ -3,13 +3,14 @@ import { join } from "node:path";
 import { chromium } from "@playwright/test";
 
 const url = process.argv.find((arg, index) => index > 1 && !arg.startsWith("--"))
-  ?? "https://lighting-lab-46l.pages.dev/?demo=2";
+  ?? "http://127.0.0.1:5174/?demo=2";
 const outDir = "output/build-week-video/raw";
 const fastMode = process.env.DEMO_FAST === "1";
 
 await mkdir(outDir, { recursive: true });
 
 const waitForScene = async (page) => {
+  page.once("dialog", (dialog) => dialog.accept());
   await page.goto(url, { waitUntil: "domcontentloaded" });
   await page.locator("canvas").first().waitFor({ state: "attached", timeout: 30_000 });
   await page.waitForTimeout(1_800);
@@ -40,20 +41,8 @@ const hideTransientNotices = async (page) => {
   });
 };
 
-const selectExampleLight = async (page) => {
-  const candidateSelectors = [
-    ".plan-light[data-light-id='light-kitchen-west']",
-    ".plan-light[data-light-id='light-kitchen-1']",
-    ".plan-light"
-  ];
-  let light = page.locator(candidateSelectors.at(-1)).first();
-  for (const selector of candidateSelectors) {
-    const candidate = page.locator(selector).first();
-    if (await candidate.count()) {
-      light = candidate;
-      break;
-    }
-  }
+const selectLight = async (page, id) => {
+  const light = page.locator(`.plan-light[data-light-id='${id}']`);
   await light.waitFor({ state: "attached", timeout: 15_000 });
   console.log(`selectedLight=${await light.getAttribute("data-light-id")}`);
 
@@ -74,6 +63,20 @@ const selectExampleLight = async (page) => {
   await page.locator(".light-inspector").waitFor({ state: "visible", timeout: 5_000 });
 };
 
+const moveCameraToDining = async (page) => {
+  await page.locator("canvas").click();
+  // The demo's initial camera is a room-wide view. Move toward the dining
+  // table and look slightly left so colour changes affect a large, legible
+  // table-and-chair area rather than a tiny fixture in a wide room shot.
+  for (let i = 0; i < 8; i += 1) await page.keyboard.press("Shift+ArrowUp");
+  for (let i = 0; i < 3; i += 1) await page.keyboard.press("ArrowLeft");
+};
+
+const adjustRange = async (locator, value) => {
+  await locator.press("Home");
+  for (let i = 0; i < value; i += 1) await locator.press("ArrowRight");
+};
+
 const recordDesktop = async (browser) => {
   const context = await makeContext(browser, { width: 1280, height: 720 });
   await setEnglishDemoState(context);
@@ -82,42 +85,58 @@ const recordDesktop = async (browser) => {
 
   await step("desktop demo=2 scene ready", () => waitForScene(page));
   await hideTransientNotices(page);
-  await pause(page, 31_000);
+  // The first narration section needs a calm whole-room establishing shot,
+  // before any inspector or cursor action competes with the problem statement.
+  await pause(page, 20_000);
   await hideTransientNotices(page);
 
   await page.getByRole("button", { name: "Import floor plan" }).hover();
+  await pause(page, 3_000);
+
+  await step("move camera toward dining", () => moveCameraToDining(page));
+  await pause(page, 3_000);
+  // Camera keyboard control focuses the canvas and can clear a 2D selection.
+  // Select only after arriving, so the close dining view and its Inspector
+  // remain visible together for the colour-temperature comparison.
+  await step("select dining pendant west", () => selectLight(page, "light-dining-west"));
+  await pause(page, 2_000);
+
+  await step("set 2700K", () => page.getByRole("button", { name: "Warm white" }).click());
   await pause(page, 4_000);
-
-  await step("select example light", () => selectExampleLight(page));
-  await pause(page, 6_000);
-
-  await step("set 2700K", () => page.getByRole("button", { name: "Warm white 2700K" }).click());
-  await pause(page, 8_000);
-  await step("set 3500K", () => page.getByRole("button", { name: "Neutral white 3500K" }).click());
-  await pause(page, 10_000);
+  await step("set 3500K", () => page.getByRole("button", { name: "Neutral white" }).click());
+  await pause(page, 5_000);
 
   const dimming = page.locator(".light-inspector .light-range-control input[type='range']").first();
-  await dimming.press("Home");
-  for (let value = 0; value < 45; value += 1) await dimming.press("ArrowRight");
-  await pause(page, 7_000);
+  await adjustRange(dimming, 45);
+  await pause(page, 3_000);
 
-  await dimming.press("Home");
-  for (let value = 0; value < 78; value += 1) await dimming.press("ArrowRight");
-  await pause(page, 7_000);
+  await adjustRange(dimming, 78);
+  await pause(page, 3_000);
 
   await page.getByText("Details +", { exact: true }).click();
   await step("compare position", async () => {
     const xPosition = page.getByRole("spinbutton", { name: "X mm" });
-    await xPosition.fill("3800");
+    await xPosition.fill("-900");
     await xPosition.press("Tab");
   });
   const beamAngle = page.locator("label.field", { hasText: "Beam spread" }).locator("input");
-  await beamAngle.fill("70");
+  await beamAngle.fill("100");
   await beamAngle.press("Tab");
-  await pause(page, 12_000);
+  await pause(page, 4_000);
 
   await step("maximize 3D", () => page.getByRole("button", { name: "Maximize 3D" }).click());
-  await pause(page, 14_000);
+  await pause(page, 2_000);
+  await page.locator("canvas").click();
+  for (let i = 0; i < 3; i += 1) await page.keyboard.press("Alt+ArrowRight");
+  await pause(page, 5_000);
+
+  await step("return to normal view", () => page.getByRole("button", { name: "Return to normal view" }).click());
+  await step("select sculpture spotlight", () => selectLight(page, "light-living-sculpture"));
+  await pause(page, 2_000);
+  const aimInput = page.locator(".aim-dial-deg input[type='number']");
+  await aimInput.fill("80");
+  await aimInput.press("Tab");
+  await pause(page, 4_000);
 
   await context.close();
   return video.path();
@@ -134,9 +153,9 @@ const recordMobile = async (browser) => {
   await pause(page, 5_000);
   await hideTransientNotices(page);
   await page.getByRole("button", { name: "3D" }).click();
-  await pause(page, 7_000);
+  await pause(page, 3_000);
   await page.getByRole("button", { name: "Open settings" }).click();
-  await pause(page, 10_000);
+  await pause(page, 4_000);
 
   await context.close();
   return video.path();
@@ -146,8 +165,8 @@ const browser = await chromium.launch({ headless: false });
 try {
   const desktopPath = await recordDesktop(browser);
   const mobilePath = await recordMobile(browser);
-  const desktopOut = join(outDir, "demo2-desktop.webm");
-  const mobileOut = join(outDir, "demo2-mobile.webm");
+  const desktopOut = join(outDir, "demo2-dining-desktop.webm");
+  const mobileOut = join(outDir, "demo2-dining-mobile.webm");
   await rename(desktopPath, desktopOut);
   await rename(mobilePath, mobileOut);
   console.log(`desktop=${desktopOut}`);
