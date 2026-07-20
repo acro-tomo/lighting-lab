@@ -271,6 +271,39 @@
       "sillHeightM": 0.12,
       "hasGlass": true,
       "style": "window"
+    },
+    {
+      "id": "window-east-stair-north",
+      "name": "東面 階段スリット窓 北",
+      "wallId": "wall-east-plaster",
+      "centerRatio": 0.49,
+      "widthM": 0.42,
+      "heightM": 3.95,
+      "sillHeightM": 0.55,
+      "hasGlass": true,
+      "style": "window"
+    },
+    {
+      "id": "window-east-stair-center",
+      "name": "東面 階段スリット窓 中央",
+      "wallId": "wall-east-plaster",
+      "centerRatio": 0.63,
+      "widthM": 0.52,
+      "heightM": 4.2,
+      "sillHeightM": 0.35,
+      "hasGlass": true,
+      "style": "window"
+    },
+    {
+      "id": "window-east-stair-south",
+      "name": "東面 階段スリット窓 南",
+      "wallId": "wall-east-plaster",
+      "centerRatio": 0.77,
+      "widthM": 0.42,
+      "heightM": 3.7,
+      "sillHeightM": 0.3,
+      "hasGlass": true,
+      "style": "window"
     }
   ],
   "furniture": [
@@ -279,16 +312,16 @@
       "name": "低いオリーブブークレソファ",
       "type": "sofa",
       "position": {
-        "x": -1.95,
+        "x": -3.55,
         "y": 0.39,
-        "z": 1
+        "z": 0.75
       },
       "size": {
         "x": 3.2,
         "y": 0.78,
         "z": 1.02
       },
-      "rotationYDeg": -90,
+      "rotationYDeg": 0,
       "materialId": "olive-boucle",
       "color": "#68705a",
       "roughness": 0.96,
@@ -297,19 +330,19 @@
     },
     {
       "id": "furniture-lounge-north",
-      "name": "Mole風ラウンジチェア 北",
+      "name": "Mole風ラウンジチェア 西",
       "type": "loungeChair",
       "position": {
-        "x": -4.7,
+        "x": -5.3,
         "y": 0.43,
-        "z": 0.05
+        "z": 2.2
       },
       "size": {
         "x": 1.02,
         "y": 0.86,
         "z": 1.08
       },
-      "rotationYDeg": 90,
+      "rotationYDeg": 62,
       "materialId": "cognac-leather",
       "color": "#995c35",
       "roughness": 0.78,
@@ -318,19 +351,19 @@
     },
     {
       "id": "furniture-lounge-south",
-      "name": "Mole風ラウンジチェア 南",
+      "name": "Mole風ラウンジチェア 東",
       "type": "loungeChair",
       "position": {
-        "x": -4.7,
+        "x": -1.75,
         "y": 0.43,
-        "z": 1.9
+        "z": 2.25
       },
       "size": {
         "x": 1.02,
         "y": 0.86,
         "z": 1.08
       },
-      "rotationYDeg": 90,
+      "rotationYDeg": -58,
       "materialId": "cognac-leather",
       "color": "#995c35",
       "roughness": 0.78,
@@ -342,14 +375,14 @@
       "name": "厚手オートミールウールラグ",
       "type": "rug",
       "position": {
-        "x": -3.3,
+        "x": -3.55,
         "y": 0.018,
-        "z": 1
+        "z": 2.05
       },
       "size": {
-        "x": 3.9,
+        "x": 4.15,
         "y": 0.036,
-        "z": 4
+        "z": 3.25
       },
       "rotationYDeg": 0,
       "materialId": "rug-oat",
@@ -363,9 +396,9 @@
       "name": "彫刻的トラバーチンローテーブル",
       "type": "roundTable",
       "position": {
-        "x": -3.35,
+        "x": -3.55,
         "y": 0.18,
-        "z": 0.95
+        "z": 2.35
       },
       "size": {
         "x": 1.35,
@@ -384,9 +417,9 @@
       "name": "黒染め真鍮サイドテーブル",
       "type": "roundTable",
       "position": {
-        "x": -3.85,
+        "x": -5.5,
         "y": 0.25,
-        "z": 2.85
+        "z": 0.9
       },
       "size": {
         "x": 0.48,
@@ -402,19 +435,19 @@
     },
     {
       "id": "furniture-living-console",
-      "name": "南壁ウォルナットコンソール",
+      "name": "南壁ウォルナットメディアユニット",
       "type": "counter",
       "position": {
-        "x": -1.55,
-        "y": 0.39,
-        "z": 4.28
+        "x": -3.55,
+        "y": 0.26,
+        "z": 4.48
       },
       "size": {
-        "x": 2,
-        "y": 0.78,
-        "z": 0.38
+        "x": 3.3,
+        "y": 0.52,
+        "z": 0.42
       },
-      "rotationYDeg": 0,
+      "rotationYDeg": 180,
       "materialId": "walnut",
       "color": "#4a2f22",
       "roughness": 0.7,
@@ -422,13 +455,55 @@
       "castsShadow": true
     },
     {
+      "id": "furniture-living-media-panel",
+      "name": "薄いウォルナットメディア背面パネル",
+      "type": "box",
+      "position": {
+        "x": -3.55,
+        "y": 1.42,
+        "z": 4.69
+      },
+      "size": {
+        "x": 3.55,
+        "y": 2.65,
+        "z": 0.055
+      },
+      "rotationYDeg": 0,
+      "materialId": "walnut-wall",
+      "color": "#5a3928",
+      "roughness": 0.76,
+      "metalness": 0,
+      "castsShadow": true
+    },
+    {
+      "id": "furniture-living-tv",
+      "name": "南壁壁掛けTV",
+      "type": "tv",
+      "position": {
+        "x": -3.55,
+        "y": 1.28,
+        "z": 4.625
+      },
+      "size": {
+        "x": 1.75,
+        "y": 0.98,
+        "z": 0.07
+      },
+      "rotationYDeg": 180,
+      "materialId": "blackened-brass",
+      "color": "#080808",
+      "roughness": 0.18,
+      "metalness": 0.02,
+      "castsShadow": true
+    },
+    {
       "id": "furniture-living-plant",
       "name": "西窓際フィカス",
       "type": "plant",
       "position": {
-        "x": -5.55,
+        "x": -5.75,
         "y": 0.95,
-        "z": 3.65
+        "z": 3.85
       },
       "size": {
         "x": 1.15,
@@ -843,19 +918,19 @@
     },
     {
       "id": "furniture-stair",
-      "name": "南東の彫刻的モルタル階段",
+      "name": "東壁際の採光モルタル階段",
       "type": "stair",
       "position": {
-        "x": 4.9,
+        "x": 5.55,
         "y": 0,
-        "z": 2.75
+        "z": 1.35
       },
       "size": {
         "x": 1.4,
         "y": 2.6,
         "z": 3.5
       },
-      "rotationYDeg": 0,
+      "rotationYDeg": 180,
       "materialId": "mortar",
       "color": "#77736b",
       "roughness": 0.84,
@@ -863,39 +938,18 @@
       "castsShadow": true
     },
     {
-      "id": "furniture-stair-bench",
-      "name": "階段脇のウォルナットベンチ",
-      "type": "counter",
-      "position": {
-        "x": 2.85,
-        "y": 0.24,
-        "z": 4.25
-      },
-      "size": {
-        "x": 1.65,
-        "y": 0.48,
-        "z": 0.48
-      },
-      "rotationYDeg": 0,
-      "materialId": "walnut",
-      "color": "#4a2f22",
-      "roughness": 0.7,
-      "metalness": 0,
-      "castsShadow": true
-    },
-    {
       "id": "furniture-east-plant",
-      "name": "階段脇のストレリチア",
+      "name": "階段下のストレリチア",
       "type": "plant",
       "position": {
-        "x": 5.65,
-        "y": 0.9,
-        "z": 0.25
+        "x": 4.25,
+        "y": 0.8,
+        "z": 3.75
       },
       "size": {
-        "x": 1.05,
-        "y": 1.8,
-        "z": 1.05
+        "x": 0.9,
+        "y": 1.6,
+        "z": 0.9
       },
       "rotationYDeg": 0,
       "materialId": "leaf-green",
@@ -906,19 +960,19 @@
     },
     {
       "id": "furniture-gallery-console",
-      "name": "南壁ギャラリーコンソール",
+      "name": "南壁アート下コンソール",
       "type": "counter",
       "position": {
-        "x": 0.45,
-        "y": 0.4,
-        "z": 4.3
+        "x": -0.55,
+        "y": 0.36,
+        "z": 4.5
       },
       "size": {
-        "x": 1.8,
-        "y": 0.8,
+        "x": 1.7,
+        "y": 0.72,
         "z": 0.38
       },
-      "rotationYDeg": 0,
+      "rotationYDeg": 180,
       "materialId": "walnut",
       "color": "#4a2f22",
       "roughness": 0.7,
@@ -927,16 +981,16 @@
     },
     {
       "id": "furniture-art-large",
-      "name": "テラコッタ抽象画 大",
+      "name": "南壁のテラコッタ抽象画",
       "type": "box",
       "position": {
-        "x": -0.3,
+        "x": -0.55,
         "y": 1.85,
         "z": 4.69
       },
       "size": {
-        "x": 1.15,
-        "y": 1.5,
+        "x": 1.35,
+        "y": 1.65,
         "z": 0.05
       },
       "rotationYDeg": 0,
@@ -947,55 +1001,13 @@
       "castsShadow": true
     },
     {
-      "id": "furniture-art-small",
-      "name": "生成り抽象画 小",
-      "type": "box",
-      "position": {
-        "x": 0.95,
-        "y": 1.7,
-        "z": 4.69
-      },
-      "size": {
-        "x": 0.8,
-        "y": 1.1,
-        "z": 0.05
-      },
-      "rotationYDeg": 0,
-      "materialId": "linen",
-      "color": "#cfc4ad",
-      "roughness": 0.96,
-      "metalness": 0,
-      "castsShadow": true
-    },
-    {
-      "id": "furniture-bookcase",
-      "name": "東壁の建築書本棚",
-      "type": "shelf",
-      "position": {
-        "x": 6,
-        "y": 0.6,
-        "z": 1.8
-      },
-      "size": {
-        "x": 1.15,
-        "y": 1.2,
-        "z": 0.38
-      },
-      "rotationYDeg": -90,
-      "materialId": "walnut",
-      "color": "#4a2f22",
-      "roughness": 0.7,
-      "metalness": 0,
-      "castsShadow": true
-    },
-    {
       "id": "furniture-pottery-tall",
       "name": "テラコッタ陶器 高",
       "type": "box",
       "position": {
-        "x": 0.15,
-        "y": 1,
-        "z": 4.22
+        "x": -0.8,
+        "y": 0.91,
+        "z": 4.43
       },
       "size": {
         "x": 0.28,
@@ -1014,9 +1026,9 @@
       "name": "トラバーチン陶器 低",
       "type": "box",
       "position": {
-        "x": 0.65,
-        "y": 0.94,
-        "z": 4.22
+        "x": -0.25,
+        "y": 0.84,
+        "z": 4.43
       },
       "size": {
         "x": 0.24,
@@ -1055,17 +1067,17 @@
   "voids": [
     {
       "id": "void-stair-double-height",
-      "name": "南東階段上の吹き抜け",
+      "name": "東壁際階段と照明の吹き抜け",
       "center": {
-        "x": 4.9,
-        "z": 2.7
+        "x": 4.7,
+        "z": 1.35
       },
       "size": {
-        "x": 2.7,
-        "z": 3.9
+        "x": 3.2,
+        "z": 3.8
       },
       "openSides": [
-        "south",
+        "north",
         "east"
       ]
     }
@@ -1077,20 +1089,15 @@
       "type": "pendant",
       "model": "pendant-globe",
       "position": {
-        "x": 2.7,
-        "y": 4.2,
-        "z": 0.9
+        "x": 3.65,
+        "y": 4.35,
+        "z": 0
       },
       "mountHeightM": 5.2,
       "rotationDeg": {
         "x": -90,
         "y": 0,
         "z": 0
-      },
-      "target": {
-        "x": 2.7,
-        "y": 1.4,
-        "z": 0.9
       },
       "lumens": 380,
       "colorTemperatureK": 2700,
@@ -1099,8 +1106,8 @@
       "beamAngleDeg": 100,
       "penumbra": 0.85,
       "castsShadow": true,
-      "note": "Hand-blown globe for the double-height stair",
-      "cordLengthM": 1
+      "note": "Omnidirectional hand-blown globe in the north end of the vertical stair-void cluster",
+      "cordLengthM": 2.25
     },
     {
       "id": "light-cluster-2",
@@ -1108,20 +1115,15 @@
       "type": "pendant",
       "model": "pendant-globe",
       "position": {
-        "x": 3.1,
-        "y": 3.6,
-        "z": 1.2
+        "x": 4.15,
+        "y": 3.8,
+        "z": 0.45
       },
       "mountHeightM": 5.2,
       "rotationDeg": {
         "x": -90,
         "y": 0,
         "z": 0
-      },
-      "target": {
-        "x": 3.1,
-        "y": 1.2,
-        "z": 1.2
       },
       "lumens": 360,
       "colorTemperatureK": 2700,
@@ -1130,8 +1132,8 @@
       "beamAngleDeg": 100,
       "penumbra": 0.85,
       "castsShadow": true,
-      "note": "Hand-blown globe for the double-height stair",
-      "cordLengthM": 1.6
+      "note": "Omnidirectional hand-blown globe suspended on the west side of the stair void",
+      "cordLengthM": 2.8
     },
     {
       "id": "light-cluster-3",
@@ -1139,20 +1141,15 @@
       "type": "pendant",
       "model": "pendant-globe",
       "position": {
-        "x": 3.5,
-        "y": 3,
-        "z": 1.5
+        "x": 3.85,
+        "y": 3.2,
+        "z": 0.95
       },
       "mountHeightM": 5.2,
       "rotationDeg": {
         "x": -90,
         "y": 0,
         "z": 0
-      },
-      "target": {
-        "x": 3.5,
-        "y": 1,
-        "z": 1.5
       },
       "lumens": 340,
       "colorTemperatureK": 2700,
@@ -1161,8 +1158,8 @@
       "beamAngleDeg": 100,
       "penumbra": 0.85,
       "castsShadow": true,
-      "note": "Hand-blown globe for the double-height stair",
-      "cordLengthM": 2.2
+      "note": "Omnidirectional hand-blown globe suspended on the west side of the stair void",
+      "cordLengthM": 3.4
     },
     {
       "id": "light-cluster-4",
@@ -1170,20 +1167,15 @@
       "type": "pendant",
       "model": "pendant-globe",
       "position": {
-        "x": 2.8,
-        "y": 2.5,
-        "z": 1.8
+        "x": 4.4,
+        "y": 2.65,
+        "z": 1.35
       },
       "mountHeightM": 5.2,
       "rotationDeg": {
         "x": -90,
         "y": 0,
         "z": 0
-      },
-      "target": {
-        "x": 2.8,
-        "y": 0.8,
-        "z": 1.8
       },
       "lumens": 320,
       "colorTemperatureK": 2700,
@@ -1192,8 +1184,8 @@
       "beamAngleDeg": 100,
       "penumbra": 0.85,
       "castsShadow": true,
-      "note": "Hand-blown globe for the double-height stair",
-      "cordLengthM": 2.7
+      "note": "Low omnidirectional hand-blown globe kept beside, not above, the stair route",
+      "cordLengthM": 3.95
     },
     {
       "id": "light-cluster-5",
@@ -1201,20 +1193,15 @@
       "type": "pendant",
       "model": "pendant-globe",
       "position": {
-        "x": 3.4,
-        "y": 4,
-        "z": 2.1
+        "x": 3.55,
+        "y": 4.05,
+        "z": 1.65
       },
       "mountHeightM": 5.2,
       "rotationDeg": {
         "x": -90,
         "y": 0,
         "z": 0
-      },
-      "target": {
-        "x": 3.4,
-        "y": 1.3,
-        "z": 2.1
       },
       "lumens": 360,
       "colorTemperatureK": 2700,
@@ -1223,8 +1210,8 @@
       "beamAngleDeg": 100,
       "penumbra": 0.85,
       "castsShadow": true,
-      "note": "Hand-blown globe for the double-height stair",
-      "cordLengthM": 1.2
+      "note": "Omnidirectional hand-blown globe suspended on the west side of the stair void",
+      "cordLengthM": 2.55
     },
     {
       "id": "light-cluster-6",
@@ -1232,20 +1219,15 @@
       "type": "pendant",
       "model": "pendant-globe",
       "position": {
-        "x": 2.9,
-        "y": 3.3,
-        "z": 2.5
+        "x": 4.05,
+        "y": 3.45,
+        "z": 2.1
       },
       "mountHeightM": 5.2,
       "rotationDeg": {
         "x": -90,
         "y": 0,
         "z": 0
-      },
-      "target": {
-        "x": 2.9,
-        "y": 1.1,
-        "z": 2.5
       },
       "lumens": 340,
       "colorTemperatureK": 2700,
@@ -1254,8 +1236,8 @@
       "beamAngleDeg": 100,
       "penumbra": 0.85,
       "castsShadow": true,
-      "note": "Hand-blown globe for the double-height stair",
-      "cordLengthM": 1.9
+      "note": "Omnidirectional hand-blown globe suspended on the west side of the stair void",
+      "cordLengthM": 3.15
     },
     {
       "id": "light-cluster-7",
@@ -1263,20 +1245,15 @@
       "type": "pendant",
       "model": "pendant-globe",
       "position": {
-        "x": 3.5,
-        "y": 2.8,
-        "z": 2.8
+        "x": 3.7,
+        "y": 2.85,
+        "z": 2.65
       },
       "mountHeightM": 5.2,
       "rotationDeg": {
         "x": -90,
         "y": 0,
         "z": 0
-      },
-      "target": {
-        "x": 3.5,
-        "y": 0.9,
-        "z": 2.8
       },
       "lumens": 320,
       "colorTemperatureK": 2700,
@@ -1285,8 +1262,8 @@
       "beamAngleDeg": 100,
       "penumbra": 0.85,
       "castsShadow": true,
-      "note": "Hand-blown globe for the double-height stair",
-      "cordLengthM": 2.4
+      "note": "Low omnidirectional hand-blown globe beside the stair base within the void",
+      "cordLengthM": 3.75
     },
     {
       "id": "light-dining-west",
@@ -1412,11 +1389,11 @@
     },
     {
       "id": "light-art-west",
-      "name": "ギャラリーアートスポット 西",
+      "name": "南壁大判アートスポット",
       "type": "spotlight",
       "model": "dl-universal",
       "position": {
-        "x": -0.3,
+        "x": -0.55,
         "y": 5.16,
         "z": 3.15
       },
@@ -1427,8 +1404,8 @@
         "z": 0
       },
       "target": {
-        "x": -0.3,
-        "y": 1.8,
+        "x": -0.55,
+        "y": 1.85,
         "z": 4.65
       },
       "lumens": 560,
@@ -1438,15 +1415,15 @@
       "beamAngleDeg": 36,
       "penumbra": 0.46,
       "castsShadow": true,
-      "note": "Lights the south gallery wall art"
+      "note": "Focused on the single large artwork above the south-wall console"
     },
     {
       "id": "light-art-east",
-      "name": "ギャラリーアートスポット 東",
+      "name": "メディア壁東端スポット",
       "type": "spotlight",
       "model": "dl-universal",
       "position": {
-        "x": 1,
+        "x": -1.85,
         "y": 5.16,
         "z": 3.15
       },
@@ -1457,18 +1434,18 @@
         "z": 0
       },
       "target": {
-        "x": 1,
-        "y": 1.65,
+        "x": -1.82,
+        "y": 1.5,
         "z": 4.65
       },
       "lumens": 520,
       "colorTemperatureK": 2700,
       "dimmer": 72,
       "enabled": true,
-      "beamAngleDeg": 36,
-      "penumbra": 0.46,
+      "beamAngleDeg": 18,
+      "penumbra": 0.4,
       "castsShadow": true,
-      "note": "Lights the south gallery wall art"
+      "note": "Narrow grazing beam on the east edge of the walnut panel, clear of the TV screen"
     },
     {
       "id": "light-living-sculpture",
@@ -1487,9 +1464,9 @@
         "z": 0
       },
       "target": {
-        "x": -3.35,
+        "x": -3.55,
         "y": 0.4,
-        "z": 0.95
+        "z": 2.35
       },
       "lumens": 640,
       "colorTemperatureK": 2700,
@@ -1527,7 +1504,7 @@
   "ceilingZones": [
     {
       "id": "ceiling-zone-dining-kitchen",
-      "name": "北東ダイニング・キッチンの低天井",
+      "name": "北東ダイニング・キッチン上のメザニン",
       "center": {
         "x": 2.5,
         "z": -2.55
@@ -1536,7 +1513,9 @@
         "x": 7.4,
         "z": 4.3
       },
-      "dropM": 2.55
+      "kind": "mezzanine",
+      "dropM": 2.78,
+      "thicknessM": 0.18
     }
   ],
   "floorZones": [],
