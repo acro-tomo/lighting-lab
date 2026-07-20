@@ -1,0 +1,48 @@
+1
+00:00:00,050 --> 00:00:20,220
+Lighting is chosen from drawings and catalogs, but homeowners cannot easily
+imagine the atmosphere it will create.
+
+2
+00:00:20,220 --> 00:00:24,705
+Fixing a poor choice after construction can cost real money.
+
+3
+00:00:24,705 --> 00:00:39,882
+Lighting Lab lets homeowners try lighting plans in their own floor plan,
+with no CAD skills required. Import your own floor plan in the browser.
+
+4
+00:00:39,882 --> 00:00:52,514
+Select a light and change its color temperature
+from warm 2700K to 3500K.
+
+5
+00:00:52,514 --> 00:01:03,205
+Lower or raise brightness, compare another position,
+and adjust how widely the light spreads.
+
+6
+00:01:03,205 --> 00:01:16,720
+Try several options in 2D, then switch to 3D
+to see the walls, furniture, and room as a whole.
+
+7
+00:01:16,720 --> 00:01:31,411
+The finished look includes indirect light.
+Compare options until they fit how you want to use the room.
+
+8
+00:01:31,411 --> 00:01:41,191
+2D and 3D stay in sync, and projects save and reopen
+in the browser—on a PC or a phone.
+
+9
+00:01:41,191 --> 00:02:07,073
+Codex with GPT-5.6 reviewed believable lighting and everyday-device performance,
+then supported mobile improvements, English, tests, and the public release.
+
+10
+00:02:07,073 --> 00:02:17,205
+Compare color temperature, brightness, position, and distribution
+in your own floor plan—before construction.

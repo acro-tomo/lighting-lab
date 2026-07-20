@@ -118,7 +118,7 @@ export const fixtureCatalog: FixtureModel[] = [
     aimable: false,
     glareless: false,
     defaultLumens: 360,
-    description: "壁付の補助照明・常夜灯寄り"
+    description: "壁付の補助・アクセント照明"
   },
   {
     id: "tape",

@@ -191,7 +191,7 @@ try {
       await activate(page.getByRole("menuitem", { name: /吹き抜け/ }));
       await assertTextVisible(/クリックした位置に配置/);
       await page.keyboard.press("Escape");
-      await assertTextVisible("クリックで選択・ドラッグで移動");
+      await assertTextVisible("クリックで選択、選択後ドラッグで移動");
     });
 
     await step("pan 2d plan and toggle plan focus", async () => {
@@ -252,7 +252,7 @@ try {
 
   await step("open help dialog", async () => {
     await activate(page.getByRole("button", { name: "使い方を見る" }));
-    await assertTextVisible("自分の間取りで夜の照明を試す");
+    await assertTextVisible("自分の間取りで照明を試す");
     await page.getByRole("button", { name: "はじめる" }).dispatchEvent("click");
   });
 

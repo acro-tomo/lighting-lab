@@ -104,7 +104,7 @@ const canvasCheck = await page.evaluate(() => {
   return { found: true, nonDarkPixels };
 });
 
-await page.screenshot({ path: outputPath, timeout: 15000 }).catch((screenshotError) => {
+await page.screenshot({ path: outputPath, timeout: 60000 }).catch((screenshotError) => {
   console.log(`screenshotError=${screenshotError.message}`);
 });
 await browser.close();

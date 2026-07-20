@@ -2,7 +2,7 @@
 
 **English** | [日本語](README.ja.md)
 
-LDK Lighting Lab is a browser-based visual simulator for comparing home lighting layouts and nighttime atmosphere in your own floor plan.
+LDK Lighting Lab is a browser-based visual simulator for comparing home lighting layouts, brightness, color temperature, and room atmosphere in your own floor plan.
 
 > This is a visual simulation for comparing lighting layouts and atmosphere. It does not guarantee actual illuminance, light distribution, color, or the finished result.
 
@@ -16,7 +16,7 @@ Import a PNG, JPG, or PDF floor plan, add and edit room elements, then compare l
 
 ## The problem it solves
 
-Homeowners usually need to decide on lighting before construction, while it is still hard to imagine the result from a fixture schedule or a floor plan alone. Professional lighting software is powerful but not designed for a homeowner's quick “what will our living room feel like at night?” comparison.
+Homeowners usually need to decide on lighting before construction, while it is still hard to imagine the result from a fixture schedule or a floor plan alone. Professional lighting software is powerful but not designed for a homeowner's quick comparison of how a room will feel with different lighting choices.
 
 LDK Lighting Lab focuses on that decision: a fast, approachable way to compare ideas in the context of a real floor plan. It is not a replacement for professional lighting design, compliance checks, or construction documentation.
 

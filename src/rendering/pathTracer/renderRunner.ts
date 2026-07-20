@@ -11,6 +11,81 @@ const nextFrame = () =>
     requestAnimationFrame(() => resolve());
   });
 
+const neutralToneMap = (red: number, green: number, blue: number, exposure: number) => {
+  let r = red * exposure;
+  let g = green * exposure;
+  let b = blue * exposure;
+  const startCompression = 0.76;
+  const minimum = Math.min(r, g, b);
+  const offset = minimum < 0.08 ? minimum - 6.25 * minimum * minimum : 0.04;
+  r -= offset;
+  g -= offset;
+  b -= offset;
+  const peak = Math.max(r, g, b);
+  if (peak < startCompression) return [r, g, b] as const;
+
+  const d = 1 - startCompression;
+  const newPeak = 1 - (d * d) / (peak + d - startCompression);
+  const scale = newPeak / peak;
+  r *= scale;
+  g *= scale;
+  b *= scale;
+  const mix = 1 - 1 / (0.15 * (peak - newPeak) + 1);
+  return [
+    r * (1 - mix) + newPeak * mix,
+    g * (1 - mix) + newPeak * mix,
+    b * (1 - mix) + newPeak * mix
+  ] as const;
+};
+
+const encodeSrgb = (value: number) => {
+  const clamped = Math.min(1, Math.max(0, value));
+  const encoded = clamped <= 0.0031308
+    ? clamped * 12.92
+    : 1.055 * Math.pow(clamped, 1 / 2.4) - 0.055;
+  return Math.round(encoded * 255);
+};
+
+// WebGL's default framebuffer is transparent black in some Safari/Chromium
+// WebGL2 combinations, even though the path-traced float target is valid.
+// Read that completed target directly and apply the same fixed PBR Neutral
+// tone map used by the interactive renderer before encoding the PNG.
+const encodeCompletedTarget = (
+  renderer: THREE.WebGLRenderer,
+  target: THREE.WebGLRenderTarget,
+  width: number,
+  height: number,
+  exposure: number
+) => {
+  const sourceWidth = target.width;
+  const sourceHeight = target.height;
+  const source = new Float32Array(sourceWidth * sourceHeight * 4);
+  renderer.readRenderTargetPixels(target, 0, 0, sourceWidth, sourceHeight, source);
+
+  const outputCanvas = document.createElement("canvas");
+  outputCanvas.width = width;
+  outputCanvas.height = height;
+  const context = outputCanvas.getContext("2d");
+  if (!context) throw new Error("画像書き出し用のCanvas 2Dコンテキストを作成できません。");
+
+  const image = context.createImageData(width, height);
+  for (let y = 0; y < height; y += 1) {
+    const sourceRow = sourceHeight - 1 - Math.floor((y * sourceHeight) / height);
+    for (let x = 0; x < width; x += 1) {
+      const sourceX = Math.min(sourceWidth - 1, Math.floor((x * sourceWidth) / width));
+      const sourceOffset = (sourceRow * sourceWidth + sourceX) * 4;
+      const targetOffset = (y * width + x) * 4;
+      const [r, g, b] = neutralToneMap(source[sourceOffset], source[sourceOffset + 1], source[sourceOffset + 2], exposure);
+      image.data[targetOffset] = encodeSrgb(r);
+      image.data[targetOffset + 1] = encodeSrgb(g);
+      image.data[targetOffset + 2] = encodeSrgb(b);
+      image.data[targetOffset + 3] = 255;
+    }
+  }
+  context.putImageData(image, 0, 0);
+  return outputCanvas.toDataURL("image/png");
+};
+
 export const supportsWebGL2 = () => {
   const canvas = document.createElement("canvas");
   return Boolean(canvas.getContext("webgl2"));
@@ -102,6 +177,7 @@ export const renderPathTracedImage = async ({
   const { scene, skyEnv } = buildPathTraceScene(renderer, project, debugMode);
   const pathTracer = new WebGLPathTracer(renderer);
   const bvhWorker = new GenerateMeshBVHWorker();
+  pathTracer.renderToCanvas = false;
   pathTracer.renderDelay = 0;
   pathTracer.fadeDuration = 0;
   pathTracer.minSamples = 1;
@@ -164,7 +240,7 @@ export const renderPathTracedImage = async ({
     onProgress?.({ samples: targetSamples, targetSamples, elapsedMs, phase: "complete" });
 
     return {
-      dataUrl: canvas.toDataURL("image/png"),
+      dataUrl: encodeCompletedTarget(renderer, pathTracer.target, width, height, renderer.toneMappingExposure),
       samples: targetSamples,
       elapsedMs,
       width,
