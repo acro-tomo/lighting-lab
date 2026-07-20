@@ -1,69 +1,69 @@
-# LDK Lighting Lab — final Build Week demo script
+# LDK Lighting Lab — Build Week demo script
 
-## English — final
+## English — concise revision
 
-### 0:00–0:20 — Problem
+### 0:00–0:22 — Problem
 
-When you build or renovate a home, lighting is decided from drawings and catalogs. But it's hard for a homeowner to imagine how it will actually look: how bright the room will feel, how walls and furniture will be lit, how the mood changes between warm and neutral white. And if something feels wrong after construction, moving a fixture costs real money.
+Choosing lighting for a new or renovated home usually happens from drawings and catalogs. But homeowners cannot easily imagine the atmosphere it will create: how bright the room will feel, how walls and furniture will be lit, or how warm and neutral light will change the space. Fixing a poor choice after construction can cost real money.
 
-### 0:20–0:35 — Solution
+### 0:22–0:38 — Solution
 
-Lighting Lab lets homeowners try different lighting plans in their own floor plan and check the room's atmosphere before construction—no CAD skills needed. It runs in the browser. You can import your own floor plan, or start from a prepared home, like this one.
+Lighting Lab lets homeowners try different lighting plans in their own floor plan before construction, with no CAD skills required. It runs directly in the browser, and you can import your own floor plan to recreate your home.
 
-### 0:35–2:05 — Dining story
+### 0:38–1:40 — Lighting comparison
 
-In this house, we're still deciding the dining lighting. I select the pendant over the table.
+Here, I select a light and change its color temperature from a warm 2700K to 3500K. The atmosphere of the room changes immediately.
 
-First, color temperature: from a warm 2700K up to 3500K. The mood of the dining area changes immediately. Next, brightness—dimmer for a calmer table, brighter for family homework time. Then I simply drag the pendant to try a different position.
+Next, I lower and raise the brightness for different activities. Then I move the light to compare another position and adjust how widely it spreads light.
 
-Switching to 3D, I can check how the table and its surroundings actually look. And when I want to judge the atmosphere of the whole room, Realistic mode renders the same scene with indirect light included—the way the room would feel at night.
+Because these changes happen directly in the 2D floor plan, I can quickly try several options. Switching to 3D shows how the lighting affects the walls, furniture, and the room as a whole. For a more complete view, the finished look includes indirect light.
 
-Not convinced? I just keep trying: another position, a different spread of light, one more color temperature. Lighting Lab doesn't hand you a "correct" answer. It lets you explore until the lighting fits the way you live.
+Lighting Lab does not choose the "correct" lighting for me. It gives me a quick way to compare different options until they fit how I want to use the room.
 
-### 2:05–2:50 — Technology and Codex
+### 1:40–2:10 — Technology and Codex
 
-Under the hood, 2D editing and the 3D view stay in sync, each fixture exposes brightness, color temperature, and beam angle, and projects save and reload right in the browser—on PC, and on a phone.
+The 2D editor and 3D view stay in sync, and projects can be saved and reopened directly in the browser—on a PC or a phone.
 
-Codex with GPT-5.6 has been part of this project from the very beginning. During this Build Week, its most important role was as a critical reviewer: every design decision on the two hardest questions—does the light behave the way it would in a real room, and can it stay fast enough for a phone—was challenged and refined through Codex before it shipped. The result is what you've been watching: a fast renderer while you edit, and physically convincing path tracing when you judge the atmosphere. On top of that, this session delivered the mobile improvements, English support, automated tests, and the public release.
+Codex with GPT-5.6 has supported this project from the beginning, especially by reviewing two difficult questions: whether lighting changes remain believable, and whether the app stays responsive on everyday devices. During Build Week, Codex also supported the mobile improvements, English interface, automated tests, and public release.
 
-### 2:50–3:00 — Closing
+### 2:10–2:20 — Closing
 
-Lighting Lab lets homeowners quickly try different lighting layouts, brightness levels, and color temperatures in their own floor plan—before construction.
+Lighting Lab helps homeowners compare lighting color temperature, brightness, position, and distribution in their own floor plan—before construction.
 
-## 日本語訳 — 確定稿
+## 日本語訳
 
 ### 問題
 
-新築やリフォームでは、照明は図面とカタログから決めます。しかし施主には、実際の見え方を想像するのが難しい。部屋がどれくらい明るく感じられるか、壁や家具がどう照らされるか、電球色と温白色で雰囲気がどう変わるか。そして施工後に違和感に気付いても、器具を動かすには本当にお金がかかります。
+新築やリフォームの照明は、通常、図面やカタログを見ながら決めます。しかし施主にとって、照明が部屋にどのような雰囲気をつくるのかを想像するのは簡単ではありません。部屋がどれくらい明るく感じるか、壁や家具がどう照らされるか、電球色と温白色で空間がどう変わるか。施工後に選択を変えると、実際に費用がかかります。
 
 ### 解決策
 
-Lighting Labは、施主が自分の間取りでさまざまな照明計画を試し、施工前に部屋の雰囲気を確認できるツールです。CADの知識は要りません。ブラウザで動きます。自分の間取りを取り込むことも、この住宅のように準備済みのものから始めることもできます。
+Lighting Labなら、CADの知識がなくても、自分の間取りでさまざまな照明計画を施工前に試せます。ブラウザで動作し、自分の間取りを読み込んで自宅を再現できます。
 
-### ダイニングのストーリー
+### 照明の比較
 
-この住宅では、ダイニングの照明をまだ検討中です。テーブルの上のペンダントを選択します。
+ここでは照明をひとつ選択し、色温度を温かみのある2700Kから3500Kへ変更します。部屋の雰囲気がその場で変わります。
 
-まず色温度。温かみのある2700Kから3500Kへ。ダイニングの雰囲気がその場で変わります。次に明るさ。落ち着いた食卓なら暗めに、家族が宿題をするなら明るめに。そしてペンダントをドラッグして、別の位置も試してみます。
+次に、用途に合わせて明るさを下げたり上げたりします。さらに照明を別の位置へ動かして比較し、光の広がり方も調整します。
 
-3Dに切り替えれば、テーブルとその周りが実際にどう見えるかを確認できます。部屋全体の雰囲気を判断したいときはRealisticモードへ。間接光まで含めて同じシーンを描画し、夜の部屋の感じ方が分かります。
+これらを2D間取り上で直接変更できるため、複数の案を気軽に試せます。3Dへ切り替えると、照明によって壁や家具、部屋全体がどう見えるかを確認できます。より詳しく見たいときは、間接光を含む仕上がり表示も確認できます。
 
-納得できなければ、続けて試すだけです。別の位置、別の配光、もうひとつの色温度。Lighting Labは「正解」を教えるツールではありません。自分の暮らしに合う照明が見つかるまで、いろいろ試せるツールです。
+Lighting Labが「正しい照明」を決めるわけではありません。自分がその部屋をどう使いたいかに合わせて、さまざまな照明を比較するためのツールです。
 
 ### 技術とCodex
 
-中身の話をすると、2D編集と3D表示は連動し、各器具は明るさ・色温度・ビーム角を変更でき、プロジェクトはブラウザ内でそのまま保存・読み込みできます。PCでも、スマートフォンでも。
+2D編集と3D表示は連動し、プロジェクトはブラウザ内で保存・再読込できます。PCでもスマートフォンでも利用できます。
 
-CodexとGPT-5.6は、このプロジェクトの最初から関わってきました。今回のBuild Weekで最も重要だった役割は、批判的なレビュアーです。いちばん難しい2つの問い——光は現実の部屋と同じように振る舞うか、スマートフォンで快適に動く速度を保てるか——に関するすべての設計判断は、Codexの検証とブラッシュアップを経てから実装されています。その結果が、いままさに見ていただいたもの。編集中は高速なレンダラー、雰囲気を判断するときは物理的に説得力のあるパストレーシング、という構成です。加えて今回のセッションでは、モバイル改善、英語対応、自動テスト、公開準備も行いました。
+CodexとGPT-5.6は、このプロジェクトの最初から開発を支援してきました。特に、照明の変化が説得力のある見え方になるか、一般的な端末で快適に動作するかという、2つの難しい問題について設計を検証しました。Build Weekでは、モバイル改善、英語UI、自動テスト、公開準備にも活用しています。
 
 ### 結び
 
-Lighting Labは、自分の間取りでさまざまな照明配置・明るさ・色温度を気軽に試し、施工前に確認できる住宅照明シミュレーターです。
+Lighting Labは、自分の間取りで照明の色温度・明るさ・位置・配光を比較し、施工前に確認できるツールです。
 
 ## Recording checklist
 
 - Keep the full video under three minutes, including pauses and transitions.
-- Use the dining pendant as the single story from 2D selection through Realistic mode.
-- Show the actual 2700K and 3500K controls, brightness adjustment, drag, beam-angle control, 3D view, and Realistic mode.
+- Use `?demo=2` and treat the selected downlight as one example, not as the subject of the story.
+- Show the actual 2700K and 3500K controls, brightness adjustment, position comparison, beam-angle control, 3D view, and finished look.
 - Do not claim certified illuminance or guaranteed post-construction appearance.
 - Do not show GitHub tokens, Cloudflare secrets, private feedback issues, or personal floor plans.

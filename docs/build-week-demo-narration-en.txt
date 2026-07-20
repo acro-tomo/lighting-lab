@@ -1,17 +1,17 @@
-When you build or renovate a home, lighting is decided from drawings and catalogs. But it's hard for a homeowner to imagine how it will actually look: how bright the room will feel, how walls and furniture will be lit, how the mood changes between warm and neutral white. And if something feels wrong after construction, moving a fixture costs real money.
+Choosing lighting for a new or renovated home usually happens from drawings and catalogs. But homeowners cannot easily imagine the atmosphere it will create: how bright the room will feel, how walls and furniture will be lit, or how warm and neutral light will change the space. Fixing a poor choice after construction can cost real money.
 
-Lighting Lab lets homeowners try different lighting plans in their own floor plan and check the room's atmosphere before construction—no CAD skills needed. It runs in the browser. You can import your own floor plan, or start from a prepared home, like this one.
+Lighting Lab lets homeowners try different lighting plans in their own floor plan before construction, with no CAD skills required. It runs directly in the browser, and you can import your own floor plan to recreate your home.
 
-In this house, we're still deciding the dining lighting. I select the pendant over the table.
+Here, I select a light and change its color temperature from a warm 2700K to 3500K. The atmosphere of the room changes immediately.
 
-First, color temperature: from a warm 2700K up to 3500K. The mood of the dining area changes immediately. Next, brightness—dimmer for a calmer table, brighter for family homework time. Then I simply drag the pendant to try a different position.
+Next, I lower and raise the brightness for different activities. Then I move the light to compare another position and adjust how widely it spreads light.
 
-Switching to 3D, I can check how the table and its surroundings actually look. And when I want to judge the atmosphere of the whole room, Realistic mode renders the same scene with indirect light included—the way the room would feel at night.
+Because these changes happen directly in the 2D floor plan, I can quickly try several options. Switching to 3D shows how the lighting affects the walls, furniture, and the room as a whole. For a more complete view, the finished look includes indirect light.
 
-Not convinced? I just keep trying: another position, a different spread of light, one more color temperature. Lighting Lab doesn't hand you a "correct" answer. It lets you explore until the lighting fits the way you live.
+Lighting Lab does not choose the "correct" lighting for me. It gives me a quick way to compare different options until they fit how I want to use the room.
 
-Under the hood, 2D editing and the 3D view stay in sync, each fixture exposes brightness, color temperature, and beam angle, and projects save and reload right in the browser—on PC, and on a phone.
+The 2D editor and 3D view stay in sync, and projects can be saved and reopened directly in the browser—on a PC or a phone.
 
-Codex with GPT-5.6 has been part of this project from the very beginning. During this Build Week, its most important role was as a critical reviewer: every design decision on the two hardest questions—does the light behave the way it would in a real room, and can it stay fast enough for a phone—was challenged and refined through Codex before it shipped. The result is what you've been watching: a fast renderer while you edit, and physically convincing path tracing when you judge the atmosphere. On top of that, this session delivered the mobile improvements, English support, automated tests, and the public release.
+Codex with GPT-5.6 has supported this project from the beginning, especially by reviewing two difficult questions: whether lighting changes remain believable, and whether the app stays responsive on everyday devices. During Build Week, Codex also supported the mobile improvements, English interface, automated tests, and public release.
 
-Lighting Lab lets homeowners quickly try different lighting layouts, brightness levels, and color temperatures in their own floor plan—before construction.
+Lighting Lab helps homeowners compare lighting color temperature, brightness, position, and distribution in their own floor plan—before construction.
