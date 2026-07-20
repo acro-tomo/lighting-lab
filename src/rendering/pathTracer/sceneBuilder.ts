@@ -147,10 +147,15 @@ export const buildPathTraceScene = (
   });
   lowerProject.ceilingZones?.forEach((zone) => {
     const drop = Math.max(0.02, zone.dropM);
+    const isMezzanine = zone.kind === "mezzanine";
+    const height = isMezzanine ? Math.max(0.02, zone.thicknessM ?? 0.18) : drop;
+    const centerY = isMezzanine
+      ? lowerProject.room.ceilingHeightM - zone.dropM + height / 2
+      : lowerProject.room.ceilingHeightM - drop / 2;
     addBox(
       scene,
-      [zone.size.x, drop, zone.size.z],
-      [zone.center.x, lowerProject.room.ceilingHeightM - drop / 2, zone.center.z],
+      [zone.size.x, height, zone.size.z],
+      [zone.center.x, centerY, zone.center.z],
       ceilingMaterial,
       0,
       "ceiling",

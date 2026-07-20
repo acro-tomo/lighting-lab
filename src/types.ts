@@ -106,14 +106,18 @@ export type VoidArea = {
   floor?: FloorTag;
 };
 
-// 下げ天井: 指定した矩形領域だけ天井を dropM 分だけ下げる（折り上げの逆）。
+// 下げ天井 / メザニン: 指定した矩形領域の下面を dropM で定義する。
 export type CeilingZone = {
   id: string;
   name: string;
   center: Vec2M;
   size: Vec2M;
-  /** 天井からの下がり量(m)。0.2〜0.4 が一般的。 */
+  /** undefined / "soffit" = 従来の下げ天井。"mezzanine" = 下面から上へ床厚を積む薄いスラブ。 */
+  kind?: "soffit" | "mezzanine";
+  /** 通常天井から下面までの下がり量(m)。 */
   dropM: number;
+  /** メザニンの下面から上へ積む床厚(m)。 */
+  thicknessM?: number;
   /** 所属階。undefined = 1階。 */
   floor?: FloorTag;
 };

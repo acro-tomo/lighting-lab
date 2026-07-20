@@ -77,7 +77,15 @@ const pathTraceSceneKey = (project: Project, debugMode: RenderDebugMode) =>
       floor
     })),
     voids: project.voids.map(({ id, center, size, openSides, floor }) => ({ id, center, size, openSides, floor })),
-    ceilingZones: (project.ceilingZones ?? []).map(({ id, center, size, dropM, floor }) => ({ id, center, size, dropM, floor })),
+    ceilingZones: (project.ceilingZones ?? []).map(({ id, center, size, dropM, kind, thicknessM, floor }) => ({
+      id,
+      center,
+      size,
+      dropM,
+      kind,
+      thicknessM,
+      floor
+    })),
     floorZones: (project.floorZones ?? []).map(({ id, center, size, dropM, floor }) => ({ id, center, size, dropM, floor }))
   });
 

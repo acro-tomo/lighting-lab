@@ -378,7 +378,7 @@ const FloorZoneMesh = ({
   );
 };
 
-// 下げ天井: 天井から dropM 分だけ垂れ下がる軒（ソフィット）の箱として描く。
+// 下げ天井と中2階床を、指定された下面高さに合わせて描く。
 const CeilingZoneMesh = ({
   zone,
   ceilingHeightM,
@@ -394,10 +394,13 @@ const CeilingZoneMesh = ({
 }) => {
   const pathTraced = usePathTraced();
   const drop = Math.max(0.02, zone.dropM);
+  const isMezzanine = zone.kind === "mezzanine";
+  const height = isMezzanine ? Math.max(0.02, zone.thicknessM ?? 0.18) : drop;
+  const centerY = isMezzanine ? ceilingHeightM - zone.dropM + height / 2 : ceilingHeightM - drop / 2;
   return (
-    <group position={[zone.center.x, ceilingHeightM - drop / 2, zone.center.z]}>
+    <group position={[zone.center.x, centerY, zone.center.z]}>
       <mesh receiveShadow castShadow>
-        <boxGeometry args={[zone.size.x, drop, zone.size.z]} />
+        <boxGeometry args={[zone.size.x, height, zone.size.z]} />
         <meshStandardMaterial
           color={debugColorForRole("ceiling", debugMode, material.baseColor)}
           roughness={material.roughness}
@@ -406,7 +409,7 @@ const CeilingZoneMesh = ({
       </mesh>
       {selected && !pathTraced && (
         <mesh>
-          <boxGeometry args={[zone.size.x + 0.04, drop + 0.04, zone.size.z + 0.04]} />
+          <boxGeometry args={[zone.size.x + 0.04, height + 0.04, zone.size.z + 0.04]} />
           <meshBasicMaterial color="#f5c64d" wireframe transparent opacity={0.8} />
         </mesh>
       )}

@@ -43,7 +43,10 @@ const zoneSchema = z
   })
   .passthrough();
 
-const ceilingZoneSchema = zoneSchema;
+const ceilingZoneSchema = zoneSchema.extend({
+  kind: z.enum(["soffit", "mezzanine"]).optional(),
+  thicknessM: z.number().min(0.02).optional()
+});
 const floorZoneSchema = zoneSchema;
 
 const voidSchema = z
