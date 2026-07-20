@@ -101,6 +101,11 @@ const en: Record<string, string> = {
   "プロパティインスペクター": "Properties inspector",
   "戻る": "Back",
   "部屋設定": "Room settings",
+  "部屋全体の設定 +": "Whole-room settings +",
+  "— 構造を選択 —": "— Choose a structure —",
+  "木造（初期 240mm）": "Wood frame (default 240 mm)",
+  "RC（初期 200mm）": "Reinforced concrete (default 200 mm)",
+  "自由入力": "Custom",
   "照明や家具は、2Dまたは3D画面で直接選択できます。": "Select lights and furniture directly in the 2D or 3D view.",
   "部屋の集計": "Room summary",
   "家具を編集": "Edit furniture",
@@ -440,6 +445,16 @@ const en: Record<string, string> = {
   ,"ギャラリーアートスポット 西": "Gallery art spotlight, west"
   ,"ギャラリーアートスポット 東": "Gallery art spotlight, east"
   ,"リビング彫刻スポット": "Living room sculpture spotlight"
+  ,"Mole風ラウンジチェア 西": "Mole-inspired lounge chair, west"
+  ,"Mole風ラウンジチェア 東": "Mole-inspired lounge chair, east"
+  ,"南壁ウォルナットメディアユニット": "South walnut media unit"
+  ,"薄いウォルナットメディア背面パネル": "Slim walnut media backing panel"
+  ,"南壁壁掛けTV": "South wall-mounted TV"
+  ,"東壁際の採光モルタル階段": "Daylit mortar stair by the east wall"
+  ,"階段下のストレリチア": "Bird of paradise beneath the stairs"
+  ,"南壁のテラコッタ抽象画": "Terracotta abstract art on south wall"
+  ,"南壁大判アートスポット": "South-wall large-art spotlight"
+  ,"メディア壁東端スポット": "Media-wall east-end spotlight"
   ,"デモの間取りを読み込みました。照明や家具を動かして部屋の雰囲気を試せます。": "Loaded the demo floor plan. Move lights and furniture to compare the room atmosphere."
   ,"自動保存データを読めませんでした。デモプロジェクトで起動しています。": "Could not read autosaved data. Starting with the demo project."
   ,"共有リンクのデモ間取りを読み込みますか？\nOK: デモを開く（作業中のプロジェクトはデモで上書き保存されます）\nキャンセル: 前回の続きを開く": "Open the demo floor plan from this shared link?\nOK: Open demo (your current project will be replaced in autosave)\nCancel: Continue your previous project"
