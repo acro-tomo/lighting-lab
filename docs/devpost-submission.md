@@ -6,7 +6,7 @@ Use this as a draft only. Do not submit or publish anything until the project ow
 
 | Field | Draft |
 | --- | --- |
-| Project title | `Lighting Lab`(動画・サムネイル・YouTubeと統一)— confirm before entering in Devpost |
+| Project title | `Lighting Lab` |
 | Category | Apps for Your Life |
 | Public GitHub repository | `https://github.com/acro-tomo/lighting-lab` |
 | Demo URL | `https://lighting-lab-46l.pages.dev/?demo=2` |
@@ -101,7 +101,7 @@ The core 2D/3D editor and rendering features already existed before this finaliz
 
 - [x] Production demo is deployed from the approved commit.
 - [x] Demo works on desktop and a phone.
-- [ ] Production and Preview feedback secrets are confirmed.
+- [x] Production feedback secrets are confirmed; Preview deployments are not used because this Pages project uses Direct Upload.
 - [x] Screenshot/thumbnail is replaced with a real product image.
 - [x] Public YouTube video under 3 minutes is uploaded.
 - [x] YouTube title, description, thumbnail, and public visibility are owner-approved.
