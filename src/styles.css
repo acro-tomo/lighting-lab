@@ -1030,6 +1030,8 @@ h2 {
 
 .form-grid {
   display: grid;
+  /* 子(textarea等)の内在min-contentで列が親パネルより広がるのを防ぐ。 */
+  grid-template-columns: minmax(0, 1fr);
   gap: 11px;
 }
 
