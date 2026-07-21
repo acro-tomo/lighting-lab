@@ -21,7 +21,8 @@
 | 1:36.5–1:41.5 | 明るく→暗く、余韻 | stills/A-dim | P9「Turn it down for a quiet evening.」+無音3s | 構図A固定(同一) | 全灯調光15%(色固定) |
 | 1:41.5–1:46.6 | 光の広がり: 狭い(カウンター中央だけ照らす) | stills/C-narrow | P10「You can also change how far the light spreads. Keep it focused on the center of the table,」 | 構図C固定: (-0.9,1.5,-0.6)→(3.0,0.95,-2.8) fov70 | アイランドダウンライト配光22°(色・明るさ固定) |
 | 1:46.6–1:53.0 | 広い(カウンター全面へ広がる)、余韻4s | stills/C-wide | P10「or open it up to light the whole surface.」+無音 | 構図C固定(同一) | 配光110°のみ変更 |
-| 1:53.0–2:06.0 | 部屋の中を歩く: リビング→ダイニングへ前進、終盤キッチンへ視線 | S6-walk 連番フレーム | P11「And you are not limited to one view. Walk through the room…」+無音6s | 目線高さ1.5m (-3.9,1.5,2.7)→(-1.35,1.5,-0.25) | 完成状態(2700K・82%・配光110°) |
+| 1:53.0–2:00.0 | 部屋の中を歩く(1): リビングへ — 南壁のアート・TV壁・ソファ・西側の縦長窓を見ながら前進 | S6a-living 連番フレーム | P11「And you are not limited to one view. Walk through the room, and see how the lighting feels from the sofa…」 | 目線高さ1.5m (0.3,1.5,-0.6)→(-0.9,1.5,0.3) 注視点リビング南西 | 完成状態(2700K・82%・配光110°) |
+| 2:00.0–2:06.0 | 部屋の中を歩く(2): ダイニングへ接近、キッチン方向へ視線 | S6b-dining 連番フレーム | 「…or from the kitchen.」+無音6s | (-3.0,1.5,1.6)→(-1.35,1.5,-0.25) | 同上 |
 | 2:06.0–2:09.9 | プロジェクト保存の実操作(Save projectクリック→保存通知) | U3 連番フレーム(実操作) | P12「Each plan can be saved, so you can compare your ideas side by side.」 | 通常レイアウト(固定) | — |
 | 2:09.9–2:13.0 | LDK全景へ切替(静止) | S8-pan 先頭フレーム | 無音 | 構図B広角: (-5.0,1.7,3.6) fov78 | 完成状態 |
 | 2:13.0–2:28.4 | LDK全体の緩やかな横パン | S8-pan 連番フレーム | P13「This project was built with Codex and GPT five point six…」 | (-5.0,1.7,3.6)→(-4.15,1.7,3.75) | 完成状態 |
@@ -45,6 +46,7 @@
 npm run dev -- --port 5174        # dev server
 node scripts/demo-video/capture-demo-assets.mjs   # 静止画・移動ショット連番フレーム
 node scripts/demo-video/capture-ui-frames.mjs     # UI操作の連番フレーム
+node scripts/demo-video/capture-walk2.mjs         # 歩行ショット(リビング/ダイニング)
 node scripts/demo-video/make-endcard.mjs          # エンドカードPNG
 node scripts/demo-video/compose.mjs               # ffmpeg合成 → MP4
 ```
