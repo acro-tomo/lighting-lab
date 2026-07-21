@@ -10,34 +10,43 @@ Use this as a draft only. Do not submit or publish anything until the project ow
 | Category | Apps for Your Life |
 | Public GitHub repository | `https://github.com/acro-tomo/lighting-lab` |
 | Demo URL | Confirm the approved production URL before submission. The expected Pages domain is `https://lighting-lab-46l.pages.dev/`. |
-| Demo video asset | `output/build-week-video/ldk-lighting-lab-build-week-demo-dining-high.mp4` (2:24, upload to public YouTube only after owner approval) |
-| Thumbnail draft | `output/build-week-video/devpost-thumbnail-draft.png` (1200 × 675; real 2D plan, 3D room, and dining-pendant settings) |
+| Demo video asset | `output/demo-video/lighting-lab-openai-build-week-demo.mp4` (2:58, 1080p30, upload to public YouTube only after owner approval) |
+| Thumbnail draft | `output/demo-video/lighting-lab-thumbnail.png` (1920 × 1080; warm/white split of the real dining view. 1280 × 720 JPG: `lighting-lab-thumbnail-1280.jpg`) |
 | Feedback Session ID | Paste the final `/feedback` Session ID here after it is created: `[SESSION_ID]` |
 | License | MIT |
 
 ## Tagline
 
-Explore home lighting choices in your own floor plan before construction.
+Try lighting in your own floor plan before you build.
 
 ## YouTube metadata draft
 
 **Title**
 
-`LDK Lighting Lab — Try Home Lighting Before Construction | OpenAI Build Week`
+`Lighting Lab — See Your Home's Lighting Before You Build`
 
 **Description**
 
-LDK Lighting Lab lets homeowners compare fixture placement, brightness, color temperature, and beam distribution in their own floor plan before construction.
+Choosing home lighting from drawings and catalogs is hard — you can't feel how a room will actually look at night until the house is built.
 
-In this demo, a dining-table pendant is adjusted from 2700K to 3500K, then compared by brightness, position, and beam distribution. The video also shows the synchronized 2D and 3D workflow, mobile view, and a completed high-quality Finished Look render.
+Lighting Lab is a free browser tool that lets you try lighting in your own floor plan. Import your plan, place fixtures, and walk through your future rooms in 3D.
 
-Built for OpenAI Build Week in the Apps for Your Life category. Codex with GPT-5.6 supported the Build Week finalization work: validating the existing app, reviewing renderer and mobile trade-offs, adding bilingual support, fixing completed-render PNG output, and preparing test and submission materials.
+In this demo:
+- Import a floor plan and see it become a 3D room
+- Pick a pendant light and place it over the dining table
+- Compare warm, neutral, and white light — same room, same furniture
+- Adjust brightness for cooking, work, or a quiet evening
+- Change how far the light spreads, from a focused pool to the whole counter
+- Walk through the living room, dining, and kitchen to check every angle
+- Save plans and compare your ideas
 
-Try the demo: `https://lighting-lab-46l.pages.dev/`
+Try it: `https://lighting-lab-46l.pages.dev/`
 
-Source code: `https://github.com/acro-tomo/lighting-lab`
+Source: `https://github.com/acro-tomo/lighting-lab`
 
-This is a visual simulator for lighting-layout and atmosphere comparison. It does not guarantee actual illuminance, light distribution, color, or the finished result.
+Built with Codex and GPT-5.6 during OpenAI Build Week.
+
+Note: Lighting Lab is a visual simulator for comparing lighting layouts and atmosphere. It does not guarantee actual illuminance (lux), light distribution, or the finished result.
 
 ## Project description
 
