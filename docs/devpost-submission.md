@@ -13,7 +13,7 @@ Use this as a draft only. Do not submit or publish anything until the project ow
 | Demo video URL | `https://youtu.be/NYJU0qqQP_s` |
 | Demo video asset | `output/demo-video/lighting-lab-openai-build-week-demo.mp4` (2:58, 1920 × 1080, 30 fps) |
 | Thumbnail draft | `output/demo-video/lighting-lab-thumbnail.png` (1920 × 1080; warm/white split of the real dining view. 1280 × 720 JPG: `lighting-lab-thumbnail-1280.jpg`) |
-| Feedback Session ID | Paste the final `/feedback` Session ID here after it is created: `[SESSION_ID]` |
+| Feedback Session ID | `019f6b99-da2f-7112-98d6-b37f6ea334c2` |
 | License | MIT |
 
 ## Tagline
@@ -104,6 +104,6 @@ The core 2D/3D editor and rendering features already existed before this finaliz
 - [ ] Production and Preview feedback secrets are confirmed.
 - [x] Screenshot/thumbnail is replaced with a real product image.
 - [x] Public YouTube video under 3 minutes is uploaded.
-- [ ] YouTube title, description, thumbnail, and public visibility are owner-approved.
-- [ ] `/feedback` Session ID is pasted.
+- [x] YouTube title, description, thumbnail, and public visibility are owner-approved.
+- [x] `/feedback` Session ID is pasted.
 - [ ] Project title, URL, and all copy are owner-approved.
