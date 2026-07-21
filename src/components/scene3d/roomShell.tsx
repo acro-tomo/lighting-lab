@@ -15,7 +15,7 @@ import type {
   WallSegment,
   WindowOpening
 } from "../../types";
-import { voidCeilingHeightAt } from "../../utils/ceiling";
+import { voidTopHeightM } from "../../utils/ceiling";
 import { visibleVoidSides, voidWallId } from "../../utils/fixtureMounting";
 import { voidWallPanelsWithOpenings } from "../../utils/wallOpenings";
 import { useEditMode, usePathTraced, usePlacement } from "./contexts";
@@ -51,7 +51,6 @@ export const RoomShell = ({
   // 吹き抜けは下階天井を開口するだけだと黒背景に抜けて「穴」に見える。
   // 上階天井の高さまで側面と上蓋で囲い、二層分の吹き抜けとして閉じる。
   // 天井付け照明の設置高さ(ceilingMountHeightAt)と同じ式を使い、見た目と設置高さを揃える。
-  const upperCeilingHeight = voidCeilingHeightAt(project, project.activeFloor ?? 1);
   const floorBounds = computeFloorBounds(project);
   const roomCenter = useMemo(
     () => new THREE.Vector3(floorBounds.centerX, 0, floorBounds.centerZ),
@@ -110,12 +109,15 @@ export const RoomShell = ({
           voidArea={voidArea}
           lowerY={project.room.ceilingHeightM}
           // 2階を見せるときは側面を2階床レベルまでに留め、上蓋は出さない（2階床/天井へ抜く）。
-          upperY={upperVoid ? project.room.ceilingHeightM : upperCeilingHeight}
+          // それ以外は void 単位の上端高さ(voidTopHeightM)を使う（個別heightM優先）。
+          upperY={upperVoid ? project.room.ceilingHeightM : voidTopHeightM(project, voidArea)}
           showLid={!upperVoid}
           walls={project.walls}
           windows={project.windows}
           material={ceilingMaterial}
           debugMode={debugMode}
+          selected={selection?.kind === "void" && selection.id === voidArea.id}
+          onSelect={onSelect}
         />
       ))}
       {project.walls.map((wall) => (
@@ -438,7 +440,9 @@ const VoidWell = ({
   windows,
   material,
   debugMode,
-  showLid = true
+  showLid = true,
+  selected,
+  onSelect
 }: {
   voidArea: VoidArea;
   lowerY: number;
@@ -449,6 +453,8 @@ const VoidWell = ({
   debugMode: RenderDebugMode;
   // 上蓋(天井蓋)を出すか。2階を見せるときは false にして上方へ抜く。
   showLid?: boolean;
+  selected: boolean;
+  onSelect: (selection: Selection) => void;
 }) => {
   const height = upperY - lowerY;
   if (height <= 0.02) return null;
@@ -546,7 +552,15 @@ const VoidWell = ({
           event.stopPropagation();
           placement.onPlaceOnWall?.(hit.wallId, hit.ratio, hit.y);
         }
-      : undefined
+      : !placement.pendingAdd
+        ? (event: ThreeEvent<PointerEvent>) => {
+            // グリップがあればそちらを優先して掴めるようにする（他の選択枠と同じ譲歩ルール）。
+            if (eventHitsDragHandle(event)) return;
+            event.stopPropagation();
+            // 選択中の吹き抜け壁を再クリックしたら選択解除（手軽に解除できるように）。
+            onSelect(selected ? null : { kind: "void", id: voidArea.id });
+          }
+        : undefined
   });
   const outsideOpacity = debugMode === "beauty" ? 0.36 : 0.62;
   return (

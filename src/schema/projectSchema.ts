@@ -56,7 +56,8 @@ const voidSchema = z
     center: vec2Schema,
     size: vec2Schema,
     openSides: z.array(voidSideSchema).optional(),
-    floor: floorSchema
+    floor: floorSchema,
+    heightM: z.number().optional()
   })
   .passthrough();
 

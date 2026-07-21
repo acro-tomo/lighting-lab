@@ -121,7 +121,7 @@ export const Inspector = ({ project, selection, canEditWalls, onCloseMobileSetti
           <WallInspector wall={selectedWall} project={project} updateWall={updateWall} updateMaterial={updateMaterial} />
         )}
         {selectedWindow && <WindowInspector windowItem={selectedWindow} project={project} updateWindow={updateWindow} />}
-        {selectedVoid && <VoidInspector voidArea={selectedVoid} updateVoid={updateVoid} />}
+        {selectedVoid && <VoidInspector voidArea={selectedVoid} project={project} updateVoid={updateVoid} />}
         {selectedCeilingZone && <CeilingZoneInspector zone={selectedCeilingZone} updateCeilingZone={updateCeilingZone} />}
         {selectedFloorZone && (
           <FloorZoneInspector

@@ -6,7 +6,7 @@ import { isAimable } from "../../data/fixtureCatalog";
 import type { RenderDebugMode } from "../../rendering/pathTracer";
 import { useProjectStore } from "../../store/projectStore";
 import type { LightFixture, Project, Selection } from "../../types";
-import { ceilingMountHeightAt, voidCeilingHeightAt } from "../../utils/ceiling";
+import { ceilingMountHeightAt, voidCeilingHeightAt, voidTopHeightM } from "../../utils/ceiling";
 import {
   isWallMountedFixture,
   nearestWallMountSurfaceAt,
@@ -539,7 +539,11 @@ const wallMountHeightLimit = (project: Project, fixture: LightFixture): number =
   const floor = fixture.floor ?? project.activeFloor ?? 1;
   const surface = nearestWallMountSurfaceAt(project, fixture.position.x, fixture.position.z, floor);
   if (!surface) return project.room.ceilingHeightM;
-  if (parseVoidWallId(surface.wallId)) return voidCeilingHeightAt(project, floor);
+  const voidWall = parseVoidWallId(surface.wallId);
+  if (voidWall) {
+    const matchedVoid = project.voids.find((voidArea) => voidArea.id === voidWall.voidId);
+    return matchedVoid ? voidTopHeightM(project, matchedVoid) : voidCeilingHeightAt(project, floor);
+  }
   const wall = project.walls.find((candidate) => candidate.id === surface.wallId);
   return wall?.heightM ?? project.room.ceilingHeightM;
 };

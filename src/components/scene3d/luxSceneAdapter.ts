@@ -5,7 +5,7 @@ import type {
   RadianceHit,
   RadianceScene
 } from "../../../photometric/src/photometry/probes";
-import type { Project } from "../../types";
+import type { Project, VoidArea } from "../../types";
 import { voidCeilingHeightAt } from "../../utils/ceiling";
 import { objectHasMarker } from "./raycastUtils";
 import { computeRoomPolygon, type FloorBounds } from "./roomGeometry";
@@ -169,7 +169,7 @@ const rectangularCeilingOverrides = (
       const minZ = sortedZ[zIndex]!;
       const maxZ = sortedZ[zIndex + 1]!;
       const z = (minZ + maxZ) / 2;
-      const inVoid = project.voids.some(
+      const matchedVoid: VoidArea | undefined = project.voids.find(
         (area) =>
           Math.abs(x - area.center.x) <= area.size.x / 2 &&
           Math.abs(z - area.center.z) <= area.size.z / 2
@@ -183,7 +183,7 @@ const rectangularCeilingOverrides = (
           dropM = Math.max(dropM, zone.dropM);
         }
       }
-      if (!inVoid && dropM === 0) continue;
+      if (!matchedVoid && dropM === 0) continue;
       overrides.push({
         polygon: [
           { x: minX, y: -minZ },
@@ -191,7 +191,12 @@ const rectangularCeilingOverrides = (
           { x: maxX, y: -maxZ },
           { x: minX, y: -maxZ }
         ],
-        height: (inVoid ? voidCeilingHeightM : project.room.ceilingHeightM) - dropM
+        height:
+          (matchedVoid
+            ? matchedVoid.heightM !== undefined
+              ? project.room.ceilingHeightM + matchedVoid.heightM
+              : voidCeilingHeightM
+            : project.room.ceilingHeightM) - dropM
       });
     }
   }

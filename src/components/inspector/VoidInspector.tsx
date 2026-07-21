@@ -1,5 +1,6 @@
-import type { VoidArea, VoidSide } from "../../types";
+import type { Project, VoidArea, VoidSide } from "../../types";
 import { mToMm, mmToM } from "../../utils/units";
+import { voidCeilingHeightAt } from "../../utils/ceiling";
 import { NumberField, TextField } from "./fields";
 import { useI18n } from "../../i18n";
 
@@ -12,13 +13,16 @@ const voidSideLabels: { side: VoidSide; label: string }[] = [
 
 export const VoidInspector = ({
   voidArea,
+  project,
   updateVoid
 }: {
   voidArea: VoidArea;
+  project: Project;
   updateVoid: (id: string, patch: Partial<VoidArea>) => void;
 }) => {
   const { t } = useI18n();
   const openSides = voidArea.openSides ?? [];
+  const autoHeightM = voidCeilingHeightAt(project, voidArea.floor ?? 1) - project.room.ceilingHeightM;
   const toggleSide = (side: VoidSide) => {
     const next = openSides.includes(side)
       ? openSides.filter((item) => item !== side)
@@ -36,6 +40,14 @@ export const VoidInspector = ({
         <NumberField label={t("幅")} unit="mm" value={mToMm(voidArea.size.x)} min={100} onChange={(value) => updateVoid(voidArea.id, { size: { ...voidArea.size, x: mmToM(value) } })} />
         <NumberField label={t("奥行")} unit="mm" value={mToMm(voidArea.size.z)} min={100} onChange={(value) => updateVoid(voidArea.id, { size: { ...voidArea.size, z: mmToM(value) } })} />
       </div>
+      <NumberField
+        label={t("高さ")}
+        unit="mm"
+        value={mToMm(voidArea.heightM ?? autoHeightM)}
+        min={100}
+        onChange={(value) => updateVoid(voidArea.id, { heightM: mmToM(value) })}
+      />
+      <p className="field-hint">{t("未指定時は天井高さや2階の壁高さから自動計算されます。")}</p>
       <label className="field">
         <span>{t("内周壁")}</span>
         <div className="chip-row">

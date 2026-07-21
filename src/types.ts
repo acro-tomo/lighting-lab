@@ -104,6 +104,8 @@ export type VoidArea = {
   openSides?: VoidSide[];
   /** 所属階。undefined = 1階。 */
   floor?: FloorTag;
+  /** 吹き抜けの高さ(m)。通常天井(project.room.ceilingHeightM)から上端までの距離。undefined = 自動(壁高さ or 通常天井+1.4mから計算)。 */
+  heightM?: number;
 };
 
 // 下げ天井 / メザニン: 指定した矩形領域の下面を dropM で定義する。

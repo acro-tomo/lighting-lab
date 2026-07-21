@@ -1,4 +1,4 @@
-import type { FloorTag, Project, Vec2M } from "../types";
+import type { FloorTag, Project, Vec2M, VoidArea } from "../types";
 
 // 吹き抜け上部の見かけの天井高さ。Scene3D の吹き抜け表示(RoomShell)と同じ式で揃える
 // （2階の壁がもっと高ければそれに合わせ、無ければ通常天井+1.4mを二層分の目安にする）。
@@ -11,9 +11,16 @@ export const voidCeilingHeightAt = (project: Project, floor: FloorTag): number =
   return wallMaxHeight > project.room.ceilingHeightM + 0.05 ? wallMaxHeight : project.room.ceilingHeightM + 1.4;
 };
 
-// 点(x,z)がいずれかの吹き抜けの水平フットプリント内か（同じ階のみ）。
-const isInVoidFootprint = (project: Project, point: Vec2M, floor: FloorTag): boolean =>
-  (project.voids ?? []).some(
+// 個々の吹き抜けの上端高さ。voidArea.heightM が設定されていればそちらを優先し、
+// 無ければ同じ階で共有される自動計算値(voidCeilingHeightAt)にフォールバックする。
+export const voidTopHeightM = (project: Project, voidArea: VoidArea): number =>
+  voidArea.heightM !== undefined
+    ? project.room.ceilingHeightM + voidArea.heightM
+    : voidCeilingHeightAt(project, voidArea.floor ?? 1);
+
+// 点(x,z)がいずれかの吹き抜けの水平フットプリント内にあれば、そのVoidAreaを返す（同じ階のみ）。
+const voidAtFootprint = (project: Project, point: Vec2M, floor: FloorTag): VoidArea | undefined =>
+  (project.voids ?? []).find(
     (voidArea) =>
       (voidArea.floor ?? 1) === floor &&
       Math.abs(point.x - voidArea.center.x) <= voidArea.size.x / 2 &&
@@ -31,8 +38,7 @@ export const ceilingMountHeightAt = (project: Project, point: Vec2M, floor?: Flo
   }
   // 吹き抜けの真下は通常天井が無いので、天井付け照明は吹き抜け上部の高さを基準にする
   // （そのままだと届かない天井高さに埋め込まれ、ペンダントも吊り長さ不足で浮いて見える）。
-  const baseHeight = isInVoidFootprint(project, point, activeFloor)
-    ? voidCeilingHeightAt(project, activeFloor)
-    : project.room.ceilingHeightM;
+  const matchedVoid = voidAtFootprint(project, point, activeFloor);
+  const baseHeight = matchedVoid ? voidTopHeightM(project, matchedVoid) : project.room.ceilingHeightM;
   return baseHeight - drop;
 };
