@@ -106,4 +106,4 @@ The core 2D/3D editor and rendering features already existed before this finaliz
 - [x] Public YouTube video under 3 minutes is uploaded.
 - [x] YouTube title, description, thumbnail, and public visibility are owner-approved.
 - [x] `/feedback` Session ID is pasted.
-- [ ] Project title, URL, and all copy are owner-approved.
+- [x] Project title, URL, and all copy are owner-approved.
