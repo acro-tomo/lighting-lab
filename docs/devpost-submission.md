@@ -6,7 +6,7 @@ Use this as a draft only. Do not submit or publish anything until the project ow
 
 | Field | Draft |
 | --- | --- |
-| Project title | `LDK Lighting Lab` — confirm before entering in Devpost |
+| Project title | `Lighting Lab`(動画・サムネイル・YouTubeと統一)— confirm before entering in Devpost |
 | Category | Apps for Your Life |
 | Public GitHub repository | `https://github.com/acro-tomo/lighting-lab` |
 | Demo URL | `https://lighting-lab-46l.pages.dev/?demo=2` |
