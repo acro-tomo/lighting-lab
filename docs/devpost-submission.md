@@ -9,7 +9,7 @@ Use this as a draft only. Do not submit or publish anything until the project ow
 | Project title | `LDK Lighting Lab` — confirm before entering in Devpost |
 | Category | Apps for Your Life |
 | Public GitHub repository | `https://github.com/acro-tomo/lighting-lab` |
-| Demo URL | `https://lighting-lab-46l.pages.dev/?demo=1` |
+| Demo URL | `https://lighting-lab-46l.pages.dev/?demo=2` |
 | Demo video URL | `https://youtu.be/NYJU0qqQP_s` |
 | Demo video asset | `output/demo-video/lighting-lab-openai-build-week-demo.mp4` (2:58, 1920 × 1080, 30 fps) |
 | Thumbnail draft | `output/demo-video/lighting-lab-thumbnail.png` (1920 × 1080; warm/white split of the real dining view. 1280 × 720 JPG: `lighting-lab-thumbnail-1280.jpg`) |
@@ -41,7 +41,7 @@ In this demo:
 - Walk through the living room, dining, and kitchen to check every angle
 - Save plans and compare your ideas
 
-Try it: `https://lighting-lab-46l.pages.dev/?demo=1`
+Try it: `https://lighting-lab-46l.pages.dev/?demo=2`
 
 Source: `https://github.com/acro-tomo/lighting-lab`
 
