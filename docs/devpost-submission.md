@@ -9,8 +9,9 @@ Use this as a draft only. Do not submit or publish anything until the project ow
 | Project title | `LDK Lighting Lab` — confirm before entering in Devpost |
 | Category | Apps for Your Life |
 | Public GitHub repository | `https://github.com/acro-tomo/lighting-lab` |
-| Demo URL | Confirm the approved production URL before submission. The expected Pages domain is `https://lighting-lab-46l.pages.dev/`. |
-| Demo video asset | `output/demo-video/lighting-lab-openai-build-week-demo.mp4` (2:58, 1080p30, upload to public YouTube only after owner approval) |
+| Demo URL | `https://lighting-lab-46l.pages.dev/?demo=1` |
+| Demo video URL | `https://youtu.be/NYJU0qqQP_s` |
+| Demo video asset | `output/demo-video/lighting-lab-openai-build-week-demo.mp4` (2:58, 1920 × 1080, 30 fps) |
 | Thumbnail draft | `output/demo-video/lighting-lab-thumbnail.png` (1920 × 1080; warm/white split of the real dining view. 1280 × 720 JPG: `lighting-lab-thumbnail-1280.jpg`) |
 | Feedback Session ID | Paste the final `/feedback` Session ID here after it is created: `[SESSION_ID]` |
 | License | MIT |
@@ -27,7 +28,7 @@ Try lighting in your own floor plan before you build.
 
 **Description**
 
-Choosing home lighting from drawings and catalogs is hard — you can't feel how a room will actually look at night until the house is built.
+Choosing home lighting from drawings and catalogs is hard — you cannot feel how the room will actually look until the house is built.
 
 Lighting Lab is a free browser tool that lets you try lighting in your own floor plan. Import your plan, place fixtures, and walk through your future rooms in 3D.
 
@@ -35,12 +36,12 @@ In this demo:
 - Import a floor plan and see it become a 3D room
 - Pick a pendant light and place it over the dining table
 - Compare warm, neutral, and white light — same room, same furniture
-- Adjust brightness for cooking, work, or a quiet evening
+- Adjust brightness for cooking, work, or a calmer room
 - Change how far the light spreads, from a focused pool to the whole counter
 - Walk through the living room, dining, and kitchen to check every angle
 - Save plans and compare your ideas
 
-Try it: `https://lighting-lab-46l.pages.dev/`
+Try it: `https://lighting-lab-46l.pages.dev/?demo=1`
 
 Source: `https://github.com/acro-tomo/lighting-lab`
 
@@ -98,11 +99,11 @@ The core 2D/3D editor and rendering features already existed before this finaliz
 
 ## Submission checklist
 
-- [ ] Production demo is deployed from the approved commit.
-- [ ] Demo works on desktop and a phone.
+- [x] Production demo is deployed from the approved commit.
+- [x] Demo works on desktop and a phone.
 - [ ] Production and Preview feedback secrets are confirmed.
-- [ ] Screenshot/thumbnail is replaced with a real product image.
-- [ ] Public YouTube video under 3 minutes is uploaded.
+- [x] Screenshot/thumbnail is replaced with a real product image.
+- [x] Public YouTube video under 3 minutes is uploaded.
 - [ ] YouTube title, description, thumbnail, and public visibility are owner-approved.
 - [ ] `/feedback` Session ID is pasted.
 - [ ] Project title, URL, and all copy are owner-approved.
