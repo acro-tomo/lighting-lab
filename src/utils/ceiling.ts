@@ -2,7 +2,7 @@ import type { FloorTag, Project, Vec2M, VoidArea } from "../types";
 
 // 吹き抜け上部の見かけの天井高さ。Scene3D の吹き抜け表示(RoomShell)と同じ式で揃える
 // （2階の壁がもっと高ければそれに合わせ、無ければ通常天井+1.4mを二層分の目安にする）。
-// isInVoidFootprint と同様、壁は所属階でフィルタする（他階の壁高さを混ぜない）。
+// voidAtFootprint と同様、壁は所属階でフィルタする（他階の壁高さを混ぜない）。
 export const voidCeilingHeightAt = (project: Project, floor: FloorTag): number => {
   const wallMaxHeight = project.walls.reduce(
     (max, wall) => ((wall.floor ?? 1) === floor ? Math.max(max, wall.heightM) : max),

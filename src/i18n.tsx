@@ -250,6 +250,8 @@ const en: Record<string, string> = {
   ,"階段": "Stairs"
   ,"幅": "Width"
   ,"高さ": "Height"
+  ,"高さ（天井からの追加分）": "Height (added above ceiling)"
+  ,"通常天井の高さから上端までの追加分です。未指定時は天井高さや2階の壁高さから自動計算されます。": "Extra height above the normal ceiling to the void's top. If unset, it's calculated automatically from the ceiling height or the upper floor's wall height."
   ,"奥行": "Depth"
   ,"回転": "Rotation"
   ,"影を落とす": "Cast shadow"

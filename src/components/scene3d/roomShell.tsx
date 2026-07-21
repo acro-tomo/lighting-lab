@@ -571,7 +571,7 @@ const VoidWell = ({
           position={config.position}
           receiveShadow
           castShadow
-          userData={{ wallId: voidWallId(voidArea.id, config.sideName) }}
+          userData={{ wallId: voidWallId(voidArea.id, config.sideName), selectable: true }}
           {...voidWallHandlers(config.sideName)}
         >
           <boxGeometry args={config.args} />

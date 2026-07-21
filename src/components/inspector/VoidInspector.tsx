@@ -41,13 +41,13 @@ export const VoidInspector = ({
         <NumberField label={t("奥行")} unit="mm" value={mToMm(voidArea.size.z)} min={100} onChange={(value) => updateVoid(voidArea.id, { size: { ...voidArea.size, z: mmToM(value) } })} />
       </div>
       <NumberField
-        label={t("高さ")}
+        label={t("高さ（天井からの追加分）")}
         unit="mm"
         value={mToMm(voidArea.heightM ?? autoHeightM)}
         min={100}
         onChange={(value) => updateVoid(voidArea.id, { heightM: mmToM(value) })}
       />
-      <p className="field-hint">{t("未指定時は天井高さや2階の壁高さから自動計算されます。")}</p>
+      <p className="field-hint">{t("通常天井の高さから上端までの追加分です。未指定時は天井高さや2階の壁高さから自動計算されます。")}</p>
       <label className="field">
         <span>{t("内周壁")}</span>
         <div className="chip-row">

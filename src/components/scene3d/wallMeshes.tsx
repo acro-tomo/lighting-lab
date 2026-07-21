@@ -644,12 +644,16 @@ export const VoidMarker = ({
           <meshBasicMaterial color="#f5c64d" wireframe transparent opacity={0.45} />
         </mesh>
       )}
-      {!pathTraced && (
-        <mesh position={[0, -0.39, 0]} rotation-x={-Math.PI / 2}>
-          <planeGeometry args={[voidArea.size.x, voidArea.size.z]} />
+      {/* 全辺開放の吹き抜け(VoidWellの壁パネルが無い)でも常駐パストレ中に選択できるよう、
+          当たり判定用の面は非表示(colorWrite=false)にしつつ常時マウントする。 */}
+      <mesh position={[0, -0.39, 0]} rotation-x={-Math.PI / 2}>
+        <planeGeometry args={[voidArea.size.x, voidArea.size.z]} />
+        {pathTraced ? (
+          <meshBasicMaterial colorWrite={false} depthWrite={false} transparent opacity={0} />
+        ) : (
           <meshBasicMaterial color="#050505" transparent opacity={selected ? 0.42 : 0.16} />
-        </mesh>
-      )}
+        )}
+      </mesh>
     </group>
   );
 };
