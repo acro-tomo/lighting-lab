@@ -1,29 +1,61 @@
+# Lighting Lab — Build Week demo narration (production script with pause / visual cues)
+# Target: total video ~2:55–3:00 / narration ~2:20–2:30 / intentional silence ~34s
+# Cues in [brackets] are NOT read by TTS. Use build-week-demo-narration-en.txt as the TTS input.
+
 Choosing lighting for a new home usually happens on paper, with drawings and catalogs. Lighting Lab lets you see and compare your home's lighting before the house is built.
+
+[pause 2 seconds — first full view of the app screen, let the viewer take in the UI]
 
 It is hard to know from a drawing how a room will actually feel. Will it be bright enough? How will the table and the walls be lit? Will warm light or white light suit the room better? And after construction, moving a fixture can mean extra cost and extra work.
 
+[pause 1 second — transition to the floor plan import screen]
+
 With Lighting Lab, you start from your own floor plan. Load it in the browser, and recreate your future rooms in three dimensions. There is no complex design software to learn.
+
+[pause 3 seconds — show the imported floor plan and the 3D room it becomes]
 
 Then, pick a light, and place it where you want it. The room updates right away, so you can see how each choice looks at night.
 
+[pause 2 seconds — show the newly placed light glowing in the room]
+
 Here is the light above the dining table. Right now, it is a warm light. It feels cozy and relaxed, a nice light for a slow dinner.
+
+[show the lighting change — switch warm to the middle setting, pause 2 seconds]
 
 Now, a more natural light. It keeps a little warmth, but makes everything easier to see.
 
+[show the lighting change — switch to the white setting, pause 2 seconds]
+
 And now, a white light. Crisp and clear, the kind of light that helps you read or work.
+
+[allow the viewer to compare — hold the white light 2 seconds]
 
 Same room, same furniture. Only the light has changed.
 
 Brightness is just as easy. Turn it up for cooking or homework. Turn it down for a quiet evening.
 
+[show the lighting change — brighter, then dimmer, pause 2 seconds]
+
 You can also change how far the light spreads. Keep it focused on the center of the table, or open it up to light the whole surface.
+
+[show the lighting change — narrow beam widening across the table, pause 3 seconds]
 
 And you are not limited to one view. Walk through the room, and see how the lighting feels from the sofa, or from the kitchen.
 
+[show the room without narration — walkthrough between viewpoints, 5 seconds]
+
 Each plan can be saved, so you can compare your ideas side by side.
+
+[allow the viewer to compare — comparison view of saved plans, 2 seconds]
 
 This project was built with Codex and GPT five point six, from the first day. During Build Week, they reviewed the lighting behavior, improved performance, and helped deliver the mobile experience, the English interface, and automated tests.
 
+[pause 1 second — return to the finished room]
+
 Lighting Lab does not tell you there is one correct answer. It helps you try, compare, and decide with confidence, before the house is built.
 
+[pause 1 second]
+
 See your lighting first. Then build your home.
+
+[show the room without narration — final completed lighting plan, 4 seconds, then end]
