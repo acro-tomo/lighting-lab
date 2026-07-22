@@ -214,6 +214,8 @@ const en: Record<string, string> = {
   ,"色温度": "Color temperature"
   ,"吊り長さ": "Drop length"
   ,"天井から": "From ceiling"
+  ,"設置高さ": "Mount height"
+  ,"床からの高さ": "Height from floor"
   ,"器具・配光": "Fixture and distribution"
   ,"器具": "Fixture"
   ,"グレアレス": "glare-reduced"

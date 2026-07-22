@@ -63,6 +63,16 @@ export const LightInspector = ({
         </label>
       </div>
       <section className="light-inspector-section">
+        <h3>{t("設置高さ")}</h3>
+        <NumberField
+          label={t("床からの高さ")}
+          unit="mm"
+          value={mToMm(light.position.y)}
+          min={0}
+          onChange={(value) => updateLight(light.id, { position: { ...light.position, y: mmToM(value) }, mountHeightM: mmToM(value) })}
+        />
+      </section>
+      <section className="light-inspector-section">
         <h3>{t("色温度")}</h3>
         <ColorTempPresets
           value={light.colorTemperatureK}
@@ -159,7 +169,6 @@ export const LightInspector = ({
         </label>
         <div className="field-row">
           <NumberField label="X" unit="mm" value={mToMm(light.position.x)} onChange={(value) => updateLight(light.id, { position: { ...light.position, x: mmToM(value) } })} />
-          <NumberField label="Y" unit="mm" value={mToMm(light.position.y)} onChange={(value) => updateLight(light.id, { position: { ...light.position, y: mmToM(value) }, mountHeightM: mmToM(value) })} />
           <NumberField label="Z" unit="mm" value={mToMm(light.position.z)} onChange={(value) => updateLight(light.id, { position: { ...light.position, z: mmToM(value) } })} />
         </div>
       </AdvancedPositionDetails>
