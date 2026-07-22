@@ -9,7 +9,7 @@ import type { MaterialPreset, Project, Selection, VoidArea, WallSegment, WindowO
 import { wallInwardNormal } from "../../utils/wallGeometry";
 import { wallOpeningsForWall } from "../../utils/wallOpenings";
 import { isWallPending, useEditMode, usePathTraced, usePlacement } from "./contexts";
-import { useFloorDrag, useWallAxisDrag } from "./dragHooks";
+import { useWallAxisDrag } from "./dragHooks";
 import { debugColorForRole, useWallpaperTexture } from "./materials";
 import { eventHitsDragHandle, eventHitsOtherWall, eventHitsSelectable } from "./raycastUtils";
 import type { FloorBounds } from "./roomGeometry";
@@ -596,26 +596,13 @@ export const VoidMarker = ({
 }) => {
   const pathTraced = usePathTraced();
   const placement = usePlacement();
-  const editMode = useEditMode();
-  const updateVoid = useProjectStore((store) => store.updateVoid);
-  // 選択済みオブジェクトの再クリックで選択解除するトグル判定用。実際にドラッグが
-  // 発生した場合（=移動操作）は解除しない、クリックのみ(移動なし)の時だけ解除する。
-  const wasSelectedRef = useRef(false);
-  const movedRef = useRef(false);
-  const drag = useFloorDrag(
-    { x: voidArea.center.x, z: voidArea.center.z },
-    heightM + 0.36,
-    (x, z) => {
-      movedRef.current = true;
-      updateVoid(voidArea.id, { center: { x, z } });
-    }
-  );
   return (
     <group
       position={[voidArea.center.x, heightM + 0.36, voidArea.center.z]}
       // 外壁越しに奥のこの吹き抜けを選べるよう、選択可能マーカーを付与。
       userData={{ selectable: true }}
       // 選択は pointerdown で確定（onClick だと手前→背後へ click が伝播して選択転写が起きる）。
+      // 吹き抜けは3Dビュー上では選択のみ（移動は2D平面またはInspectorの数値入力で行う）。
       onPointerDown={(event: ThreeEvent<PointerEvent>) => {
         // 配置中はクリックを床キャッチャーへ素通りさせる（選択も伝播停止もしない）。
         if (placement.pendingAdd) return;
@@ -623,20 +610,9 @@ export const VoidMarker = ({
         // 優先して掴めるようにする（吹き抜け際の照明グリップを掴みにくい問題への対処）。
         if (eventHitsDragHandle(event)) return;
         event.stopPropagation();
-        wasSelectedRef.current = selected;
-        movedRef.current = false;
         // 選択中の吹き抜けを再クリックしたら選択解除（手軽に解除できるように）。
-        if (!selected) onSelect({ kind: "void", id: voidArea.id });
-        if (editMode === "select" && selected) drag.onPointerDown(event);
+        onSelect(selected ? null : { kind: "void", id: voidArea.id });
       }}
-      onPointerMove={editMode === "select" ? drag.onPointerMove : undefined}
-      onPointerUp={(event: ThreeEvent<PointerEvent>) => {
-        drag.onPointerUp(event);
-        if (wasSelectedRef.current && !movedRef.current) onSelect(null);
-        wasSelectedRef.current = false;
-      }}
-      onPointerCancel={drag.onPointerCancel}
-      onLostPointerCapture={drag.onLostPointerCapture}
     >
       {selected && !pathTraced && (
         <mesh>
