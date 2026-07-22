@@ -85,7 +85,8 @@ export type WindowOpening = {
   centerRatio: number;
   widthM: number;
   heightM: number;
-  sillHeightM: number;
+  /** 床から窓上端までの高さ(m)。 */
+  topHeightM: number;
   hasGlass: boolean;
   /** "window"=窓(枠+ガラス) / "opening"=開口 / "door"=扉(ドア板)。未指定はhasGlassから判定。 */
   style?: "window" | "opening" | "door";

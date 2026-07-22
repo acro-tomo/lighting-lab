@@ -88,8 +88,8 @@ export const addInteriorWallPanel = (
     return {
       cx: cxCentered + length / 2,
       w: windowItem.widthM,
-      bottom: windowItem.sillHeightM,
-      top: windowItem.sillHeightM + windowItem.heightM
+      bottom: windowItem.topHeightM - windowItem.heightM,
+      top: windowItem.topHeightM
     };
   });
 

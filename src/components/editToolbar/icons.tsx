@@ -70,7 +70,7 @@ function LightIcon({ kind }: { kind: string }) {
 // 窓/建具アイコン: WindowPreset の style・寸法比を反映
 function WindowIcon({ preset }: { preset: WindowPreset }) {
   const totalH = 2.6; // 壁高さ基準
-  const top = preset.sillHeightM / totalH;
+  const top = Math.max(0, (totalH - preset.topHeightM) / totalH);
   const h = Math.min(preset.heightM / totalH, 1 - top);
   const aspect = preset.widthM / preset.heightM;
 
@@ -360,7 +360,7 @@ export function ItemIcon({ kind }: { kind: string }) {
   }
   if (kind === "door") {
     // 汎用扉アイコン
-    const mock: WindowPreset = { id: "door", label: "扉", widthM: 0.9, heightM: 2.0, sillHeightM: 0, hasGlass: false, style: "door" };
+    const mock: WindowPreset = { id: "door", label: "扉", widthM: 0.9, heightM: 2.0, topHeightM: 2.0, hasGlass: false, style: "door" };
     return <WindowIcon preset={mock} />;
   }
   if (kind.startsWith("furniture:")) {

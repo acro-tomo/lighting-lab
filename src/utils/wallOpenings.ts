@@ -155,8 +155,8 @@ export const voidWallPanelsWithOpenings = (
   const holes = wallOpeningsForWall(wall, walls, windows).map((windowItem) => ({
     cx: windowItem.centerRatio * length,
     w: windowItem.widthM,
-    bottom: windowItem.sillHeightM - lowerY,
-    top: windowItem.sillHeightM + windowItem.heightM - lowerY
+    bottom: windowItem.topHeightM - windowItem.heightM - lowerY,
+    top: windowItem.topHeightM - lowerY
   }));
   return wallPanelsWithHoles(length, height, holes);
 };

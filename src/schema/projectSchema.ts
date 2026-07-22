@@ -85,12 +85,19 @@ const windowSchema = z
     centerRatio: z.number(),
     widthM: z.number(),
     heightM: z.number(),
-    sillHeightM: z.number().default(0),
+    topHeightM: z.number().optional(),
+    // 旧仕様（床から下端）。読込時に上端基準へ移行する後方互換用。
+    sillHeightM: z.number().optional(),
     hasGlass: z.boolean().default(true),
     style: z.enum(["window", "opening", "door"]).optional(),
     floor: floorSchema
   })
-  .passthrough();
+  .passthrough()
+  .transform(({ sillHeightM, topHeightM, heightM, ...rest }) => ({
+    ...rest,
+    heightM,
+    topHeightM: topHeightM ?? (sillHeightM ?? 0) + heightM
+  }));
 
 const furnitureTypeSchema = z.enum([
   "roundTable",

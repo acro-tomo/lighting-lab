@@ -47,7 +47,7 @@ export const WindowInspector = ({
     <div className="field-row">
       <NumberField label={t("幅")} unit="mm" value={mToMm(windowItem.widthM)} min={100} onChange={(value) => updateWindow(windowItem.id, { widthM: mmToM(value) })} />
       <NumberField label={t("高さ")} unit="mm" value={mToMm(windowItem.heightM)} min={100} onChange={(value) => updateWindow(windowItem.id, { heightM: mmToM(value) })} />
-      <NumberField label={t("床から")} unit="mm" value={mToMm(windowItem.sillHeightM)} min={0} onChange={(value) => updateWindow(windowItem.id, { sillHeightM: mmToM(value) })} />
+      <NumberField label={t("床から上端")} unit="mm" value={mToMm(windowItem.topHeightM)} min={windowItem.heightM} onChange={(value) => updateWindow(windowItem.id, { topHeightM: mmToM(value) })} />
     </div>
     <NumberField label={t("壁上の位置")} unit="%" value={Math.round(windowItem.centerRatio * 100)} min={0} max={100} onChange={(value) => updateWindow(windowItem.id, { centerRatio: clamp(value / 100, 0, 1) })} />
   </div>

@@ -261,7 +261,7 @@ const en: Record<string, string> = {
   ,"扉": "Door"
   ,"開口": "Opening"
   ,"設置する壁": "Wall to place on"
-  ,"床から": "From floor"
+  ,"床から上端": "Floor to top edge"
   ,"壁上の位置": "Position on wall"
   ,"内周壁": "Interior walls"
   ,"壁あり": "Wall"

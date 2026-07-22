@@ -273,8 +273,8 @@ export const WallMesh = ({
       // wallPanelsWithHoles は壁内座標(0..length)で扱うので中心基準から変換。
       cx: cxCentered + length / 2,
       w: windowItem.widthM,
-      bottom: windowItem.sillHeightM,
-      top: windowItem.sillHeightM + windowItem.heightM
+      bottom: windowItem.topHeightM - windowItem.heightM,
+      top: windowItem.topHeightM
     };
   });
   // 手すりは「抜け」が要るのでソリッドパネルにせず笠木+縦支柱で組む（窓くり抜きは不要）。
@@ -445,7 +445,7 @@ export const WindowMesh = ({
   const updateWindow = useProjectStore((store) => store.updateWindow);
   const centerX = wall ? wall.start.x + (wall.end.x - wall.start.x) * windowItem.centerRatio : 0;
   const centerZ = wall ? wall.start.z + (wall.end.z - wall.start.z) * windowItem.centerRatio : 0;
-  const centerY = windowItem.sillHeightM + windowItem.heightM / 2;
+  const centerY = windowItem.topHeightM - windowItem.heightM / 2;
   // 選択済みオブジェクトの再クリックで選択解除するトグル判定用。実際にドラッグが
   // 発生した場合（=移動操作）は解除しない、クリックのみ(移動なし)の時だけ解除する。
   const wasSelectedRef = useRef(false);
