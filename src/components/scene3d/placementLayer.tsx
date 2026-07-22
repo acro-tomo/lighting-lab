@@ -157,13 +157,13 @@ export const PlacementLayer = ({
     let ratio = windowWall.ratio;
     let w = 0.85;
     let h = 2.0;
-    let sill = 0;
+    let top = 0;
     if (pendingAdd.startsWith("window")) {
       const preset = windowPresetFromAddKind(pendingAdd);
       if (preset) {
         w = preset.widthM;
         h = preset.heightM;
-        sill = preset.sillHeightM;
+        top = preset.topHeightM;
         const wallLengthM = Math.hypot(seg.end.x - seg.start.x, seg.end.z - seg.start.z);
         if (wallLengthM > 0 && preset.widthM <= wallLengthM) {
           const halfRatio = preset.widthM / wallLengthM / 2;
@@ -176,7 +176,7 @@ export const PlacementLayer = ({
     const x = seg.start.x + (seg.end.x - seg.start.x) * ratio;
     const z = seg.start.z + (seg.end.z - seg.start.z) * ratio;
     const angle = Math.atan2(seg.end.z - seg.start.z, seg.end.x - seg.start.x);
-    const y = sill + h / 2;
+    const y = top - h / 2;
     return (
       <group position={[x, y, z]} rotation={[0, -angle, 0]}>
         <mesh>

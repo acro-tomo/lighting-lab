@@ -45,13 +45,13 @@ const pathTraceSceneKey = (project: Project, debugMode: RenderDebugMode) =>
       kind,
       floor
     })),
-    windows: project.windows.map(({ id, wallId, centerRatio, widthM, heightM, sillHeightM, hasGlass, style, floor }) => ({
+    windows: project.windows.map(({ id, wallId, centerRatio, widthM, heightM, topHeightM, hasGlass, style, floor }) => ({
       id,
       wallId,
       centerRatio,
       widthM,
       heightM,
-      sillHeightM,
+      topHeightM,
       hasGlass,
       style,
       floor

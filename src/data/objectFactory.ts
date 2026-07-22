@@ -244,9 +244,9 @@ export const newWindow = (project: Project, on?: WallPlacement): WindowOpening =
   wallId: on?.wallId ?? pickFreeWall(project)?.id ?? "",
   centerRatio: on?.centerRatio ?? 0.5,
   widthM: 1.65,
-  // 高さは2000mm固定（腰高0＝床から2m）。横位置はクリック点を中心に置く。
+  // 高さは2000mm固定（床から窓上端2m）。横位置はクリック点を中心に置く。
   heightM: 2.0,
-  sillHeightM: 0,
+  topHeightM: 2.0,
   hasGlass: true,
   style: "window"
 });
@@ -263,7 +263,7 @@ export const newWindowFromPreset = (
   centerRatio: on?.centerRatio ?? 0.5,
   widthM: preset.widthM,
   heightM: preset.heightM,
-  sillHeightM: preset.sillHeightM,
+  topHeightM: preset.topHeightM,
   hasGlass: preset.hasGlass,
   style: preset.style
 });
@@ -275,7 +275,7 @@ export const newDoor = (project: Project, on?: WallPlacement): WindowOpening => 
   centerRatio: on?.centerRatio ?? 0.35,
   widthM: 0.85,
   heightM: 2.0,
-  sillHeightM: 0,
+  topHeightM: 2.0,
   hasGlass: false,
   style: "door"
 });

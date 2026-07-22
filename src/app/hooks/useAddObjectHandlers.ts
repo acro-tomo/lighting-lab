@@ -194,7 +194,7 @@ export const useAddObjectHandlers = ({
       if (windowPreset) {
         const wall = project.walls.find((item) => item.id === wallId);
         const wallLengthM = wall ? Math.hypot(wall.end.x - wall.start.x, wall.end.z - wall.start.z) : 0;
-        if (!wall || windowPreset.widthM > wallLengthM || windowPreset.sillHeightM + windowPreset.heightM > wall.heightM) {
+        if (!wall || windowPreset.widthM > wallLengthM || windowPreset.topHeightM > wall.heightM || windowPreset.topHeightM - windowPreset.heightM < 0) {
           setNotice(t("この壁には入りません。窓を小さくして選び直してください。"));
           return;
         }

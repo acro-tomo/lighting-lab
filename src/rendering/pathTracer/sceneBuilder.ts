@@ -274,7 +274,7 @@ export const buildPathTraceScene = (
     const x = wall.start.x + (wall.end.x - wall.start.x) * windowItem.centerRatio;
     const z = wall.start.z + (wall.end.z - wall.start.z) * windowItem.centerRatio;
     const angle = Math.atan2(wall.end.z - wall.start.z, wall.end.x - wall.start.x);
-    const y = baseY + windowItem.sillHeightM + windowItem.heightM / 2;
+    const y = baseY + windowItem.topHeightM - windowItem.heightM / 2;
     const style = windowItem.style ?? (windowItem.hasGlass ? "window" : "opening");
     if (style === "door") {
       addBox(scene, [windowItem.widthM, windowItem.heightM, 0.04], [x, y, z - 0.02], makeMaterial(undefined, "#9d8b73"), -angle, "furniture", debugMode);
