@@ -8,6 +8,8 @@ export const TOUCH_PINCH_ZOOM_EXPONENT = 0.74;
 export const TOUCH_TAP_MAX_MOVE_PX = 10;
 export const TOUCH_WALL_DRAW_START_PX = 12;
 export const WALL_VERTEX_SNAP_PX = 30;
+// タッチ(指)はマウスより座標精度が低いため、壁の端点スナップ半径を広げる（要望: 最後の壁を閉じやすく）。
+export const WALL_VERTEX_SNAP_PX_TOUCH = 46;
 export const MIN_WALL_SEGMENT_M = 0.03;
 // 実機ジェスチャー診断用HUD。?gdebug=1 で有効（一時的なデバッグ用）。
 export const GESTURE_DEBUG = new URLSearchParams(window.location.search).has("gdebug");

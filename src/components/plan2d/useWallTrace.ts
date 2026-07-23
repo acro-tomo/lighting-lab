@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Project, Selection, Vec2M, WallSegment } from "../../types";
 import type { EditMode } from "../EditToolbar";
-import { WALL_VERTEX_SNAP_PX } from "./constants";
+import { WALL_VERTEX_SNAP_PX, WALL_VERTEX_SNAP_PX_TOUCH } from "./constants";
 import { angleSnap, orthogonalSnap, snapToShakuModule, svgSideNormal, uid } from "./geometry";
 import type { ContentBox, PlanSize, TouchWallTraceState } from "./types";
 
@@ -54,6 +54,25 @@ export const useWallTrace = ({
     }
   }, [mode]);
 
+  // 「元に戻す」(ヘッダーの↶)やモバイルの「削除」ボタンは wallDraft を経由せず
+  // 直接 project.walls を変える。トレース中にそれで壁が消えた場合、基準点(wallDraft)
+  // が古いまま残ると「消えたはずの点」から次の壁を作ってしまうため、両方をリセットする。
+  // undoWallPoint 自身が起こす undo() 呼び出し(壁数が減る想定内の変化)は
+  // skipNextWallCountResetRef で区別して無視する。
+  const wallCountRef = useRef(activeWalls.length);
+  const skipNextWallCountResetRef = useRef(false);
+  useEffect(() => {
+    if (mode === "wall" && wallDraft.length > 0 && activeWalls.length < wallCountRef.current) {
+      if (skipNextWallCountResetRef.current) {
+        skipNextWallCountResetRef.current = false;
+      } else {
+        clearWallTrace();
+      }
+    }
+    wallCountRef.current = activeWalls.length;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeWalls.length, mode]);
+
   // 壁モード中: Enter でトレース終了。
   // キーが平面図(SVG)にフォーカスしている / SVG内のイベント時のみ反応させ、
   // 3Dカメラ操作の矢印キーと二重発火しないようにする。
@@ -105,7 +124,12 @@ export const useWallTrace = ({
 
   const undoWallPoint = () => {
     if (wallDraft.length === 0) return;
-    if (wallDraft.length > 1) undo();
+    if (wallDraft.length > 1) {
+      // このundo()による壁数減少は下のwallCount監視effectでも検知されるが、
+      // 直後にnextDraftへ正しく揃えるのでここでは全消去(clearWallTrace)を起こさせない。
+      skipNextWallCountResetRef.current = true;
+      undo();
+    }
     const nextDraft = wallDraft.slice(0, -1);
     setWallDraft(nextDraft);
     setWallCursor(null);
@@ -113,17 +137,19 @@ export const useWallTrace = ({
     onSelect(null);
   };
 
-  const wallVertexSnapTolerance = () => {
+  // タッチ操作は指先の座標精度がマウスより低いため、端点スナップ半径を広げる。
+  const wallVertexSnapTolerance = (isTouch: boolean) => {
+    const basePx = isTouch ? WALL_VERTEX_SNAP_PX_TOUCH : WALL_VERTEX_SNAP_PX;
     const rect = svgRef.current?.getBoundingClientRect();
-    if (!rect?.width) return WALL_VERTEX_SNAP_PX;
-    return (WALL_VERTEX_SNAP_PX * viewBox.width) / rect.width;
+    if (!rect?.width) return basePx;
+    return (basePx * viewBox.width) / rect.width;
   };
 
-  const snapToWallVertex = (point: Vec2M): Vec2M => {
+  const snapToWallVertex = (point: Vec2M, isTouch: boolean): Vec2M => {
     const candidates = [...activeWalls, ...ghostWalls].flatMap((wall) => [wall.start, wall.end]).concat(wallDraft);
     if (candidates.length === 0) return point;
     const target = worldToSvg(point);
-    const tolerance = wallVertexSnapTolerance();
+    const tolerance = wallVertexSnapTolerance(isTouch);
     let best: { point: Vec2M; dist: number } | null = null;
     for (const candidate of candidates) {
       const p = worldToSvg(candidate);
@@ -137,11 +163,14 @@ export const useWallTrace = ({
     raw: Vec2M,
     prev: Vec2M | undefined,
     origin: Vec2M | undefined,
-    forceOrthogonal: boolean
+    forceOrthogonal: boolean,
+    // 呼び出し元の大半は forceOrthogonal(=直角スナップ強制) をタッチ時のみ true にしているため、
+    // 省略時はそれをタッチ判定の代用にする（既存呼び出し箇所を変更せずに対応するため）。
+    isTouch: boolean = forceOrthogonal
   ): Vec2M => {
-    if (!prev || !origin) return snapToWallVertex(raw);
+    if (!prev || !origin) return snapToWallVertex(raw, isTouch);
     const aligned = forceOrthogonal ? orthogonalSnap(prev, raw) : angleSnap(prev, raw);
-    return snapToWallVertex(snapToShakuModule(aligned, origin));
+    return snapToWallVertex(snapToShakuModule(aligned, origin), isTouch);
   };
 
   useEffect(() => {
