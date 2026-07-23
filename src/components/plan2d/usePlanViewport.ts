@@ -195,6 +195,20 @@ export const usePlanViewport = ({ contentBox, planSize }: { contentBox: ContentB
     applyPlanViewport(viewportRef.current);
   }, [zoom, pan, planSize.width, planSize.height]);
 
+  // 背景画像のtransformはsvgのgetBoundingClientRect()由来のscale/offsetで計算しており、
+  // 壁作成ツールバーの出現など「svgの実表示サイズ」が変わるレイアウトシフトではJS側の
+  // 再計算をトリガーする既存effect(mode非依存)が走らずズレる。ResizeObserverでsvg自体の
+  // サイズ変化を直接監視し、viewBoxに追従するSVG内壁と背景画像レイヤーを常に同期させる。
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => {
+      applyPlanViewport(viewportRef.current);
+    });
+    observer.observe(svg);
+    return () => observer.disconnect();
+  }, []);
+
   useEffect(() => () => {
     if (viewportFrameRef.current !== null) cancelAnimationFrame(viewportFrameRef.current);
   }, []);
