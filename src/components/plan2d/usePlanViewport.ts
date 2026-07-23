@@ -209,6 +209,23 @@ export const usePlanViewport = ({ contentBox, planSize }: { contentBox: ContentB
     return () => observer.disconnect();
   }, []);
 
+  // iOS SafariのURLバー折りたたみ/展開はアニメーション中も継続してsvgの画面上の
+  // 位置(サイズは不変)をシフトさせ続ける。上のResizeObserverはsvg自体のサイズ変化
+  // にしか反応しないため、このアニメーション中は背景画像レイヤーが追従しない。
+  // window.visualViewportのresize/scrollはこのアニメーション中に連続発火するため、
+  // それに合わせて都度再同期する。
+  useEffect(() => {
+    const viewport = typeof window !== "undefined" ? window.visualViewport : undefined;
+    if (!viewport) return;
+    const onViewportChange = () => applyPlanViewport(viewportRef.current);
+    viewport.addEventListener("resize", onViewportChange);
+    viewport.addEventListener("scroll", onViewportChange);
+    return () => {
+      viewport.removeEventListener("resize", onViewportChange);
+      viewport.removeEventListener("scroll", onViewportChange);
+    };
+  }, []);
+
   useEffect(() => () => {
     if (viewportFrameRef.current !== null) cancelAnimationFrame(viewportFrameRef.current);
   }, []);
