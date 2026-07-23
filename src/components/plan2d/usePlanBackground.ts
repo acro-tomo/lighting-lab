@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { FloorPlanBackground, Project, Vec2M } from "../../types";
 import type { ContentBox, PlanSize } from "./types";
 import { useI18n } from "../../i18n";
@@ -72,6 +72,17 @@ export const usePlanBackground = ({
   }, [bgNaturalSize, planSize.width, planSize.height, planSize.pxPerM, contentBox]);
 
   const placement = activeBackground?.placement ?? defaultPlacement;
+
+  // 縮尺未確定の背景は defaultPlacement が contentBox の変化を追いかけて毎回動いてしまい、
+  // 「他の編集をするたびに1階/2階の間取り図がズレる」原因になる。読み込み直後の1回だけ
+  // フィット位置を階ごとの基準点(placement)として確定・永続化し、以後は動かさない。
+  const anchoredDataUrlRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!activeBackground || activeBackground.placement || !defaultPlacement) return;
+    if (anchoredDataUrlRef.current === activeBackground.dataUrl) return;
+    anchoredDataUrlRef.current = activeBackground.dataUrl;
+    setBackgroundPlan({ ...activeBackground, placement: defaultPlacement });
+  }, [activeBackground, defaultPlacement, setBackgroundPlan]);
 
   const confirmBackgroundAlignment = () => {
     if (!activeBackground) return;
