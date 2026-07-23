@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - staging
   workflow_dispatch:
 
 concurrency:
@@ -43,5 +44,5 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4"
-          command: pages deploy dist --project-name=lighting-lab --branch=main
+          command: pages deploy dist --project-name=lighting-lab --branch=${{ github.ref_name }}
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
