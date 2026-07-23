@@ -208,7 +208,10 @@ export const Plan2D = ({
           }
         : null;
     refreshViewport();
-  }, [backgroundAlignMode, backgroundUrl, bgRender]);
+    // mode/pendingAdd は wall-trace-controls 等のツールバー行の出現有無を左右し、
+    // plan-canvas-wrap(svg)を押し下げる。svg自体のサイズは変わらずResizeObserverが
+    // 発火しないため、背景画像レイヤーがここで明示的に再同期されないと古い位置のまま残る。
+  }, [backgroundAlignMode, backgroundUrl, bgRender, mode, pendingAdd]);
 
   const {
     wallDraft,

@@ -160,7 +160,17 @@ export const usePlanViewport = ({ contentBox, planSize }: { contentBox: ContentB
     const svg = svgRef.current;
     const background = backgroundLayerRef.current;
     if (!svg || !background) return;
-    const rect = gestureBaseRef.current?.rect ?? svg.getBoundingClientRect();
+    // 背景レイヤーのCSS transformは常に「今この瞬間」のsvg実表示サイズで計算する。
+    // gestureBaseRef.current.rect（ジェスチャー開始時に固定した矩形）はピンチ/パン中の
+    // アンカー計算専用（usePlanPointerGestures.ts）であり、ここで使うと問題が起きる:
+    // iOS SafariはCSS transform中にpointer captureを失うことがあり、指を離しても
+    // up/cancelがsvgへ届かずgestureBaseRefがnullに戻らないまま残ることがある。
+    // その状態でmode変更等の再同期(refreshViewport)が呼ばれても、この関数が古い
+    // rectを使い続けてしまい、壁作成ツールバー出現によるsvgの実サイズ変化に
+    // 背景画像だけ追従できずズレたままになる（walls/gridはSVG内部でネイティブに
+    // スケールされるため常に正しい）。svg自体はCSS transformされないため、
+    // 毎回getBoundingClientRect()で強制的に最新値を取得しても問題はない。
+    const rect = svg.getBoundingClientRect();
     const mapping = screenMappingFor(rect, view);
     const x = mapping.offsetX + (background.tx - mapping.box.x) * mapping.scale;
     const y = mapping.offsetY + (background.ty - mapping.box.y) * mapping.scale;
@@ -207,6 +217,23 @@ export const usePlanViewport = ({ contentBox, planSize }: { contentBox: ContentB
     });
     observer.observe(svg);
     return () => observer.disconnect();
+  }, []);
+
+  // iOS SafariのURLバー折りたたみ/展開はアニメーション中も継続してsvgの画面上の
+  // 位置(サイズは不変)をシフトさせ続ける。上のResizeObserverはsvg自体のサイズ変化
+  // にしか反応しないため、このアニメーション中は背景画像レイヤーが追従しない。
+  // window.visualViewportのresize/scrollはこのアニメーション中に連続発火するため、
+  // それに合わせて都度再同期する。
+  useEffect(() => {
+    const viewport = typeof window !== "undefined" ? window.visualViewport : undefined;
+    if (!viewport) return;
+    const onViewportChange = () => applyPlanViewport(viewportRef.current);
+    viewport.addEventListener("resize", onViewportChange);
+    viewport.addEventListener("scroll", onViewportChange);
+    return () => {
+      viewport.removeEventListener("resize", onViewportChange);
+      viewport.removeEventListener("scroll", onViewportChange);
+    };
   }, []);
 
   useEffect(() => () => {
