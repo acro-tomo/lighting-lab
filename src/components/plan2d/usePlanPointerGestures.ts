@@ -265,6 +265,9 @@ export const usePlanPointerGestures = ({
   };
 
   const handleCanvasPlacement = (clientX: number, clientY: number, forceOrthogonalWall = false) => {
+    // 背景合わせモード中はドラッグで背景画像を動かす操作を最優先する（他モードと併存しうる）。
+    // ここで素通りさせると、壁モードのクリックが背景ドラッグ開始より先に壁頂点を打ってしまう。
+    if (backgroundAlignMode) return false;
     // pendingAdd 中はクリック位置にオブジェクトを配置（生成はApp側）。
     if (pendingAdd) {
       const world = svgToWorld(clientX, clientY);
@@ -316,7 +319,7 @@ export const usePlanPointerGestures = ({
         startPinch();
         return;
       }
-      if (mode === "wall") {
+      if (mode === "wall" && !backgroundAlignMode) {
         const rawStart = svgToWorld(event.clientX, event.clientY);
         touchWallTraceRef.current = {
           pointerId: event.pointerId,
@@ -328,7 +331,7 @@ export const usePlanPointerGestures = ({
         touchTapRef.current = { pointerId: event.pointerId, clientX: event.clientX, clientY: event.clientY };
         return;
       }
-      if (pendingAdd) {
+      if (pendingAdd && !backgroundAlignMode) {
         touchTapRef.current = { pointerId: event.pointerId, clientX: event.clientX, clientY: event.clientY };
         return;
       }
