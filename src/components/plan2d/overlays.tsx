@@ -32,9 +32,9 @@ export const GhostWallsLayer = ({
           y1={start.y + off.y}
           x2={end.x + off.x}
           y2={end.y + off.y}
-          stroke="#9aa0a6"
+          stroke="#ece7da"
           strokeWidth={displayWidth}
-          strokeOpacity={0.25}
+          strokeOpacity={0.48}
           strokeLinecap="round"
         />
       );
