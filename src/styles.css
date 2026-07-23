@@ -497,6 +497,13 @@ h2 {
   font-size: 12px;
 }
 
+.wall-side-caption {
+  color: #cfc7b8;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .wall-side-toggle {
   display: flex;
   align-items: center;
@@ -3027,6 +3034,10 @@ h2 {
   .wall-side-toggle button {
     min-height: 40px;
     white-space: nowrap;
+  }
+
+  .wall-side-caption {
+    flex-shrink: 0;
   }
 
   .scale-modal-backdrop {
