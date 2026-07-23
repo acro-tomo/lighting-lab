@@ -205,6 +205,8 @@ const en: Record<string, string> = {
   ,"中央": "Center"
   ,"左": "Left"
   ,"右": "Right"
+  ,"上": "Up"
+  ,"下": "Down"
   ,"中止": "Cancel"
   ,"選択中の照明": "Selected light"
   ,"選択中の家具": "Selected furniture"

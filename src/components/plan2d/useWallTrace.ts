@@ -144,6 +144,22 @@ export const useWallTrace = ({
     return snapToWallVertex(snapToShakuModule(aligned, origin));
   };
 
+  // 画面上の方向(desired: 例 ArrowLeft→{x:-1,y:0})から、現在描画中の辺(start→end)の
+  // どちら側("left"|"right"、データ空間の意味)がその画面方向に近いかを判定する。
+  // 有効な辺（直前の確定頂点＋カーソル/次頂点）がまだ無い・線分長が短すぎる場合は undefined。
+  const resolveSideForScreenDirection = (desired: { x: number; y: number }): "left" | "right" | undefined => {
+    const last = wallDraft[wallDraft.length - 1];
+    const edgeStart = wallCursor ? last : wallDraft[wallDraft.length - 2];
+    const edgeEnd = wallCursor ?? last;
+    if (!edgeStart || !edgeEnd) return undefined;
+    const s = worldToSvg(edgeStart);
+    const e = worldToSvg(edgeEnd);
+    if (Math.hypot(e.x - s.x, e.y - s.y) < 1) return undefined;
+    const left = svgSideNormal(s, e, "left");
+    const right = svgSideNormal(s, e, "right");
+    return left.x * desired.x + left.y * desired.y >= right.x * desired.x + right.y * desired.y ? "left" : "right";
+  };
+
   useEffect(() => {
     if (mode !== "wall") return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -152,14 +168,6 @@ export const useWallTrace = ({
       const target = event.target as Node | null;
       const planFocused = !!svg && (svg === target || (target ? svg.contains(target) : false));
       if (!planFocused) return;
-      const last = wallDraft[wallDraft.length - 1];
-      const edgeStart = wallCursor ? last : wallDraft[wallDraft.length - 2];
-      const edgeEnd = wallCursor ?? last;
-      if (!edgeStart || !edgeEnd) return;
-      const s = worldToSvg(edgeStart);
-      const e = worldToSvg(edgeEnd);
-      if (Math.hypot(e.x - s.x, e.y - s.y) < 1) return;
-      event.preventDefault();
       const desired =
         event.key === "ArrowLeft"
           ? { x: -1, y: 0 }
@@ -168,14 +176,39 @@ export const useWallTrace = ({
             : event.key === "ArrowUp"
               ? { x: 0, y: -1 }
               : { x: 0, y: 1 };
-      const left = svgSideNormal(s, e, "left");
-      const right = svgSideNormal(s, e, "right");
-      const next = left.x * desired.x + left.y * desired.y >= right.x * desired.x + right.y * desired.y ? "left" : "right";
+      const next = resolveSideForScreenDirection(desired);
+      if (next === undefined) return;
+      event.preventDefault();
       setDraftInnerSide((current) => (current === next ? undefined : next));
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [mode, wallDraft, wallCursor, contentBox, planSize.pxPerM]);
+
+  // モバイルボタン向け: 固定の画面基準(x軸)で左右を判定すると、水平な壁(法線が
+  // 上下方向のみ)でタイ(引き分け)が起きて常に"left"に倒れる問題があるため、代わりに
+  // 「今描いている辺の left/right 法線がそれぞれ画面上どちら向きか」をラベルとして
+  // 動的に算出する。データ側の "left"/"right" は生の値のまま使い、ラベルだけが
+  // 常に正しい方向を指すようにする（left/right の法線は常に正反対のベクトルなので
+  // ラベルが一致することは原理的に無い）。
+  const labelForNormal = (n: { x: number; y: number }): "左" | "右" | "上" | "下" => {
+    if (Math.abs(n.x) >= Math.abs(n.y)) return n.x < 0 ? "左" : "右";
+    return n.y < 0 ? "上" : "下";
+  };
+
+  const draftSideLabels: { left: "左" | "右" | "上" | "下"; right: "左" | "右" | "上" | "下" } | null = (() => {
+    const last = wallDraft[wallDraft.length - 1];
+    const edgeStart = wallCursor ? last : wallDraft[wallDraft.length - 2];
+    const edgeEnd = wallCursor ?? last;
+    if (!edgeStart || !edgeEnd) return null;
+    const s = worldToSvg(edgeStart);
+    const e = worldToSvg(edgeEnd);
+    if (Math.hypot(e.x - s.x, e.y - s.y) < 1) return null;
+    return {
+      left: labelForNormal(svgSideNormal(s, e, "left")),
+      right: labelForNormal(svgSideNormal(s, e, "right"))
+    };
+  })();
 
   return {
     wallDraft,
@@ -184,6 +217,7 @@ export const useWallTrace = ({
     setWallCursor,
     draftInnerSide,
     setDraftInnerSide,
+    draftSideLabels,
     commitWallSegment,
     clearWallTrace,
     finishWallTrace,
