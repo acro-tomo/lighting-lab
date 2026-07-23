@@ -202,7 +202,9 @@ export const Plan2D = ({
         ? {
             element: image,
             ...bgRender,
-            opacity: backgroundAlignMode ? 0.62 : 0.42
+            // 背景合わせモード中も間取り画像は薄いままにする（1階ゴースト壁や
+            // 2階の下描きが背景に埋もれて見えなくなるのを防ぐ）。
+            opacity: 0.42
           }
         : null;
     refreshViewport();
