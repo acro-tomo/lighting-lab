@@ -747,19 +747,6 @@ h2 {
   background: #080807;
 }
 
-.plan-background-image {
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 0;
-  max-width: none;
-  max-height: none;
-  transform-origin: 0 0;
-  pointer-events: none;
-  user-select: none;
-  will-change: transform;
-}
-
 /* 方位ダイヤル。図面を隠さないよう、キャンバス外の操作列に置く。 */
 .plan-compass {
   display: flex;

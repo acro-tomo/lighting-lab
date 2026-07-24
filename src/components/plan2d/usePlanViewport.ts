@@ -3,14 +3,6 @@ import type { FloorPlanBackground, FurnitureItem, Project, Vec2M, WallSegment } 
 import { MARGIN_M, VIEW_PAD } from "./constants";
 import type { ContentBox, PlanSize, ViewState } from "./types";
 
-type BackgroundLayer = {
-  element: HTMLImageElement;
-  tx: number;
-  ty: number;
-  scale: number;
-  opacity: number;
-};
-
 // コンテンツ全体(壁/room矩形/窓が乗る壁/家具/void/天井・床ゾーン/背景画像)を
 // 内包する world(m) バウンディングボックス。これを基準に planSize/座標系を作る。
 // room 矩形より壁が外に広がっていても 100%(=fit) で全体が映るようにするのが目的。
@@ -66,7 +58,14 @@ export const usePlanBounds = ({
     for (const v of activeVoids) includeRect(v.center, v.size);
     for (const zone of activeCeilingZones) includeRect(zone.center, zone.size);
     for (const zone of activeFloorZones) includeRect(zone.center, zone.size);
-    const place = activeBackground?.placement;
+    // 実寸キャリブレーション済み、または背景合わせドラッグ中/確定待ちの placement だけを
+    // 表示範囲(contentBox)に含める。usePlanBackground の placement 信頼条件と揃えることで、
+    // 「room フィットのplacementがcontentBoxを広げ、それがdefaultPlacementの入力に
+    // フィードバックして再フィット結果が変わる」循環を断つ（無関係編集での背景ズレ対策）。
+    const place =
+      activeBackground?.placement && (activeBackground.scale || activeBackground.alignmentPending)
+        ? activeBackground.placement
+        : undefined;
     if (place && bgNaturalSize) {
       include(place.originXM, place.originZM);
       include(
@@ -107,12 +106,12 @@ export const usePlanBounds = ({
   return { contentBox, planSize };
 };
 
-// SVGビューポート(ズーム/パン)と座標変換。背景画像はSVG外のHTMLレイヤーへ置き、
-// ベクター編集レイヤーと同じビューポート変換を適用する。
+// SVGビューポート(ズーム/パン)と座標変換。背景の間取り図画像も壁と同じ<g>内に
+// SVGネイティブの<image>として描画するため、この<g>のtransformだけを更新すれば
+// 壁・背景画像とも常に同期する（別レイヤーの手動同期は不要）。
 export const usePlanViewport = ({ contentBox, planSize }: { contentBox: ContentBox; planSize: PlanSize }) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const viewportLayerRef = useRef<SVGGElement | null>(null);
-  const backgroundLayerRef = useRef<BackgroundLayer | null>(null);
   const viewportRef = useRef<ViewState>({ zoom: 1, pan: { x: 0, y: 0 } });
   const viewportFrameRef = useRef<number | null>(null);
   const pendingViewportCommitRef = useRef(false);
@@ -155,31 +154,11 @@ export const usePlanViewport = ({ contentBox, planSize }: { contentBox: ContentB
     };
   };
 
+  // ズーム/パンは<g>のtransform属性だけを更新する。背景画像もこの<g>の中の
+  // SVGネイティブ<image>として描画されているため、ここだけでwalls/gridと
+  // 常に同期する（背景専用の再計算・別レイヤー同期は不要）。
   const applyPlanViewport = (view: ViewState) => {
     viewportLayerRef.current?.setAttribute("transform", viewportTransformFor(view));
-    const svg = svgRef.current;
-    const background = backgroundLayerRef.current;
-    if (!svg || !background) return;
-    // 背景レイヤーのCSS transformは常に「今この瞬間」のsvg実表示サイズで計算する。
-    // gestureBaseRef.current.rect（ジェスチャー開始時に固定した矩形）はピンチ/パン中の
-    // アンカー計算専用（usePlanPointerGestures.ts）であり、ここで使うと問題が起きる:
-    // iOS SafariはCSS transform中にpointer captureを失うことがあり、指を離しても
-    // up/cancelがsvgへ届かずgestureBaseRefがnullに戻らないまま残ることがある。
-    // その状態でmode変更等の再同期(refreshViewport)が呼ばれても、この関数が古い
-    // rectを使い続けてしまい、壁作成ツールバー出現によるsvgの実サイズ変化に
-    // 背景画像だけ追従できずズレたままになる（walls/gridはSVG内部でネイティブに
-    // スケールされるため常に正しい）。svg自体はCSS transformされないため、
-    // 毎回getBoundingClientRect()で強制的に最新値を取得しても問題はない。
-    const rect = svg.getBoundingClientRect();
-    const mapping = screenMappingFor(rect, view);
-    const x = mapping.offsetX + (background.tx - mapping.box.x) * mapping.scale;
-    const y = mapping.offsetY + (background.ty - mapping.box.y) * mapping.scale;
-    background.element.style.transform = `translate(${x}px, ${y}px) scale(${background.scale * mapping.scale})`;
-    background.element.style.opacity = String(background.opacity);
-  };
-
-  const refreshViewport = () => {
-    applyPlanViewport(viewportRef.current);
   };
 
   const beginViewportGesture = () => {
@@ -205,36 +184,10 @@ export const usePlanViewport = ({ contentBox, planSize }: { contentBox: ContentB
     applyPlanViewport(viewportRef.current);
   }, [zoom, pan, planSize.width, planSize.height]);
 
-  // 背景画像のtransformはsvgのgetBoundingClientRect()由来のscale/offsetで計算しており、
-  // 壁作成ツールバーの出現など「svgの実表示サイズ」が変わるレイアウトシフトではJS側の
-  // 再計算をトリガーする既存effect(mode非依存)が走らずズレる。ResizeObserverでsvg自体の
-  // サイズ変化を直接監視し、viewBoxに追従するSVG内壁と背景画像レイヤーを常に同期させる。
-  useEffect(() => {
-    const svg = svgRef.current;
-    if (!svg || typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(() => {
-      applyPlanViewport(viewportRef.current);
-    });
-    observer.observe(svg);
-    return () => observer.disconnect();
-  }, []);
-
-  // iOS SafariのURLバー折りたたみ/展開はアニメーション中も継続してsvgの画面上の
-  // 位置(サイズは不変)をシフトさせ続ける。上のResizeObserverはsvg自体のサイズ変化
-  // にしか反応しないため、このアニメーション中は背景画像レイヤーが追従しない。
-  // window.visualViewportのresize/scrollはこのアニメーション中に連続発火するため、
-  // それに合わせて都度再同期する。
-  useEffect(() => {
-    const viewport = typeof window !== "undefined" ? window.visualViewport : undefined;
-    if (!viewport) return;
-    const onViewportChange = () => applyPlanViewport(viewportRef.current);
-    viewport.addEventListener("resize", onViewportChange);
-    viewport.addEventListener("scroll", onViewportChange);
-    return () => {
-      viewport.removeEventListener("resize", onViewportChange);
-      viewport.removeEventListener("scroll", onViewportChange);
-    };
-  }, []);
+  // 壁作成ツールバーの出現によるレイアウトシフトやiOS SafariのURLバー折りたたみ等で
+  // svgの画面上の実表示サイズ/位置が変わっても、<g>のtransformはviewBox基準の
+  // ユーザー空間座標のみで決まりDOM側の実測サイズに依存しないため、再同期は不要。
+  // (背景画像もこの<g>内のSVGネイティブ<image>としてwallsと同じ変換を受ける。)
 
   useEffect(() => () => {
     if (viewportFrameRef.current !== null) cancelAnimationFrame(viewportFrameRef.current);
@@ -357,7 +310,6 @@ export const usePlanViewport = ({ contentBox, planSize }: { contentBox: ContentB
   return {
     svgRef,
     viewportLayerRef,
-    backgroundLayerRef,
     viewportRef,
     gestureBaseRef,
     zoom,
@@ -376,7 +328,6 @@ export const usePlanViewport = ({ contentBox, planSize }: { contentBox: ContentB
     svgPointToWorld,
     clientToSvgPoint,
     svgToWorld,
-    refreshViewport,
     zoomAtUserPoint,
     zoomAtCenter
   };
