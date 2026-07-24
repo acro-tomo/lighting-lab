@@ -139,19 +139,21 @@ export const usePlanBackground = ({
     });
   };
 
-  // 背景画像を placement に従って SVG ユーザー空間へ配置する transform。
-  // 画像ピクセル(0,0)の SVG 位置へ平行移動し、m/px × pxPerM で等倍拡大する。
+  // 背景画像を placement に従って SVG ユーザー空間の x/y/width/height へ配置する。
+  // 壁と同じ worldToSvg() でワールド座標(m)→SVGユーザー空間へ変換するため、
+  // <image> は壁が乗っている <g>(viewportLayerRef) の内側にそのままネイティブ配置できる
+  // （CSS transformでの近似計算・別レイヤー同期は不要）。
   const bgRender = useMemo(() => {
     if (!bgNaturalSize || !placement) return null;
     const topLeftWorld = imagePixelToWorld(0, 0);
     if (!topLeftWorld) return null;
     const topLeftSvg = worldToSvg(topLeftWorld);
+    const scale = placement.metersPerPixel * planSize.pxPerM;
     return {
-      width: bgNaturalSize.width,
-      height: bgNaturalSize.height,
-      tx: topLeftSvg.x,
-      ty: topLeftSvg.y,
-      scale: placement.metersPerPixel * planSize.pxPerM
+      x: topLeftSvg.x,
+      y: topLeftSvg.y,
+      width: bgNaturalSize.width * scale,
+      height: bgNaturalSize.height * scale
     };
     // imagePixelToWorld/worldToSvg は placement・contentBox(min/MARGIN) から導出される。
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Project, Selection, WallSegment } from "../types";
 import { useProjectStore } from "../store/projectStore";
 import { useI18n } from "../i18n";
@@ -58,7 +58,6 @@ export const Plan2D = ({
   // 壁トレースのタッチ状態は useWallTrace（後始末）と usePlanPointerGestures（判定）の
   // 両方が触るため、本体で ref を作って両フックへ渡す。
   const touchWallTraceRef = useRef<TouchWallTraceState>(null);
-  const backgroundImageRef = useRef<HTMLImageElement | null>(null);
   const [bgNaturalSize, setBgNaturalSize] = useState<{ width: number; height: number } | null>(null);
   // ダブルクリックで開始する辺ドラッグリサイズ。resizeTarget=ハンドル表示中のオブジェクト。
   const [resizeTarget, setResizeTarget] = useState<{ kind: ResizeKind; id: string } | null>(null);
@@ -147,7 +146,6 @@ export const Plan2D = ({
   const {
     svgRef,
     viewportLayerRef,
-    backgroundLayerRef,
     viewportRef,
     gestureBaseRef,
     zoom,
@@ -166,7 +164,6 @@ export const Plan2D = ({
     svgPointToWorld,
     clientToSvgPoint,
     svgToWorld,
-    refreshViewport,
     zoomAtCenter
   } = usePlanViewport({ contentBox, planSize });
 
@@ -193,24 +190,6 @@ export const Plan2D = ({
     worldToSvg,
     setBackgroundPlan
   });
-
-  useLayoutEffect(() => {
-    const image = backgroundImageRef.current;
-    backgroundLayerRef.current =
-      image && bgRender
-        ? {
-            element: image,
-            ...bgRender,
-            // 背景合わせモード中も間取り画像は薄いままにする（1階ゴースト壁や
-            // 2階の下描きが背景に埋もれて見えなくなるのを防ぐ）。
-            opacity: 0.42
-          }
-        : null;
-    refreshViewport();
-    // mode/pendingAdd は wall-trace-controls 等のツールバー行の出現有無を左右し、
-    // plan-canvas-wrap(svg)を押し下げる。svg自体のサイズは変わらずResizeObserverが
-    // 発火しないため、背景画像レイヤーがここで明示的に再同期されないと古い位置のまま残る。
-  }, [backgroundAlignMode, backgroundUrl, bgRender, mode, pendingAdd]);
 
   const {
     wallDraft,
@@ -505,17 +484,6 @@ export const Plan2D = ({
             dragging={dragging}
           />
         )}
-        {activeBackground && bgRender && (
-          <img
-            ref={backgroundImageRef}
-            src={activeBackground.dataUrl}
-            alt=""
-            aria-hidden="true"
-            className="plan-background-image"
-            style={{ width: bgRender.width, height: bgRender.height }}
-            draggable={false}
-          />
-        )}
         <svg
           ref={svgRef}
           className="plan-canvas"
@@ -551,6 +519,22 @@ export const Plan2D = ({
             fill="transparent"
           />
           <g ref={viewportLayerRef} transform={viewportTransformFor({ zoom, pan })}>
+          {/* 背景の間取り図画像。壁と同じ<g>内にSVGネイティブ<image>として置くことで、
+              このgのtransform(ズーム/パン)だけで壁と常に同じ座標系に追従する
+              （CSS transformでの近似計算・別レイヤー同期は行わない）。壁より前＝下に
+              描画されるようgの最初の子にする。ポインタイベントは壁/選択に譲る。 */}
+          {activeBackground && bgRender && (
+            <image
+              href={activeBackground.dataUrl}
+              x={bgRender.x}
+              y={bgRender.y}
+              width={bgRender.width}
+              height={bgRender.height}
+              opacity={0.42}
+              style={{ pointerEvents: "none" }}
+              aria-hidden="true"
+            />
+          )}
           <rect
             x={-VIEW_PAD}
             y={-VIEW_PAD}
