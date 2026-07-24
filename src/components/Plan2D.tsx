@@ -475,21 +475,21 @@ export const Plan2D = ({
               className={draftInnerSide === undefined ? "is-active" : ""}
               onClick={() => setDraftInnerSide(undefined)}
             >
-              {t("中央")}
+              {t("間仕切り")}
             </button>
             <button
               type="button"
               className={draftInnerSide === "left" ? "is-active" : ""}
               onClick={() => setDraftInnerSide("left")}
             >
-              {draftSideLabels ? t(draftSideLabels.left) : t("左")}
+              {draftSideLabels ? draftSideLabels.left : "←"}
             </button>
             <button
               type="button"
               className={draftInnerSide === "right" ? "is-active" : ""}
               onClick={() => setDraftInnerSide("right")}
             >
-              {draftSideLabels ? t(draftSideLabels.right) : t("右")}
+              {draftSideLabels ? draftSideLabels.right : "→"}
             </button>
           </div>
           <button type="button" className="primary-action" onClick={finishWallTrace}>{t("完了")}</button>
