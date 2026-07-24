@@ -191,12 +191,13 @@ export const useWallTrace = ({
   // 動的に算出する。データ側の "left"/"right" は生の値のまま使い、ラベルだけが
   // 常に正しい方向を指すようにする（left/right の法線は常に正反対のベクトルなので
   // ラベルが一致することは原理的に無い）。
-  const labelForNormal = (n: { x: number; y: number }): "左" | "右" | "上" | "下" => {
-    if (Math.abs(n.x) >= Math.abs(n.y)) return n.x < 0 ? "左" : "右";
-    return n.y < 0 ? "上" : "下";
+  // 矢印記号は向きがそのまま伝わるので漢字(上/下/左/右)より直感的、という判断で採用。
+  const labelForNormal = (n: { x: number; y: number }): "←" | "→" | "↑" | "↓" => {
+    if (Math.abs(n.x) >= Math.abs(n.y)) return n.x < 0 ? "←" : "→";
+    return n.y < 0 ? "↑" : "↓";
   };
 
-  const draftSideLabels: { left: "左" | "右" | "上" | "下"; right: "左" | "右" | "上" | "下" } | null = (() => {
+  const draftSideLabels: { left: "←" | "→" | "↑" | "↓"; right: "←" | "→" | "↑" | "↓" } | null = (() => {
     const last = wallDraft[wallDraft.length - 1];
     const edgeStart = wallCursor ? last : wallDraft[wallDraft.length - 2];
     const edgeEnd = wallCursor ?? last;
