@@ -66,7 +66,14 @@ export const usePlanBounds = ({
     for (const v of activeVoids) includeRect(v.center, v.size);
     for (const zone of activeCeilingZones) includeRect(zone.center, zone.size);
     for (const zone of activeFloorZones) includeRect(zone.center, zone.size);
-    const place = activeBackground?.placement;
+    // 実寸キャリブレーション済み、または背景合わせドラッグ中/確定待ちの placement だけを
+    // 表示範囲(contentBox)に含める。usePlanBackground の placement 信頼条件と揃えることで、
+    // 「room フィットのplacementがcontentBoxを広げ、それがdefaultPlacementの入力に
+    // フィードバックして再フィット結果が変わる」循環を断つ（無関係編集での背景ズレ対策）。
+    const place =
+      activeBackground?.placement && (activeBackground.scale || activeBackground.alignmentPending)
+        ? activeBackground.placement
+        : undefined;
     if (place && bgNaturalSize) {
       include(place.originXM, place.originZM);
       include(
