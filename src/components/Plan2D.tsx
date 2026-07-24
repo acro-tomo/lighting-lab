@@ -584,6 +584,7 @@ export const Plan2D = ({
               pxPerM={planSize.pxPerM}
               onSelect={handleSelect}
               canEditWalls={canEditWalls}
+              mode={mode}
               onWallDragStart={startWallDrag}
             />
             {activeWindows.map((windowItem) => (
