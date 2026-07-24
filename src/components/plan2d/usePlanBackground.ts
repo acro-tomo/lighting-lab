@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { FloorPlanBackground, Project, Vec2M } from "../../types";
 import type { ContentBox, PlanSize } from "./types";
 import { useI18n } from "../../i18n";
@@ -13,7 +13,6 @@ export const usePlanBackground = ({
   bgNaturalSize,
   planSize,
   contentBox,
-  svgPointToWorld,
   worldToSvg,
   setBackgroundPlan
 }: {
@@ -24,7 +23,6 @@ export const usePlanBackground = ({
   bgNaturalSize: { width: number; height: number } | null;
   planSize: PlanSize;
   contentBox: ContentBox;
-  svgPointToWorld: (point: { x: number; y: number }) => Vec2M;
   worldToSvg: (point: Vec2M) => { x: number; y: number };
   setBackgroundPlan: (backgroundPlan: FloorPlanBackground) => void;
 }) => {
@@ -50,39 +48,34 @@ export const usePlanBackground = ({
     }
   }, [backgroundUrl, hasScale]);
 
-  // 縮尺未設定の背景は従来どおりキャンバスに meet フィットさせる。
-  // その配置をワールド座標(m)の placement として表現し、縮尺ツールの
-  // 計算と描画の両方で同じ式を使えるようにする。
+  // 縮尺未設定の背景は「部屋の矩形(room.widthM/depthM)」へ meet フィットさせる。
+  // 壁/家具/void など編集のたびに変わる contentBox(表示用バウンディングボックス)には
+  // 依存させない。room寸法は編集操作では動かない安定値なので、無関係な編集のたびに
+  // 背景画像だけ再フィットされてズレる問題がここで根本的に起きなくなる。
   const defaultPlacement = useMemo(() => {
     if (!bgNaturalSize || bgNaturalSize.width === 0 || bgNaturalSize.height === 0) return null;
-    const scalePx = Math.min(
-      planSize.width / bgNaturalSize.width,
-      planSize.height / bgNaturalSize.height
-    );
-    const offsetX = (planSize.width - bgNaturalSize.width * scalePx) / 2;
-    const offsetY = (planSize.height - bgNaturalSize.height * scalePx) / 2;
-    const origin = svgPointToWorld({ x: offsetX, y: offsetY });
+    const roomWidthM = project.room.widthM;
+    const roomDepthM = project.room.depthM;
+    if (!(roomWidthM > 0) || !(roomDepthM > 0)) return null;
+    const metersPerPixel = Math.min(roomWidthM / bgNaturalSize.width, roomDepthM / bgNaturalSize.height);
+    const imageWidthM = bgNaturalSize.width * metersPerPixel;
+    const imageHeightM = bgNaturalSize.height * metersPerPixel;
+    // room矩形は中心原点([-w/2,w/2] x [-d/2,d/2])。画像をその中央に収める。
     return {
-      originXM: origin.x,
-      originZM: origin.z,
-      metersPerPixel: scalePx / planSize.pxPerM
+      originXM: -roomWidthM / 2 + (roomWidthM - imageWidthM) / 2,
+      originZM: -roomDepthM / 2 + (roomDepthM - imageHeightM) / 2,
+      metersPerPixel
     } satisfies NonNullable<FloorPlanBackground["placement"]>;
-    // svgPointToWorld は contentBox 基準（min/MARGIN）で原点が決まるため依存に含める。
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bgNaturalSize, planSize.width, planSize.height, planSize.pxPerM, contentBox]);
+  }, [bgNaturalSize, project.room.widthM, project.room.depthM]);
 
-  const placement = activeBackground?.placement ?? defaultPlacement;
-
-  // 縮尺未確定の背景は defaultPlacement が contentBox の変化を追いかけて毎回動いてしまい、
-  // 「他の編集をするたびに1階/2階の間取り図がズレる」原因になる。読み込み直後の1回だけ
-  // フィット位置を階ごとの基準点(placement)として確定・永続化し、以後は動かさない。
-  const anchoredDataUrlRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!activeBackground || activeBackground.placement || !defaultPlacement) return;
-    if (anchoredDataUrlRef.current === activeBackground.dataUrl) return;
-    anchoredDataUrlRef.current = activeBackground.dataUrl;
-    setBackgroundPlan({ ...activeBackground, placement: defaultPlacement });
-  }, [activeBackground, defaultPlacement, setBackgroundPlan]);
+  // 実寸キャリブレーション(scale)済み、または背景合わせモードでドラッグ中/確定待ち
+  // (alignmentPending)の placement だけを信頼する。scale も alignmentPending も無い
+  // placement は、旧実装が壁/家具編集のたびに再フィットした値を誤って永続化していた
+  // 残骸である可能性があるため、常に安定した defaultPlacement を優先し直す（自己修復）。
+  const placement =
+    activeBackground?.placement && (activeBackground.scale || activeBackground.alignmentPending)
+      ? activeBackground.placement
+      : defaultPlacement;
 
   const confirmBackgroundAlignment = () => {
     if (!activeBackground) return;
@@ -92,12 +85,15 @@ export const usePlanBackground = ({
     setBackgroundAlignMode(false);
   };
 
+  // 1階基準へリセットするのは「実寸キャリブレーション済みの1階」を信頼できる場合だけ。
+  // 1階も未キャリブレーションなら、1階の placement は単なる room フィット(または旧実装が
+  // 誤って永続化した不安定値)でしかなく、2階へコピーしても意味がない。
   const resetBackgroundToFirstFloor = () => {
-    if (!activeBackground || !project.backgroundPlan?.placement) return;
+    if (!activeBackground || !project.backgroundPlan?.placement || !project.backgroundPlan.scale) return;
     setBackgroundPlan({
       ...activeBackground,
       placement: { ...project.backgroundPlan.placement },
-      scale: project.backgroundPlan.scale ? { ...project.backgroundPlan.scale } : activeBackground.scale,
+      scale: { ...project.backgroundPlan.scale },
       alignmentPending: true
     });
     setBackgroundAlignMode(true);

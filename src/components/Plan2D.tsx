@@ -190,7 +190,6 @@ export const Plan2D = ({
     bgNaturalSize,
     planSize,
     contentBox,
-    svgPointToWorld,
     worldToSvg,
     setBackgroundPlan
   });
@@ -411,7 +410,7 @@ export const Plan2D = ({
         )}
         {backgroundAlignMode && (
           <>
-            {project.backgroundPlan?.placement && (
+            {project.backgroundPlan?.placement && project.backgroundPlan?.scale && (
               <button type="button" onClick={resetBackgroundToFirstFloor}>
                 {t("1階基準")}
               </button>
