@@ -220,6 +220,7 @@ export const Plan2D = ({
     setWallCursor,
     draftInnerSide,
     setDraftInnerSide,
+    draftSideLabels,
     commitWallSegment,
     clearWallTrace,
     finishWallTrace,
@@ -467,27 +468,28 @@ export const Plan2D = ({
       {canEditWalls && mode === "wall" && !pendingAdd && (
         <div className="wall-trace-controls" role="toolbar" aria-label={t("壁作成")}>
           <button type="button" onClick={undoWallPoint} disabled={wallDraft.length === 0}>{t("1点戻す")}</button>
+          <span className="wall-side-caption">{t("室内側")}</span>
           <div className="wall-side-toggle" role="group" aria-label={t("壁の内側")}>
             <button
               type="button"
               className={draftInnerSide === undefined ? "is-active" : ""}
               onClick={() => setDraftInnerSide(undefined)}
             >
-              {t("中央")}
+              {t("間仕切り")}
             </button>
             <button
               type="button"
               className={draftInnerSide === "left" ? "is-active" : ""}
               onClick={() => setDraftInnerSide("left")}
             >
-              {t("左")}
+              {draftSideLabels ? draftSideLabels.left : "←"}
             </button>
             <button
               type="button"
               className={draftInnerSide === "right" ? "is-active" : ""}
               onClick={() => setDraftInnerSide("right")}
             >
-              {t("右")}
+              {draftSideLabels ? draftSideLabels.right : "→"}
             </button>
           </div>
           <button type="button" className="primary-action" onClick={finishWallTrace}>{t("完了")}</button>
