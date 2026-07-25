@@ -162,7 +162,7 @@ export const App = () => {
       );
       if (cleared) clearActiveFloorGeometry();
       const alignmentNotice = backgroundPlan.alignmentPending
-        ? ` ${t("1階基準で仮合わせしたので、背景合わせで位置を確認してください。")}`
+        ? ` ${t("1階基準で仮合わせしたので、図面合わせ →「位置を合わせる」で位置を確認してください。")}`
         : "";
       setNotice(
         cleared
