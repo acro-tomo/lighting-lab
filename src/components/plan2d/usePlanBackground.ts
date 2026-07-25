@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { FloorPlanBackground, Project, Vec2M } from "../../types";
 import type { ContentBox, PlanSize } from "./types";
 import { useI18n } from "../../i18n";
@@ -82,6 +82,28 @@ export const usePlanBackground = ({
     const { alignmentPending, ...confirmedBackground } = activeBackground;
     void alignmentPending;
     setBackgroundPlan(confirmedBackground);
+    setBackgroundAlignMode(false);
+  };
+
+  // モード開始時点の placement を控えておき、キャンセルでドラッグ分を巻き戻せるようにする。
+  // 開始時の値だけが要るので activeBackground は依存に入れない。
+  const alignStartPlacementRef = useRef<FloorPlanBackground["placement"]>(undefined);
+  useEffect(() => {
+    if (backgroundAlignMode) alignStartPlacementRef.current = activeBackground?.placement;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [backgroundAlignMode]);
+
+  // キャンセルは placement を開始時に戻すが、alignmentPending は確定同様に落とす。
+  // 復元してしまうと上の自動突入 effect がモードを開き直し、抜けられなくなるため。
+  const cancelBackgroundAlignment = () => {
+    if (!activeBackground) return;
+    const { alignmentPending, placement: draggedPlacement, ...restoredBackground } = activeBackground;
+    void alignmentPending;
+    void draggedPlacement;
+    const startPlacement = alignStartPlacementRef.current;
+    setBackgroundPlan(
+      startPlacement ? { ...restoredBackground, placement: { ...startPlacement } } : restoredBackground
+    );
     setBackgroundAlignMode(false);
   };
 
@@ -175,6 +197,7 @@ export const usePlanBackground = ({
     canAlignBackground,
     placement,
     confirmBackgroundAlignment,
+    cancelBackgroundAlignment,
     resetBackgroundToFirstFloor,
     calibrateFromImagePixels,
     bgRender,
