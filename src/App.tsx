@@ -138,9 +138,12 @@ export const App = () => {
         kind: result.kind,
         fileName: file.name
       };
-      if (activeFloor === 2 && firstFloorPlan?.placement) {
+      // 1階が実寸キャリブレーション済み(scale確定)のときだけ、その配置を2階へ引き継いで
+      // 仮合わせする。1階も未キャリブレーションなら引き継ぐ値に意味が無く、2階は自身の
+      // room フィット(defaultPlacement)に任せる。
+      if (activeFloor === 2 && firstFloorPlan?.placement && firstFloorPlan.scale) {
         backgroundPlan.placement = { ...firstFloorPlan.placement };
-        backgroundPlan.scale = firstFloorPlan.scale ? { ...firstFloorPlan.scale } : undefined;
+        backgroundPlan.scale = { ...firstFloorPlan.scale };
         backgroundPlan.alignmentPending = true;
       }
       setBackgroundPlan(backgroundPlan);
