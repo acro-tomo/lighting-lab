@@ -1,4 +1,5 @@
 import { mkdir } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { chromium } from "@playwright/test";
 
 const shouldRender = process.argv.includes("--render");
@@ -11,10 +12,18 @@ const outputPath = shouldRender || shouldPeekRender
   : "output/playwright/ldk-lighting-lab.png";
 const introSeenStorageKey = "ldk-intro-seen";
 
+// Playwright は自身のバージョンに紐づくビルド番号のブラウザを探すため、ブラウザを事前に
+// 焼き込んだ実行環境（CI/サンドボックス）では番号がズレて起動できないことがある。
+// 明示指定 > 焼き込み済みバイナリ > Playwright の既定、の順で解決する。
+const prebuiltChromium = "/opt/pw-browsers/chromium";
+const executablePath =
+  process.env.VISUAL_CHECK_BROWSER_PATH ?? (existsSync(prebuiltChromium) ? prebuiltChromium : undefined);
+
 await mkdir("output/playwright", { recursive: true });
 
 const browser = await chromium.launch({
   headless,
+  executablePath,
   args: ["--use-gl=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist", "--disable-dev-shm-usage"]
 });
 const page = await browser.newPage({
