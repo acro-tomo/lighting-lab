@@ -1329,7 +1329,7 @@ h2 {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   background: #080807;
-  cursor: grab;
+  cursor: crosshair;
   touch-action: none;
 }
 
@@ -1360,8 +1360,15 @@ h2 {
   filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.75));
 }
 
-.scale-modal-guide-point {
+.scale-modal-point-active {
   fill: #f5c64d;
+  stroke: #141414;
+  stroke-width: 2;
+  filter: drop-shadow(0 0 6px rgba(245, 198, 77, 0.7));
+}
+
+.scale-modal-point-locked {
+  fill: #6fd68a;
   stroke: #141414;
   stroke-width: 2;
 }
@@ -1407,15 +1414,6 @@ h2 {
   min-width: 230px;
 }
 
-.scale-modal-toggle {
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 6px;
-}
-
-.scale-modal-toggle button,
 .scale-modal-actions button {
   min-height: 34px;
   border: 0;
@@ -1424,15 +1422,6 @@ h2 {
   color: inherit;
   cursor: pointer;
   font-size: 12px;
-}
-
-.scale-modal-toggle button + button {
-  border-left: 1px solid rgba(255, 255, 255, 0.16);
-}
-
-.scale-modal-toggle button.is-active {
-  background: rgba(245, 198, 77, 0.2);
-  color: #fff5cc;
 }
 
 .scale-modal-status {
