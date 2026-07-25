@@ -473,6 +473,53 @@ h2 {
   color: #fff5cc;
 }
 
+/* 「図面合わせ」ポップオーバー。狭幅の .plan-meta は overflow-x: auto で
+   クリップするため、JS でビューポート座標を与えて fixed で浮かせる。 */
+.plan-align-menu {
+  position: fixed;
+  z-index: 180;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 232px;
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  background: #1b1b19;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.55);
+}
+
+.plan-meta .plan-align-menu button {
+  min-height: 36px;
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  padding: 8px 10px;
+  background: transparent;
+  color: #f3efe7;
+  text-align: left;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.plan-meta .plan-align-menu button:hover:not(:disabled) {
+  border-color: rgba(245, 198, 77, 0.6);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.plan-meta .plan-align-menu button:disabled {
+  color: #8f8779;
+  cursor: default;
+}
+
+.plan-align-menu-note {
+  margin: 0;
+  padding: 0 10px 4px;
+  color: #8f8779;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
 .wall-trace-controls {
   display: flex;
   align-items: center;

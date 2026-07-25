@@ -191,6 +191,52 @@ export const Plan2D = ({
     setBackgroundPlan
   });
 
+  // 「図面合わせ」ポップオーバー。狭幅では .plan-meta が overflow-x: auto でクリップするため、
+  // absolute ではなくボタンのビューポート座標を使った fixed で描画する。
+  const alignButtonRef = useRef<HTMLButtonElement>(null);
+  const alignMenuRef = useRef<HTMLDivElement>(null);
+  const [alignMenuOpen, setAlignMenuOpen] = useState(false);
+  const [alignMenuPos, setAlignMenuPos] = useState<{ left: number; top: number } | null>(null);
+
+  const openAlignMenu = () => {
+    const rect = alignButtonRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    // ボタン直下・左揃え。右端がはみ出すぶんだけ左へ寄せる（幅は .plan-align-menu と一致）。
+    const menuWidth = 232;
+    const left = Math.max(8, Math.min(rect.left, window.innerWidth - menuWidth - 8));
+    setAlignMenuPos({ left, top: rect.bottom + 6 });
+    setAlignMenuOpen(true);
+  };
+
+  useEffect(() => {
+    if (!alignMenuOpen) return;
+    const close = () => setAlignMenuOpen(false);
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (alignMenuRef.current?.contains(target) || alignButtonRef.current?.contains(target)) return;
+      close();
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") close();
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    // fixed 配置はスクロール/リサイズに追随しないので、位置がずれる前に閉じる。
+    window.addEventListener("resize", close);
+    window.addEventListener("scroll", close, true);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("resize", close);
+      window.removeEventListener("scroll", close, true);
+    };
+  }, [alignMenuOpen]);
+
+  // 親ボタンが消える条件になったら、開きっぱなしの state を残さない。
+  useEffect(() => {
+    if (!activeBackground || backgroundAlignMode) setAlignMenuOpen(false);
+  }, [activeBackground, backgroundAlignMode]);
+
   const {
     wallDraft,
     setWallDraft,
@@ -372,20 +418,53 @@ export const Plan2D = ({
         <button type="button" onClick={() => zoomAtCenter(1 / 1.2)} aria-label={t("縮小")}>-</button>
         {/* zoom=1/pan=0 がコンテンツbbox全体のフィット表示（座標系をbbox基準にしたため）。 */}
         <button type="button" onClick={() => scheduleViewport(1, { x: 0, y: 0 }, true)}>{t("全体表示")}</button>
-        {/* 縮尺合わせは専用モーダルで実施。背景画像があるときだけ押せる。 */}
-        {activeBackground && (
-          <button type="button" onClick={() => setScaleModalOpen(true)}>
-            {t("縮尺")}
-          </button>
-        )}
-        {canAlignBackground && (
-          <button
-            type="button"
-            className={backgroundAlignMode ? "is-active" : ""}
-            onClick={() => setBackgroundAlignMode((current) => !current)}
-          >
-            {t("背景合わせ")}
-          </button>
+        {/* 縮尺合わせ／位置合わせの入口。背景画像があるときだけ押せる。 */}
+        {activeBackground && !backgroundAlignMode && (
+          <>
+            <button
+              type="button"
+              ref={alignButtonRef}
+              className={alignMenuOpen ? "is-active" : ""}
+              aria-haspopup="menu"
+              aria-expanded={alignMenuOpen}
+              onClick={() => (alignMenuOpen ? setAlignMenuOpen(false) : openAlignMenu())}
+            >
+              {t("図面合わせ")}
+            </button>
+            {alignMenuOpen && alignMenuPos && (
+              <div
+                className="plan-align-menu"
+                ref={alignMenuRef}
+                role="menu"
+                style={{ left: alignMenuPos.left, top: alignMenuPos.top }}
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setAlignMenuOpen(false);
+                    setScaleModalOpen(true);
+                  }}
+                >
+                  {t("縮尺を合わせる")}
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={!canAlignBackground}
+                  onClick={() => {
+                    setAlignMenuOpen(false);
+                    setBackgroundAlignMode(true);
+                  }}
+                >
+                  {t("位置を合わせる")}
+                </button>
+                {!canAlignBackground && (
+                  <p className="plan-align-menu-note">{t("1階は縮尺合わせで位置が決まります")}</p>
+                )}
+              </div>
+            )}
+          </>
         )}
         {backgroundAlignMode && (
           <>
