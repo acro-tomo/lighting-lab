@@ -175,6 +175,7 @@ export const Plan2D = ({
     canAlignBackground,
     placement,
     confirmBackgroundAlignment,
+    cancelBackgroundAlignment,
     resetBackgroundToFirstFloor,
     calibrateFromImagePixels,
     bgRender,
@@ -473,6 +474,9 @@ export const Plan2D = ({
                 {t("1階基準")}
               </button>
             )}
+            <button type="button" onClick={cancelBackgroundAlignment}>
+              {t("キャンセル")}
+            </button>
             <button type="button" className="primary-action" onClick={confirmBackgroundAlignment}>
               {t("完了")}
             </button>
