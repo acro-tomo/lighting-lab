@@ -8,6 +8,7 @@ import { withHistory } from "./historySlice";
 export interface ProjectSlice {
   project: Project;
   setProject: (project: Project) => void;
+  setProjectName: (name: string) => void;
   resetDemo: () => void;
   clearGeometry: () => void;
   clearActiveFloorGeometry: () => void;
@@ -24,6 +25,13 @@ export const createProjectSlice: StateCreator<ProjectStore, [], [], ProjectSlice
       history: [],
       future: [],
       historyGroupBase: null
+    }),
+  // プロジェクト名の変更。空文字は既存名を維持する（保存時の空入力対策）。
+  setProjectName: (name) =>
+    set((state) => {
+      const trimmed = name.trim();
+      if (!trimmed || trimmed === state.project.name) return {};
+      return withHistory(state, { ...state.project, name: trimmed });
     }),
   resetDemo: () =>
     set({
