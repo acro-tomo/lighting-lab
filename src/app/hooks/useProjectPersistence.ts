@@ -79,7 +79,9 @@ export const useProjectPersistence = (
           if (Array.isArray(parsed.compareShots)) {
             setCompareShots(parsed.compareShots);
           }
-          setNotice(t("前回のプロジェクトをIndexedDBから復元しました。"));
+          setNotice(
+            t("前回のプロジェクト「{projectName}」を復元しました。", { projectName: parsed.name })
+          );
         }
       });
   }, [setCompareShots, setNotice, setProject, t]);

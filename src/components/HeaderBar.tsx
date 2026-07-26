@@ -28,7 +28,8 @@ export const HeaderBar = ({
         <div className="brand-mark" aria-hidden="true" />
         <div>
           <p className="eyebrow">{t("Local Web Simulator")}</p>
-          <h1>{t(project.name)}</h1>
+          {/* 長い名前は省略表示になるため、全文は title で補う。 */}
+          <h1 title={`${t("プロジェクト名")}: ${t(project.name)}`}>{t(project.name)}</h1>
         </div>
       </div>
 

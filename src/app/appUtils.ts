@@ -55,6 +55,18 @@ export const downloadText = (fileName: string, text: string) => {
   URL.revokeObjectURL(url);
 };
 
+// プロジェクト名から保存ファイル名を作る。OS/ブラウザで使えない文字と空白は "-" に潰す。
+export const projectFileName = (projectName: string) => {
+  const slug = projectName
+    .trim()
+    .replace(/[\\/:*?"<>|]/g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 60);
+  return `${slug || "ldk-lighting-lab"}-${new Date().toISOString().slice(0, 10)}.json`;
+};
+
 export const downloadDataUrl = (fileName: string, dataUrl: string) => {
   const anchor = document.createElement("a");
   anchor.href = dataUrl;
