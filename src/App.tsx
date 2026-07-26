@@ -14,7 +14,7 @@ import { ShortcutGuide } from "./components/ShortcutGuide";
 import { IntroGuide } from "./components/IntroGuide";
 import { FeedbackForm } from "./components/FeedbackForm";
 import { isWallLightAddKind } from "./data/fixtureAddKinds";
-import { downloadText, formatHour, migrateLoadedProject, readTextFile } from "./app/appUtils";
+import { downloadText, formatHour, migrateLoadedProject, projectFileName, readTextFile } from "./app/appUtils";
 import { useProjectPersistence } from "./app/hooks/useProjectPersistence";
 import { useKeyboardShortcuts } from "./app/hooks/useKeyboardShortcuts";
 import { useEditModeControls } from "./app/hooks/useEditModeControls";
@@ -29,6 +29,7 @@ export const App = () => {
   const compareShots = useProjectStore((state) => state.compareShots);
   const select = useProjectStore((state) => state.select);
   const setProject = useProjectStore((state) => state.setProject);
+  const setProjectName = useProjectStore((state) => state.setProjectName);
   const setCompareShots = useProjectStore((state) => state.setCompareShots);
   const setBackgroundPlan = useProjectStore((state) => state.setBackgroundPlan);
   const clearActiveFloorGeometry = useProjectStore((state) => state.clearActiveFloorGeometry);
@@ -182,17 +183,23 @@ export const App = () => {
       );
       setProject(parsed);
       setCompareShots(Array.isArray(parsed.compareShots) ? parsed.compareShots : []);
-      setNotice(t("{fileName} を読み込みました。", { fileName: file.name }));
+      setNotice(t("プロジェクト「{projectName}」を読み込みました。", { projectName: parsed.name }));
     } catch {
       setNotice(t("プロジェクトJSONの形式が不正です。読み込みを中止しました。"));
     }
   };
 
   const exportProject = () => {
+    const input = window.prompt(t("プロジェクト名を入力してください。"), project.name);
+    if (input === null) return;
+    const name = input.trim() || project.name;
+    setProjectName(name);
+    // ストア更新は非同期に反映されるため、書き出しには入力値を直接使う。
     downloadText(
-      `ldk-lighting-lab-${new Date().toISOString().slice(0, 10)}.json`,
-      JSON.stringify({ ...project, compareShots }, null, 2)
+      projectFileName(name),
+      JSON.stringify({ ...project, name, compareShots }, null, 2)
     );
+    setNotice(t("プロジェクト「{projectName}」を保存しました。", { projectName: name }));
   };
 
   const workspaceClassName = [
