@@ -13,7 +13,7 @@ output/
 marketing/instagram/fonts/
 marketing/instagram/.build/
 # セーフゾーン確認用の書き出し（--guides でいつでも作り直せる）
-marketing/instagram/out/*-guides.png
+marketing/instagram/out/**/*-guides.png
 
 # local-only Codex agent settings
 .agents/
