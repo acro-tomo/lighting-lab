@@ -12,6 +12,7 @@ output/
 # Instagram サムネイル用フォント（Google Fonts から再取得できるので持たない）
 marketing/instagram/fonts/
 marketing/instagram/.build/
+marketing/instagram/.build-reel/
 # セーフゾーン確認用の書き出し（--guides でいつでも作り直せる）
 marketing/instagram/out/**/*-guides.png
 
