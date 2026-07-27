@@ -9,6 +9,9 @@
     "typecheck": "tsc --noEmit",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
+    "ig:fonts": "node scripts/instagram/fetch-fonts.mjs",
+    "ig:plates": "node scripts/instagram/capture-plates.mjs",
+    "ig:thumbs": "node scripts/instagram/make-thumbnails.mjs",
     "visual-check": "node scripts/visual-check.mjs",
     "exploratory-check": "node scripts/exploratory-check.mjs"
   },
