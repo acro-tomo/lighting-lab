@@ -3,8 +3,11 @@
 Buffer MCP の承認が通らない場合に、Buffer の Web UI へ手で入れるための控え。
 画像URLは public リポジトリの raw 直リンク（Buffer の「Add image from URL」にそのまま貼れる）。
 
+> **3件とも Buffer に登録済み**（下の各節の post ID を参照）。手で入れ直すと二重投稿になる。
+> 内容を直したい場合は新規作成ではなく、既存の post を編集すること。
+
 - 公開方法: **通知して手動公開**（Buffer 側で "Notification" を選ぶ）
-- コミット: `c1cfbbf`
+- コミット: `23189a0`
 - 画像はすべて 1080×1350 (4:5)
 
 ---
@@ -14,16 +17,17 @@ Buffer MCP の承認が通らない場合に、Buffer の Web UI へ手で入れ
 - **投稿日時**: 2026-07-28(火) 20:00
 - **postId**: `a-color-temp`
 - **枚数**: 7
+- **Buffer post ID**: `6a67809cef2106458db81f75`（登録済み・scheduled）
 
 ### 画像（この順番で追加）
 
-1. https://raw.githubusercontent.com/acro-tomo/lighting-lab/c1cfbbf66b0b14b80a0dfeb3ef4f85e1080f28e9/marketing/instagram/out/a-color-temp/01.png
-2. https://raw.githubusercontent.com/acro-tomo/lighting-lab/c1cfbbf66b0b14b80a0dfeb3ef4f85e1080f28e9/marketing/instagram/out/a-color-temp/02.png
-3. https://raw.githubusercontent.com/acro-tomo/lighting-lab/c1cfbbf66b0b14b80a0dfeb3ef4f85e1080f28e9/marketing/instagram/out/a-color-temp/03.png
-4. https://raw.githubusercontent.com/acro-tomo/lighting-lab/c1cfbbf66b0b14b80a0dfeb3ef4f85e1080f28e9/marketing/instagram/out/a-color-temp/04.png
-5. https://raw.githubusercontent.com/acro-tomo/lighting-lab/c1cfbbf66b0b14b80a0dfeb3ef4f85e1080f28e9/marketing/instagram/out/a-color-temp/05.png
-6. https://raw.githubusercontent.com/acro-tomo/lighting-lab/c1cfbbf66b0b14b80a0dfeb3ef4f85e1080f28e9/marketing/instagram/out/a-color-temp/06.png
-7. https://raw.githubusercontent.com/acro-tomo/lighting-lab/c1cfbbf66b0b14b80a0dfeb3ef4f85e1080f28e9/marketing/instagram/out/a-color-temp/07.png
+1. https://raw.githubusercontent.com/acro-tomo/lighting-lab/23189a0/marketing/instagram/out/a-color-temp/01.png
+2. https://raw.githubusercontent.com/acro-tomo/lighting-lab/23189a0/marketing/instagram/out/a-color-temp/02.png
+3. https://raw.githubusercontent.com/acro-tomo/lighting-lab/23189a0/marketing/instagram/out/a-color-temp/03.png
+4. https://raw.githubusercontent.com/acro-tomo/lighting-lab/23189a0/marketing/instagram/out/a-color-temp/04.png
+5. https://raw.githubusercontent.com/acro-tomo/lighting-lab/23189a0/marketing/instagram/out/a-color-temp/05.png
+6. https://raw.githubusercontent.com/acro-tomo/lighting-lab/23189a0/marketing/instagram/out/a-color-temp/06.png
+7. https://raw.githubusercontent.com/acro-tomo/lighting-lab/23189a0/marketing/instagram/out/a-color-temp/07.png
 
 ### キャプション
 
@@ -50,16 +54,17 @@ Buffer MCP の承認が通らない場合に、Buffer の Web UI へ手で入れ
 - **投稿日時**: 2026-07-30(木) 20:00
 - **postId**: `b-regret-five`
 - **枚数**: 7
+- **Buffer post ID**: `6a6780b1e82b4d9e0f512962`（登録済み・scheduled）
 
 ### 画像（この順番で追加）
 
-1. https://raw.githubusercontent.com/acro-tomo/lighting-lab/c1cfbbf66b0b14b80a0dfeb3ef4f85e1080f28e9/marketing/instagram/out/b-regret-five/01.png
-2. https://raw.githubusercontent.com/acro-tomo/lighting-lab/c1cfbbf66b0b14b80a0dfeb3ef4f85e1080f28e9/marketing/instagram/out/b-regret-five/02.png
-3. https://raw.githubusercontent.com/acro-tomo/lighting-lab/c1cfbbf66b0b14b80a0dfeb3ef4f85e1080f28e9/marketing/instagram/out/b-regret-five/03.png
-4. https://raw.githubusercontent.com/acro-tomo/lighting-lab/c1cfbbf66b0b14b80a0dfeb3ef4f85e1080f28e9/marketing/instagram/out/b-regret-five/04.png
-5. https://raw.githubusercontent.com/acro-tomo/lighting-lab/c1cfbbf66b0b14b80a0dfeb3ef4f85e1080f28e9/marketing/instagram/out/b-regret-five/05.png
-6. https://raw.githubusercontent.com/acro-tomo/lighting-lab/c1cfbbf66b0b14b80a0dfeb3ef4f85e1080f28e9/marketing/instagram/out/b-regret-five/06.png
-7. https://raw.githubusercontent.com/acro-tomo/lighting-lab/c1cfbbf66b0b14b80a0dfeb3ef4f85e1080f28e9/marketing/instagram/out/b-regret-five/07.png
+1. https://raw.githubusercontent.com/acro-tomo/lighting-lab/23189a0/marketing/instagram/out/b-regret-five/01.png
+2. https://raw.githubusercontent.com/acro-tomo/lighting-lab/23189a0/marketing/instagram/out/b-regret-five/02.png
+3. https://raw.githubusercontent.com/acro-tomo/lighting-lab/23189a0/marketing/instagram/out/b-regret-five/03.png
+4. https://raw.githubusercontent.com/acro-tomo/lighting-lab/23189a0/marketing/instagram/out/b-regret-five/04.png
+5. https://raw.githubusercontent.com/acro-tomo/lighting-lab/23189a0/marketing/instagram/out/b-regret-five/05.png
+6. https://raw.githubusercontent.com/acro-tomo/lighting-lab/23189a0/marketing/instagram/out/b-regret-five/06.png
+7. https://raw.githubusercontent.com/acro-tomo/lighting-lab/23189a0/marketing/instagram/out/b-regret-five/07.png
 
 ### キャプション
 
@@ -86,15 +91,16 @@ Buffer MCP の承認が通らない場合に、Buffer の Web UI へ手で入れ
 - **投稿日時**: 2026-07-31(金) 20:00
 - **postId**: `c-is-warm-dark`
 - **枚数**: 6
+- **Buffer post ID**: `6a6780b56f23f2a6cfa4d08e`（登録済み・scheduled）
 
 ### 画像（この順番で追加）
 
-1. https://raw.githubusercontent.com/acro-tomo/lighting-lab/c1cfbbf66b0b14b80a0dfeb3ef4f85e1080f28e9/marketing/instagram/out/c-is-warm-dark/01.png
-2. https://raw.githubusercontent.com/acro-tomo/lighting-lab/c1cfbbf66b0b14b80a0dfeb3ef4f85e1080f28e9/marketing/instagram/out/c-is-warm-dark/02.png
-3. https://raw.githubusercontent.com/acro-tomo/lighting-lab/c1cfbbf66b0b14b80a0dfeb3ef4f85e1080f28e9/marketing/instagram/out/c-is-warm-dark/03.png
-4. https://raw.githubusercontent.com/acro-tomo/lighting-lab/c1cfbbf66b0b14b80a0dfeb3ef4f85e1080f28e9/marketing/instagram/out/c-is-warm-dark/04.png
-5. https://raw.githubusercontent.com/acro-tomo/lighting-lab/c1cfbbf66b0b14b80a0dfeb3ef4f85e1080f28e9/marketing/instagram/out/c-is-warm-dark/05.png
-6. https://raw.githubusercontent.com/acro-tomo/lighting-lab/c1cfbbf66b0b14b80a0dfeb3ef4f85e1080f28e9/marketing/instagram/out/c-is-warm-dark/06.png
+1. https://raw.githubusercontent.com/acro-tomo/lighting-lab/23189a0/marketing/instagram/out/c-is-warm-dark/01.png
+2. https://raw.githubusercontent.com/acro-tomo/lighting-lab/23189a0/marketing/instagram/out/c-is-warm-dark/02.png
+3. https://raw.githubusercontent.com/acro-tomo/lighting-lab/23189a0/marketing/instagram/out/c-is-warm-dark/03.png
+4. https://raw.githubusercontent.com/acro-tomo/lighting-lab/23189a0/marketing/instagram/out/c-is-warm-dark/04.png
+5. https://raw.githubusercontent.com/acro-tomo/lighting-lab/23189a0/marketing/instagram/out/c-is-warm-dark/05.png
+6. https://raw.githubusercontent.com/acro-tomo/lighting-lab/23189a0/marketing/instagram/out/c-is-warm-dark/06.png
 
 ### キャプション
 
