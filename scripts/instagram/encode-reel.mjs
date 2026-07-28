@@ -11,6 +11,8 @@ import { mkdir, writeFile, readFile, rm } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { pathToFileURL } from "node:url";
+import { resolve } from "node:path";
 import { chromium } from "@playwright/test";
 import ffmpegPath from "ffmpeg-static";
 import { BRAND } from "./post-designs.mjs";
@@ -131,7 +133,8 @@ const page = await browser.newPage({ viewport: { width: WIDTH, height: HEIGHT },
 for (const shot of shots) {
   const htmlPath = `${BUILD_DIR}/${shot.id}.html`;
   await writeFile(htmlPath, overlayHtml(TEXTS[shot.id]), "utf8");
-  await page.goto(`file://${process.cwd()}/${htmlPath}`, { waitUntil: "load" });
+  // 文字列連結だとパスに日本語や空白がある環境で壊れるので、正しくエンコードさせる。
+  await page.goto(pathToFileURL(resolve(htmlPath)).href, { waitUntil: "load" });
   await page.evaluate(() => document.fonts.ready);
   await page.screenshot({ path: `${BUILD_DIR}/${shot.id}.png`, omitBackground: true });
   console.log(`overlay=${shot.id}`);

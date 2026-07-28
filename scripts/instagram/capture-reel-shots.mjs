@@ -21,7 +21,10 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { chromium } from "@playwright/test";
 
-const url = process.argv[2] ?? "http://127.0.0.1:5173/";
+// zsh は対話シェルだと # をコメント扱いしないため、手順書のインラインコメントが
+// そのまま引数として渡ってくることがある。URLに見えないものは黙って捨てる。
+const urlArg = process.argv.slice(2).find((arg) => /^https?:\/\//.test(arg));
+const url = urlArg ?? "http://127.0.0.1:5173/";
 const OUT_DIR = "output/reel-frames";
 const FPS = Number(process.env.REEL_FPS ?? 30);
 const SMOKE = process.env.REEL_SMOKE === "1";
