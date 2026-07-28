@@ -11,6 +11,7 @@
     "preview": "vite preview --host 127.0.0.1",
     "ig:fonts": "node scripts/instagram/fetch-fonts.mjs",
     "ig:plates": "node scripts/instagram/capture-plates.mjs",
+    "ig:rooms": "node scripts/instagram/capture-rooms.mjs",
     "ig:posts": "node scripts/instagram/make-posts.mjs",
     "visual-check": "node scripts/visual-check.mjs",
     "exploratory-check": "node scripts/exploratory-check.mjs"

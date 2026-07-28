@@ -229,5 +229,112 @@ export const POSTS = [
         sub: "自分の間取り図を入れると、夜のLDKが見えます"
       }
     ]
+  },
+  {
+    id: "d-room-types",
+    title: "部屋のかたち別・夜の照明の作り方",
+    slot: 3,
+    // 部屋プレートは1部屋まるごとを撮っているので、既定より寄せない。
+    caption: `「ダウンライトは何灯必要ですか？」への答えは、部屋のかたちで変わります。
+
+天井2.35mの細長い家と、天井4.4mの吹き抜け。同じ灯数にしても、見え方はまったく別物になります。
+6タイプの部屋で、夜の照明をどう組んだかを並べました。自分の家に近いものを探してみてください。
+
+うちの間取りだとどうなるか気になる人は、
+プロフィールのリンクから自分の間取り図で試せます。
+（登録なし・ブラウザだけで動きます）
+
+※雰囲気を比較するための視覚シミュレーションです。
+　実際の照度(lux)や仕上がりを保証するものではありません。
+
+#注文住宅 #照明計画 #マイホーム計画中 #家づくり記録 #新築一戸建て #ダウンライト #間接照明 #吹き抜け #平屋 #家づくり`,
+    slides: [
+      {
+        layout: "band",
+        plates: ["room-jp-skipfloor-tokyo"],
+        plateZoom: 1.05,
+        plateFocus: "50%",
+        eyebrow: "部屋のかたち別",
+        headline: ["天井の高さで", "照明の正解は", "変わります"],
+        sub: "同じ灯数でも、部屋が変われば見え方は別物になります"
+      },
+      {
+        layout: "full",
+        plates: ["room-jp-machiya-toriniwa"],
+        plateZoom: 1.05,
+        plateFocus: "50%",
+        eyebrow: "天井2.35m ｜ 細長い家",
+        headline: ["低い灯りだけで", "奥行きが出る"],
+        sub: "天井は照らさない。2400Kの和紙ペンダントと行灯だけで通り庭の奥まで導きます"
+      },
+      {
+        layout: "full",
+        plates: ["room-jp-hiraya-engawa"],
+        plateZoom: 1.05,
+        plateFocus: "50%",
+        eyebrow: "天井2.4m ｜ 平屋のLDK",
+        headline: ["ダウンライトは", "4灯でいい"],
+        sub: "残りは折り上げの中の間接照明。天井が明るいと部屋は広く感じます"
+      },
+      {
+        layout: "full",
+        plates: ["room-jp-skipfloor-tokyo"],
+        plateZoom: 1.05,
+        plateFocus: "50%",
+        eyebrow: "天井4.4m ｜ 狭小3階建て",
+        headline: ["高い天井ほど", "灯りは下ろす"],
+        sub: "高い位置に付けるほど手元は暗くなります。ペンダントは低く、壁はスポットで"
+      },
+      {
+        layout: "full",
+        plates: ["room-dk-copenhagen-apartment"],
+        plateZoom: 1.05,
+        plateFocus: "50%",
+        eyebrow: "天井3.25m ｜ 北欧の住戸",
+        headline: ["ダウンライト", "0灯の部屋"],
+        sub: "小さな灯りを9つ置くだけ。天井に穴を開けない選び方もあります"
+      },
+      {
+        layout: "full",
+        plates: ["room-es-mediterranean-arch"],
+        plateZoom: 1.05,
+        plateFocus: "50%",
+        eyebrow: "天井3.05m ｜ 南欧の家",
+        headline: ["床ではなく", "壁を照らす"],
+        sub: "ブラケット中心。壁が明るいと、同じ明るさでも部屋は広く見えます"
+      },
+      {
+        layout: "full",
+        plates: ["room-us-brooklyn-loft"],
+        plateZoom: 1.05,
+        plateFocus: "50%",
+        eyebrow: "天井4.2m ｜ ロフト",
+        headline: ["大空間は", "面で照らす"],
+        sub: "スポットで壁を舐め、ペンダントは2m下げて人の背丈のスケールを作ります"
+      },
+      {
+        layout: "quad",
+        plates: [
+          "room-jp-machiya-toriniwa",
+          "room-jp-hiraya-engawa",
+          "room-dk-copenhagen-apartment",
+          "room-us-brooklyn-loft"
+        ],
+        plateLabels: ["天井2.35m", "天井2.4m", "天井3.25m", "天井4.2m"],
+        plateZoom: 1.05,
+        plateFocus: "50%",
+        // 4分割は下段セルのラベルと重なるため eyebrow を置かない。
+        headline: ["灯数より", "どこを照らすか"],
+        sub: "全部の部屋を同じ考え方で照らす必要はありません"
+      },
+      {
+        layout: "outro",
+        plates: ["room-dk-copenhagen-apartment"],
+        plateZoom: 1.05,
+        plateFocus: "50%",
+        headline: ["保存して", "打ち合わせへ"],
+        sub: "自分の間取り図を入れると、夜のLDKが見えます"
+      }
+    ]
   }
 ];

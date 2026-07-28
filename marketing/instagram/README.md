@@ -13,6 +13,10 @@ npm run ig:fonts
 # 2. 背景プレートをアプリから撮る（別ターミナルで npm run dev を起動しておく）
 npm run ig:plates
 
+# 2b. 部屋バリエーションのプレートを撮る（projects/*.json の各部屋。1部屋だけなら id を渡す）
+npm run ig:rooms
+npm run ig:rooms -- jp-machiya-toriniwa
+
 # 3. 投稿画像を書き出す
 npm run ig:posts
 
@@ -34,6 +38,7 @@ npm run ig:posts -- b-regret-five
 | `a-color-temp` | 色温度4種の比べ方 | 7 |
 | `b-regret-five` | 照明で後悔する人の共通点5つ | 7 |
 | `c-is-warm-dark` | 電球色って本当に暗い？ | 6 |
+| `d-room-types` | 部屋のかたち別・夜の照明の作り方（6タイプ） | 9 |
 
 ## ディレクトリ
 
