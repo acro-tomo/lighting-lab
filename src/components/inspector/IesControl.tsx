@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { useI18n } from "../../i18n";
+import { IES_2D_SUPPORTED } from "../../rendering/iesShaderPatch";
 import type { LightFixture } from "../../types";
 import {
   getCachedIesAsset,
@@ -70,8 +71,35 @@ export const IesControl = ({
               </dd>
             </div>
           </dl>
+          {asset.isAsymmetric && (
+            <>
+              <label className="light-range-control">
+                <span>{t("配光の向き")}</span>
+                <div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={355}
+                    step={5}
+                    value={Math.round(light.rotationDeg.y) % 360}
+                    onChange={(event) =>
+                      updateLight(light.id, {
+                        rotationDeg: { ...light.rotationDeg, y: Number(event.target.value) }
+                      })
+                    }
+                  />
+                  <output>{Math.round(light.rotationDeg.y) % 360}°</output>
+                </div>
+              </label>
+              <p className="field-hint">
+                {t("非対称配光です。向きを回すと明るい側が動きます。")}
+              </p>
+            </>
+          )}
           <p className="field-hint">
-            {t("照度計算はIESのθ/φ配光をそのまま使います。3D描画はφ平均の軸対称近似です。")}
+            {asset.isAsymmetric && !IES_2D_SUPPORTED
+              ? t("照度計算はIESのθ/φ配光をそのまま使います。3D描画はφ=0断面での近似です。")
+              : t("照度計算・3D描画ともIESのθ/φ配光を使います。")}
           </p>
         </>
       ) : unresolved ? (

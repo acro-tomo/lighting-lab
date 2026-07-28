@@ -193,8 +193,8 @@ describe("描画への反映", () => {
     const asset = await importIesFile(iesFile(AXIAL_DOWNLIGHT_IES));
     const light = downlight({ ies: { assetId: asset.assetId, fileName: asset.fileName } });
 
-    const editTexture = createIesTexture(asset);
-    const renderTexture = createIesTexture(asset);
+    const editTexture = createIesTexture(asset, 0);
+    const renderTexture = createIesTexture(asset, 0);
     expect(editTexture).not.toBe(renderTexture);
     // 元データ(Float32Array)は共有してよい。片方を dispose しても他方は生きる。
     expect(editTexture.image.data).toBe(renderTexture.image.data);

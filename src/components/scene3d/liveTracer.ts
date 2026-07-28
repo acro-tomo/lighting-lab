@@ -5,6 +5,7 @@ import { DenoiseMaterial, WebGLPathTracer } from "three-gpu-pathtracer";
 import { GenerateMeshBVHWorker } from "three-mesh-bvh/src/workers/index.js";
 import { FullScreenQuad } from "three/examples/jsm/postprocessing/Pass.js";
 import type { RenderDebugMode } from "../../rendering/pathTracer";
+import { patchPathTracerIes } from "../../rendering/iesShaderPatch";
 import type { RenderContext } from "../../rendering/renderContext";
 import {
   buildSkyEnvironment,
@@ -237,6 +238,8 @@ export const PathTracerController = ({
   useEffect(() => {
     const worker = new GenerateMeshBVHWorker();
     const tracer = new WebGLPathTracer(gl);
+    // IESを θ/φ 二次元で引くようシェーダを差し替える（非対称配光の描画）。
+    patchPathTracerIes(tracer);
     tracer.setBVHWorker(worker);
     tracer.multipleImportanceSampling = true;
     // 夜の室内GIは5バウンスでほぼ収束し、8比でサンプル/秒が大きく上がる（待ち時間優先）。

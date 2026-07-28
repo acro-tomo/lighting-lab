@@ -41,7 +41,7 @@ const addIesSpotLight = (
   dropM: number
 ) => {
   const light = new PhysicalSpotLight();
-  applyIesToSpotLight(light, fixture, asset, createIesTexture(asset));
+  applyIesToSpotLight(light, fixture, asset, createIesTexture(asset, fixture.rotationDeg.y));
   light.position.set(fixture.position.x, fixture.position.y - dropM, fixture.position.z);
   light.target.position.set(targetPosition.x, targetPosition.y, targetPosition.z);
   light.target.updateMatrixWorld(true);

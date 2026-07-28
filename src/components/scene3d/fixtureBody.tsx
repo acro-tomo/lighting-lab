@@ -222,11 +222,11 @@ export const FixtureBody = ({
 };
 
 // IES適用時の光源。編集ラスターと常駐パストレで同一オブジェクトを共有する（WYSIWYG）。
-// - 常駐パストレ: three-gpu-pathtracer が iesMap を θ∈[0,π] のプロファイルとして読み、
-//   コーン減衰の代わりに使う。パストレーサ側は1Dプロファイルしか受け取れないため
-//   水平角(φ)方向は平均した軸対称近似になる（照度ヒートマップは完全な2次元配光を使う）。
+// - 常駐パストレ: three-gpu-pathtracer が iesMap を読み、コーン減衰の代わりに使う。
+//   シェーダを差し替えてあるので θ/φ 二次元をそのまま引く（rendering/iesShaderPatch.ts）。
+//   非対称配光の向きは器具のY回転としてテクスチャに焼き込む。
 // - 通常ラスター: three の WebGLRenderer は iesMap を解釈しないので、IES由来の
-//   ピーク光度＋代表ビーム角を持つスポットライトとしての近似表示になる。
+//   ピーク光度（φ平均）＋代表ビーム角を持つスポットライトとしての近似表示になる。
 const IesSpotLight = ({
   asset,
   fixture,
@@ -240,7 +240,9 @@ const IesSpotLight = ({
   target: THREE.Object3D;
   castShadow: boolean;
 }) => {
-  const texture = useMemo(() => createIesTexture(asset), [asset]);
+  // 非対称配光の向きは器具のY回転で決まるため、変わったらテクスチャを作り直す。
+  const rotationYDeg = fixture.rotationDeg.y;
+  const texture = useMemo(() => createIesTexture(asset, rotationYDeg), [asset, rotationYDeg]);
   const light = useMemo(() => new PhysicalSpotLight(), []);
 
   // テクスチャは編集シーン専用（PNGレンダーシーンは別インスタンスを作る）。

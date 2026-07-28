@@ -13,6 +13,26 @@ TILT=NONE
 1000 800 200 0 0
 `;
 
+/**
+ * 非対称（φで光度が変わる）合成IES。水平角 0/90/180/270/360°、垂直角 0/45/90°。
+ * θ=45° の光度が φ=0° 方向だけ 1000cd、他方向は 10cd。ウォールウォッシャー相当。
+ * 光軸上(θ=0)は 0cd なので、真下ではなく斜め一方向だけが明るい。
+ */
+export const ASYMMETRIC_IES = `IESNA:LM-63-2002
+[TEST] Synthetic one-sided asymmetric distribution
+[MANUFAC] TEST LAB
+TILT=NONE
+1 500 1 3 5 1 2 0.06 0.06 0
+1.0 0 8.0
+0 45 90
+0 90 180 270 360
+0 1000 0
+0 10 0
+0 10 0
+0 10 0
+0 1000 0
+`;
+
 /** photometric type 3 (Type A) — Type C 以外なので拒否される。 */
 export const TYPE_A_IES = AXIAL_DOWNLIGHT_IES.replace(
   "1 800 1 5 1 1 2 0.06 0.06 0",
