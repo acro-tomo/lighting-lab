@@ -7,9 +7,11 @@ type IntroGuideProps = {
   // ヘッダーの「?」ボタンから強制表示するためのフラグ。
   forceOpen?: boolean;
   onClose?: () => void;
+  // 自分の間取り図が無い人向けの入口。閉じたうえで部屋の選択画面を開く。
+  onShowSampleRooms?: () => void;
 };
 
-export const IntroGuide = ({ forceOpen, onClose }: IntroGuideProps) => {
+export const IntroGuide = ({ forceOpen, onClose, onShowSampleRooms }: IntroGuideProps) => {
   const { t } = useI18n();
   const [dismissed, setDismissed] = useState(() => {
     return localStorage.getItem(STORAGE_KEY) === "1";
@@ -22,6 +24,11 @@ export const IntroGuide = ({ forceOpen, onClose }: IntroGuideProps) => {
     localStorage.setItem(STORAGE_KEY, "1");
     setDismissed(true);
     onClose?.();
+  };
+
+  const handleSampleRooms = () => {
+    handleStart();
+    onShowSampleRooms?.();
   };
 
   return (
@@ -51,9 +58,16 @@ export const IntroGuide = ({ forceOpen, onClose }: IntroGuideProps) => {
             <li><span className="intro-key">Option + ←→</span> {t("カメラが注視点の周りを回る")}</li>
           </ul>
         </div>
-        <button className="intro-start" onClick={handleStart}>
-          {t("はじめる")}
-        </button>
+        <div className="intro-actions">
+          {onShowSampleRooms && (
+            <button className="intro-samples" onClick={handleSampleRooms}>
+              {t("サンプルの部屋から始める")}
+            </button>
+          )}
+          <button className="intro-start" onClick={handleStart}>
+            {t("はじめる")}
+          </button>
+        </div>
       </div>
     </div>
   );

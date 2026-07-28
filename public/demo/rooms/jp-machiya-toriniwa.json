@@ -1,0 +1,1015 @@
+{
+  "id": "ig-jp-machiya-toriniwa",
+  "name": "京町家リノベ｜通り庭と火袋の家",
+  "renderCalibrationVersion": 2,
+  "room": {
+    "widthM": 4.2,
+    "depthM": 15.0,
+    "ceilingHeightM": 2.35
+  },
+  "materials": [
+    {
+      "id": "plaster-jurakukabe",
+      "name": "聚楽壁風の土壁",
+      "baseColor": "#b9a88c",
+      "roughness": 0.97,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "cedar-post",
+      "name": "磨きの効いた杉柱",
+      "baseColor": "#6b4f34",
+      "roughness": 0.8,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "tatami",
+      "name": "青畳",
+      "baseColor": "#8f9367",
+      "roughness": 0.95,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "doma-mortar",
+      "name": "たたき土間",
+      "baseColor": "#6e6660",
+      "roughness": 0.88,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "shoji-paper",
+      "name": "障子紙",
+      "baseColor": "#e6e0d2",
+      "roughness": 0.96,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "kitchen-steel",
+      "name": "ステンレス厨房",
+      "baseColor": "#9aa0a3",
+      "roughness": 0.4,
+      "metalness": 0.55,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "indigo-fabric",
+      "name": "藍染ファブリック",
+      "baseColor": "#3f4d5c",
+      "roughness": 0.94,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "bengara",
+      "name": "弁柄塗りの建具",
+      "baseColor": "#7c3f2e",
+      "roughness": 0.75,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "keyaki",
+      "name": "欅の一枚板",
+      "baseColor": "#5b3d27",
+      "roughness": 0.68,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "rug-hemp",
+      "name": "麻のラグ",
+      "baseColor": "#c3b79c",
+      "roughness": 0.99,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "greenery",
+      "name": "坪庭の植栽",
+      "baseColor": "#4a5a3c",
+      "roughness": 0.92,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    }
+  ],
+  "walls": [
+    {
+      "id": "machiya-north",
+      "name": "北面の壁",
+      "start": {
+        "x": -2.1,
+        "z": -7.5
+      },
+      "end": {
+        "x": 2.1,
+        "z": -7.5
+      },
+      "thicknessM": 0.16,
+      "heightM": 2.35,
+      "materialId": "plaster-jurakukabe"
+    },
+    {
+      "id": "machiya-east",
+      "name": "東面の壁",
+      "start": {
+        "x": 2.1,
+        "z": -7.5
+      },
+      "end": {
+        "x": 2.1,
+        "z": 7.5
+      },
+      "thicknessM": 0.16,
+      "heightM": 2.35,
+      "materialId": "plaster-jurakukabe"
+    },
+    {
+      "id": "machiya-south",
+      "name": "南面の壁",
+      "start": {
+        "x": 2.1,
+        "z": 7.5
+      },
+      "end": {
+        "x": -2.1,
+        "z": 7.5
+      },
+      "thicknessM": 0.16,
+      "heightM": 2.35,
+      "materialId": "bengara"
+    },
+    {
+      "id": "machiya-west",
+      "name": "西面の壁",
+      "start": {
+        "x": -2.1,
+        "z": 7.5
+      },
+      "end": {
+        "x": -2.1,
+        "z": -7.5
+      },
+      "thicknessM": 0.16,
+      "heightM": 2.35,
+      "materialId": "plaster-jurakukabe"
+    },
+    {
+      "id": "machiya-part-front",
+      "name": "見世と居間の間仕切",
+      "start": {
+        "x": -2.1,
+        "z": 4.0
+      },
+      "end": {
+        "x": 0.55,
+        "z": 4.0
+      },
+      "thicknessM": 0.12,
+      "heightM": 2.35,
+      "materialId": "plaster-jurakukabe"
+    },
+    {
+      "id": "machiya-part-back",
+      "name": "居間と座敷の間仕切",
+      "start": {
+        "x": -2.1,
+        "z": 0.0
+      },
+      "end": {
+        "x": 0.55,
+        "z": 0.0
+      },
+      "thicknessM": 0.12,
+      "heightM": 2.35,
+      "materialId": "plaster-jurakukabe"
+    },
+    {
+      "id": "machiya-toriniwa",
+      "name": "通り庭の袖壁",
+      "start": {
+        "x": 0.55,
+        "z": -3.4
+      },
+      "end": {
+        "x": 0.55,
+        "z": -7.42
+      },
+      "thicknessM": 0.12,
+      "heightM": 2.35,
+      "materialId": "plaster-jurakukabe"
+    }
+  ],
+  "windows": [
+    {
+      "id": "machiya-koshido",
+      "name": "格子戸(通り側)",
+      "wallId": "machiya-south",
+      "centerRatio": 0.72,
+      "widthM": 1.15,
+      "heightM": 2.05,
+      "topHeightM": 2.05,
+      "hasGlass": false,
+      "style": "door"
+    },
+    {
+      "id": "machiya-miseniwa",
+      "name": "見世の格子窓",
+      "wallId": "machiya-south",
+      "centerRatio": 0.32,
+      "widthM": 1.5,
+      "heightM": 1.15,
+      "topHeightM": 2.0,
+      "hasGlass": true,
+      "style": "window"
+    },
+    {
+      "id": "machiya-oku-shoji",
+      "name": "奥庭の大障子",
+      "wallId": "machiya-north",
+      "centerRatio": 0.34,
+      "widthM": 2.4,
+      "heightM": 2.0,
+      "topHeightM": 2.15,
+      "hasGlass": true,
+      "style": "window"
+    },
+    {
+      "id": "machiya-tsuboniwa",
+      "name": "坪庭の障子",
+      "wallId": "machiya-west",
+      "centerRatio": 0.52,
+      "widthM": 1.6,
+      "heightM": 1.7,
+      "topHeightM": 2.0,
+      "hasGlass": true,
+      "style": "window"
+    },
+    {
+      "id": "machiya-fusuma-front",
+      "name": "見世と居間の襖",
+      "wallId": "machiya-part-front",
+      "centerRatio": 0.62,
+      "widthM": 1.75,
+      "heightM": 1.95,
+      "topHeightM": 1.95,
+      "hasGlass": false,
+      "style": "opening"
+    },
+    {
+      "id": "machiya-fusuma-back",
+      "name": "居間と座敷の襖",
+      "wallId": "machiya-part-back",
+      "centerRatio": 0.58,
+      "widthM": 1.8,
+      "heightM": 1.95,
+      "topHeightM": 1.95,
+      "hasGlass": false,
+      "style": "opening"
+    }
+  ],
+  "voids": [
+    {
+      "id": "machiya-hibukuro",
+      "name": "火袋(通り庭の吹き抜け)",
+      "center": {
+        "x": 1.3,
+        "z": 0.6
+      },
+      "size": {
+        "x": 1.5,
+        "z": 4.6
+      },
+      "openSides": [
+        "west"
+      ],
+      "heightM": 2.45,
+      "floor": 1
+    }
+  ],
+  "furniture": [
+    {
+      "id": "machiya-zataku",
+      "name": "欅の座卓",
+      "type": "roundTable",
+      "position": {
+        "x": -0.7,
+        "y": 0.165,
+        "z": -4.6
+      },
+      "size": {
+        "x": 1.15,
+        "y": 0.33,
+        "z": 1.15
+      },
+      "rotationYDeg": 0,
+      "materialId": "keyaki",
+      "castsShadow": true,
+      "color": "#5b3d27",
+      "roughness": 0.68
+    },
+    {
+      "id": "machiya-zabuton-1",
+      "name": "座布団 西",
+      "type": "box",
+      "position": {
+        "x": -1.45,
+        "y": 0.045,
+        "z": -4.6
+      },
+      "size": {
+        "x": 0.58,
+        "y": 0.09,
+        "z": 0.58
+      },
+      "rotationYDeg": 0,
+      "materialId": "indigo-fabric",
+      "castsShadow": true,
+      "color": "#3f4d5c",
+      "roughness": 0.94
+    },
+    {
+      "id": "machiya-zabuton-2",
+      "name": "座布団 東",
+      "type": "box",
+      "position": {
+        "x": 0.05,
+        "y": 0.045,
+        "z": -4.6
+      },
+      "size": {
+        "x": 0.58,
+        "y": 0.09,
+        "z": 0.58
+      },
+      "rotationYDeg": 0,
+      "materialId": "indigo-fabric",
+      "castsShadow": true,
+      "color": "#3f4d5c",
+      "roughness": 0.94
+    },
+    {
+      "id": "machiya-tokonoma",
+      "name": "床の間の地板",
+      "type": "counter",
+      "position": {
+        "x": -0.7,
+        "y": 0.11,
+        "z": -7.05
+      },
+      "size": {
+        "x": 1.9,
+        "y": 0.22,
+        "z": 0.6
+      },
+      "rotationYDeg": 0,
+      "materialId": "keyaki",
+      "castsShadow": true,
+      "color": "#5b3d27",
+      "roughness": 0.68
+    },
+    {
+      "id": "machiya-ikebana",
+      "name": "床の間の枝もの",
+      "type": "plant",
+      "position": {
+        "x": -1.35,
+        "y": 0.79,
+        "z": -7.0
+      },
+      "size": {
+        "x": 0.55,
+        "y": 1.15,
+        "z": 0.55
+      },
+      "rotationYDeg": 0,
+      "materialId": "greenery",
+      "castsShadow": true,
+      "color": "#4a5a3c",
+      "roughness": 0.92
+    },
+    {
+      "id": "machiya-tansu",
+      "name": "階段箪笥",
+      "type": "shelf",
+      "position": {
+        "x": -1.65,
+        "y": 0.775,
+        "z": -2.1
+      },
+      "size": {
+        "x": 0.95,
+        "y": 1.55,
+        "z": 0.45
+      },
+      "rotationYDeg": 90,
+      "materialId": "bengara",
+      "castsShadow": true,
+      "color": "#7c3f2e",
+      "roughness": 0.75
+    },
+    {
+      "id": "machiya-rug",
+      "name": "麻のラグ",
+      "type": "rug",
+      "position": {
+        "x": -0.8,
+        "y": 0.015,
+        "z": 2.1
+      },
+      "size": {
+        "x": 2.15,
+        "y": 0.03,
+        "z": 2.6
+      },
+      "rotationYDeg": 0,
+      "materialId": "rug-hemp",
+      "castsShadow": false,
+      "color": "#c3b79c",
+      "roughness": 0.99
+    },
+    {
+      "id": "machiya-sofa",
+      "name": "低いソファ",
+      "type": "sofa",
+      "position": {
+        "x": -1.35,
+        "y": 0.33,
+        "z": 2.1
+      },
+      "size": {
+        "x": 1.95,
+        "y": 0.66,
+        "z": 0.88
+      },
+      "rotationYDeg": 90,
+      "materialId": "indigo-fabric",
+      "castsShadow": true,
+      "color": "#3f4d5c",
+      "roughness": 0.94
+    },
+    {
+      "id": "machiya-lowtable",
+      "name": "楢のローテーブル",
+      "type": "rectTable",
+      "position": {
+        "x": -0.15,
+        "y": 0.16,
+        "z": 2.1
+      },
+      "size": {
+        "x": 0.95,
+        "y": 0.32,
+        "z": 0.55
+      },
+      "rotationYDeg": 0,
+      "materialId": "keyaki",
+      "castsShadow": true,
+      "color": "#5b3d27",
+      "roughness": 0.68
+    },
+    {
+      "id": "machiya-tvboard",
+      "name": "低いテレビ台",
+      "type": "counter",
+      "position": {
+        "x": -0.8,
+        "y": 0.19,
+        "z": 3.75
+      },
+      "size": {
+        "x": 1.6,
+        "y": 0.38,
+        "z": 0.4
+      },
+      "rotationYDeg": 180,
+      "materialId": "bengara",
+      "castsShadow": true,
+      "color": "#7c3f2e",
+      "roughness": 0.75
+    },
+    {
+      "id": "machiya-tv",
+      "name": "テレビ",
+      "type": "tv",
+      "position": {
+        "x": -0.8,
+        "y": 0.72,
+        "z": 3.86
+      },
+      "size": {
+        "x": 1.15,
+        "y": 0.66,
+        "z": 0.06
+      },
+      "rotationYDeg": 180,
+      "materialId": "kitchen-steel",
+      "castsShadow": true
+    },
+    {
+      "id": "machiya-kitchen",
+      "name": "通り庭のステンレス厨房",
+      "type": "kitchen",
+      "position": {
+        "x": 1.62,
+        "y": 0.28,
+        "z": -1.6
+      },
+      "size": {
+        "x": 2.6,
+        "y": 0.88,
+        "z": 0.62
+      },
+      "rotationYDeg": 90,
+      "materialId": "kitchen-steel",
+      "castsShadow": true,
+      "color": "#9aa0a3",
+      "roughness": 0.4,
+      "metalness": 0.55
+    },
+    {
+      "id": "machiya-cupboard",
+      "name": "水屋箪笥",
+      "type": "cupboard",
+      "position": {
+        "x": 1.72,
+        "y": 0.71,
+        "z": -4.1
+      },
+      "size": {
+        "x": 1.15,
+        "y": 1.75,
+        "z": 0.42
+      },
+      "rotationYDeg": 90,
+      "materialId": "bengara",
+      "castsShadow": true,
+      "color": "#7c3f2e",
+      "roughness": 0.75
+    },
+    {
+      "id": "machiya-fridge",
+      "name": "冷蔵庫",
+      "type": "fridge",
+      "position": {
+        "x": 1.62,
+        "y": 0.71,
+        "z": -5.6
+      },
+      "size": {
+        "x": 0.66,
+        "y": 1.75,
+        "z": 0.66
+      },
+      "rotationYDeg": 90,
+      "materialId": "kitchen-steel",
+      "castsShadow": true,
+      "color": "#9aa0a3",
+      "roughness": 0.4,
+      "metalness": 0.35
+    },
+    {
+      "id": "machiya-stair",
+      "name": "居間の箱階段",
+      "type": "stair",
+      "position": {
+        "x": -0.75,
+        "y": 0.0,
+        "z": 3.15
+      },
+      "size": {
+        "x": 1.15,
+        "y": 2.3,
+        "z": 2.4
+      },
+      "rotationYDeg": -90,
+      "materialId": "cedar-post",
+      "castsShadow": true,
+      "color": "#6b4f34",
+      "roughness": 0.8
+    },
+    {
+      "id": "machiya-genkan",
+      "name": "下駄箱",
+      "type": "shoeCabinet",
+      "position": {
+        "x": 1.65,
+        "y": 0.31,
+        "z": 6.3
+      },
+      "size": {
+        "x": 0.85,
+        "y": 0.95,
+        "z": 0.38
+      },
+      "rotationYDeg": 90,
+      "materialId": "bengara",
+      "castsShadow": true,
+      "color": "#7c3f2e",
+      "roughness": 0.75
+    },
+    {
+      "id": "machiya-doma-bench",
+      "name": "土間の腰掛け",
+      "type": "box",
+      "position": {
+        "x": 0.9,
+        "y": 0.05,
+        "z": 5.9
+      },
+      "size": {
+        "x": 0.42,
+        "y": 0.42,
+        "z": 1.1
+      },
+      "rotationYDeg": 0,
+      "materialId": "keyaki",
+      "castsShadow": true,
+      "color": "#5b3d27",
+      "roughness": 0.68
+    },
+    {
+      "id": "machiya-plant",
+      "name": "坪庭の南天",
+      "type": "plant",
+      "position": {
+        "x": -1.5,
+        "y": 0.67,
+        "z": 0.9
+      },
+      "size": {
+        "x": 0.7,
+        "y": 1.35,
+        "z": 0.7
+      },
+      "rotationYDeg": 0,
+      "materialId": "greenery",
+      "castsShadow": true,
+      "color": "#4a5a3c",
+      "roughness": 0.92
+    }
+  ],
+  "lights": [
+    {
+      "id": "machiya-washi-1",
+      "name": "和紙ペンダント 座卓",
+      "type": "pendant",
+      "model": "pendant-globe",
+      "lumens": 330,
+      "colorTemperatureK": 2400,
+      "dimmer": 76,
+      "enabled": true,
+      "beamAngleDeg": 180,
+      "penumbra": 1.0,
+      "castsShadow": true,
+      "note": "座卓の上だけを落とす低い和紙の灯り",
+      "position": {
+        "x": -0.7,
+        "y": 1.5,
+        "z": -4.6
+      },
+      "mountHeightM": 2.35,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": -0.7,
+        "y": 0.75,
+        "z": -4.6
+      },
+      "cordLengthM": 0.85
+    },
+    {
+      "id": "machiya-washi-2",
+      "name": "和紙ペンダント 居間",
+      "type": "pendant",
+      "model": "pendant-globe",
+      "lumens": 300,
+      "colorTemperatureK": 2400,
+      "dimmer": 72,
+      "enabled": true,
+      "beamAngleDeg": 180,
+      "penumbra": 1.0,
+      "castsShadow": true,
+      "note": "居間の中心に低く吊るした和紙シェード",
+      "position": {
+        "x": -0.6,
+        "y": 1.4000000000000001,
+        "z": 2.1
+      },
+      "mountHeightM": 2.35,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": -0.6,
+        "y": 0.75,
+        "z": 2.1
+      },
+      "cordLengthM": 0.95
+    },
+    {
+      "id": "machiya-hibukuro-1",
+      "name": "火袋の吊り灯 上",
+      "type": "pendant",
+      "model": "pendant-globe",
+      "lumens": 340,
+      "colorTemperatureK": 2400,
+      "dimmer": 70,
+      "enabled": true,
+      "beamAngleDeg": 180,
+      "penumbra": 1.0,
+      "castsShadow": true,
+      "note": "火袋の高い位置。吹き抜けの縦を見せる",
+      "position": {
+        "x": 1.3,
+        "y": 3.2000000000000006,
+        "z": -0.4
+      },
+      "mountHeightM": 4.800000000000001,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 1.3,
+        "y": 0.75,
+        "z": -0.4
+      },
+      "cordLengthM": 1.6
+    },
+    {
+      "id": "machiya-hibukuro-2",
+      "name": "火袋の吊り灯 下",
+      "type": "pendant",
+      "model": "pendant-globe",
+      "lumens": 300,
+      "colorTemperatureK": 2400,
+      "dimmer": 66,
+      "enabled": true,
+      "beamAngleDeg": 180,
+      "penumbra": 1.0,
+      "castsShadow": true,
+      "note": "火袋の低い位置。通り庭の足元を照らす",
+      "position": {
+        "x": 1.3,
+        "y": 1.9000000000000008,
+        "z": 1.5
+      },
+      "mountHeightM": 4.800000000000001,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 1.3,
+        "y": 0.75,
+        "z": 1.5
+      },
+      "cordLengthM": 2.9
+    },
+    {
+      "id": "machiya-andon-1",
+      "name": "行灯風ブラケット 奥",
+      "type": "bracket",
+      "model": "bracket",
+      "lumens": 260,
+      "colorTemperatureK": 2200,
+      "dimmer": 70,
+      "enabled": true,
+      "beamAngleDeg": 120,
+      "penumbra": 0.85,
+      "castsShadow": true,
+      "note": "通り庭の袖壁に付けた低い行灯",
+      "position": {
+        "x": 0.44,
+        "y": 1.35,
+        "z": -3.0
+      },
+      "mountHeightM": 1.35,
+      "rotationDeg": {
+        "x": 0,
+        "y": 90,
+        "z": 0
+      },
+      "target": {
+        "x": -0.4,
+        "y": 0.9,
+        "z": -3.0
+      }
+    },
+    {
+      "id": "machiya-andon-2",
+      "name": "行灯風ブラケット 玄関",
+      "type": "bracket",
+      "model": "bracket",
+      "lumens": 240,
+      "colorTemperatureK": 2200,
+      "dimmer": 68,
+      "enabled": true,
+      "beamAngleDeg": 120,
+      "penumbra": 0.85,
+      "castsShadow": true,
+      "note": "上がり框の足元を見せる灯り",
+      "position": {
+        "x": 0.46,
+        "y": 1.35,
+        "z": 5.4
+      },
+      "mountHeightM": 1.35,
+      "rotationDeg": {
+        "x": 0,
+        "y": 90,
+        "z": 0
+      },
+      "target": {
+        "x": -0.4,
+        "y": 0.9,
+        "z": 5.4
+      }
+    },
+    {
+      "id": "machiya-shoji-back",
+      "name": "奥障子のアッパー",
+      "type": "spotlight",
+      "model": "sp-wall",
+      "lumens": 320,
+      "colorTemperatureK": 2400,
+      "dimmer": 64,
+      "enabled": true,
+      "beamAngleDeg": 36,
+      "penumbra": 0.45,
+      "castsShadow": true,
+      "note": "障子を裏から舐めて紙の質感を出す",
+      "position": {
+        "x": -1.2,
+        "y": 0.35,
+        "z": -7.1
+      },
+      "mountHeightM": 0.35,
+      "rotationDeg": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": -1.2,
+        "y": 2.2,
+        "z": -7.35
+      }
+    },
+    {
+      "id": "machiya-kitchen-dl",
+      "name": "厨房の集光ダウンライト",
+      "type": "downlight",
+      "model": "dl-narrow",
+      "lumens": 520,
+      "colorTemperatureK": 2700,
+      "dimmer": 82,
+      "enabled": true,
+      "beamAngleDeg": 34,
+      "penumbra": 0.4,
+      "castsShadow": true,
+      "note": "手元だけを絞って照らす",
+      "position": {
+        "x": 1.62,
+        "y": 2.31,
+        "z": -1.6
+      },
+      "mountHeightM": 2.35,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 1.62,
+        "y": 0.9,
+        "z": -1.6
+      }
+    },
+    {
+      "id": "machiya-stair-dl",
+      "name": "階段のグレアレス",
+      "type": "downlight",
+      "model": "dl-glareless",
+      "lumens": 420,
+      "colorTemperatureK": 2400,
+      "dimmer": 70,
+      "enabled": true,
+      "beamAngleDeg": 52,
+      "penumbra": 0.7,
+      "castsShadow": true,
+      "note": "箱階段の踏面だけを確保する",
+      "position": {
+        "x": -1.3,
+        "y": 2.31,
+        "z": 3.15
+      },
+      "mountHeightM": 2.35,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": -1.3,
+        "y": 0.0,
+        "z": 3.15
+      }
+    },
+    {
+      "id": "machiya-tansu-tape",
+      "name": "階段箪笥の間接",
+      "type": "tape",
+      "model": "tape",
+      "lumens": 300,
+      "colorTemperatureK": 2400,
+      "dimmer": 64,
+      "enabled": true,
+      "beamAngleDeg": 120,
+      "penumbra": 0.9,
+      "castsShadow": false,
+      "note": "箪笥の上から壁を舐める間接光",
+      "position": {
+        "x": -1.5,
+        "y": 2.31,
+        "z": -2.1
+      },
+      "mountHeightM": 2.35,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": -1.5,
+        "y": 0.0,
+        "z": -2.1
+      },
+      "lengthM": 1.4
+    }
+  ],
+  "camera": {
+    "position": {
+      "x": 1.15,
+      "y": 1.45,
+      "z": 6.3
+    },
+    "target": {
+      "x": 0.25,
+      "y": 1.0,
+      "z": -3.2
+    },
+    "fov": 74,
+    "exposure": 0.115,
+    "resolutionWidth": 1600
+  },
+  "daylight": {
+    "enabled": false,
+    "month": 11,
+    "day": 8,
+    "hour": 16.0,
+    "northOffsetDeg": 0,
+    "latitudeDeg": 35.0
+  },
+  "showCeiling": true,
+  "activeFloor": 1,
+  "floorZones": [
+    {
+      "id": "machiya-doma",
+      "name": "通り庭の土間",
+      "center": {
+        "x": 1.32,
+        "z": 0.0
+      },
+      "size": {
+        "x": 1.55,
+        "z": 14.9
+      },
+      "dropM": 0.16,
+      "floor": 1
+    }
+  ]
+}

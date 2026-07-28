@@ -7,6 +7,7 @@ type HeaderBarProps = {
   onImportFloorPlan: (file: File) => void;
   onImportProject: (file: File) => void;
   onExportProject: () => void;
+  onShowSampleRooms: () => void;
   onShowIntro: () => void;
 };
 
@@ -15,6 +16,7 @@ export const HeaderBar = ({
   onImportFloorPlan,
   onImportProject,
   onExportProject,
+  onShowSampleRooms,
   onShowIntro
 }: HeaderBarProps) => {
   const { language, setLanguage, t } = useI18n();
@@ -68,6 +70,12 @@ export const HeaderBar = ({
         />
         <div className="header-action-group" aria-label={t("プロジェクト操作")}>
           <div>
+            <button
+              className="sample-rooms-btn"
+              onClick={() => { onShowSampleRooms(); setMobileMenuOpen(false); }}
+            >
+              {t("サンプルの部屋")}
+            </button>
             <button onClick={() => { planInputRef.current?.click(); setMobileMenuOpen(false); }}>{t("間取り図の読込")}</button>
             <button onClick={() => { projectInputRef.current?.click(); setMobileMenuOpen(false); }}>{t("プロジェクト読込")}</button>
             <button onClick={() => { onExportProject(); setMobileMenuOpen(false); }}>{t("プロジェクト保存")}</button>

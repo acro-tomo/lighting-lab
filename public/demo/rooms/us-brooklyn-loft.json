@@ -1,0 +1,1270 @@
+{
+  "id": "ig-us-brooklyn-loft",
+  "name": "ブルックリンのロフト｜天井4.2mを照らす",
+  "renderCalibrationVersion": 2,
+  "room": {
+    "widthM": 13.5,
+    "depthM": 8.6,
+    "ceilingHeightM": 4.2
+  },
+  "materials": [
+    {
+      "id": "brick-red",
+      "name": "古いレンガ",
+      "baseColor": "#8d5a48",
+      "roughness": 0.94,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "brick-painted",
+      "name": "白く塗られたレンガ",
+      "baseColor": "#c9c3ba",
+      "roughness": 0.95,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "concrete-floor",
+      "name": "研磨コンクリート床",
+      "baseColor": "#8a8781",
+      "roughness": 0.72,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "steel-window",
+      "name": "スチールサッシ",
+      "baseColor": "#2b2c2e",
+      "roughness": 0.42,
+      "metalness": 0.6,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "wood-walnut",
+      "name": "ウォルナット",
+      "baseColor": "#4c3323",
+      "roughness": 0.72,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "leather-cognac",
+      "name": "コニャックレザー",
+      "baseColor": "#94572f",
+      "roughness": 0.76,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "fabric-charcoal",
+      "name": "チャコールのファブリック",
+      "baseColor": "#4c4e51",
+      "roughness": 0.94,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "steel-kitchen",
+      "name": "ステンレスの厨房",
+      "baseColor": "#a3a7a9",
+      "roughness": 0.36,
+      "metalness": 0.62,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "rug-vintage",
+      "name": "ヴィンテージラグ",
+      "baseColor": "#7a5b4b",
+      "roughness": 0.98,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "green-monstera",
+      "name": "モンステラ",
+      "baseColor": "#4b6042",
+      "roughness": 0.92,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "brass-fixture",
+      "name": "真鍮の器具",
+      "baseColor": "#8a6f3c",
+      "roughness": 0.34,
+      "metalness": 0.7,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    }
+  ],
+  "walls": [
+    {
+      "id": "loft-north",
+      "name": "北面の壁",
+      "start": {
+        "x": -6.75,
+        "z": -4.3
+      },
+      "end": {
+        "x": 6.75,
+        "z": -4.3
+      },
+      "thicknessM": 0.36,
+      "heightM": 4.2,
+      "materialId": "brick-red"
+    },
+    {
+      "id": "loft-east",
+      "name": "東面の壁",
+      "start": {
+        "x": 6.75,
+        "z": -4.3
+      },
+      "end": {
+        "x": 6.75,
+        "z": 4.3
+      },
+      "thicknessM": 0.36,
+      "heightM": 4.2,
+      "materialId": "brick-painted"
+    },
+    {
+      "id": "loft-south",
+      "name": "南面の壁",
+      "start": {
+        "x": 6.75,
+        "z": 4.3
+      },
+      "end": {
+        "x": -6.75,
+        "z": 4.3
+      },
+      "thicknessM": 0.36,
+      "heightM": 4.2,
+      "materialId": "steel-window"
+    },
+    {
+      "id": "loft-west",
+      "name": "西面の壁",
+      "start": {
+        "x": -6.75,
+        "z": 4.3
+      },
+      "end": {
+        "x": -6.75,
+        "z": -4.3
+      },
+      "thicknessM": 0.36,
+      "heightM": 4.2,
+      "materialId": "brick-red"
+    }
+  ],
+  "windows": [
+    {
+      "id": "loft-steel-1",
+      "name": "スチールの工業窓 1",
+      "wallId": "loft-south",
+      "centerRatio": 0.12,
+      "widthM": 1.35,
+      "heightM": 3.1,
+      "topHeightM": 3.75,
+      "hasGlass": true,
+      "style": "window"
+    },
+    {
+      "id": "loft-steel-2",
+      "name": "スチールの工業窓 2",
+      "wallId": "loft-south",
+      "centerRatio": 0.26,
+      "widthM": 1.35,
+      "heightM": 3.1,
+      "topHeightM": 3.75,
+      "hasGlass": true,
+      "style": "window"
+    },
+    {
+      "id": "loft-steel-3",
+      "name": "スチールの工業窓 3",
+      "wallId": "loft-south",
+      "centerRatio": 0.4,
+      "widthM": 1.35,
+      "heightM": 3.1,
+      "topHeightM": 3.75,
+      "hasGlass": true,
+      "style": "window"
+    },
+    {
+      "id": "loft-steel-4",
+      "name": "スチールの工業窓 4",
+      "wallId": "loft-south",
+      "centerRatio": 0.54,
+      "widthM": 1.35,
+      "heightM": 3.1,
+      "topHeightM": 3.75,
+      "hasGlass": true,
+      "style": "window"
+    },
+    {
+      "id": "loft-steel-5",
+      "name": "スチールの工業窓 5",
+      "wallId": "loft-south",
+      "centerRatio": 0.68,
+      "widthM": 1.35,
+      "heightM": 3.1,
+      "topHeightM": 3.75,
+      "hasGlass": true,
+      "style": "window"
+    },
+    {
+      "id": "loft-steel-6",
+      "name": "スチールの工業窓 6",
+      "wallId": "loft-south",
+      "centerRatio": 0.82,
+      "widthM": 1.35,
+      "heightM": 3.1,
+      "topHeightM": 3.75,
+      "hasGlass": true,
+      "style": "window"
+    },
+    {
+      "id": "loft-east-door",
+      "name": "共用廊下への鉄扉",
+      "wallId": "loft-east",
+      "centerRatio": 0.78,
+      "widthM": 1.05,
+      "heightM": 2.4,
+      "topHeightM": 2.4,
+      "hasGlass": false,
+      "style": "door"
+    },
+    {
+      "id": "loft-north-high",
+      "name": "北面のハイサイド窓",
+      "wallId": "loft-north",
+      "centerRatio": 0.7,
+      "widthM": 2.2,
+      "heightM": 0.8,
+      "topHeightM": 3.9,
+      "hasGlass": true,
+      "style": "window"
+    }
+  ],
+  "voids": [],
+  "furniture": [
+    {
+      "id": "loft-column-1",
+      "name": "鋳鉄の柱 西",
+      "type": "box",
+      "position": {
+        "x": -2.6,
+        "y": 2.1,
+        "z": 0.0
+      },
+      "size": {
+        "x": 0.42,
+        "y": 4.2,
+        "z": 0.42
+      },
+      "rotationYDeg": 0,
+      "materialId": "steel-window",
+      "castsShadow": true,
+      "color": "#2b2c2e",
+      "roughness": 0.42,
+      "metalness": 0.6
+    },
+    {
+      "id": "loft-column-2",
+      "name": "鋳鉄の柱 東",
+      "type": "box",
+      "position": {
+        "x": 2.6,
+        "y": 2.1,
+        "z": 0.0
+      },
+      "size": {
+        "x": 0.42,
+        "y": 4.2,
+        "z": 0.42
+      },
+      "rotationYDeg": 0,
+      "materialId": "steel-window",
+      "castsShadow": true,
+      "color": "#2b2c2e",
+      "roughness": 0.42,
+      "metalness": 0.6
+    },
+    {
+      "id": "loft-rug",
+      "name": "ヴィンテージラグ",
+      "type": "rug",
+      "position": {
+        "x": -4.0,
+        "y": 0.015,
+        "z": 1.5
+      },
+      "size": {
+        "x": 3.6,
+        "y": 0.03,
+        "z": 2.8
+      },
+      "rotationYDeg": 0,
+      "materialId": "rug-vintage",
+      "castsShadow": false,
+      "color": "#7a5b4b",
+      "roughness": 0.98
+    },
+    {
+      "id": "loft-sofa",
+      "name": "大きなソファ",
+      "type": "sofa",
+      "position": {
+        "x": -4.0,
+        "y": 0.39,
+        "z": 2.75
+      },
+      "size": {
+        "x": 3.0,
+        "y": 0.78,
+        "z": 1.0
+      },
+      "rotationYDeg": 180,
+      "materialId": "fabric-charcoal",
+      "castsShadow": true,
+      "color": "#4c4e51",
+      "roughness": 0.94
+    },
+    {
+      "id": "loft-lounge-1",
+      "name": "レザーのラウンジチェア 西",
+      "type": "loungeChair",
+      "position": {
+        "x": -5.7,
+        "y": 0.41,
+        "z": 0.6
+      },
+      "size": {
+        "x": 0.95,
+        "y": 0.82,
+        "z": 1.0
+      },
+      "rotationYDeg": 52,
+      "materialId": "leather-cognac",
+      "castsShadow": true,
+      "color": "#94572f",
+      "roughness": 0.76
+    },
+    {
+      "id": "loft-lounge-2",
+      "name": "レザーのラウンジチェア 東",
+      "type": "loungeChair",
+      "position": {
+        "x": -2.35,
+        "y": 0.41,
+        "z": 0.55
+      },
+      "size": {
+        "x": 0.95,
+        "y": 0.82,
+        "z": 1.0
+      },
+      "rotationYDeg": -48,
+      "materialId": "leather-cognac",
+      "castsShadow": true,
+      "color": "#94572f",
+      "roughness": 0.76
+    },
+    {
+      "id": "loft-coffee",
+      "name": "ウォルナットのローテーブル",
+      "type": "rectTable",
+      "position": {
+        "x": -4.0,
+        "y": 0.18,
+        "z": 1.45
+      },
+      "size": {
+        "x": 1.5,
+        "y": 0.36,
+        "z": 0.85
+      },
+      "rotationYDeg": 0,
+      "materialId": "wood-walnut",
+      "castsShadow": true,
+      "color": "#4c3323",
+      "roughness": 0.72
+    },
+    {
+      "id": "loft-media",
+      "name": "メディアカウンター",
+      "type": "counter",
+      "position": {
+        "x": -4.0,
+        "y": 0.25,
+        "z": -3.7
+      },
+      "size": {
+        "x": 2.6,
+        "y": 0.5,
+        "z": 0.45
+      },
+      "rotationYDeg": 0,
+      "materialId": "wood-walnut",
+      "castsShadow": true,
+      "color": "#4c3323",
+      "roughness": 0.72
+    },
+    {
+      "id": "loft-tv",
+      "name": "テレビ",
+      "type": "tv",
+      "position": {
+        "x": -4.0,
+        "y": 1.25,
+        "z": -3.55
+      },
+      "size": {
+        "x": 1.6,
+        "y": 0.9,
+        "z": 0.07
+      },
+      "rotationYDeg": 0,
+      "materialId": "steel-window",
+      "castsShadow": true
+    },
+    {
+      "id": "loft-shelf-1",
+      "name": "スチールの本棚 西",
+      "type": "shelf",
+      "position": {
+        "x": -6.4,
+        "y": 1.15,
+        "z": -1.3
+      },
+      "size": {
+        "x": 0.4,
+        "y": 2.3,
+        "z": 1.8
+      },
+      "rotationYDeg": 90,
+      "materialId": "steel-window",
+      "castsShadow": true,
+      "color": "#2b2c2e",
+      "roughness": 0.45
+    },
+    {
+      "id": "loft-island",
+      "name": "アイランドキッチン",
+      "type": "kitchen",
+      "position": {
+        "x": 3.9,
+        "y": 0.46,
+        "z": -1.5
+      },
+      "size": {
+        "x": 3.0,
+        "y": 0.92,
+        "z": 0.9
+      },
+      "rotationYDeg": 0,
+      "materialId": "steel-kitchen",
+      "castsShadow": true,
+      "color": "#a3a7a9",
+      "roughness": 0.36,
+      "metalness": 0.62
+    },
+    {
+      "id": "loft-backcounter",
+      "name": "背面カウンター",
+      "type": "cupboard",
+      "position": {
+        "x": 4.4,
+        "y": 1.0,
+        "z": -3.6
+      },
+      "size": {
+        "x": 3.2,
+        "y": 2.0,
+        "z": 0.5
+      },
+      "rotationYDeg": 0,
+      "materialId": "wood-walnut",
+      "castsShadow": true,
+      "color": "#4c3323",
+      "roughness": 0.72
+    },
+    {
+      "id": "loft-fridge",
+      "name": "業務用冷蔵庫",
+      "type": "fridge",
+      "position": {
+        "x": 6.15,
+        "y": 1.0,
+        "z": -3.55
+      },
+      "size": {
+        "x": 0.85,
+        "y": 2.0,
+        "z": 0.72
+      },
+      "rotationYDeg": 0,
+      "materialId": "steel-kitchen",
+      "castsShadow": true,
+      "color": "#b2b5b7",
+      "roughness": 0.38,
+      "metalness": 0.35
+    },
+    {
+      "id": "loft-stool-1",
+      "name": "カウンタースツール 1",
+      "type": "chair",
+      "position": {
+        "x": 3.0,
+        "y": 0.39,
+        "z": -0.5
+      },
+      "size": {
+        "x": 0.42,
+        "y": 0.78,
+        "z": 0.42
+      },
+      "rotationYDeg": 180,
+      "materialId": "wood-walnut",
+      "castsShadow": true,
+      "color": "#4c3323",
+      "roughness": 0.72
+    },
+    {
+      "id": "loft-stool-2",
+      "name": "カウンタースツール 2",
+      "type": "chair",
+      "position": {
+        "x": 3.9,
+        "y": 0.39,
+        "z": -0.5
+      },
+      "size": {
+        "x": 0.42,
+        "y": 0.78,
+        "z": 0.42
+      },
+      "rotationYDeg": 180,
+      "materialId": "wood-walnut",
+      "castsShadow": true,
+      "color": "#4c3323",
+      "roughness": 0.72
+    },
+    {
+      "id": "loft-stool-3",
+      "name": "カウンタースツール 3",
+      "type": "chair",
+      "position": {
+        "x": 4.8,
+        "y": 0.39,
+        "z": -0.5
+      },
+      "size": {
+        "x": 0.42,
+        "y": 0.78,
+        "z": 0.42
+      },
+      "rotationYDeg": 180,
+      "materialId": "wood-walnut",
+      "castsShadow": true,
+      "color": "#4c3323",
+      "roughness": 0.72
+    },
+    {
+      "id": "loft-dining",
+      "name": "長いダイニングテーブル",
+      "type": "rectTable",
+      "position": {
+        "x": 3.6,
+        "y": 0.375,
+        "z": 2.2
+      },
+      "size": {
+        "x": 2.7,
+        "y": 0.75,
+        "z": 1.0
+      },
+      "rotationYDeg": 0,
+      "materialId": "wood-walnut",
+      "castsShadow": true,
+      "color": "#4c3323",
+      "roughness": 0.72
+    },
+    {
+      "id": "loft-chair-1",
+      "name": "椅子 北1",
+      "type": "chair",
+      "position": {
+        "x": 2.7,
+        "y": 0.42,
+        "z": 1.4
+      },
+      "size": {
+        "x": 0.46,
+        "y": 0.84,
+        "z": 0.46
+      },
+      "rotationYDeg": 0,
+      "materialId": "steel-window",
+      "castsShadow": true,
+      "color": "#2b2c2e",
+      "roughness": 0.5
+    },
+    {
+      "id": "loft-chair-2",
+      "name": "椅子 北2",
+      "type": "chair",
+      "position": {
+        "x": 3.6,
+        "y": 0.42,
+        "z": 1.4
+      },
+      "size": {
+        "x": 0.46,
+        "y": 0.84,
+        "z": 0.46
+      },
+      "rotationYDeg": 0,
+      "materialId": "steel-window",
+      "castsShadow": true,
+      "color": "#2b2c2e",
+      "roughness": 0.5
+    },
+    {
+      "id": "loft-chair-3",
+      "name": "椅子 北3",
+      "type": "chair",
+      "position": {
+        "x": 4.5,
+        "y": 0.42,
+        "z": 1.4
+      },
+      "size": {
+        "x": 0.46,
+        "y": 0.84,
+        "z": 0.46
+      },
+      "rotationYDeg": 0,
+      "materialId": "steel-window",
+      "castsShadow": true,
+      "color": "#2b2c2e",
+      "roughness": 0.5
+    },
+    {
+      "id": "loft-chair-4",
+      "name": "椅子 南1",
+      "type": "chair",
+      "position": {
+        "x": 2.7,
+        "y": 0.42,
+        "z": 3.0
+      },
+      "size": {
+        "x": 0.46,
+        "y": 0.84,
+        "z": 0.46
+      },
+      "rotationYDeg": 180,
+      "materialId": "steel-window",
+      "castsShadow": true,
+      "color": "#2b2c2e",
+      "roughness": 0.5
+    },
+    {
+      "id": "loft-chair-5",
+      "name": "椅子 南2",
+      "type": "chair",
+      "position": {
+        "x": 3.6,
+        "y": 0.42,
+        "z": 3.0
+      },
+      "size": {
+        "x": 0.46,
+        "y": 0.84,
+        "z": 0.46
+      },
+      "rotationYDeg": 180,
+      "materialId": "steel-window",
+      "castsShadow": true,
+      "color": "#2b2c2e",
+      "roughness": 0.5
+    },
+    {
+      "id": "loft-chair-6",
+      "name": "椅子 南3",
+      "type": "chair",
+      "position": {
+        "x": 4.5,
+        "y": 0.42,
+        "z": 3.0
+      },
+      "size": {
+        "x": 0.46,
+        "y": 0.84,
+        "z": 0.46
+      },
+      "rotationYDeg": 180,
+      "materialId": "steel-window",
+      "castsShadow": true,
+      "color": "#2b2c2e",
+      "roughness": 0.5
+    },
+    {
+      "id": "loft-plant-1",
+      "name": "モンステラ",
+      "type": "plant",
+      "position": {
+        "x": -6.0,
+        "y": 0.98,
+        "z": 3.1
+      },
+      "size": {
+        "x": 1.0,
+        "y": 1.95,
+        "z": 1.0
+      },
+      "rotationYDeg": 0,
+      "materialId": "green-monstera",
+      "castsShadow": true,
+      "color": "#4b6042",
+      "roughness": 0.92
+    },
+    {
+      "id": "loft-plant-2",
+      "name": "オリーブ",
+      "type": "plant",
+      "position": {
+        "x": 6.2,
+        "y": 0.85,
+        "z": 1.8
+      },
+      "size": {
+        "x": 0.85,
+        "y": 1.7,
+        "z": 0.85
+      },
+      "rotationYDeg": 0,
+      "materialId": "green-monstera",
+      "castsShadow": true,
+      "color": "#4b6042",
+      "roughness": 0.92
+    },
+    {
+      "id": "loft-art",
+      "name": "大きなキャンバス",
+      "type": "box",
+      "position": {
+        "x": -4.0,
+        "y": 2.35,
+        "z": -4.08
+      },
+      "size": {
+        "x": 2.4,
+        "y": 1.7,
+        "z": 0.07
+      },
+      "rotationYDeg": 0,
+      "materialId": "wood-walnut",
+      "castsShadow": true,
+      "color": "#6d5a4a",
+      "roughness": 0.9
+    }
+  ],
+  "lights": [
+    {
+      "id": "loft-pendant-island-1",
+      "name": "アイランドのペンダント 西",
+      "type": "pendant",
+      "model": "pendant",
+      "lumens": 760,
+      "colorTemperatureK": 3000,
+      "dimmer": 84,
+      "enabled": true,
+      "beamAngleDeg": 90,
+      "penumbra": 0.8,
+      "castsShadow": true,
+      "note": "4.2mの天井から低く落とす",
+      "position": {
+        "x": 2.9,
+        "y": 2.2,
+        "z": -1.5
+      },
+      "mountHeightM": 4.2,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 2.9,
+        "y": 0.75,
+        "z": -1.5
+      },
+      "cordLengthM": 2.0
+    },
+    {
+      "id": "loft-pendant-island-2",
+      "name": "アイランドのペンダント 中",
+      "type": "pendant",
+      "model": "pendant",
+      "lumens": 760,
+      "colorTemperatureK": 3000,
+      "dimmer": 84,
+      "enabled": true,
+      "beamAngleDeg": 90,
+      "penumbra": 0.8,
+      "castsShadow": true,
+      "note": "4.2mの天井から低く落とす",
+      "position": {
+        "x": 3.9,
+        "y": 2.2,
+        "z": -1.5
+      },
+      "mountHeightM": 4.2,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 3.9,
+        "y": 0.75,
+        "z": -1.5
+      },
+      "cordLengthM": 2.0
+    },
+    {
+      "id": "loft-pendant-island-3",
+      "name": "アイランドのペンダント 東",
+      "type": "pendant",
+      "model": "pendant",
+      "lumens": 760,
+      "colorTemperatureK": 3000,
+      "dimmer": 84,
+      "enabled": true,
+      "beamAngleDeg": 90,
+      "penumbra": 0.8,
+      "castsShadow": true,
+      "note": "4.2mの天井から低く落とす",
+      "position": {
+        "x": 4.9,
+        "y": 2.2,
+        "z": -1.5
+      },
+      "mountHeightM": 4.2,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 4.9,
+        "y": 0.75,
+        "z": -1.5
+      },
+      "cordLengthM": 2.0
+    },
+    {
+      "id": "loft-pendant-dining-1",
+      "name": "ダイニングのペンダント 西",
+      "type": "pendant",
+      "model": "pendant",
+      "lumens": 680,
+      "colorTemperatureK": 2700,
+      "dimmer": 80,
+      "enabled": true,
+      "beamAngleDeg": 90,
+      "penumbra": 0.8,
+      "castsShadow": true,
+      "note": "テーブル面から70cmまで下げる",
+      "position": {
+        "x": 2.9,
+        "y": 1.7000000000000002,
+        "z": 2.2
+      },
+      "mountHeightM": 4.2,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 2.9,
+        "y": 0.75,
+        "z": 2.2
+      },
+      "cordLengthM": 2.5
+    },
+    {
+      "id": "loft-pendant-dining-2",
+      "name": "ダイニングのペンダント 東",
+      "type": "pendant",
+      "model": "pendant",
+      "lumens": 680,
+      "colorTemperatureK": 2700,
+      "dimmer": 80,
+      "enabled": true,
+      "beamAngleDeg": 90,
+      "penumbra": 0.8,
+      "castsShadow": true,
+      "note": "テーブル面から70cmまで下げる",
+      "position": {
+        "x": 4.4,
+        "y": 1.7000000000000002,
+        "z": 2.2
+      },
+      "mountHeightM": 4.2,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 4.4,
+        "y": 0.75,
+        "z": 2.2
+      },
+      "cordLengthM": 2.5
+    },
+    {
+      "id": "loft-track-1",
+      "name": "トラックスポット レンガ壁 1",
+      "type": "spotlight",
+      "model": "dl-universal",
+      "lumens": 620,
+      "colorTemperatureK": 3000,
+      "dimmer": 76,
+      "enabled": true,
+      "beamAngleDeg": 40,
+      "penumbra": 0.5,
+      "castsShadow": true,
+      "note": "レンガの目地に陰影を出す",
+      "position": {
+        "x": -5.6,
+        "y": 4.16,
+        "z": -3.0
+      },
+      "mountHeightM": 4.2,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": -6.2,
+        "y": 1.9,
+        "z": -3.4
+      }
+    },
+    {
+      "id": "loft-track-2",
+      "name": "トラックスポット レンガ壁 2",
+      "type": "spotlight",
+      "model": "dl-universal",
+      "lumens": 620,
+      "colorTemperatureK": 3000,
+      "dimmer": 76,
+      "enabled": true,
+      "beamAngleDeg": 40,
+      "penumbra": 0.5,
+      "castsShadow": true,
+      "note": "キャンバスを狙う",
+      "position": {
+        "x": -4.0,
+        "y": 4.16,
+        "z": -3.0
+      },
+      "mountHeightM": 4.2,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": -4.0,
+        "y": 2.35,
+        "z": -4.0
+      }
+    },
+    {
+      "id": "loft-track-3",
+      "name": "トラックスポット レンガ壁 3",
+      "type": "spotlight",
+      "model": "dl-universal",
+      "lumens": 620,
+      "colorTemperatureK": 3000,
+      "dimmer": 74,
+      "enabled": true,
+      "beamAngleDeg": 40,
+      "penumbra": 0.5,
+      "castsShadow": true,
+      "note": "レンガの目地に陰影を出す",
+      "position": {
+        "x": -2.2,
+        "y": 4.16,
+        "z": -3.0
+      },
+      "mountHeightM": 4.2,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": -1.8,
+        "y": 1.9,
+        "z": -4.0
+      }
+    },
+    {
+      "id": "loft-track-4",
+      "name": "トラックスポット リビング",
+      "type": "spotlight",
+      "model": "dl-universal",
+      "lumens": 640,
+      "colorTemperatureK": 2700,
+      "dimmer": 78,
+      "enabled": true,
+      "beamAngleDeg": 40,
+      "penumbra": 0.5,
+      "castsShadow": true,
+      "note": "ローテーブルを狙う",
+      "position": {
+        "x": -4.0,
+        "y": 4.16,
+        "z": 0.9
+      },
+      "mountHeightM": 4.2,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": -4.0,
+        "y": 0.4,
+        "z": 1.5
+      }
+    },
+    {
+      "id": "loft-track-5",
+      "name": "トラックスポット 柱",
+      "type": "spotlight",
+      "model": "dl-universal",
+      "lumens": 520,
+      "colorTemperatureK": 3000,
+      "dimmer": 72,
+      "enabled": true,
+      "beamAngleDeg": 40,
+      "penumbra": 0.5,
+      "castsShadow": true,
+      "note": "鋳鉄の柱を立ち上げる",
+      "position": {
+        "x": -2.6,
+        "y": 4.16,
+        "z": -0.6
+      },
+      "mountHeightM": 4.2,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": -2.6,
+        "y": 2.2,
+        "z": 0.0
+      }
+    },
+    {
+      "id": "loft-track-6",
+      "name": "トラックスポット 植栽",
+      "type": "spotlight",
+      "model": "dl-universal",
+      "lumens": 560,
+      "colorTemperatureK": 2700,
+      "dimmer": 72,
+      "enabled": true,
+      "beamAngleDeg": 40,
+      "penumbra": 0.5,
+      "castsShadow": true,
+      "note": "モンステラの影を壁に投げる",
+      "position": {
+        "x": -5.6,
+        "y": 4.16,
+        "z": 2.6
+      },
+      "mountHeightM": 4.2,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": -6.0,
+        "y": 1.2,
+        "z": 3.1
+      }
+    },
+    {
+      "id": "loft-bracket-1",
+      "name": "レンガ壁のブラケット 西",
+      "type": "bracket",
+      "model": "bracket",
+      "lumens": 320,
+      "colorTemperatureK": 2700,
+      "dimmer": 74,
+      "enabled": true,
+      "beamAngleDeg": 120,
+      "penumbra": 0.85,
+      "castsShadow": true,
+      "note": "人の背丈のスケールを作る",
+      "position": {
+        "x": -6.5,
+        "y": 2.0,
+        "z": 0.4
+      },
+      "mountHeightM": 2.0,
+      "rotationDeg": {
+        "x": 0,
+        "y": 90,
+        "z": 0
+      },
+      "target": {
+        "x": -5.3,
+        "y": 1.4,
+        "z": 0.4
+      }
+    },
+    {
+      "id": "loft-bracket-2",
+      "name": "レンガ壁のブラケット 北",
+      "type": "bracket",
+      "model": "bracket",
+      "lumens": 320,
+      "colorTemperatureK": 2700,
+      "dimmer": 74,
+      "enabled": true,
+      "beamAngleDeg": 120,
+      "penumbra": 0.85,
+      "castsShadow": true,
+      "note": "人の背丈のスケールを作る",
+      "position": {
+        "x": 0.6,
+        "y": 2.0,
+        "z": -4.08
+      },
+      "mountHeightM": 2.0,
+      "rotationDeg": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 0.6,
+        "y": 1.4,
+        "z": -3.0
+      }
+    },
+    {
+      "id": "loft-dl-kitchen-1",
+      "name": "キッチンの拡散DL 西",
+      "type": "downlight",
+      "model": "dl-diffuse",
+      "lumens": 700,
+      "colorTemperatureK": 3000,
+      "dimmer": 82,
+      "enabled": true,
+      "beamAngleDeg": 110,
+      "penumbra": 0.95,
+      "castsShadow": true,
+      "note": "背面カウンターの実用光",
+      "position": {
+        "x": 3.2,
+        "y": 4.16,
+        "z": -3.3
+      },
+      "mountHeightM": 4.2,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 3.2,
+        "y": 0.0,
+        "z": -3.3
+      }
+    },
+    {
+      "id": "loft-dl-kitchen-2",
+      "name": "キッチンの拡散DL 東",
+      "type": "downlight",
+      "model": "dl-diffuse",
+      "lumens": 700,
+      "colorTemperatureK": 3000,
+      "dimmer": 82,
+      "enabled": true,
+      "beamAngleDeg": 110,
+      "penumbra": 0.95,
+      "castsShadow": true,
+      "note": "背面カウンターの実用光",
+      "position": {
+        "x": 5.2,
+        "y": 4.16,
+        "z": -3.3
+      },
+      "mountHeightM": 4.2,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 5.2,
+        "y": 0.0,
+        "z": -3.3
+      }
+    }
+  ],
+  "camera": {
+    "position": {
+      "x": -3.2,
+      "y": 1.65,
+      "z": 3.9
+    },
+    "target": {
+      "x": 4.0,
+      "y": 1.4,
+      "z": -1.5
+    },
+    "fov": 80,
+    "exposure": 0.13,
+    "resolutionWidth": 1600
+  },
+  "daylight": {
+    "enabled": false,
+    "month": 11,
+    "day": 12,
+    "hour": 16.5,
+    "northOffsetDeg": 180,
+    "latitudeDeg": 40.7
+  },
+  "showCeiling": true,
+  "activeFloor": 1
+}
