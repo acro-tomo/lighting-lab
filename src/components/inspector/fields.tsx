@@ -8,6 +8,7 @@ export const NumberField = ({
   min,
   max,
   step = 1,
+  disabled = false,
   onChange
 }: {
   label: string;
@@ -16,6 +17,7 @@ export const NumberField = ({
   min?: number;
   max?: number;
   step?: number;
+  disabled?: boolean;
   onChange: (value: number) => void;
 }) => (
   <label className="field">
@@ -27,6 +29,7 @@ export const NumberField = ({
         min={min}
         max={max}
         step={step}
+        disabled={disabled}
         onChange={(event) => onChange(Number(event.target.value))}
       />
       {unit && <em>{unit}</em>}
