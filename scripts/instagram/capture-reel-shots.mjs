@@ -9,10 +9,12 @@
 //   node scripts/instagram/capture-reel-shots.mjs [url]
 //
 // 重要 — GPUが要る:
-//   ソフトウェア描画(swiftshader)だと1フレーム17〜30秒かかり、実用にならない。
-//   GPUのある実機で回すこと。環境変数で軽くもできる:
-//     REEL_FPS=30    書き出しfps
-//     REEL_SMOKE=1   各ショット3フレームだけの疎通確認
+//   ソフトウェア描画だと1フレーム39〜68秒かかり、実用にならない（実測）。
+//   既定はGPUを使う設定なので、Macなどの実機ではそのまま実行すればよい。
+//     REEL_FPS=30           書き出しfps
+//     REEL_SMOKE=1          各ショット3フレームだけの疎通確認
+//     REEL_HEADLESS=1       画面を出さずに実行（GPUが効かない場合があるので通常は不要）
+//     REEL_SOFTWARE_GL=1    GPUの無い環境（CI/コンテナ）でのみ付ける
 //
 // 出力: output/reel-frames/<shotId>/f0000.png と shots.json（尺と色温度の記録）
 import { mkdir, writeFile } from "node:fs/promises";
@@ -101,10 +103,17 @@ const lerpV = (a, b, f) => ({ x: lerp(a.x, b.x, f), y: lerp(a.y, b.y, f), z: ler
 const prebuiltChromium = "/opt/pw-browsers/chromium";
 const executablePath = existsSync(prebuiltChromium) ? prebuiltChromium : undefined;
 
+// GPUのある実機ではソフトウェア描画に落とさない。swiftshaderを強制すると
+// 1フレーム数十秒かかり、この連番撮影は実用にならない。
+// GPUの無いCI/コンテナでだけ REEL_SOFTWARE_GL=1 を付ける。
+const softwareGl = process.env.REEL_SOFTWARE_GL === "1";
 const browser = await chromium.launch({
-  headless: true,
+  // ヘッドレスだとGPUが使われないことがあるため既定は表示あり（build week の録画と同じ）。
+  headless: process.env.REEL_HEADLESS === "1",
   executablePath,
-  args: ["--use-gl=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist", "--disable-dev-shm-usage"]
+  args: softwareGl
+    ? ["--use-gl=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist", "--disable-dev-shm-usage"]
+    : ["--ignore-gpu-blocklist", "--disable-dev-shm-usage"]
 });
 const page = await browser.newPage({ viewport: VIEWPORT, deviceScaleFactor: 1, locale: "ja-JP" });
 await page.addInitScript(() => window.localStorage.setItem("ldk-intro-seen", "1"));
