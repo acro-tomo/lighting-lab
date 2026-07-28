@@ -13,9 +13,9 @@ npm run ig:fonts
 # 2. 背景プレートをアプリから撮る（別ターミナルで npm run dev を起動しておく）
 npm run ig:plates
 
-# 2b. 部屋バリエーションのプレートを撮る（projects/*.json の各部屋。1部屋だけなら id を渡す）
+# 2b. 部屋バリエーションのプレートを撮る（1部屋につき「設計した灯り」と「等間隔ダウンライト」の2枚）
 npm run ig:rooms
-npm run ig:rooms -- jp-machiya-toriniwa
+npm run ig:rooms -- jp-machiya-toriniwa --flat-only
 
 # 3. 投稿画像を書き出す
 npm run ig:posts
@@ -38,7 +38,12 @@ npm run ig:posts -- b-regret-five
 | `a-color-temp` | 色温度4種の比べ方 | 7 |
 | `b-regret-five` | 照明で後悔する人の共通点5つ | 7 |
 | `c-is-warm-dark` | 電球色って本当に暗い？ | 6 |
-| `d-room-types` | 部屋のかたち別・夜の照明の作り方（6タイプ） | 9 |
+| `d-machiya-toriniwa` | 京町家リノベ｜天井2.35mの細長い家 | 6 |
+| `e-hiraya-engawa` | 和モダンの平屋｜ダウンライト4灯のLDK | 6 |
+| `f-skipfloor-tokyo` | 狭小3階建て｜天井4.4mの吹き抜けLDK | 6 |
+| `g-copenhagen-apartment` | 北欧の住戸｜ダウンライト0灯の夜 | 6 |
+| `h-mediterranean-arch` | 南欧のアーチの家｜壁を照らす夜 | 6 |
+| `i-brooklyn-loft` | ロフト｜天井4.2mの大空間を照らす | 6 |
 
 ## ディレクトリ
 
