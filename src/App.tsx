@@ -20,6 +20,7 @@ import { useKeyboardShortcuts } from "./app/hooks/useKeyboardShortcuts";
 import { useEditModeControls } from "./app/hooks/useEditModeControls";
 import { useAddObjectHandlers } from "./app/hooks/useAddObjectHandlers";
 import { useRenderPipeline } from "./app/hooks/useRenderPipeline";
+import { useIesHydration } from "./utils/iesAssets";
 import { useI18n } from "./i18n";
 
 export const App = () => {
@@ -58,6 +59,10 @@ export const App = () => {
   }, [language, t]);
 
   useProjectPersistence(project, setProject, setCompareShots, setNotice);
+  // Project の assetId からIES原本(IndexedDB)を再解析して復帰させる。
+  // 復帰前・原本なしのときは resolveFixtureIes が undefined を返し、描画も照度も
+  // ビーム角近似のまま（中途半端な配光を渡さない）。
+  useIesHydration(project.lights);
 
   const {
     mode,
