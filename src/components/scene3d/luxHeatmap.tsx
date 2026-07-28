@@ -17,6 +17,7 @@ import type {
 import type { Project } from "../../types";
 import type { LuxBreakdown } from "../../utils/luxLab";
 import { useLuxLabStore } from "../../utils/luxLab";
+import { useIesVersion } from "../../utils/iesAssets";
 import { projectLightsToPhotometric } from "../../utils/photometricLights";
 import { usePathTraced } from "./contexts";
 import {
@@ -299,13 +300,16 @@ export const LuxHeatmap = ({
       }),
     [fullProject, upperVoidCeilingHeightM]
   );
+  // IESの解決/解除で配光が変わるため iesVersion も鍵に含める。
+  const iesVersion = useIesVersion();
   const lightsKey = useMemo(
     () =>
       JSON.stringify({
         lights: project.lights,
-        effective: [...effectiveLightIds].sort()
+        effective: [...effectiveLightIds].sort(),
+        iesVersion
       }),
-    [project.lights, effectiveLightIds]
+    [project.lights, effectiveLightIds, iesVersion]
   );
   const needsImmediateComputeRef = useRef(true);
 

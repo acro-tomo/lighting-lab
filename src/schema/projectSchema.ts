@@ -143,6 +143,16 @@ const furnitureSchema = z
 
 const lightTypeSchema = z.enum(["downlight", "spotlight", "pendant", "bracket", "tape"]);
 
+// IES原本はここには入らない。参照だけを保存し、原本は端末のIndexedDBから引く。
+// 形が壊れていても照明ごと落とさず、参照なし（ビーム角近似）として読み込む。
+const iesReferenceSchema = z
+  .object({
+    assetId: z.string().min(1),
+    fileName: z.string().default("")
+  })
+  .optional()
+  .catch(undefined);
+
 // 天井付器具の mountHeightM/position.y は transform 後に normalizeCeilingMountedFixture が再計算する。
 const lightSchema = z
   .object({
@@ -165,6 +175,7 @@ const lightSchema = z
     note: z.string().default(""),
     lengthM: z.number().optional(),
     cordLengthM: z.number().optional(),
+    ies: iesReferenceSchema,
     floor: floorSchema
   })
   .passthrough();
