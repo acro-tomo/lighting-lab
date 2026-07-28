@@ -6,7 +6,7 @@ import {
 import type { Vec3 } from "../../photometric/src/core/types";
 import { vec3 } from "../../photometric/src/core/vec3";
 import type { LightFixture } from "../types";
-import { fixtureDimScale, resolveFixtureIes } from "./iesAssets";
+import { fixtureDimScale, iesAzimuthReference, resolveFixtureIes } from "./iesAssets";
 import {
   bracketRoomwardOffset,
   lumensToPhysicalPower,
@@ -120,9 +120,14 @@ export const projectLightsToPhotometric = (
             ? SPOTLIGHT_DROP_M
             : DOWNLIGHT_DROP_M;
       const position = vec3(base.x, base.y - drop, base.z);
+      const axis = aimAxis(position, target);
+      // 非対称配光の向きを描画と一致させる。基準ベクトルはパストレーサが使うものと
+      // 同じ式（lookAt の x 軸）で作り、器具のY回転ぶんだけ光軸まわりに回す。
+      const reference = iesAzimuthReference(position, target, axis, fixture.rotationDeg.y);
       result.push({
         position,
-        axis: aimAxis(position, target),
+        axis,
+        reference: vec3(reference.x, reference.y, reference.z),
         distribution: ies.distribution,
         dimming: dim
       });
