@@ -17,6 +17,16 @@ import { degToRad } from "../../utils/units";
 import { usePathTraced } from "./contexts";
 import { debugColorForRole } from "./materials";
 
+// キッチン天板のような広い平坦面には大きな明暗境界が落ちるため、1024だと
+// 境界が階段状に見え、カメラが動くと輪郭が這って見える。スポットは2Dの
+// シャドウマップ1枚なので2048まで上げる。
+// ポイントライトはキューブマップ(6面)でメモリが6倍になるため据え置く。
+const SPOT_SHADOW_MAP_SIZE = 2048;
+// bias は影の面に沿った縞（アクネ）、normalBias は法線方向のずれで残る点線状の
+// にじみを消す。太陽光(daylight.tsx)が -0.0004 なので同じ桁に揃える。
+const SHADOW_BIAS = -0.0005;
+const SHADOW_NORMAL_BIAS = 0.02;
+
 // RectAreaLight(LTC)のラスター用参照テーブル。未初期化だと面光源が材質に反射しない。
 // モジュール初期化時に一度だけ呼ぶ(HMR再評価に備え未定義時のみ)。
 if (!(THREE.UniformsLib as { LTC_FLOAT_1?: unknown }).LTC_FLOAT_1) RectAreaLightUniformsLib.init();
@@ -277,6 +287,8 @@ export const PhysicalLight = ({
         position={[off.x, 0, off.z]}
         castShadow={castShadow}
         shadow-mapSize={[512, 512]}
+        shadow-bias={SHADOW_BIAS}
+        shadow-normalBias={SHADOW_NORMAL_BIAS}
       />
     );
   }
@@ -292,6 +304,8 @@ export const PhysicalLight = ({
           position={[0, -0.01, 0]}
           castShadow={castShadow}
           shadow-mapSize={[1024, 1024]}
+          shadow-bias={SHADOW_BIAS}
+          shadow-normalBias={SHADOW_NORMAL_BIAS}
         />
       );
     }
@@ -309,7 +323,9 @@ export const PhysicalLight = ({
         position={[0, -0.08, 0]}
         target={target}
         castShadow={castShadow}
-        shadow-mapSize={[1024, 1024]}
+        shadow-mapSize={[SPOT_SHADOW_MAP_SIZE, SPOT_SHADOW_MAP_SIZE]}
+        shadow-bias={SHADOW_BIAS}
+        shadow-normalBias={SHADOW_NORMAL_BIAS}
       />
     );
   }
@@ -329,7 +345,9 @@ export const PhysicalLight = ({
       position={[0, -lightDrop, 0]}
       target={target}
       castShadow={castShadow}
-      shadow-mapSize={[1024, 1024]}
+      shadow-mapSize={[SPOT_SHADOW_MAP_SIZE, SPOT_SHADOW_MAP_SIZE]}
+      shadow-bias={SHADOW_BIAS}
+      shadow-normalBias={SHADOW_NORMAL_BIAS}
     />
   );
 };
