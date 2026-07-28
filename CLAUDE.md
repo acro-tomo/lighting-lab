@@ -83,6 +83,7 @@ Vite + React 19 + TypeScript / Three.js + @react-three/fiber + @react-three/drei
 - **作業単位の完了ごとに必ずセマンティックコミットする**（履歴を残さず放置しない）。複数の不具合修正・機能追加をまとめて行った場合も、論理単位ごとに分けてコミットする。検証（typecheck/build）が通ってからコミットする。
 - **コミット前に必ず `git status` / `git diff` で意図しない変更が混ざっていないか確認**してから `git add` する。
 - **デプロイフローは`main`直行ではない**。作業ブランチ → `staging` にマージ・push（Cloudflare Pages Previewでスマホ含め実機確認）→ 問題なければ `main` にマージ・push（本番）、の順を厳守する。手順・URLの詳細は [docs/deployment.md](docs/deployment.md) を参照。`--force` 系は事前確認。
+- **SNS投稿素材（`marketing/`, `scripts/instagram/`, Buffer入稿シート等）は `staging` / `main` に入れない**。専用ブランチ（`claude/instagram-thumbnail-design-vjvc4o`）にのみ置く。アプリ機能の追従が必要なら都度 `main`/`staging` をそのブランチへマージする（逆方向はしない）。
 - 生成物はコミットしない: `dist/`, `output/`, `.playwright-cli/`。
 
 ## メモリ
