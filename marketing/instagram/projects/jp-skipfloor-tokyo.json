@@ -1,0 +1,884 @@
+{
+  "id": "ig-jp-skipfloor-tokyo",
+  "name": "都市の狭小3階建て｜スキップフロアのLDK",
+  "renderCalibrationVersion": 2,
+  "room": {
+    "widthM": 7.4,
+    "depthM": 8.4,
+    "ceilingHeightM": 4.4
+  },
+  "materials": [
+    {
+      "id": "wall-plaster-gray",
+      "name": "薄グレーの塗り壁",
+      "baseColor": "#cfccc6",
+      "roughness": 0.95,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "floor-ash",
+      "name": "アッシュのフローリング",
+      "baseColor": "#b9a586",
+      "roughness": 0.8,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "concrete-slab",
+      "name": "打ち放しコンクリート",
+      "baseColor": "#8e8b86",
+      "roughness": 0.87,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "black-steel",
+      "name": "黒皮鉄",
+      "baseColor": "#2f3134",
+      "roughness": 0.45,
+      "metalness": 0.65,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "ply-lauan",
+      "name": "ラワン合板",
+      "baseColor": "#b98f63",
+      "roughness": 0.84,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "fabric-mustard",
+      "name": "マスタードのファブリック",
+      "baseColor": "#a67b32",
+      "roughness": 0.94,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "kitchen-stainless",
+      "name": "ステンレスキッチン",
+      "baseColor": "#a4a8aa",
+      "roughness": 0.38,
+      "metalness": 0.6,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "rug-charcoal",
+      "name": "チャコールのラグ",
+      "baseColor": "#5e5d5a",
+      "roughness": 0.99,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "green-fiddle",
+      "name": "フィカス",
+      "baseColor": "#4f6140",
+      "roughness": 0.92,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    }
+  ],
+  "walls": [
+    {
+      "id": "skip-north",
+      "name": "北面の壁",
+      "start": {
+        "x": -3.7,
+        "z": -4.2
+      },
+      "end": {
+        "x": 3.7,
+        "z": -4.2
+      },
+      "thicknessM": 0.16,
+      "heightM": 4.4,
+      "materialId": "wall-plaster-gray"
+    },
+    {
+      "id": "skip-east",
+      "name": "東面の壁",
+      "start": {
+        "x": 3.7,
+        "z": -4.2
+      },
+      "end": {
+        "x": 3.7,
+        "z": 4.2
+      },
+      "thicknessM": 0.16,
+      "heightM": 4.4,
+      "materialId": "concrete-slab"
+    },
+    {
+      "id": "skip-south",
+      "name": "南面の壁",
+      "start": {
+        "x": 3.7,
+        "z": 4.2
+      },
+      "end": {
+        "x": -3.7,
+        "z": 4.2
+      },
+      "thicknessM": 0.16,
+      "heightM": 4.4,
+      "materialId": "wall-plaster-gray"
+    },
+    {
+      "id": "skip-west",
+      "name": "西面の壁",
+      "start": {
+        "x": -3.7,
+        "z": 4.2
+      },
+      "end": {
+        "x": -3.7,
+        "z": -4.2
+      },
+      "thicknessM": 0.16,
+      "heightM": 4.4,
+      "materialId": "concrete-slab"
+    }
+  ],
+  "windows": [
+    {
+      "id": "skip-south-tall-1",
+      "name": "南面の2層吹き抜け窓 西",
+      "wallId": "skip-south",
+      "centerRatio": 0.68,
+      "widthM": 1.5,
+      "heightM": 3.3,
+      "topHeightM": 3.95,
+      "hasGlass": true,
+      "style": "window"
+    },
+    {
+      "id": "skip-south-tall-2",
+      "name": "南面の2層吹き抜け窓 東",
+      "wallId": "skip-south",
+      "centerRatio": 0.34,
+      "widthM": 1.5,
+      "heightM": 3.3,
+      "topHeightM": 3.95,
+      "hasGlass": true,
+      "style": "window"
+    },
+    {
+      "id": "skip-west-high",
+      "name": "西面のハイサイド窓",
+      "wallId": "skip-west",
+      "centerRatio": 0.68,
+      "widthM": 0.5,
+      "heightM": 1.4,
+      "topHeightM": 4.05,
+      "hasGlass": true,
+      "style": "window"
+    },
+    {
+      "id": "skip-east-loft",
+      "name": "ロフトの小窓",
+      "wallId": "skip-east",
+      "centerRatio": 0.24,
+      "widthM": 1.0,
+      "heightM": 0.6,
+      "topHeightM": 3.85,
+      "hasGlass": true,
+      "style": "window"
+    },
+    {
+      "id": "skip-north-door",
+      "name": "階段室への扉",
+      "wallId": "skip-north",
+      "centerRatio": 0.2,
+      "widthM": 0.85,
+      "heightM": 2.05,
+      "topHeightM": 2.05,
+      "hasGlass": false,
+      "style": "door"
+    }
+  ],
+  "voids": [],
+  "furniture": [
+    {
+      "id": "skip-stair",
+      "name": "鉄骨階段",
+      "type": "stair",
+      "position": {
+        "x": 2.55,
+        "y": 1.13,
+        "z": -0.35
+      },
+      "size": {
+        "x": 1.05,
+        "y": 2.55,
+        "z": 2.9
+      },
+      "rotationYDeg": 180,
+      "materialId": "black-steel",
+      "castsShadow": true,
+      "color": "#2f3134",
+      "roughness": 0.45,
+      "metalness": 0.65
+    },
+    {
+      "id": "skip-kitchen",
+      "name": "ステンレスキッチン",
+      "type": "kitchen",
+      "position": {
+        "x": -1.15,
+        "y": 0.44,
+        "z": -2.95
+      },
+      "size": {
+        "x": 2.5,
+        "y": 0.88,
+        "z": 0.65
+      },
+      "rotationYDeg": 0,
+      "materialId": "kitchen-stainless",
+      "castsShadow": true,
+      "color": "#a4a8aa",
+      "roughness": 0.38,
+      "metalness": 0.6
+    },
+    {
+      "id": "skip-fridge",
+      "name": "冷蔵庫",
+      "type": "fridge",
+      "position": {
+        "x": 0.85,
+        "y": 0.89,
+        "z": -2.95
+      },
+      "size": {
+        "x": 0.68,
+        "y": 1.78,
+        "z": 0.68
+      },
+      "rotationYDeg": 0,
+      "materialId": "kitchen-stainless",
+      "castsShadow": true,
+      "color": "#b4b7b9",
+      "roughness": 0.4,
+      "metalness": 0.3
+    },
+    {
+      "id": "skip-dining",
+      "name": "ダイニングテーブル",
+      "type": "rectTable",
+      "position": {
+        "x": -1.0,
+        "y": 0.36,
+        "z": -1.35
+      },
+      "size": {
+        "x": 1.5,
+        "y": 0.72,
+        "z": 0.85
+      },
+      "rotationYDeg": 0,
+      "materialId": "ply-lauan",
+      "castsShadow": true,
+      "color": "#b98f63",
+      "roughness": 0.84
+    },
+    {
+      "id": "skip-chair-1",
+      "name": "椅子 北",
+      "type": "chair",
+      "position": {
+        "x": -1.4,
+        "y": 0.4,
+        "z": -1.9
+      },
+      "size": {
+        "x": 0.45,
+        "y": 0.8,
+        "z": 0.45
+      },
+      "rotationYDeg": 0,
+      "materialId": "black-steel",
+      "castsShadow": true,
+      "color": "#2f3134",
+      "roughness": 0.5
+    },
+    {
+      "id": "skip-chair-2",
+      "name": "椅子 南",
+      "type": "chair",
+      "position": {
+        "x": -0.6,
+        "y": 0.4,
+        "z": -0.8
+      },
+      "size": {
+        "x": 0.45,
+        "y": 0.8,
+        "z": 0.45
+      },
+      "rotationYDeg": 180,
+      "materialId": "black-steel",
+      "castsShadow": true,
+      "color": "#2f3134",
+      "roughness": 0.5
+    },
+    {
+      "id": "skip-rug",
+      "name": "チャコールのラグ",
+      "type": "rug",
+      "position": {
+        "x": -1.35,
+        "y": 0.015,
+        "z": 1.9
+      },
+      "size": {
+        "x": 2.7,
+        "y": 0.03,
+        "z": 2.2
+      },
+      "rotationYDeg": 0,
+      "materialId": "rug-charcoal",
+      "castsShadow": false,
+      "color": "#5e5d5a",
+      "roughness": 0.99
+    },
+    {
+      "id": "skip-sofa",
+      "name": "コンパクトソファ",
+      "type": "sofa",
+      "position": {
+        "x": -0.3,
+        "y": 0.36,
+        "z": 1.9
+      },
+      "size": {
+        "x": 1.95,
+        "y": 0.72,
+        "z": 0.88
+      },
+      "rotationYDeg": -90,
+      "materialId": "fabric-mustard",
+      "castsShadow": true,
+      "color": "#a67b32",
+      "roughness": 0.94
+    },
+    {
+      "id": "skip-lowtable",
+      "name": "丸いローテーブル",
+      "type": "roundTable",
+      "position": {
+        "x": -1.5,
+        "y": 0.18,
+        "z": 1.9
+      },
+      "size": {
+        "x": 0.8,
+        "y": 0.36,
+        "z": 0.8
+      },
+      "rotationYDeg": 0,
+      "materialId": "ply-lauan",
+      "castsShadow": true,
+      "color": "#b98f63",
+      "roughness": 0.84
+    },
+    {
+      "id": "skip-media",
+      "name": "テレビ台",
+      "type": "counter",
+      "position": {
+        "x": -3.35,
+        "y": 0.18,
+        "z": 1.9
+      },
+      "size": {
+        "x": 1.7,
+        "y": 0.36,
+        "z": 0.4
+      },
+      "rotationYDeg": 90,
+      "materialId": "ply-lauan",
+      "castsShadow": true,
+      "color": "#b98f63",
+      "roughness": 0.84
+    },
+    {
+      "id": "skip-tv",
+      "name": "テレビ",
+      "type": "tv",
+      "position": {
+        "x": -3.22,
+        "y": 0.78,
+        "z": 1.9
+      },
+      "size": {
+        "x": 1.2,
+        "y": 0.7,
+        "z": 0.06
+      },
+      "rotationYDeg": 90,
+      "materialId": "black-steel",
+      "castsShadow": true
+    },
+    {
+      "id": "skip-shelf",
+      "name": "壁付けの本棚",
+      "type": "shelf",
+      "position": {
+        "x": 3.4,
+        "y": 1.05,
+        "z": 2.5
+      },
+      "size": {
+        "x": 0.35,
+        "y": 2.1,
+        "z": 1.6
+      },
+      "rotationYDeg": -90,
+      "materialId": "ply-lauan",
+      "castsShadow": true,
+      "color": "#b98f63",
+      "roughness": 0.84
+    },
+    {
+      "id": "skip-plant",
+      "name": "フィカス",
+      "type": "plant",
+      "position": {
+        "x": 2.35,
+        "y": 0.93,
+        "z": 3.5
+      },
+      "size": {
+        "x": 0.9,
+        "y": 1.85,
+        "z": 0.9
+      },
+      "rotationYDeg": 0,
+      "materialId": "green-fiddle",
+      "castsShadow": true,
+      "color": "#4f6140",
+      "roughness": 0.92
+    },
+    {
+      "id": "skip-loft-desk",
+      "name": "ロフトのデスク",
+      "type": "desk",
+      "position": {
+        "x": -1.6,
+        "y": 2.94,
+        "z": -3.15
+      },
+      "size": {
+        "x": 1.3,
+        "y": 0.7,
+        "z": 0.58
+      },
+      "rotationYDeg": 0,
+      "materialId": "ply-lauan",
+      "castsShadow": true,
+      "color": "#b98f63",
+      "roughness": 0.84
+    },
+    {
+      "id": "skip-loft-chair",
+      "name": "ロフトの椅子",
+      "type": "chair",
+      "position": {
+        "x": -1.6,
+        "y": 2.99,
+        "z": -2.45
+      },
+      "size": {
+        "x": 0.45,
+        "y": 0.8,
+        "z": 0.45
+      },
+      "rotationYDeg": 0,
+      "materialId": "black-steel",
+      "castsShadow": true,
+      "color": "#2f3134",
+      "roughness": 0.5
+    },
+    {
+      "id": "skip-loft-rail",
+      "name": "ロフトの手すり",
+      "type": "box",
+      "position": {
+        "x": 0.0,
+        "y": 3.04,
+        "z": -0.95
+      },
+      "size": {
+        "x": 7.0,
+        "y": 0.9,
+        "z": 0.06
+      },
+      "rotationYDeg": 0,
+      "materialId": "black-steel",
+      "castsShadow": true,
+      "color": "#2f3134",
+      "roughness": 0.45,
+      "metalness": 0.65
+    }
+  ],
+  "lights": [
+    {
+      "id": "skip-dl-kitchen-1",
+      "name": "キッチンDL 西",
+      "type": "downlight",
+      "model": "dl-medium",
+      "lumens": 620,
+      "colorTemperatureK": 3000,
+      "dimmer": 84,
+      "enabled": true,
+      "beamAngleDeg": 60,
+      "penumbra": 0.6,
+      "castsShadow": true,
+      "note": "メザニン下なので取付高は2.35m",
+      "position": {
+        "x": -2.0,
+        "y": 4.36,
+        "z": -2.9
+      },
+      "mountHeightM": 4.4,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": -2.0,
+        "y": 0.0,
+        "z": -2.9
+      }
+    },
+    {
+      "id": "skip-dl-kitchen-2",
+      "name": "キッチンDL 東",
+      "type": "downlight",
+      "model": "dl-medium",
+      "lumens": 620,
+      "colorTemperatureK": 3000,
+      "dimmer": 84,
+      "enabled": true,
+      "beamAngleDeg": 60,
+      "penumbra": 0.6,
+      "castsShadow": true,
+      "note": "メザニン下なので取付高は2.35m",
+      "position": {
+        "x": -0.3,
+        "y": 4.36,
+        "z": -2.9
+      },
+      "mountHeightM": 4.4,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": -0.3,
+        "y": 0.0,
+        "z": -2.9
+      }
+    },
+    {
+      "id": "skip-dl-dining",
+      "name": "ダイニングDL",
+      "type": "downlight",
+      "model": "dl-glareless",
+      "lumens": 560,
+      "colorTemperatureK": 2700,
+      "dimmer": 76,
+      "enabled": true,
+      "beamAngleDeg": 52,
+      "penumbra": 0.7,
+      "castsShadow": true,
+      "note": "低い天井側の落ち着いた明るさ",
+      "position": {
+        "x": -1.0,
+        "y": 4.36,
+        "z": -1.5
+      },
+      "mountHeightM": 4.4,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": -1.0,
+        "y": 0.0,
+        "z": -1.5
+      }
+    },
+    {
+      "id": "skip-tape-mezzanine",
+      "name": "メザニン端部の間接",
+      "type": "tape",
+      "model": "tape",
+      "lumens": 460,
+      "colorTemperatureK": 2700,
+      "dimmer": 70,
+      "enabled": true,
+      "beamAngleDeg": 120,
+      "penumbra": 0.9,
+      "castsShadow": false,
+      "note": "ロフト床の小口から吹き抜け側を舐める",
+      "position": {
+        "x": 0.0,
+        "y": 4.36,
+        "z": -1.25
+      },
+      "mountHeightM": 4.4,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": -1.25
+      },
+      "lengthM": 3.4
+    },
+    {
+      "id": "skip-pendant-void",
+      "name": "吹き抜けのロングペンダント",
+      "type": "pendant",
+      "model": "pendant",
+      "lumens": 680,
+      "colorTemperatureK": 2700,
+      "dimmer": 76,
+      "enabled": true,
+      "beamAngleDeg": 90,
+      "penumbra": 0.8,
+      "castsShadow": true,
+      "note": "4.4mの縦を見せる主役の1灯",
+      "position": {
+        "x": -1.5,
+        "y": 1.8000000000000003,
+        "z": 1.9
+      },
+      "mountHeightM": 4.4,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": -1.5,
+        "y": 0.75,
+        "z": 1.9
+      },
+      "cordLengthM": 2.6
+    },
+    {
+      "id": "skip-spot-wall-1",
+      "name": "高天井スポット 西壁",
+      "type": "spotlight",
+      "model": "dl-universal",
+      "lumens": 560,
+      "colorTemperatureK": 2700,
+      "dimmer": 72,
+      "enabled": true,
+      "beamAngleDeg": 40,
+      "penumbra": 0.5,
+      "castsShadow": true,
+      "note": "テレビ側の壁を洗って体感の広さを出す",
+      "position": {
+        "x": -2.5,
+        "y": 4.36,
+        "z": 1.9
+      },
+      "mountHeightM": 4.4,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": -3.5,
+        "y": 2.2,
+        "z": 1.9
+      }
+    },
+    {
+      "id": "skip-spot-wall-2",
+      "name": "高天井スポット 東壁",
+      "type": "spotlight",
+      "model": "dl-universal",
+      "lumens": 560,
+      "colorTemperatureK": 2700,
+      "dimmer": 70,
+      "enabled": true,
+      "beamAngleDeg": 40,
+      "penumbra": 0.5,
+      "castsShadow": true,
+      "note": "階段の鉄骨に陰影をつける",
+      "position": {
+        "x": 2.2,
+        "y": 4.36,
+        "z": 1.9
+      },
+      "mountHeightM": 4.4,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 3.5,
+        "y": 2.1,
+        "z": 2.1
+      }
+    },
+    {
+      "id": "skip-spot-plant",
+      "name": "植栽スポット",
+      "type": "spotlight",
+      "model": "dl-universal",
+      "lumens": 480,
+      "colorTemperatureK": 2700,
+      "dimmer": 68,
+      "enabled": true,
+      "beamAngleDeg": 40,
+      "penumbra": 0.5,
+      "castsShadow": true,
+      "note": "影を壁に投げる",
+      "position": {
+        "x": 2.35,
+        "y": 4.36,
+        "z": 2.95
+      },
+      "mountHeightM": 4.4,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 2.35,
+        "y": 1.1,
+        "z": 3.5
+      }
+    },
+    {
+      "id": "skip-bracket-stair",
+      "name": "階段のブラケット",
+      "type": "bracket",
+      "model": "bracket",
+      "lumens": 300,
+      "colorTemperatureK": 2700,
+      "dimmer": 72,
+      "enabled": true,
+      "beamAngleDeg": 120,
+      "penumbra": 0.85,
+      "castsShadow": true,
+      "note": "踏面ではなく壁を明るくする",
+      "position": {
+        "x": 3.55,
+        "y": 2.35,
+        "z": 0.6
+      },
+      "mountHeightM": 2.35,
+      "rotationDeg": {
+        "x": 0,
+        "y": -90,
+        "z": 0
+      },
+      "target": {
+        "x": 2.4,
+        "y": 1.6,
+        "z": 0.6
+      }
+    },
+    {
+      "id": "skip-loft-dl",
+      "name": "ロフトの読書灯",
+      "type": "downlight",
+      "model": "dl-narrow",
+      "lumens": 460,
+      "colorTemperatureK": 3000,
+      "dimmer": 80,
+      "enabled": true,
+      "beamAngleDeg": 34,
+      "penumbra": 0.4,
+      "castsShadow": true,
+      "note": "ロフト天井は2.05mぶん低い",
+      "position": {
+        "x": -1.6,
+        "y": 4.36,
+        "z": -3.15
+      },
+      "mountHeightM": 4.4,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": -1.6,
+        "y": 0.0,
+        "z": -3.15
+      }
+    }
+  ],
+  "camera": {
+    "position": {
+      "x": -2.9,
+      "y": 1.55,
+      "z": 3.45
+    },
+    "target": {
+      "x": 1.4,
+      "y": 1.5,
+      "z": -2.3
+    },
+    "fov": 78,
+    "exposure": 0.12,
+    "resolutionWidth": 1600
+  },
+  "daylight": {
+    "enabled": false,
+    "month": 9,
+    "day": 25,
+    "hour": 16.0,
+    "northOffsetDeg": 12,
+    "latitudeDeg": 35.7
+  },
+  "showCeiling": true,
+  "activeFloor": 1,
+  "ceilingZones": [
+    {
+      "id": "skip-mezzanine",
+      "name": "ロフト床(メザニン)",
+      "center": {
+        "x": 0.0,
+        "z": -2.55
+      },
+      "size": {
+        "x": 7.2,
+        "z": 3.1
+      },
+      "kind": "mezzanine",
+      "dropM": 2.05,
+      "thicknessM": 0.26,
+      "floor": 1
+    }
+  ]
+}

@@ -41,7 +41,11 @@ npm run ig:posts -- b-regret-five
 |---|---|---|
 | `out/<postId>/` | 完成画像（投稿するのはこれ） | コミットする |
 | `plates/` | アプリから撮った背景レンダー | コミットする |
+| `projects/` | 投稿用の間取りバリエーション（プロジェクトJSON） | コミットする |
 | `fonts/` | Google Fonts の TTF | 除外（スクリプトで再取得） |
+
+背景プレートを毎回同じ部屋で撮ると絵が単調になる。部屋そのものを変えたいときは
+[`projects/`](projects/README.md) の JSON をアプリに読み込んでから撮る。
 
 ## サイズ
 

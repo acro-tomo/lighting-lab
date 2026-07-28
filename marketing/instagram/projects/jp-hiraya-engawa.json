@@ -1,0 +1,1075 @@
+{
+  "id": "ig-jp-hiraya-engawa",
+  "name": "和モダンの平屋｜縁側と建築化照明の家",
+  "renderCalibrationVersion": 2,
+  "room": {
+    "widthM": 12.0,
+    "depthM": 7.2,
+    "ceilingHeightM": 2.4
+  },
+  "materials": [
+    {
+      "id": "wall-shikkui",
+      "name": "白漆喰",
+      "baseColor": "#e2ded4",
+      "roughness": 0.96,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "floor-oak-nara",
+      "name": "楢の無垢フローリング",
+      "baseColor": "#a9865c",
+      "roughness": 0.78,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "ceiling-cedar",
+      "name": "杉板張りの天井",
+      "baseColor": "#8a6a48",
+      "roughness": 0.82,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "doma-mortar",
+      "name": "洗い出しの土間",
+      "baseColor": "#7b756c",
+      "roughness": 0.9,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "shoji",
+      "name": "障子",
+      "baseColor": "#e8e3d6",
+      "roughness": 0.96,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "linen-greige",
+      "name": "リネン グレージュ",
+      "baseColor": "#a9a294",
+      "roughness": 0.95,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "charcoal-wood",
+      "name": "墨色の造作",
+      "baseColor": "#3b3a37",
+      "roughness": 0.72,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "kitchen-stone",
+      "name": "モルタル調の天板",
+      "baseColor": "#8d8880",
+      "roughness": 0.6,
+      "metalness": 0.05,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "rug-wool",
+      "name": "生成りのウールラグ",
+      "baseColor": "#cbc0aa",
+      "roughness": 0.99,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "green-olive",
+      "name": "オリーブの鉢",
+      "baseColor": "#5c6b48",
+      "roughness": 0.92,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    }
+  ],
+  "walls": [
+    {
+      "id": "hiraya-north",
+      "name": "北面の壁",
+      "start": {
+        "x": -6.0,
+        "z": -3.6
+      },
+      "end": {
+        "x": 6.0,
+        "z": -3.6
+      },
+      "thicknessM": 0.15,
+      "heightM": 2.4,
+      "materialId": "wall-shikkui"
+    },
+    {
+      "id": "hiraya-east",
+      "name": "東面の壁",
+      "start": {
+        "x": 6.0,
+        "z": -3.6
+      },
+      "end": {
+        "x": 6.0,
+        "z": 3.6
+      },
+      "thicknessM": 0.15,
+      "heightM": 2.4,
+      "materialId": "wall-shikkui"
+    },
+    {
+      "id": "hiraya-south",
+      "name": "南面の壁",
+      "start": {
+        "x": 6.0,
+        "z": 3.6
+      },
+      "end": {
+        "x": -6.0,
+        "z": 3.6
+      },
+      "thicknessM": 0.15,
+      "heightM": 2.4,
+      "materialId": "wall-shikkui"
+    },
+    {
+      "id": "hiraya-west",
+      "name": "西面の壁",
+      "start": {
+        "x": -6.0,
+        "z": 3.6
+      },
+      "end": {
+        "x": -6.0,
+        "z": -3.6
+      },
+      "thicknessM": 0.15,
+      "heightM": 2.4,
+      "materialId": "wall-shikkui"
+    }
+  ],
+  "windows": [
+    {
+      "id": "hiraya-engawa-1",
+      "name": "縁側の大開口 1",
+      "wallId": "hiraya-south",
+      "centerRatio": 0.16,
+      "widthM": 1.65,
+      "heightM": 2.15,
+      "topHeightM": 2.2,
+      "hasGlass": true,
+      "style": "window"
+    },
+    {
+      "id": "hiraya-engawa-2",
+      "name": "縁側の大開口 2",
+      "wallId": "hiraya-south",
+      "centerRatio": 0.31,
+      "widthM": 1.65,
+      "heightM": 2.15,
+      "topHeightM": 2.2,
+      "hasGlass": true,
+      "style": "window"
+    },
+    {
+      "id": "hiraya-engawa-3",
+      "name": "縁側の大開口 3",
+      "wallId": "hiraya-south",
+      "centerRatio": 0.46,
+      "widthM": 1.65,
+      "heightM": 2.15,
+      "topHeightM": 2.2,
+      "hasGlass": true,
+      "style": "window"
+    },
+    {
+      "id": "hiraya-engawa-4",
+      "name": "縁側の大開口 4",
+      "wallId": "hiraya-south",
+      "centerRatio": 0.61,
+      "widthM": 1.65,
+      "heightM": 2.15,
+      "topHeightM": 2.2,
+      "hasGlass": true,
+      "style": "window"
+    },
+    {
+      "id": "hiraya-north-kitchen",
+      "name": "キッチンの横長窓",
+      "wallId": "hiraya-north",
+      "centerRatio": 0.72,
+      "widthM": 1.7,
+      "heightM": 0.55,
+      "topHeightM": 2.2,
+      "hasGlass": true,
+      "style": "window"
+    },
+    {
+      "id": "hiraya-north-hall",
+      "name": "廊下の地窓",
+      "wallId": "hiraya-north",
+      "centerRatio": 0.3,
+      "widthM": 1.2,
+      "heightM": 0.45,
+      "topHeightM": 0.85,
+      "hasGlass": true,
+      "style": "window"
+    },
+    {
+      "id": "hiraya-genkan-door",
+      "name": "玄関引戸",
+      "wallId": "hiraya-west",
+      "centerRatio": 0.32,
+      "widthM": 1.2,
+      "heightM": 2.1,
+      "topHeightM": 2.1,
+      "hasGlass": false,
+      "style": "door"
+    },
+    {
+      "id": "hiraya-east-slit",
+      "name": "東面のスリット窓",
+      "wallId": "hiraya-east",
+      "centerRatio": 0.5,
+      "widthM": 0.4,
+      "heightM": 1.9,
+      "topHeightM": 2.2,
+      "hasGlass": true,
+      "style": "window"
+    }
+  ],
+  "voids": [],
+  "furniture": [
+    {
+      "id": "hiraya-rug",
+      "name": "生成りのウールラグ",
+      "type": "rug",
+      "position": {
+        "x": -1.5,
+        "y": 0.015,
+        "z": 0.85
+      },
+      "size": {
+        "x": 3.1,
+        "y": 0.03,
+        "z": 2.2
+      },
+      "rotationYDeg": 0,
+      "materialId": "rug-wool",
+      "castsShadow": false,
+      "color": "#cbc0aa",
+      "roughness": 0.99
+    },
+    {
+      "id": "hiraya-sofa",
+      "name": "ローソファ",
+      "type": "sofa",
+      "position": {
+        "x": -1.5,
+        "y": 0.34,
+        "z": 1.75
+      },
+      "size": {
+        "x": 2.45,
+        "y": 0.68,
+        "z": 0.95
+      },
+      "rotationYDeg": 180,
+      "materialId": "linen-greige",
+      "castsShadow": true,
+      "color": "#a9a294",
+      "roughness": 0.95
+    },
+    {
+      "id": "hiraya-lowtable",
+      "name": "楢のローテーブル",
+      "type": "rectTable",
+      "position": {
+        "x": -1.5,
+        "y": 0.17,
+        "z": 0.55
+      },
+      "size": {
+        "x": 1.25,
+        "y": 0.34,
+        "z": 0.62
+      },
+      "rotationYDeg": 0,
+      "materialId": "floor-oak-nara",
+      "castsShadow": true,
+      "color": "#a9865c",
+      "roughness": 0.78
+    },
+    {
+      "id": "hiraya-lounge",
+      "name": "座椅子",
+      "type": "loungeChair",
+      "position": {
+        "x": -3.3,
+        "y": 0.34,
+        "z": 0.3
+      },
+      "size": {
+        "x": 0.85,
+        "y": 0.68,
+        "z": 0.9
+      },
+      "rotationYDeg": 52,
+      "materialId": "linen-greige",
+      "castsShadow": true,
+      "color": "#a9a294",
+      "roughness": 0.95
+    },
+    {
+      "id": "hiraya-tvboard",
+      "name": "墨色のテレビボード",
+      "type": "counter",
+      "position": {
+        "x": -1.5,
+        "y": 0.21,
+        "z": -2.95
+      },
+      "size": {
+        "x": 2.4,
+        "y": 0.42,
+        "z": 0.42
+      },
+      "rotationYDeg": 0,
+      "materialId": "charcoal-wood",
+      "castsShadow": true,
+      "color": "#3b3a37",
+      "roughness": 0.72
+    },
+    {
+      "id": "hiraya-tv",
+      "name": "テレビ",
+      "type": "tv",
+      "position": {
+        "x": -1.5,
+        "y": 0.86,
+        "z": -2.83
+      },
+      "size": {
+        "x": 1.35,
+        "y": 0.78,
+        "z": 0.06
+      },
+      "rotationYDeg": 0,
+      "materialId": "charcoal-wood",
+      "castsShadow": true
+    },
+    {
+      "id": "hiraya-island",
+      "name": "アイランドキッチン",
+      "type": "kitchen",
+      "position": {
+        "x": 3.6,
+        "y": 0.44,
+        "z": -1.15
+      },
+      "size": {
+        "x": 2.6,
+        "y": 0.88,
+        "z": 0.85
+      },
+      "rotationYDeg": 0,
+      "materialId": "kitchen-stone",
+      "castsShadow": true,
+      "color": "#8d8880",
+      "roughness": 0.6
+    },
+    {
+      "id": "hiraya-backcounter",
+      "name": "背面カップボード",
+      "type": "cupboard",
+      "position": {
+        "x": 3.6,
+        "y": 0.98,
+        "z": -3.0
+      },
+      "size": {
+        "x": 2.8,
+        "y": 1.95,
+        "z": 0.45
+      },
+      "rotationYDeg": 0,
+      "materialId": "charcoal-wood",
+      "castsShadow": true,
+      "color": "#3b3a37",
+      "roughness": 0.72
+    },
+    {
+      "id": "hiraya-fridge",
+      "name": "冷蔵庫",
+      "type": "fridge",
+      "position": {
+        "x": 5.4,
+        "y": 0.9,
+        "z": -2.95
+      },
+      "size": {
+        "x": 0.7,
+        "y": 1.8,
+        "z": 0.68
+      },
+      "rotationYDeg": 0,
+      "materialId": "kitchen-stone",
+      "castsShadow": true,
+      "color": "#b6b2ab",
+      "roughness": 0.42,
+      "metalness": 0.2
+    },
+    {
+      "id": "hiraya-dining",
+      "name": "ダイニングテーブル",
+      "type": "rectTable",
+      "position": {
+        "x": 3.2,
+        "y": 0.36,
+        "z": 1.35
+      },
+      "size": {
+        "x": 1.9,
+        "y": 0.72,
+        "z": 0.88
+      },
+      "rotationYDeg": 0,
+      "materialId": "floor-oak-nara",
+      "castsShadow": true,
+      "color": "#a9865c",
+      "roughness": 0.78
+    },
+    {
+      "id": "hiraya-chair-1",
+      "name": "椅子 西",
+      "type": "chair",
+      "position": {
+        "x": 2.35,
+        "y": 0.41,
+        "z": 1.35
+      },
+      "size": {
+        "x": 0.46,
+        "y": 0.82,
+        "z": 0.46
+      },
+      "rotationYDeg": -90,
+      "materialId": "charcoal-wood",
+      "castsShadow": true,
+      "color": "#3b3a37",
+      "roughness": 0.72
+    },
+    {
+      "id": "hiraya-chair-2",
+      "name": "椅子 東",
+      "type": "chair",
+      "position": {
+        "x": 4.05,
+        "y": 0.41,
+        "z": 1.35
+      },
+      "size": {
+        "x": 0.46,
+        "y": 0.82,
+        "z": 0.46
+      },
+      "rotationYDeg": 90,
+      "materialId": "charcoal-wood",
+      "castsShadow": true,
+      "color": "#3b3a37",
+      "roughness": 0.72
+    },
+    {
+      "id": "hiraya-chair-3",
+      "name": "椅子 南1",
+      "type": "chair",
+      "position": {
+        "x": 2.8,
+        "y": 0.41,
+        "z": 2.15
+      },
+      "size": {
+        "x": 0.46,
+        "y": 0.82,
+        "z": 0.46
+      },
+      "rotationYDeg": 180,
+      "materialId": "charcoal-wood",
+      "castsShadow": true,
+      "color": "#3b3a37",
+      "roughness": 0.72
+    },
+    {
+      "id": "hiraya-chair-4",
+      "name": "椅子 南2",
+      "type": "chair",
+      "position": {
+        "x": 3.6,
+        "y": 0.41,
+        "z": 2.15
+      },
+      "size": {
+        "x": 0.46,
+        "y": 0.82,
+        "z": 0.46
+      },
+      "rotationYDeg": 180,
+      "materialId": "charcoal-wood",
+      "castsShadow": true,
+      "color": "#3b3a37",
+      "roughness": 0.72
+    },
+    {
+      "id": "hiraya-shelf",
+      "name": "造作の飾り棚",
+      "type": "shelf",
+      "position": {
+        "x": 0.6,
+        "y": 0.8,
+        "z": -2.95
+      },
+      "size": {
+        "x": 1.1,
+        "y": 1.6,
+        "z": 0.35
+      },
+      "rotationYDeg": 0,
+      "materialId": "ceiling-cedar",
+      "castsShadow": true,
+      "color": "#8a6a48",
+      "roughness": 0.82
+    },
+    {
+      "id": "hiraya-plant-1",
+      "name": "オリーブの鉢",
+      "type": "plant",
+      "position": {
+        "x": 0.35,
+        "y": 0.85,
+        "z": 2.55
+      },
+      "size": {
+        "x": 0.85,
+        "y": 1.7,
+        "z": 0.85
+      },
+      "rotationYDeg": 0,
+      "materialId": "green-olive",
+      "castsShadow": true,
+      "color": "#5c6b48",
+      "roughness": 0.92
+    },
+    {
+      "id": "hiraya-plant-2",
+      "name": "土間の観葉",
+      "type": "plant",
+      "position": {
+        "x": -4.2,
+        "y": 0.51,
+        "z": 0.25
+      },
+      "size": {
+        "x": 0.7,
+        "y": 1.35,
+        "z": 0.7
+      },
+      "rotationYDeg": 0,
+      "materialId": "green-olive",
+      "castsShadow": true,
+      "color": "#5c6b48",
+      "roughness": 0.92
+    },
+    {
+      "id": "hiraya-shoecabinet",
+      "name": "玄関の下駄箱",
+      "type": "shoeCabinet",
+      "position": {
+        "x": -5.5,
+        "y": 0.36,
+        "z": 2.35
+      },
+      "size": {
+        "x": 1.1,
+        "y": 1.05,
+        "z": 0.4
+      },
+      "rotationYDeg": 0,
+      "materialId": "ceiling-cedar",
+      "castsShadow": true,
+      "color": "#8a6a48",
+      "roughness": 0.82
+    },
+    {
+      "id": "hiraya-bench",
+      "name": "上がり框のベンチ",
+      "type": "box",
+      "position": {
+        "x": -3.85,
+        "y": 0.04,
+        "z": 1.6
+      },
+      "size": {
+        "x": 0.42,
+        "y": 0.4,
+        "z": 1.5
+      },
+      "rotationYDeg": 0,
+      "materialId": "floor-oak-nara",
+      "castsShadow": true,
+      "color": "#a9865c",
+      "roughness": 0.78
+    }
+  ],
+  "lights": [
+    {
+      "id": "hiraya-dl-1",
+      "name": "グレアレスDL リビング西",
+      "type": "downlight",
+      "model": "dl-glareless",
+      "lumens": 560,
+      "colorTemperatureK": 2700,
+      "dimmer": 78,
+      "enabled": true,
+      "beamAngleDeg": 52,
+      "penumbra": 0.7,
+      "castsShadow": true,
+      "note": "ソファまわりを面で支える1灯",
+      "position": {
+        "x": -2.85,
+        "y": 2.36,
+        "z": 0.6
+      },
+      "mountHeightM": 2.4,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": -2.85,
+        "y": 0.0,
+        "z": 0.6
+      }
+    },
+    {
+      "id": "hiraya-dl-2",
+      "name": "グレアレスDL リビング東",
+      "type": "downlight",
+      "model": "dl-glareless",
+      "lumens": 560,
+      "colorTemperatureK": 2700,
+      "dimmer": 78,
+      "enabled": true,
+      "beamAngleDeg": 52,
+      "penumbra": 0.7,
+      "castsShadow": true,
+      "note": "ローテーブル上",
+      "position": {
+        "x": -0.35,
+        "y": 2.36,
+        "z": 0.6
+      },
+      "mountHeightM": 2.4,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": -0.35,
+        "y": 0.0,
+        "z": 0.6
+      }
+    },
+    {
+      "id": "hiraya-dl-3",
+      "name": "グレアレスDL 玄関",
+      "type": "downlight",
+      "model": "dl-glareless",
+      "lumens": 520,
+      "colorTemperatureK": 2700,
+      "dimmer": 74,
+      "enabled": true,
+      "beamAngleDeg": 52,
+      "penumbra": 0.7,
+      "castsShadow": true,
+      "note": "土間の一灯",
+      "position": {
+        "x": -4.85,
+        "y": 2.36,
+        "z": 1.5
+      },
+      "mountHeightM": 2.4,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": -4.85,
+        "y": 0.0,
+        "z": 1.5
+      }
+    },
+    {
+      "id": "hiraya-dl-4",
+      "name": "集光DL キッチン手元",
+      "type": "downlight",
+      "model": "dl-narrow",
+      "lumens": 560,
+      "colorTemperatureK": 3000,
+      "dimmer": 84,
+      "enabled": true,
+      "beamAngleDeg": 34,
+      "penumbra": 0.4,
+      "castsShadow": true,
+      "note": "アイランドの手元だけを絞る",
+      "position": {
+        "x": 3.6,
+        "y": 2.1399999999999997,
+        "z": -1.15
+      },
+      "mountHeightM": 2.1799999999999997,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 3.6,
+        "y": 0.0,
+        "z": -1.15
+      }
+    },
+    {
+      "id": "hiraya-cove-1",
+      "name": "縁側の建築化照明 西",
+      "type": "tape",
+      "model": "tape",
+      "lumens": 420,
+      "colorTemperatureK": 2700,
+      "dimmer": 72,
+      "enabled": true,
+      "beamAngleDeg": 120,
+      "penumbra": 0.9,
+      "castsShadow": false,
+      "note": "折り上げの中から天井と障子を舐める",
+      "position": {
+        "x": -3.4,
+        "y": 2.12,
+        "z": 2.85
+      },
+      "mountHeightM": 2.16,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": -3.4,
+        "y": 0.0,
+        "z": 2.85
+      },
+      "lengthM": 3.1
+    },
+    {
+      "id": "hiraya-cove-2",
+      "name": "縁側の建築化照明 中",
+      "type": "tape",
+      "model": "tape",
+      "lumens": 420,
+      "colorTemperatureK": 2700,
+      "dimmer": 72,
+      "enabled": true,
+      "beamAngleDeg": 120,
+      "penumbra": 0.9,
+      "castsShadow": false,
+      "note": "折り上げの中から天井と障子を舐める",
+      "position": {
+        "x": 0.4,
+        "y": 2.12,
+        "z": 2.85
+      },
+      "mountHeightM": 2.16,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 0.4,
+        "y": 0.0,
+        "z": 2.85
+      },
+      "lengthM": 3.1
+    },
+    {
+      "id": "hiraya-cove-3",
+      "name": "縁側の建築化照明 東",
+      "type": "tape",
+      "model": "tape",
+      "lumens": 420,
+      "colorTemperatureK": 2700,
+      "dimmer": 72,
+      "enabled": true,
+      "beamAngleDeg": 120,
+      "penumbra": 0.9,
+      "castsShadow": false,
+      "note": "折り上げの中から天井と障子を舐める",
+      "position": {
+        "x": 4.2,
+        "y": 2.12,
+        "z": 2.85
+      },
+      "mountHeightM": 2.16,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 4.2,
+        "y": 0.0,
+        "z": 2.85
+      },
+      "lengthM": 3.1
+    },
+    {
+      "id": "hiraya-pendant-1",
+      "name": "ダイニングペンダント 西",
+      "type": "pendant",
+      "model": "pendant",
+      "lumens": 620,
+      "colorTemperatureK": 2700,
+      "dimmer": 80,
+      "enabled": true,
+      "beamAngleDeg": 90,
+      "penumbra": 0.8,
+      "castsShadow": true,
+      "note": "テーブル面を落とす",
+      "position": {
+        "x": 2.6,
+        "y": 1.6199999999999999,
+        "z": 1.35
+      },
+      "mountHeightM": 2.4,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 2.6,
+        "y": 0.75,
+        "z": 1.35
+      },
+      "cordLengthM": 0.78
+    },
+    {
+      "id": "hiraya-pendant-2",
+      "name": "ダイニングペンダント 東",
+      "type": "pendant",
+      "model": "pendant",
+      "lumens": 620,
+      "colorTemperatureK": 2700,
+      "dimmer": 80,
+      "enabled": true,
+      "beamAngleDeg": 90,
+      "penumbra": 0.8,
+      "castsShadow": true,
+      "note": "テーブル面を落とす",
+      "position": {
+        "x": 3.8,
+        "y": 1.6199999999999999,
+        "z": 1.35
+      },
+      "mountHeightM": 2.4,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 3.8,
+        "y": 0.75,
+        "z": 1.35
+      },
+      "cordLengthM": 0.78
+    },
+    {
+      "id": "hiraya-bracket",
+      "name": "玄関のブラケット",
+      "type": "bracket",
+      "model": "bracket",
+      "lumens": 280,
+      "colorTemperatureK": 2700,
+      "dimmer": 70,
+      "enabled": true,
+      "beamAngleDeg": 120,
+      "penumbra": 0.85,
+      "castsShadow": true,
+      "note": "帰宅時に最初に点ける灯り",
+      "position": {
+        "x": -5.85,
+        "y": 1.75,
+        "z": 1.5
+      },
+      "mountHeightM": 1.75,
+      "rotationDeg": {
+        "x": 0,
+        "y": 90,
+        "z": 0
+      },
+      "target": {
+        "x": -4.6,
+        "y": 1.0,
+        "z": 1.5
+      }
+    },
+    {
+      "id": "hiraya-spot-plant",
+      "name": "植栽のスポット",
+      "type": "spotlight",
+      "model": "dl-universal",
+      "lumens": 380,
+      "colorTemperatureK": 2700,
+      "dimmer": 66,
+      "enabled": true,
+      "beamAngleDeg": 40,
+      "penumbra": 0.5,
+      "castsShadow": true,
+      "note": "オリーブの影を天井に伸ばす",
+      "position": {
+        "x": 0.35,
+        "y": 2.36,
+        "z": 2.05
+      },
+      "mountHeightM": 2.4,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 0.35,
+        "y": 1.2,
+        "z": 2.55
+      }
+    },
+    {
+      "id": "hiraya-shelf-tape",
+      "name": "飾り棚の間接",
+      "type": "tape",
+      "model": "tape",
+      "lumens": 280,
+      "colorTemperatureK": 2700,
+      "dimmer": 62,
+      "enabled": true,
+      "beamAngleDeg": 120,
+      "penumbra": 0.9,
+      "castsShadow": false,
+      "note": "棚の中を光らせて奥行きを出す",
+      "position": {
+        "x": 0.6,
+        "y": 2.1399999999999997,
+        "z": -2.6
+      },
+      "mountHeightM": 2.1799999999999997,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 0.6,
+        "y": 0.0,
+        "z": -2.6
+      },
+      "lengthM": 1.1
+    }
+  ],
+  "camera": {
+    "position": {
+      "x": -4.35,
+      "y": 1.48,
+      "z": -2.5
+    },
+    "target": {
+      "x": 2.4,
+      "y": 1.05,
+      "z": 1.6
+    },
+    "fov": 76,
+    "exposure": 0.115,
+    "resolutionWidth": 1600
+  },
+  "daylight": {
+    "enabled": false,
+    "month": 10,
+    "day": 20,
+    "hour": 16.5,
+    "northOffsetDeg": 0,
+    "latitudeDeg": 35.4
+  },
+  "showCeiling": true,
+  "activeFloor": 1,
+  "ceilingZones": [
+    {
+      "id": "hiraya-cove",
+      "name": "縁側側の折り上げ(建築化照明)",
+      "center": {
+        "x": 0.4,
+        "z": 2.85
+      },
+      "size": {
+        "x": 9.6,
+        "z": 0.75
+      },
+      "dropM": 0.24,
+      "floor": 1
+    },
+    {
+      "id": "hiraya-kitchen-soffit",
+      "name": "キッチンの下げ天井",
+      "center": {
+        "x": 3.9,
+        "z": -1.9
+      },
+      "size": {
+        "x": 4.4,
+        "z": 2.6
+      },
+      "dropM": 0.22,
+      "floor": 1
+    }
+  ],
+  "floorZones": [
+    {
+      "id": "hiraya-genkan",
+      "name": "玄関土間",
+      "center": {
+        "x": -4.85,
+        "z": 1.5
+      },
+      "size": {
+        "x": 2.2,
+        "z": 3.4
+      },
+      "dropM": 0.16,
+      "floor": 1
+    }
+  ]
+}
