@@ -5,6 +5,8 @@ export type Language = "ja" | "en";
 const STORAGE_KEY = "ldk-language";
 
 const en: Record<string, string> = {
+  "サンプルの部屋": "Sample rooms",
+  "サンプルの部屋から始める": "Start from a sample room",
   "部屋を選ぶ": "Pick a room",
   "夜の照明を作り込んだサンプルです。選ぶとそのまま編集できます。": "Sample rooms with the night lighting already designed. Pick one and start editing.",
   "京町家リノベ": "Kyoto machiya renovation",

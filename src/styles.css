@@ -2721,8 +2721,31 @@ h2 {
   font-family: ui-monospace, "SF Mono", monospace;
 }
 
+.intro-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 自分の間取り図が無い人向けの副導線。主ボタン(はじめる)より弱く見せる。 */
+.intro-samples {
+  border: 1px solid rgba(245, 198, 77, 0.45);
+  border-radius: 9px;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #f5c64d;
+  background: transparent;
+  cursor: pointer;
+}
+
+.intro-samples:hover {
+  border-color: rgba(245, 198, 77, 0.85);
+  background: rgba(245, 198, 77, 0.1);
+}
+
 .intro-start {
-  align-self: flex-start;
   border: 1px solid rgba(245, 198, 77, 0.6);
   border-radius: 9px;
   padding: 10px 24px;
@@ -3606,6 +3629,15 @@ h2 {
   .feedback-body {
     width: min(280px, calc(100vw - 20px));
   }
+}
+
+.sample-rooms-btn {
+  border-color: rgba(245, 198, 77, 0.5);
+  color: #f5c64d;
+}
+
+.sample-rooms-btn:hover {
+  border-color: rgba(245, 198, 77, 0.85);
 }
 
 /* 部屋の選択画面（?demo）。カード内をスクロールさせ、オーバーレイ自体は動かさない。 */

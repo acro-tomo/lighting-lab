@@ -12,12 +12,14 @@ These demo assets are original sample materials for LDK Lighting Lab.
 
 | URL | Opens |
 |---|---|
-| `?demo` (no value) | the room picker (thumbnail grid) |
+| `?demo` (no value) | the room picker (thumbnail grid) — same as the header "サンプルの部屋" button |
 | `?demo=1` | `share-demo-project.json` (the share link demo) |
 | `?demo=2` | the bundled default project |
 | `?demo=machiya` / `hiraya` / `skipfloor` / `copenhagen` / `mediterranean` / `loft` | `rooms/*.json` |
 
-Keys are declared in [`src/data/demoRooms.ts`](../../src/data/demoRooms.ts). The JSON is fetched at
+The picker is also reachable without a URL: the header button next to the import buttons, and a
+secondary button in the first-visit intro dialog. Keys are declared in
+[`src/data/demoRooms.ts`](../../src/data/demoRooms.ts). The JSON is fetched at
 load time, so adding a room does not grow the bundle. The query is removed from the URL after loading,
 and an existing autosave is confirmed before it gets overwritten.
 

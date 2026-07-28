@@ -235,6 +235,7 @@ export const App = () => {
           onImportFloorPlan={handleImportFloorPlan}
           onImportProject={handleImportProject}
           onExportProject={exportProject}
+          onShowSampleRooms={openDemoPicker}
           onShowIntro={() => setShowIntro(true)}
         />
         {/* 操作＋追加ツールバー: 2D/3D 両パネル共通の1インスタンス。 */}
@@ -538,7 +539,11 @@ export const App = () => {
       <div className="notice" role="status">{notice}</div>
       <ShortcutGuide />
       <FeedbackForm />
-      <IntroGuide forceOpen={showIntro} onClose={() => setShowIntro(false)} />
+      <IntroGuide
+        forceOpen={showIntro}
+        onClose={() => setShowIntro(false)}
+        onShowSampleRooms={openDemoPicker}
+      />
       <DemoPicker
         open={demoPickerOpen}
         onSelect={handleSelectDemoRoom}
