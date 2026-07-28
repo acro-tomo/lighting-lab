@@ -12,6 +12,7 @@ import {
   type SkyEnvironment
 } from "../../rendering/skyEnvironment";
 import type { Project } from "../../types";
+import { useIesVersion } from "../../utils/iesAssets";
 import { DEFAULT_DAYLIGHT, sunVector } from "../../utils/sun";
 import type { LiveTraceStatus } from "./types";
 
@@ -89,10 +90,12 @@ const pathTraceSceneKey = (project: Project, debugMode: RenderDebugMode) =>
     floorZones: (project.floorZones ?? []).map(({ id, center, size, dropM, floor }) => ({ id, center, size, dropM, floor }))
   });
 
-const pathTraceLightsKey = (project: Project) =>
-  JSON.stringify(
-    project.lights.map(
-      ({ id, type, model, position, mountHeightM, rotationDeg, target, lumens, colorTemperatureK, dimmer, enabled, beamAngleDeg, penumbra, castsShadow, lengthM, cordLengthM, floor }) => ({
+const pathTraceLightsKey = (project: Project, iesVersion: number) =>
+  JSON.stringify({
+    // IESの解決/解除でライトの実体（PhysicalSpotLight ⇄ SpotLight）と配光が変わる。
+    iesVersion,
+    lights: project.lights.map(
+      ({ id, type, model, position, mountHeightM, rotationDeg, target, lumens, colorTemperatureK, dimmer, enabled, beamAngleDeg, penumbra, castsShadow, lengthM, cordLengthM, ies, floor }) => ({
         id,
         type,
         model,
@@ -109,10 +112,11 @@ const pathTraceLightsKey = (project: Project) =>
         castsShadow,
         lengthM,
         cordLengthM,
+        ies,
         floor
       })
     )
-  );
+  });
 
 const pathTraceMaterialsKey = (project: Project, debugMode: RenderDebugMode) =>
   JSON.stringify({
@@ -150,7 +154,8 @@ export const PathTracerController = ({
   const lastReported = useRef(-1);
   const buildTokenRef = useRef(0);
   const sceneKey = useMemo(() => pathTraceSceneKey(project, debugMode), [project, debugMode]);
-  const lightsKey = useMemo(() => pathTraceLightsKey(project), [project]);
+  const iesVersion = useIesVersion();
+  const lightsKey = useMemo(() => pathTraceLightsKey(project, iesVersion), [project, iesVersion]);
   const materialsKey = useMemo(() => pathTraceMaterialsKey(project, debugMode), [project, debugMode]);
   const daylightKey = useMemo(() => pathTraceDaylightKey(project), [project]);
   const sceneKeyRef = useRef(sceneKey);

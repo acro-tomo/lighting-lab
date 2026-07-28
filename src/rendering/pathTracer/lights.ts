@@ -1,6 +1,13 @@
 import * as THREE from "three";
-import { ShapedAreaLight } from "three-gpu-pathtracer";
-import type { Project } from "../../types";
+import { PhysicalSpotLight, ShapedAreaLight } from "three-gpu-pathtracer";
+import type { LightFixture, Project } from "../../types";
+import {
+  applyIesToSpotLight,
+  createIesTexture,
+  fixtureDimScale,
+  resolveFixtureIes,
+  type IesAsset
+} from "../../utils/iesAssets";
 import {
   bracketRoomwardOffset,
   colorTemperatureToLinearColor,
@@ -23,10 +30,31 @@ export const sunColorForAltitude = (altitudeDeg: number): THREE.Color => {
 
 // パストレーサは castShadow フラグを参照せず全光源が物理的に影を落とすため、
 // 編集ビュー(Scene3D)と異なり本ファイルの光源には castShadow を設定しない。
+// PNGレンダー専用のIES光源。編集シーンとはライトオブジェクトもテクスチャも共有せず、
+// 同じ変換ロジック(applyIesToSpotLight)だけを共有する。テクスチャの所有者はこのシーンで、
+// disposeScene が iesMap を破棄する。
+const addIesSpotLight = (
+  scene: THREE.Scene,
+  fixture: LightFixture,
+  asset: IesAsset,
+  targetPosition: { x: number; y: number; z: number },
+  dropM: number
+) => {
+  const light = new PhysicalSpotLight();
+  applyIesToSpotLight(light, fixture, asset, createIesTexture(asset));
+  light.position.set(fixture.position.x, fixture.position.y - dropM, fixture.position.z);
+  light.target.position.set(targetPosition.x, targetPosition.y, targetPosition.z);
+  light.target.updateMatrixWorld(true);
+  scene.add(light);
+  scene.add(light.target);
+};
+
 export const addFixtureLights = (scene: THREE.Scene, project: Project, debugMode: RenderDebugMode) => {
   project.lights.forEach((fixture) => {
+    // IES適用時は光束がIES由来になるので、fixture.lumens ではなく調光率だけで消灯判定する。
+    const iesAsset = resolveFixtureIes(fixture);
     const lumens = lumensToPhysicalPower(fixture);
-    if (lumens <= 0) return;
+    if (iesAsset ? fixtureDimScale(fixture) <= 0 : lumens <= 0) return;
     const color = colorTemperatureToLinearColor(fixture.colorTemperatureK);
     const targetPosition = fixture.target ?? { x: fixture.position.x, y: 0.1, z: fixture.position.z };
 
@@ -174,6 +202,11 @@ export const addFixtureLights = (scene: THREE.Scene, project: Project, debugMode
       emitter.position.set(fixture.position.x, fixture.position.y - 0.08, fixture.position.z);
       scene.add(emitter);
 
+      if (iesAsset) {
+        addIesSpotLight(scene, fixture, iesAsset, targetPosition, 0.08);
+        return;
+      }
+
       // 下方配光のスポット(≈140°)。全方向 pointLight だと天井まで照るのを防ぐ。
       const light = new THREE.SpotLight(color, 1, 0, THREE.MathUtils.degToRad(70), 0.5, 2);
       light.intensity = lumensToSpotlightPeakCandela(lumens, 140, 0.5);
@@ -183,6 +216,14 @@ export const addFixtureLights = (scene: THREE.Scene, project: Project, debugMode
       light.target.updateMatrixWorld(true);
       scene.add(light);
       scene.add(light.target);
+      return;
+    }
+
+    // 編集ラスターと同じく、器具本体の遮蔽を避ける最小量だけ下げる。
+    const lightDrop = fixture.type === "spotlight" ? 0.2 : 0.05;
+
+    if (iesAsset) {
+      addIesSpotLight(scene, fixture, iesAsset, targetPosition, lightDrop);
       return;
     }
 
@@ -199,8 +240,6 @@ export const addFixtureLights = (scene: THREE.Scene, project: Project, debugMode
       fixture.beamAngleDeg,
       fixture.penumbra
     );
-    // 編集ラスターと同じく、器具本体の遮蔽を避ける最小量だけ下げる。
-    const lightDrop = fixture.type === "spotlight" ? 0.2 : 0.05;
     light.position.set(
       fixture.position.x,
       fixture.position.y - lightDrop,

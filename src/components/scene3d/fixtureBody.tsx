@@ -1,9 +1,17 @@
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
+import { PhysicalSpotLight } from "three-gpu-pathtracer";
 import { RectAreaLightUniformsLib } from "three/examples/jsm/lights/RectAreaLightUniformsLib.js";
 import type { RenderDebugMode } from "../../rendering/pathTracer";
 import type { LightFixture } from "../../types";
+import {
+  applyIesToSpotLight,
+  createIesTexture,
+  resolveFixtureIes,
+  useIesVersion,
+  type IesAsset
+} from "../../utils/iesAssets";
 import {
   bracketRoomwardOffset,
   colorTemperatureToLinearColor,
@@ -213,6 +221,41 @@ export const FixtureBody = ({
   );
 };
 
+// IES適用時の光源。編集ラスターと常駐パストレで同一オブジェクトを共有する（WYSIWYG）。
+// - 常駐パストレ: three-gpu-pathtracer が iesMap を θ∈[0,π] のプロファイルとして読み、
+//   コーン減衰の代わりに使う。パストレーサ側は1Dプロファイルしか受け取れないため
+//   水平角(φ)方向は平均した軸対称近似になる（照度ヒートマップは完全な2次元配光を使う）。
+// - 通常ラスター: three の WebGLRenderer は iesMap を解釈しないので、IES由来の
+//   ピーク光度＋代表ビーム角を持つスポットライトとしての近似表示になる。
+const IesSpotLight = ({
+  asset,
+  fixture,
+  dropM,
+  target,
+  castShadow
+}: {
+  asset: IesAsset;
+  fixture: LightFixture;
+  dropM: number;
+  target: THREE.Object3D;
+  castShadow: boolean;
+}) => {
+  const texture = useMemo(() => createIesTexture(asset), [asset]);
+  const light = useMemo(() => new PhysicalSpotLight(), []);
+
+  // テクスチャは編集シーン専用（PNGレンダーシーンは別インスタンスを作る）。
+  useEffect(() => () => texture.dispose(), [texture]);
+  useEffect(() => () => light.dispose(), [light]);
+
+  applyIesToSpotLight(light, fixture, asset, texture);
+  light.position.set(0, -dropM, 0);
+  light.target = target;
+  light.castShadow = castShadow;
+  light.shadow.mapSize.set(1024, 1024);
+
+  return <primitive object={light} />;
+};
+
 export const PhysicalLight = ({
   fixture,
   castsRealtimeShadow,
@@ -225,6 +268,8 @@ export const PhysicalLight = ({
   const scene = useThree((state) => state.scene);
   const pathTraced = usePathTraced();
   const target = useMemo(() => new THREE.Object3D(), []);
+  useIesVersion(); // IESの解決/解除で配光が変わるため再描画する
+  const iesAsset = resolveFixtureIes(fixture);
   const lumens = lumensToPhysicalPower(fixture);
   const color = colorTemperatureToLinearColor(fixture.colorTemperatureK);
   const targetPosition = fixture.target ?? { x: fixture.position.x, y: 0.1, z: fixture.position.z };
@@ -277,6 +322,19 @@ export const PhysicalLight = ({
         position={[off.x, 0, off.z]}
         castShadow={castShadow}
         shadow-mapSize={[512, 512]}
+      />
+    );
+  }
+
+  // resolveFixtureIes は IES 対象外（ブラケット/テープ/球形ペンダント）では常に undefined。
+  if (iesAsset) {
+    return (
+      <IesSpotLight
+        asset={iesAsset}
+        fixture={fixture}
+        dropM={fixture.type === "pendant" ? 0.08 : fixture.type === "spotlight" ? 0.2 : 0.05}
+        target={target}
+        castShadow={castShadow}
       />
     );
   }
