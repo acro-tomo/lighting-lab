@@ -739,27 +739,6 @@
       "castsShadow": true
     },
     {
-      "id": "furniture-island-top",
-      "name": "ウォルナットアイランド天板",
-      "type": "box",
-      "position": {
-        "x": 4.65,
-        "y": 0.91,
-        "z": -2.25
-      },
-      "size": {
-        "x": 2.9,
-        "y": 0.08,
-        "z": 1.18
-      },
-      "rotationYDeg": 0,
-      "materialId": "walnut",
-      "color": "#4a2f22",
-      "roughness": 0.7,
-      "metalness": 0,
-      "castsShadow": true
-    },
-    {
       "id": "furniture-kitchen-back",
       "name": "トラバーチン壁付キッチン",
       "type": "kitchen",
