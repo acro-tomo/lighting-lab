@@ -27,6 +27,13 @@ const HEIGHT = 1920;
 const XFADE = 0.4;
 const OUT_NAME = "reel-ldk-walkthrough.mp4";
 
+// 平坦な面（キッチンの天板・壁）は緩いグラデーションなので、8bitに落とすと
+// 帯や粒状のムラが出やすい。gradfun で均してから符号化する。
+// 数値は環境変数で振れるようにして、撮り直さずに詰められるようにする。
+const CRF = process.env.REEL_CRF ?? "17";
+const DEBAND = process.env.REEL_DEBAND !== "0";
+const DEBAND_STRENGTH = process.env.REEL_DEBAND_STRENGTH ?? "1.2";
+
 // ショットIDごとのテロップ。capture-reel-shots.mjs の SHOTS と対応させる。
 const TEXTS = {
   "s1-establish": { eyebrow: "夜のLDK", headline: ["同じ部屋です"], sub: "間取りも家具も照明の数も変えていません" },
@@ -150,9 +157,12 @@ shots.forEach((shot, index) => {
   const overlayIndex = shots.length + index;
   const duration = durations[index];
   // 撮影キャンバスは 9:16 より横長なので、中央を 9:16 で切ってから縮める。
+  // 色差を間引くのは最後だけにする。ここで yuv420p にするとテロップ合成前に
+  // 情報が落ち、平坦面と文字の縁が荒れる。
+  const deband = DEBAND ? `,gradfun=strength=${DEBAND_STRENGTH}:radius=16` : "";
   parts.push(
     `[${index}:v]crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=${WIDTH}:${HEIGHT},` +
-      `fps=${fps},settb=AVTB,setsar=1,format=yuv420p[b${index}]`
+      `fps=${fps},settb=AVTB,setsar=1,format=yuv444p${deband}[b${index}]`
   );
   // テロップは短いフェードで出し入れする。ショットが極端に短い場合は潰れないよう詰める。
   const fade = Math.min(0.4, duration / 4);
@@ -160,7 +170,7 @@ shots.forEach((shot, index) => {
     `[${overlayIndex}:v]format=rgba,fade=t=in:st=0:d=${fade.toFixed(3)}:alpha=1,` +
       `fade=t=out:st=${Math.max(0, duration - fade).toFixed(3)}:d=${fade.toFixed(3)}:alpha=1[o${index}]`
   );
-  parts.push(`[b${index}][o${index}]overlay=0:0:format=auto,format=yuv420p[v${index}]`);
+  parts.push(`[b${index}][o${index}]overlay=0:0:format=auto,format=yuv444p[v${index}]`);
 });
 
 // xfade は2本ずつしか繋げないので左から畳み込む。
@@ -186,7 +196,9 @@ args.push(
   "-filter_complex", parts.join(";"),
   "-map", outLabel,
   "-map", `${shots.length * 2}:a`,
-  "-c:v", "libx264", "-profile:v", "high", "-pix_fmt", "yuv420p", "-preset", "medium", "-crf", "20",
+  // aq-mode 3 は平坦部にビットを回すので、天板や壁のムラが出にくくなる。
+  "-c:v", "libx264", "-profile:v", "high", "-pix_fmt", "yuv420p", "-preset", "slow", "-crf", String(CRF),
+  "-aq-mode", "3", "-x264-params", "aq-strength=1.1",
   "-r", String(fps), "-g", String(fps * 2),
   "-c:a", "aac", "-b:a", "128k",
   "-t", elapsed.toFixed(3),
