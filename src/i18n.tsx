@@ -5,6 +5,20 @@ export type Language = "ja" | "en";
 const STORAGE_KEY = "ldk-language";
 
 const en: Record<string, string> = {
+  "部屋を選ぶ": "Pick a room",
+  "夜の照明を作り込んだサンプルです。選ぶとそのまま編集できます。": "Sample rooms with the night lighting already designed. Pick one and start editing.",
+  "京町家リノベ": "Kyoto machiya renovation",
+  "間口4.2m × 奥行15m / 天井2.35m ・ 和紙ペンダントと行灯だけの夜": "4.2 × 15 m / 2.35 m ceiling · washi pendants and lanterns only",
+  "和モダンの平屋": "Japanese modern single-storey house",
+  "12m × 7.2m / 天井2.4m ・ ダウンライト4灯＋折り上げの間接照明": "12 × 7.2 m / 2.4 m ceiling · 4 downlights plus a cove uplight",
+  "狭小3階建てのスキップフロア": "Narrow three-storey split level",
+  "7.4m × 8.4m / 天井4.4m ・ 低く吊ったペンダントと壁向きスポット": "7.4 × 8.4 m / 4.4 m ceiling · low pendant and wall-washing spots",
+  "コペンハーゲンの住戸": "Copenhagen apartment",
+  "8.6m × 6.4m / 天井3.25m ・ ダウンライト0灯、小さな灯り9つ": "8.6 × 6.4 m / 3.25 m ceiling · zero downlights, nine small lamps",
+  "南欧のアーチの家": "Mediterranean house with arches",
+  "9.6m × 8m / 天井3.05m ・ 梁現しの塗り壁をブラケットで舐める": "9.6 × 8 m / 3.05 m ceiling · brackets grazing plaster walls and beams",
+  "ブルックリンのロフト": "Brooklyn loft",
+  "13.5m × 8.6m / 天井4.2m ・ トラックスポットと長吊りペンダント": "13.5 × 8.6 m / 4.2 m ceiling · track spots and long-drop pendants",
   "Local Web Simulator": "Local Web Simulator",
   "メニュー": "Menu",
   "プロジェクト操作": "Project actions",

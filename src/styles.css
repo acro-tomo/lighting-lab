@@ -3607,3 +3607,144 @@ h2 {
     width: min(280px, calc(100vw - 20px));
   }
 }
+
+/* 部屋の選択画面（?demo）。カード内をスクロールさせ、オーバーレイ自体は動かさない。 */
+.demo-picker-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 195;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(6, 6, 5, 0.82);
+  backdrop-filter: blur(10px);
+}
+
+.demo-picker-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: min(940px, 94vw);
+  max-height: min(88dvh, 860px);
+  padding: 26px 26px 22px;
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  background: rgba(20, 20, 18, 0.97);
+  box-shadow: 0 28px 72px rgba(0, 0, 0, 0.6);
+  color: #e9e1d2;
+}
+
+.demo-picker-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.demo-picker-title {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: 0.04em;
+}
+
+.demo-picker-lead {
+  margin: 6px 0 0;
+  color: #a49c8d;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.demo-picker-close {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: transparent;
+  color: #cfc6b5;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.demo-picker-close:hover {
+  border-color: rgba(245, 198, 77, 0.6);
+  color: #f5c64d;
+}
+
+.demo-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.demo-picker-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 0 0 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(12, 12, 11, 0.9);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 120ms ease, transform 120ms ease;
+}
+
+.demo-picker-item:hover,
+.demo-picker-item:focus-visible {
+  border-color: rgba(245, 198, 77, 0.66);
+  transform: translateY(-2px);
+}
+
+.demo-picker-thumb {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  background: #0b0b0a;
+}
+
+.demo-picker-label {
+  padding: 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.demo-picker-summary {
+  padding: 0 12px;
+  color: #9a9284;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.demo-picker-note {
+  margin: 0;
+  color: #6b6459;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+@media (max-width: 899px) {
+  .demo-picker-overlay {
+    padding: 12px;
+  }
+
+  .demo-picker-card {
+    padding: 18px 16px 16px;
+  }
+
+  .demo-picker-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+}

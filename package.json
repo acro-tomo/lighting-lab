@@ -13,6 +13,7 @@
     "ig:plates": "node scripts/instagram/capture-plates.mjs",
     "ig:rooms": "node scripts/instagram/capture-rooms.mjs",
     "ig:posts": "node scripts/instagram/make-posts.mjs",
+    "demo:thumbs": "node scripts/make-room-thumbs.mjs",
     "visual-check": "node scripts/visual-check.mjs",
     "exploratory-check": "node scripts/exploratory-check.mjs"
   },

@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import { demoProject } from "../../data/demoProject";
-import { findDemoRoom } from "../../data/demoRooms";
-import { projectSchema } from "../../schema/projectSchema";
+import { fetchDemoProject, findDemoRoom } from "../../data/demoRooms";
 import { loadProjectFromIndexedDb, saveProjectToIndexedDb } from "../../storage/projectStorage";
 import type { CompareShot, Project } from "../../types";
 import { cloneProject } from "../../utils/units";
@@ -13,7 +12,9 @@ export const useProjectPersistence = (
   project: Project,
   setProject: (project: Project) => void,
   setCompareShots: (shots: CompareShot[]) => void,
-  setNotice: (notice: string) => void
+  setNotice: (notice: string) => void,
+  /** ?demo（値なし）で部屋の選択画面を開く。 */
+  openDemoPicker?: () => void
 ) => {
   const { t } = useI18n();
   const loadedOnce = useRef(false);
@@ -23,15 +24,18 @@ export const useProjectPersistence = (
     loadedOnce.current = true;
 
     // ?demo=1 は配布用デモ、?demo=2 は標準デモ、?demo=<key> は部屋バリエーション
-    // (src/data/demoRooms.ts) を開く。読込後はクエリを消し、リロードでの再上書きと
-    // 透かしURLの汚れを防ぐ。
+    // (src/data/demoRooms.ts)、値なしの ?demo は部屋の選択画面を開く。
+    // 読込後はクエリを消し、リロードでの再上書きと透かしURLの汚れを防ぐ。
     const url = new URL(window.location.href);
     const demoVersion = url.searchParams.get("demo");
-    const demoRequested = demoVersion !== null;
-    if (demoRequested) {
+    const pickerRequested = demoVersion === "" || demoVersion === "list";
+    const demoRequested = demoVersion !== null && !pickerRequested;
+    if (demoRequested || pickerRequested) {
       url.searchParams.delete("demo");
       window.history.replaceState(null, "", url);
     }
+    // 選択画面は自動保存の復元を邪魔しない（選んだ時点で初めて差し替える）。
+    if (pickerRequested) openDemoPicker?.();
 
     const loadRequestedDemo = async () => {
       if (demoVersion === "2") {
@@ -41,11 +45,8 @@ export const useProjectPersistence = (
         return;
       }
       const room = findDemoRoom(demoVersion);
-      const demoPath = room?.file ?? "demo/share-demo-project.json";
-      const response = await fetch(`${import.meta.env.BASE_URL}${demoPath}`);
-      if (!response.ok) throw new Error(`demo fetch failed: ${response.status}`);
       const parsed = await migrateLoadedProject(
-        projectSchema.parse(await response.json()) as Project & { compareShots?: CompareShot[] }
+        await fetchDemoProject(room?.file ?? "demo/share-demo-project.json")
       );
       setProject(parsed);
       setCompareShots(Array.isArray(parsed.compareShots) ? parsed.compareShots : []);
@@ -88,7 +89,7 @@ export const useProjectPersistence = (
           );
         }
       });
-  }, [setCompareShots, setNotice, setProject, t]);
+  }, [openDemoPicker, setCompareShots, setNotice, setProject, t]);
 
   useEffect(() => {
     const flush = () =>
