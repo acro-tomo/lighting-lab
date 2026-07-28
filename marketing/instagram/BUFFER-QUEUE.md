@@ -116,3 +116,41 @@ Buffer MCP の承認が通らない場合に、Buffer の Web UI へ手で入れ
 
 ---
 
+## 4. 部屋のかたち別・夜の照明の作り方
+
+- **投稿日時**: 2026-08-04(火) 20:00
+- **postId**: `d-room-types`
+- **枚数**: 9
+- **コミット**: `9dd05bb`
+
+### 画像（この順番で追加）
+
+1. https://raw.githubusercontent.com/acro-tomo/lighting-lab/9dd05bb699edca9a3226e6d01e514a3233c52cc8/marketing/instagram/out/d-room-types/01.png
+2. https://raw.githubusercontent.com/acro-tomo/lighting-lab/9dd05bb699edca9a3226e6d01e514a3233c52cc8/marketing/instagram/out/d-room-types/02.png
+3. https://raw.githubusercontent.com/acro-tomo/lighting-lab/9dd05bb699edca9a3226e6d01e514a3233c52cc8/marketing/instagram/out/d-room-types/03.png
+4. https://raw.githubusercontent.com/acro-tomo/lighting-lab/9dd05bb699edca9a3226e6d01e514a3233c52cc8/marketing/instagram/out/d-room-types/04.png
+5. https://raw.githubusercontent.com/acro-tomo/lighting-lab/9dd05bb699edca9a3226e6d01e514a3233c52cc8/marketing/instagram/out/d-room-types/05.png
+6. https://raw.githubusercontent.com/acro-tomo/lighting-lab/9dd05bb699edca9a3226e6d01e514a3233c52cc8/marketing/instagram/out/d-room-types/06.png
+7. https://raw.githubusercontent.com/acro-tomo/lighting-lab/9dd05bb699edca9a3226e6d01e514a3233c52cc8/marketing/instagram/out/d-room-types/07.png
+8. https://raw.githubusercontent.com/acro-tomo/lighting-lab/9dd05bb699edca9a3226e6d01e514a3233c52cc8/marketing/instagram/out/d-room-types/08.png
+9. https://raw.githubusercontent.com/acro-tomo/lighting-lab/9dd05bb699edca9a3226e6d01e514a3233c52cc8/marketing/instagram/out/d-room-types/09.png
+
+### キャプション
+
+```
+「ダウンライトは何灯必要ですか？」への答えは、部屋のかたちで変わります。
+
+天井2.35mの細長い家と、天井4.4mの吹き抜け。同じ灯数にしても、見え方はまったく別物になります。
+6タイプの部屋で、夜の照明をどう組んだかを並べました。自分の家に近いものを探してみてください。
+
+うちの間取りだとどうなるか気になる人は、
+プロフィールのリンクから自分の間取り図で試せます。
+（登録なし・ブラウザだけで動きます）
+
+※雰囲気を比較するための視覚シミュレーションです。
+　実際の照度(lux)や仕上がりを保証するものではありません。
+
+#注文住宅 #照明計画 #マイホーム計画中 #家づくり記録 #新築一戸建て #ダウンライト #間接照明 #吹き抜け #平屋 #家づくり
+```
+
+---
