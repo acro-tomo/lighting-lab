@@ -79,6 +79,11 @@ const SHOTS = [
   }
 ];
 
+// 撮影中だけシーンから外す家具。プロジェクトデータ(demoProject.json)は触らない。
+// アプリの既定シーンを変えずに、絵として邪魔なものだけ抜くための撮影用の細工。
+// - furniture-island-top: 天板に明暗の境界が階段状に出るため外す
+const HIDE_FURNITURE_IDS = ["furniture-island-top"];
+
 // 撮影用に画面のUIを消す（capture-plates.mjs と同じ一時スタイル。アプリ側には入れない）。
 const HIDE_CHROME_CSS = `
   .top-chrome, .shared-toolbar { display: none !important; }
@@ -127,11 +132,19 @@ await page.locator("canvas").first().waitFor({ state: "attached", timeout: 60_00
 await page.waitForTimeout(4000);
 
 // 照明の投稿なので夜にする。既定は日光ONの昼景。
-await page.evaluate(() => {
+await page.evaluate((hideIds) => {
   const store = window.useProjectStore.getState();
   store.setDaylight({ enabled: false });
   store.select?.(null);
-});
+  if (hideIds.length > 0) {
+    window.useProjectStore.setState((state) => ({
+      project: {
+        ...state.project,
+        furniture: state.project.furniture.filter((item) => !hideIds.includes(item.id))
+      }
+    }));
+  }
+}, HIDE_FURNITURE_IDS);
 await page.waitForTimeout(1200);
 
 // 3Dを最大化してからUIを消す。2D側を最大化すると canvas が display:none になり撮れない。
