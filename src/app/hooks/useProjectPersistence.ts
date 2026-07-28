@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { demoProject } from "../../data/demoProject";
+import { findDemoRoom } from "../../data/demoRooms";
 import { projectSchema } from "../../schema/projectSchema";
 import { loadProjectFromIndexedDb, saveProjectToIndexedDb } from "../../storage/projectStorage";
 import type { CompareShot, Project } from "../../types";
@@ -21,8 +22,9 @@ export const useProjectPersistence = (
     if (loadedOnce.current) return;
     loadedOnce.current = true;
 
-    // ?demo=1 は配布用デモ、?demo=2 は標準デモを開く。
-    // 読込後はクエリを消し、リロードでの再上書きと透かしURLの汚れを防ぐ。
+    // ?demo=1 は配布用デモ、?demo=2 は標準デモ、?demo=<key> は部屋バリエーション
+    // (src/data/demoRooms.ts) を開く。読込後はクエリを消し、リロードでの再上書きと
+    // 透かしURLの汚れを防ぐ。
     const url = new URL(window.location.href);
     const demoVersion = url.searchParams.get("demo");
     const demoRequested = demoVersion !== null;
@@ -38,7 +40,9 @@ export const useProjectPersistence = (
         setNotice(t("デモの間取りを読み込みました。照明や家具を動かして部屋の雰囲気を試せます。"));
         return;
       }
-      const response = await fetch(`${import.meta.env.BASE_URL}demo/share-demo-project.json`);
+      const room = findDemoRoom(demoVersion);
+      const demoPath = room?.file ?? "demo/share-demo-project.json";
+      const response = await fetch(`${import.meta.env.BASE_URL}${demoPath}`);
       if (!response.ok) throw new Error(`demo fetch failed: ${response.status}`);
       const parsed = await migrateLoadedProject(
         projectSchema.parse(await response.json()) as Project & { compareShots?: CompareShot[] }

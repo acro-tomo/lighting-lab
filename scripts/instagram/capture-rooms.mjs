@@ -1,4 +1,4 @@
-// marketing/instagram/projects/*.json の各部屋をアプリで開き、投稿用の背景プレートを撮る。
+// public/demo/rooms/*.json の各部屋をアプリで開き、投稿用の背景プレートを撮る。
 // capture-plates.mjs が「同じ部屋で色温度だけ変える」のに対し、こちらは「部屋そのものを変える」。
 //
 // 使い方: npm run dev を別ターミナルで起動してから
@@ -17,7 +17,7 @@ const flatOnly = args.includes("--flat-only");
 const designedOnly = args.includes("--designed-only");
 const idFilter = args.filter((arg) => !arg.startsWith("http") && !arg.startsWith("--"));
 
-const SRC_DIR = "marketing/instagram/projects";
+const SRC_DIR = "public/demo/rooms";
 const OUT_DIR = "marketing/instagram/plates";
 
 // 投稿と同じ 4:5 で撮る。ソフトウェア描画では画素数がそのまま撮影時間になるため、
