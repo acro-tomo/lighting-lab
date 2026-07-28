@@ -122,3 +122,78 @@ Buffer MCP の承認が通らない場合に、Buffer の Web UI へ手で入れ
 
 ---
 
+## 4. リール｜色温度ウォークスルー
+
+> **未入稿**。動画の書き出しがローカル待ちのため、まだ Buffer に登録していない。
+> 手順は下の「入稿までの残り」を参照。
+
+- **投稿日時**: 2026-08-02(日) 20:00
+- **形式**: リール（9:16 / 1080×1920 / 17.9秒 / 30fps）
+- **生成物**: `marketing/instagram/out/reel-ldk-walkthrough.mp4`
+- **Buffer post ID**: 未登録
+
+### 動画URL（コミット後の raw 直リンク）
+
+```
+https://raw.githubusercontent.com/acro-tomo/lighting-lab/<commit>/marketing/instagram/out/reel-ldk-walkthrough.mp4
+```
+
+`<commit>` は mp4 をコミットした後の SHA に差し替える。Buffer は動画も直リンクで取り込む。
+
+### 構成（テロップ）
+
+| ショット | 尺 | テロップ |
+|---|---|---|
+| s1-establish | 3.6s | 夜のLDK ／ 同じ部屋です |
+| s2-color-shift | 4.5s | 2700K → 6500K ／ 色だけ動かします |
+| s3-dining | 3.2s | 3500K 温白色 ／ 迷ったらここ |
+| s4-kitchen | 3.2s | 5000K 昼白色 ／ 手元がよく見える |
+| s5-outro | 3.4s | 保存して打ち合わせへ |
+
+### キャプション
+
+```
+同じ部屋です。色温度だけ動かしています。
+
+間取りも家具も照明の数も変えていません。動いているのは光の色だけです。
+2700Kの電球色から6500Kの昼光色まで、同じLDKがどう見えるかを1本にまとめました。
+
+くつろぐリビングは2700〜3000K、迷ったら3500Kの温白色、
+手元を使うキッチンや洗面は5000Kの昼白色。部屋ごとに変えるのが正解です。
+
+うちの間取りだとどうなるか気になる人は、
+プロフィールのリンクから自分の間取り図で試せます。
+（登録なし・ブラウザだけで動きます）
+
+※雰囲気を比較するための視覚シミュレーションです。
+　実際の照度(lux)や仕上がりを保証するものではありません。
+
+#注文住宅 #照明計画 #マイホーム計画中 #家づくり記録 #新築一戸建て #色温度 #電球色 #温白色 #昼白色 #ダウンライト #間接照明 #リビング照明 #インテリア照明 #家づくり #マイホーム #新築 #一戸建て #おうちづくり #マイホーム記録 #家づくりアイデア #住宅設計 #インテリア #照明 #夜のリビング #リール
+```
+
+### 入稿までの残り
+
+1. **ローカル(Mac)で撮影**。コンテナにはGPUが無く、ソフトウェア描画では約46秒/フレーム＝537フレームで約7時間かかるため実行できない。
+
+   ```bash
+   rm -rf output/reel-frames
+   npm run dev                  # 別ターミナル
+   npm run ig:reel-capture
+   npm run ig:reel-encode
+   ```
+
+2. mp4 をコミット＆push（raw URL を確定させるため）。
+3. 上の `<commit>` を実際の SHA に差し替え、Buffer に登録する。
+
+### create_post に渡す値（登録時の控え）
+
+| 項目 | 値 |
+|---|---|
+| channelId | `6a607539e2638b94d7b26c75`（hosh1.921 / instagram business） |
+| mode | `customScheduled` |
+| dueAt | `2026-08-02T20:00:00+09:00` |
+| schedulingType | `notification`（他3件と揃える） |
+| metadata.instagram.type | `reel` |
+| metadata.instagram.shouldShareToFeed | `true` |
+| assets[0].video.url | 上の raw 直リンク |
+
