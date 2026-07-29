@@ -8,10 +8,12 @@ import type { ProjectCamera } from "../../types";
 
 export const CameraViewSync = ({
   view,
-  controlsRef
+  controlsRef,
+  exposureScale
 }: {
   view: ProjectCamera;
   controlsRef: MutableRefObject<OrbitControlsImpl | null>;
+  exposureScale: number;
 }) => {
   const { camera, gl } = useThree();
 
@@ -68,9 +70,11 @@ export const CameraViewSync = ({
     view.fov
   ]);
 
+  // 保存される view.exposure は「夜の露出」のまま据え置き、日光ぶんの絞りは係数で掛ける
+  // （永続化しない）。常駐パストレもPNG書き出しも同じ gl の露出を継承するのでここだけで揃う。
   useEffect(() => {
-    gl.toneMappingExposure = view.exposure;
-  }, [gl, view.exposure]);
+    gl.toneMappingExposure = view.exposure * exposureScale;
+  }, [gl, view.exposure, exposureScale]);
 
   const TURN_DEG = 5;
   const CAMERA_MOVE_M = 0.25;

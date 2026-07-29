@@ -41,7 +41,8 @@ export const SunLight = ({
 }) => {
   const ref = useRef<THREE.DirectionalLight>(null);
   const targetRef = useRef<THREE.Object3D>(null);
-  // Sky 環境が間接光を担うので、太陽は鋭い影・方向感だけ担当する控えめな直射に較正。
+  // Sky 環境が間接光、太陽が直射を担う。器具(lm)と同じ実測光スケールなので値は数万lx規模で、
+  // そのぶんの絞りは DAYTIME_EXPOSURE_SCALE が露出側で受け持つ。
   // dir.y = sin(高度) なので高度が高いほど明るい。
   const intensity = Math.max(0, dir.y) * SUN_INTENSITY_FACTOR;
   const color = useMemo(() => sunColorForAltitude(altitudeDeg), [altitudeDeg]);
