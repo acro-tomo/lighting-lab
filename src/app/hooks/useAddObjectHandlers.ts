@@ -2,7 +2,15 @@ import { useCallback } from "react";
 import type { EditMode } from "../../components/EditToolbar";
 import { fixtureModelMap } from "../../data/fixtureCatalog";
 import { getFurniturePreset } from "../../data/furnitureCatalog";
-import { fixtureModelFromAddKind, isLightAddKind, isWallLightAddKind } from "../../data/fixtureAddKinds";
+import {
+  fixtureAddKind,
+  fixtureModelFromAddKind,
+  iesAssetIdFromAddKind,
+  IES_IMPORT_ADD_KIND,
+  IES_IMPORT_BASE_MODEL_ID,
+  isLightAddKind,
+  isWallLightAddKind
+} from "../../data/fixtureAddKinds";
 import {
   newCeilingZone,
   newDoor,
@@ -21,11 +29,23 @@ import {
 import { windowPresetFromAddKind } from "../../data/windowCatalog";
 import { ceilingMountHeightAt } from "../../utils/ceiling";
 import { wallMountedLightPlacementOnSurface } from "../../utils/fixtureMounting";
+import { getCachedIesAsset, importIesFile } from "../../utils/iesAssets";
 import type { CeilingZone, FloorZone, FurnitureItem, LightFixture, Project, VoidArea, WindowOpening } from "../../types";
 import { useI18n } from "../../i18n";
 
 // 配置情報。床に置く物は at(x,z)、壁に付く物(窓/扉)は wallId+centerRatio を使う。
 type PlaceOpts = { at?: { x: number; z: number }; wallId?: string; centerRatio?: number };
+
+// 追加パレットからその場でIESを選ばせる。IesControl と違い常設の input を持たないので都度作る。
+// accept は付けない（macOSは .ies にUTIを持たず、選べなくなるため）。
+const pickIesFile = () =>
+  new Promise<File | undefined>((resolve) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.addEventListener("change", () => resolve(input.files?.[0]));
+    input.addEventListener("cancel", () => resolve(undefined));
+    input.click();
+  });
 
 const lowerCeilingDropFromKind = (kind: string) => {
   if (!kind.startsWith("ceilingZone:")) return undefined;
@@ -66,7 +86,12 @@ export const useAddObjectHandlers = ({
       const model = fixtureModelFromAddKind(kind);
       if (model) {
         const mountHeightM = at ? ceilingMountHeightAt(project, at) : undefined;
-        addLight(newFixtureFromModel(project, model, at, { ceilingHeightM: mountHeightM }));
+        const light = newFixtureFromModel(project, model, at, { ceilingHeightM: mountHeightM });
+        // 「IESから追加」で来た kind には取り込み済み assetId が付いている。
+        const asset = getCachedIesAsset(iesAssetIdFromAddKind(kind) ?? "");
+        addLight(
+          asset ? { ...light, ies: { assetId: asset.assetId, fileName: asset.fileName } } : light
+        );
         return;
       }
       if (kind.startsWith("ceilingZone")) {
@@ -126,8 +151,19 @@ export const useAddObjectHandlers = ({
   );
 
   // 「＋追加」で種別を選んだら配置待ちにする。実際の生成はクリック位置確定時。
-  const handleStartAdd = useCallback((kind: string) => {
+  const handleStartAdd = useCallback(async (kind: string) => {
     let nextKind = kind;
+    if (kind === IES_IMPORT_ADD_KIND) {
+      const file = await pickIesFile();
+      if (!file) return;
+      try {
+        const asset = await importIesFile(file);
+        nextKind = fixtureAddKind(IES_IMPORT_BASE_MODEL_ID, asset.assetId);
+      } catch (cause) {
+        setNotice(`${t("このIESは使えません")}: ${cause instanceof Error ? cause.message : String(cause)}`);
+        return;
+      }
+    }
     if (kind === "ceilingZone") {
       const defaultHeightMm = Math.round((project.room.ceilingHeightM - 0.3) * 1000);
       const input = window.prompt(t("下げ天井の下端高さをmmで入力してください。"), String(defaultHeightMm));

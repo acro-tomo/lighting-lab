@@ -545,6 +545,8 @@ const en: Record<string, string> = {
   ,"IESを解析中…": "Parsing IES…"
   ,"推定配光（ビーム角 {deg}° からの近似）": "Estimated distribution (approximated from a {deg}° beam angle)"
   ,"IESファイルを選択": "Choose an IES file"
+  ,"IESファイルから": "From an IES file"
+  ,"メーカーの配光データで配置": "Place using the maker's photometric data"
   ,"別のIESへ変更": "Change IES file"
   ,"IESを解除": "Remove IES"
   ,"このIESは使えません": "This IES file cannot be used"

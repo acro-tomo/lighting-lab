@@ -1,7 +1,7 @@
 import { furnitureCatalog } from "../../data/furnitureCatalog";
 import { windowAddKind, windowCatalog } from "../../data/windowCatalog";
 import { fixtureCatalog } from "../../data/fixtureCatalog";
-import { fixtureAddKind } from "../../data/fixtureAddKinds";
+import { fixtureAddKind, IES_IMPORT_ADD_KIND } from "../../data/fixtureAddKinds";
 import type { AddGroup, AddItem } from "./types";
 
 const fixtureItems = (ids: string[]): AddItem[] => ids.map((id) => {
@@ -21,7 +21,15 @@ export const ADD_GROUPS: AddGroup[] = [
     id: "lighting",
     title: "照明",
     categories: [
-      { id: "downlight", title: "ダウンライト", hint: "天井に埋め込む", items: fixtureItems(["dl-diffuse", "dl-medium", "dl-narrow", "dl-glareless", "dl-universal"]) },
+      {
+        id: "downlight",
+        title: "ダウンライト",
+        hint: "天井に埋め込む",
+        items: [
+          ...fixtureItems(["dl-diffuse", "dl-medium", "dl-narrow", "dl-glareless", "dl-universal"]),
+          { kind: IES_IMPORT_ADD_KIND, label: "IESファイルから", hint: "メーカーの配光データで配置" }
+        ]
+      },
       { id: "pendant", title: "ペンダント", hint: "天井から吊るす", items: fixtureItems(["pendant", "pendant-globe"]) },
       { id: "wall-light", title: "壁の照明", hint: "壁に取り付ける", items: fixtureItems(["sp-wall", "bracket"]) },
       { id: "indirect", title: "間接照明", hint: "光源を隠して照らす", items: fixtureItems(["tape"]) }
