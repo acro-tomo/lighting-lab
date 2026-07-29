@@ -1,0 +1,162 @@
+{
+  "framesDir": "output/reel-void-frames",
+  "audioDir": "output/reel-void-audio",
+  "outName": "reel-void-pendant-vs-spot.mp4",
+  "disclaimer": "雰囲気比較用。実照度・施工後の見え方は保証しません",
+  "speakerId": 888753760,
+  "speed": 1.08,
+  "intonation": 1.05,
+  "tempoDynamics": 1.15,
+  "volume": 1.0,
+  "variants": {
+    "base": {
+      "disableLightIds": ["skip-pendant-void", "skip-spot-wall-1", "skip-spot-wall-2"]
+    },
+    "pendant": {
+      "disableLightIds": ["skip-spot-wall-1", "skip-spot-wall-2"],
+      "lightOverrides": {
+        "skip-pendant-void": { "dimmer": 95 }
+      }
+    },
+    "spot": {
+      "disableLightIds": ["skip-pendant-void"],
+      "lightOverrides": {
+        "skip-spot-wall-1": { "dimmer": 58 },
+        "skip-spot-wall-2": { "dimmer": 58 }
+      }
+    }
+  },
+  "shots": [
+    {
+      "id": "s1-question",
+      "projectFile": "public/demo/rooms/jp-skipfloor-tokyo.json",
+      "seconds": 3.5,
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [{ "variant": "base", "until": 1.0 }],
+        "move": {
+          "from": {
+            "position": { "x": -2.9, "y": 1.55, "z": 3.45 },
+            "target": { "x": 1.4, "y": 0.6, "z": -2.3 }
+          },
+          "to": {
+            "position": { "x": -2.9, "y": 1.55, "z": 3.45 },
+            "target": { "x": 1.4, "y": 0.6, "z": -2.3 }
+          }
+        }
+      },
+      "text": {
+        "eyebrow": "吹き抜けのある家",
+        "headline": ["上まで、", "どう照らしますか"],
+        "sub": "天井までの高さ 約4.4m"
+      },
+      "voice": "吹き抜けの上まで、どう照らしますか。"
+    },
+    {
+      "id": "s2-pendant",
+      "projectFile": "public/demo/rooms/jp-skipfloor-tokyo.json",
+      "seconds": 6.5,
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [{ "variant": "pendant", "until": 1.0 }],
+        "move": {
+          "from": {
+            "position": { "x": -2.9, "y": 1.55, "z": 3.45 },
+            "target": { "x": 1.4, "y": 0.6, "z": -2.3 }
+          },
+          "to": {
+            "position": { "x": -2.9, "y": 1.55, "z": 3.45 },
+            "target": { "x": 1.4, "y": 3.9, "z": -2.3 }
+          }
+        }
+      },
+      "text": {
+        "eyebrow": "A 長いペンダント1本",
+        "headline": ["灯りが目線の", "高さに来る"],
+        "sub": "上部は暗いままです"
+      },
+      "voice": "長いペンダントは、目線の高さに灯りが来ます。"
+    },
+    {
+      "id": "s3-spot",
+      "projectFile": "public/demo/rooms/jp-skipfloor-tokyo.json",
+      "seconds": 6.5,
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [{ "variant": "spot", "until": 1.0 }],
+        "move": {
+          "from": {
+            "position": { "x": -2.9, "y": 1.55, "z": 3.45 },
+            "target": { "x": 1.4, "y": 0.6, "z": -2.3 }
+          },
+          "to": {
+            "position": { "x": -2.9, "y": 1.55, "z": 3.45 },
+            "target": { "x": 1.4, "y": 3.9, "z": -2.3 }
+          }
+        }
+      },
+      "text": {
+        "eyebrow": "B 壁向きスポット2本",
+        "headline": ["壁の上まで", "光が届く"],
+        "sub": "灯り自体は見えません"
+      },
+      "voice": "壁向きのスポットは、上まで光が届きます。"
+    },
+    {
+      "id": "s4-switch",
+      "projectFile": "public/demo/rooms/jp-skipfloor-tokyo.json",
+      "seconds": 2.5,
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [
+          { "variant": "pendant", "until": 0.33 },
+          { "variant": "spot", "until": 0.66 },
+          { "variant": "pendant", "until": 1.0 }
+        ],
+        "move": {
+          "from": {
+            "position": { "x": -2.9, "y": 1.55, "z": 3.45 },
+            "target": { "x": 1.4, "y": 3.9, "z": -2.3 }
+          },
+          "to": {
+            "position": { "x": -2.9, "y": 1.55, "z": 3.45 },
+            "target": { "x": 1.4, "y": 3.9, "z": -2.3 }
+          }
+        }
+      },
+      "text": {
+        "eyebrow": "変えたのはこの2択だけ",
+        "headline": ["他の照明は", "すべて同じ"],
+        "sub": "合計の明るさも揃えてあります"
+      },
+      "voice": "変えたのは、この2択だけです。"
+    },
+    {
+      "id": "s5-outro",
+      "projectFile": "public/demo/rooms/jp-skipfloor-tokyo.json",
+      "seconds": 3.0,
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [{ "variant": "spot", "until": 1.0 }],
+        "move": {
+          "from": {
+            "position": { "x": -2.9, "y": 1.55, "z": 3.45 },
+            "target": { "x": 1.4, "y": 3.9, "z": -2.3 }
+          },
+          "to": {
+            "position": { "x": -2.9, "y": 1.55, "z": 3.45 },
+            "target": { "x": 1.4, "y": 3.9, "z": -2.3 }
+          }
+        }
+      },
+      "text": {
+        "eyebrow": "高さが違えば、答えも違う",
+        "headline": ["うちの吹き抜けで", "比べる"],
+        "sub": "保存して電気の打ち合わせへ",
+        "cta": "プロフィールのリンクから",
+        "outro": true
+      },
+      "voice": "天井の高さが違えば、答えも変わります。"
+    }
+  ]
+}

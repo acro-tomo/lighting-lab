@@ -49,6 +49,51 @@ function applyCameraOverride(project, cameraOverride) {
   };
 }
 
+function requireVariant(variants, name) {
+  const variant = variants?.[name];
+  if (!variant) throw new Error(`variant が config に無い: ${name}`);
+  return variant;
+}
+
+/**
+ * 器具の差し替えを「無効化 / 数値の上書き / 追加」の3操作だけで表す。
+ * 元プロジェクトは触らず、比較のたびに複製へ適用する。
+ */
+function applyVariant(project, variant) {
+  const next = cloneProject(project);
+  const disabled = new Set(variant.disableLightIds ?? []);
+  const overrides = variant.lightOverrides ?? {};
+  next.lights = next.lights.map((light) => {
+    const merged = overrides[light.id] ? { ...light, ...overrides[light.id] } : light;
+    return disabled.has(light.id) ? { ...merged, enabled: false } : merged;
+  });
+  if (variant.addLights) next.lights = [...next.lights, ...variant.addLights];
+  return next;
+}
+
+function variantAt(timelineSteps, timeline) {
+  const step = timelineSteps.find((candidate) => timeline <= candidate.until);
+  return (step ?? timelineSteps[timelineSteps.length - 1]).variant;
+}
+
+function movedCamera(camera, move, amount) {
+  if (!move) return camera;
+  const lerpPoint = (from, to) => ({
+    x: lerp(from.x, to.x, amount),
+    y: lerp(from.y, to.y, amount),
+    z: lerp(from.z, to.z, amount)
+  });
+  return {
+    ...camera,
+    position: move.from?.position && move.to?.position
+      ? lerpPoint(move.from.position, move.to.position)
+      : camera.position,
+    target: move.from?.target && move.to?.target
+      ? lerpPoint(move.from.target, move.to.target)
+      : camera.target
+  };
+}
+
 function replaceLights(project, comparison) {
   const nextProject = cloneProject(project);
   nextProject.lights = comparison.xs.flatMap((x, xIndex) =>
@@ -172,6 +217,79 @@ async function captureLightAnimation(page, shot, project, dir, frames) {
   }
 }
 
+/**
+ * 器具のバリアントを切り替えながらカメラを動かす。
+ * カメラを止めれば同一フレームでのA/B切替、動かせばドリーやチルトになる。
+ */
+async function captureVariantMove(page, shot, project, dir, frames, variants) {
+  await page.setViewportSize(VIEWPORT);
+  const { move, variantTimeline, daylight, settleMs = 60 } = shot.sequence;
+
+  for (let index = 0; index < frames; index += 1) {
+    const timeline = frames === 1 ? 0 : index / (frames - 1);
+    const next = applyVariant(project, requireVariant(variants, variantAt(variantTimeline, timeline)));
+    next.camera = movedCamera(next.camera, move, eased(timeline));
+    if (daylight) {
+      next.daylight = {
+        ...next.daylight,
+        enabled: true,
+        hour: lerp(daylight.fromHour, daylight.toHour, timeline)
+      };
+    }
+    await applyProject(page, next, settleMs);
+    await page.screenshot({
+      path: `${dir}/f${String(index).padStart(4, "0")}.png`,
+      clip: await canvasBox(page, shot.id),
+      timeout: 180_000
+    });
+  }
+}
+
+/**
+ * 上下2分割で同じ時刻を同時に進める。変数は上下のバリアント差だけで、
+ * 日光の送り方は両方に同一のカーブで与える。
+ * 上下それぞれを通しで撮ってから vstack する（バリアント切替の回数を最小にするため）。
+ */
+async function captureDaylightSplit(page, shot, project, dir, frames, variants) {
+  await page.setViewportSize(COMPARE_VIEWPORT);
+  await page.waitForTimeout(500);
+  const { topVariant, bottomVariant, daylight, settleMs = 500 } = shot.sequence;
+
+  for (const [slot, variantName] of [["top", topVariant], ["bottom", bottomVariant]]) {
+    await mkdir(`${dir}/${slot}`, { recursive: true });
+    const variant = requireVariant(variants, variantName);
+    for (let index = 0; index < frames; index += 1) {
+      const timeline = frames === 1 ? 0 : index / (frames - 1);
+      const next = applyVariant(project, variant);
+      // 時刻は演出で歪めない。イージングを掛けず線形に送る。
+      next.daylight = {
+        ...next.daylight,
+        enabled: true,
+        hour: lerp(daylight.fromHour, daylight.toHour, timeline)
+      };
+      await applyProject(page, next, settleMs);
+      await page.screenshot({
+        path: `${dir}/${slot}/f${String(index).padStart(4, "0")}.png`,
+        clip: await canvasBox(page, shot.id),
+        timeout: 180_000
+      });
+    }
+  }
+
+  await execFileAsync(
+    ffmpegPath,
+    [
+      "-framerate", String(FPS), "-start_number", "0", "-i", `${dir}/top/f%04d.png`,
+      "-framerate", String(FPS), "-start_number", "0", "-i", `${dir}/bottom/f%04d.png`,
+      "-filter_complex", "[0:v][1:v]vstack=inputs=2[out]",
+      "-map", "[out]", "-frames:v", String(frames), "-start_number", "0", "-y", `${dir}/f%04d.png`
+    ],
+    { maxBuffer: 16 * 1024 * 1024 }
+  );
+  await rm(`${dir}/top`, { recursive: true, force: true });
+  await rm(`${dir}/bottom`, { recursive: true, force: true });
+}
+
 await mkdir(config.framesDir, { recursive: true });
 await rm(`${config.framesDir}/shots.json`, { force: true });
 
@@ -212,6 +330,10 @@ for (const shot of config.shots) {
     await captureToggleSlide(page, shot, project, dir, frames);
   } else if (shot.sequence.mode === "light-property-animation") {
     await captureLightAnimation(page, shot, project, dir, frames);
+  } else if (shot.sequence.mode === "fixture-variant-move") {
+    await captureVariantMove(page, shot, project, dir, frames, config.variants);
+  } else if (shot.sequence.mode === "daylight-split-timelapse") {
+    await captureDaylightSplit(page, shot, project, dir, frames, config.variants);
   } else {
     throw new Error(`unknown sequence mode: ${shot.sequence.mode}`);
   }

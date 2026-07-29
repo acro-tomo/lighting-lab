@@ -156,6 +156,44 @@ REEL_CONFIG=path/to/reel.json REEL_WITH_VOICE=1 npm run ig:decision-encode
 
 撮影時は各shotの開始時に元のデモJSONを読み直し、比較条件はメモリ上だけに適用する。ディスク上のデモJSONは書き換えない。
 
+### sequence.mode
+
+| mode | 何をするか |
+|---|---|
+| `stacked-light-compare` | 上下2分割。下段の照明を等間隔ダウンライトのグリッドに置換する |
+| `light-toggle-slide` | 指定IDを途中でONにしながらカメラを横スライド |
+| `light-property-animation` | ペンダントのコード長と高さを補間 |
+| `fixture-variant-move` | 器具バリアントを切り替えながらカメラを動かす。カメラを止めれば同一フレームのA/B切替 |
+| `daylight-split-timelapse` | 上下2分割で同じ時刻を同時に送る。変数は上下のバリアント差だけ |
+
+`fixture-variant-move` と `daylight-split-timelapse` は config 直下の `variants` を参照する。
+バリアントは「無効化 / 数値の上書き / 追加」の3操作だけで表す。
+
+```json
+"variants": {
+  "pendant": {},
+  "downlight": {
+    "disableLightIds": ["light-dining-pendant"],
+    "lightOverrides": { "light-tv-wall-1": { "dimmer": 40 } },
+    "addLights": [ { "id": "reel-dining-dl-west", "...": "LightFixture と同じ形" } ]
+  }
+}
+```
+
+### 判断比較リールの設定ファイル
+
+| 設定ファイル | 間取り | 判断 | 出力 |
+|---|---|---|---|
+| `reels/dining-pendant-vs-downlight.reel.json` | 寸法入り架空LDK | 食卓の上の器具種別 | `reel-dining-pendant-vs-downlight.mp4` |
+| `reels/void-pendant-vs-spot.reel.json` | 狭小3階スキップフロア | 吹き抜けの照らし方 | `reel-void-pendant-vs-spot.mp4` |
+| `reels/engawa-cove-dusk.reel.json` | 和モダン平屋 | 縁側の建築化照明の要否 | `reel-engawa-cove-dusk.mp4` |
+
+企画の根拠・固定条件・排除した案は [`reels/PLAN-3reels.md`](reels/PLAN-3reels.md)。
+
+**比較を成立させるための約束**: 「同じ役割を別の手段で果たす」比較（上2件）は、
+バリアント間で**全灯の合計光束を揃える**（`dimmer` で調整）。片方が明るいだけの絵にしないため。
+「入れるか入れないか」の比較（縁側の建築化照明）は、光束の差そのものが判断対象なので揃えない。
+
 ## 表記の注意
 
 画像にもキャプションにも、実照度(lux)・IES/LDT配光・照度計算書を保証する表現は

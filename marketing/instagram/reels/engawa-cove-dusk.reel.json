@@ -1,0 +1,92 @@
+{
+  "framesDir": "output/reel-engawa-frames",
+  "audioDir": "output/reel-engawa-audio",
+  "outName": "reel-engawa-cove-dusk.mp4",
+  "disclaimer": "雰囲気比較用。実照度・施工後の見え方は保証しません",
+  "speakerId": 888753760,
+  "speed": 1.08,
+  "intonation": 1.05,
+  "tempoDynamics": 1.15,
+  "volume": 1.0,
+  "variants": {
+    "cove-on": {},
+    "cove-off": {
+      "disableLightIds": ["hiraya-cove-1", "hiraya-cove-2", "hiraya-cove-3"]
+    }
+  },
+  "shots": [
+    {
+      "id": "s1-dusk",
+      "projectFile": "public/demo/rooms/jp-hiraya-engawa.json",
+      "seconds": 4.0,
+      "sequence": {
+        "mode": "daylight-split-timelapse",
+        "topVariant": "cove-on",
+        "bottomVariant": "cove-off",
+        "daylight": { "fromHour": 16.5, "toHour": 16.9 }
+      },
+      "text": {
+        "eyebrow": "夕方4時半",
+        "headline": ["今はまだ、", "差が出ません"],
+        "sub": "外がまだ明るい時間",
+        "visual": { "kind": "split", "topLabel": "上｜縁側の間接あり", "bottomLabel": "下｜なし" }
+      },
+      "voice": "夕方の4時半。この時間は、まだ差が出ません。"
+    },
+    {
+      "id": "s2-sunset",
+      "projectFile": "public/demo/rooms/jp-hiraya-engawa.json",
+      "seconds": 7.0,
+      "sequence": {
+        "mode": "daylight-split-timelapse",
+        "topVariant": "cove-on",
+        "bottomVariant": "cove-off",
+        "daylight": { "fromHour": 16.9, "toHour": 17.7 }
+      },
+      "text": {
+        "eyebrow": "日が落ちていく",
+        "headline": ["窓が鏡に", "なり始める"],
+        "sub": "変えたのは縁側の3本だけ",
+        "visual": { "kind": "split", "topLabel": "上｜縁側の間接あり", "bottomLabel": "下｜なし" }
+      },
+      "voice": "日が落ちるほど、窓は鏡になっていきます。"
+    },
+    {
+      "id": "s3-night",
+      "projectFile": "public/demo/rooms/jp-hiraya-engawa.json",
+      "seconds": 6.0,
+      "sequence": {
+        "mode": "daylight-split-timelapse",
+        "topVariant": "cove-on",
+        "bottomVariant": "cove-off",
+        "daylight": { "fromHour": 17.7, "toHour": 18.5 }
+      },
+      "text": {
+        "eyebrow": "夜6時半",
+        "headline": ["窓の外が", "見えるかどうか"],
+        "sub": "室内の他の照明はすべて同じ",
+        "visual": { "kind": "split", "topLabel": "上｜縁側の間接あり", "bottomLabel": "下｜なし" }
+      },
+      "voice": "変えたのは、縁側の三本だけです。"
+    },
+    {
+      "id": "s4-outro",
+      "projectFile": "public/demo/rooms/jp-hiraya-engawa.json",
+      "seconds": 4.0,
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [{ "variant": "cove-on", "until": 1.0 }],
+        "daylight": { "fromHour": 18.5, "toHour": 18.5 },
+        "settleMs": 500
+      },
+      "text": {
+        "eyebrow": "照明は夜だけの話ではない",
+        "headline": ["時間ごとに", "見比べる"],
+        "sub": "月日・時刻・方位・緯度を変えて確認できます",
+        "cta": "プロフィールのリンクから",
+        "outro": true
+      },
+      "voice": "照明は、夜だけの話ではありません。時間ごとに見比べられます。"
+    }
+  ]
+}

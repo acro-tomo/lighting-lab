@@ -130,7 +130,7 @@ function overlayHtml(text, disclaimer) {
   .cta { margin-top: 24px; font-size: 32px; font-weight: 700; line-height: 1.45; color: ${BRAND.amber}; }
   .reel-disclaimer {
     position: absolute; left: 100px; right: 100px; bottom: 420px;
-    font-size: 22px; font-weight: 500; line-height: 1.45; color: rgba(242,237,225,0.74);
+    font-size: 26px; font-weight: 500; line-height: 1.45; color: rgba(242,237,225,0.82);
   }
   .split-rule { position: absolute; top: 959px; left: 64px; right: 64px; height: 2px; background: rgba(242,237,225,0.72); }
   .compare-label {
