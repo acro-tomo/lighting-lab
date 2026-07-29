@@ -138,6 +138,24 @@ npm run ig:six-rooms
 完成動画は `marketing/instagram/out/reel-six-rooms.mp4`、中間フレームと音声はそれぞれ
 `output/reel-six-rooms-frames/` と `output/reel-six-rooms-audio/` に出力される。
 
+## 設定ファイルから判断比較リールを作る
+
+別ターミナルで `npm run dev` を起動し、`REEL_CONFIG` に対象の設定ファイルを渡す。最初は3フレームだけ撮影して構図を確認する。
+
+```bash
+REEL_CONFIG=path/to/reel.json REEL_SMOKE=1 npm run ig:decision-capture
+```
+
+構図を確認した後に本撮影、ローカルAivis音声生成、エンコードを順に実行する。
+
+```bash
+REEL_CONFIG=path/to/reel.json npm run ig:decision-capture
+python3 scripts/instagram/generate-reel-voice.py path/to/reel.json
+REEL_CONFIG=path/to/reel.json REEL_WITH_VOICE=1 npm run ig:decision-encode
+```
+
+撮影時は各shotの開始時に元のデモJSONを読み直し、比較条件はメモリ上だけに適用する。ディスク上のデモJSONは書き換えない。
+
 ## 表記の注意
 
 画像にもキャプションにも、実照度(lux)・IES/LDT配光・照度計算書を保証する表現は

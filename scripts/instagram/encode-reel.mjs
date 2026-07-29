@@ -66,10 +66,26 @@ function fitHeadlineSize(lines, contentWidth, maxSize) {
   return Math.min(maxSize, Math.floor((contentWidth * 0.96) / widest));
 }
 
-function overlayHtml(text) {
+function overlayHtml(text, disclaimer) {
+  const isSplit = text.visual?.kind === "split";
   const accentColor = text.accent === "cool" ? BRAND.cool : BRAND.amber;
   const headlineSize = fitHeadlineSize(text.headline, WIDTH - 200, 112);
   const headline = text.headline.map((line) => `<span>${escapeHtml(line)}</span>`).join("");
+  const ctaBlock = text.cta ? `<p class="cta">${escapeHtml(text.cta)}</p>` : "";
+  const disclaimerBlock = disclaimer
+    ? `<p class="reel-disclaimer">${escapeHtml(disclaimer)}</p>`
+    : "";
+  const visualBlock = text.visual?.kind === "split"
+    ? `<div class="split-rule"></div>
+      <span class="compare-label compare-label-top">${escapeHtml(text.visual.topLabel)}</span>
+      <span class="compare-label compare-label-bottom">${escapeHtml(text.visual.bottomLabel)}</span>`
+    : text.visual?.kind === "ruler"
+      ? `<div class="ruler">
+          <span class="ruler-top">${escapeHtml(text.visual.topLabel)}</span>
+          <span class="ruler-line"></span>
+          <span class="ruler-bottom">${escapeHtml(text.visual.bottomLabel)}</span>
+        </div>`
+      : "";
   const outroBlock = text.outro
     ? `<div class="outro">
         <span class="url">${escapeHtml(BRAND.url)}</span>
@@ -104,10 +120,38 @@ function overlayHtml(text) {
   .lockup em { font-style: normal; font-size: 26px; color: ${BRAND.muted}; margin-left: 16px; }
   /* 下から400pxは Instagram のUIと重なるので本文を置かない。 */
   .text { position: absolute; left: 100px; right: 100px; bottom: 400px; }
+  .text.compact { bottom: 500px; }
+  .text.has-disclaimer { bottom: 520px; }
+  .text.split-text { right: 420px; }
   .eyebrow { font-size: 38px; font-weight: 700; letter-spacing: 0.08em; color: ${accentColor}; margin-bottom: 24px; }
   h1 { font-size: ${headlineSize}px; font-weight: 900; line-height: 1.16; letter-spacing: 0.01em; }
   h1 span { display: block; white-space: nowrap; }
   .sub { margin-top: 28px; font-size: 38px; font-weight: 500; line-height: 1.5; color: rgba(242,237,225,0.85); }
+  .cta { margin-top: 24px; font-size: 32px; font-weight: 700; line-height: 1.45; color: ${BRAND.amber}; }
+  .reel-disclaimer {
+    position: absolute; left: 100px; right: 100px; bottom: 420px;
+    font-size: 22px; font-weight: 500; line-height: 1.45; color: rgba(242,237,225,0.74);
+  }
+  .split-rule { position: absolute; top: 959px; left: 64px; right: 64px; height: 2px; background: rgba(242,237,225,0.72); }
+  .compare-label {
+    position: absolute; left: 72px; padding: 12px 22px; border-radius: 999px;
+    background: rgba(7,7,6,0.76); font-size: 30px; font-weight: 700;
+  }
+  .compare-label-top { top: 250px; }
+  .compare-label-bottom { top: 1010px; left: auto; right: 72px; }
+  .ruler { position: absolute; right: 86px; top: 370px; width: 190px; height: 700px; color: ${BRAND.ink}; }
+  .ruler-line { position: absolute; right: 24px; top: 50px; bottom: 50px; width: 4px; background: ${BRAND.amber}; }
+  .ruler-line::before, .ruler-line::after {
+    content: ""; position: absolute; right: -16px; width: 36px; height: 4px; background: ${BRAND.amber};
+  }
+  .ruler-line::before { top: 0; }
+  .ruler-line::after { bottom: 0; }
+  .ruler-top, .ruler-bottom {
+    position: absolute; right: 52px; padding: 8px 14px; border-radius: 10px;
+    background: rgba(7,7,6,0.76); font: 700 30px "InterLL", sans-serif; white-space: nowrap;
+  }
+  .ruler-top { top: 25px; }
+  .ruler-bottom { bottom: 25px; }
   .outro { margin-top: 40px; display: flex; flex-direction: column; gap: 16px; }
   .url { font-size: 34px; font-weight: 700; font-family: "InterLL", sans-serif; color: ${BRAND.amber}; }
   .note { font-size: 24px; font-weight: 500; line-height: 1.5; color: ${BRAND.muted}; }
@@ -117,17 +161,20 @@ function overlayHtml(text) {
   <span class="mark"><i></i></span>
   <span><b>${escapeHtml(BRAND.name)}</b><em>${escapeHtml(BRAND.handle)}</em></span>
 </div>
-<div class="text">
+${visualBlock}
+<div class="text${text.compact ? " compact" : ""}${disclaimer ? " has-disclaimer" : ""}${isSplit ? " split-text" : ""}">
   <p class="eyebrow">${escapeHtml(text.eyebrow)}</p>
   <h1>${headline}</h1>
   <p class="sub">${escapeHtml(text.sub)}</p>
+  ${ctaBlock}
   ${outroBlock}
-</div>`;
+</div>
+${disclaimerBlock}`;
 }
 
 if (!existsSync(`${FRAMES_DIR}/shots.json`)) {
   const captureCommand = reelConfig
-    ? "npm run ig:six-rooms-capture"
+    ? "REEL_CONFIG=<同じ設定ファイル> npm run ig:decision-capture"
     : "node scripts/instagram/capture-reel-shots.mjs";
   throw new Error(`${FRAMES_DIR}/shots.json が無い。先に ${captureCommand} を実行する。`);
 }
@@ -162,7 +209,7 @@ const browser = await chromium.launch({
 const page = await browser.newPage({ viewport: { width: WIDTH, height: HEIGHT }, deviceScaleFactor: 1 });
 for (const shot of shots) {
   const htmlPath = `${BUILD_DIR}/${shot.id}.html`;
-  await writeFile(htmlPath, overlayHtml(TEXTS[shot.id]), "utf8");
+  await writeFile(htmlPath, overlayHtml(TEXTS[shot.id], reelConfig?.disclaimer), "utf8");
   // 文字列連結だとパスに日本語や空白がある環境で壊れるので、正しくエンコードさせる。
   await page.goto(pathToFileURL(resolve(htmlPath)).href, { waitUntil: "load" });
   await page.evaluate(() => document.fonts.ready);

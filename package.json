@@ -22,7 +22,9 @@
     "ig:six-rooms-capture": "REEL_CONFIG=marketing/instagram/reels/six-rooms.reel.json node scripts/instagram/capture-six-rooms-reel.mjs",
     "ig:six-rooms-voice": "python3 scripts/instagram/generate-reel-voice.py marketing/instagram/reels/six-rooms.reel.json",
     "ig:six-rooms-encode": "REEL_CONFIG=marketing/instagram/reels/six-rooms.reel.json REEL_WITH_VOICE=1 node scripts/instagram/encode-reel.mjs",
-    "ig:six-rooms": "npm run ig:six-rooms-capture && npm run ig:six-rooms-voice && npm run ig:six-rooms-encode"
+    "ig:six-rooms": "npm run ig:six-rooms-capture && npm run ig:six-rooms-voice && npm run ig:six-rooms-encode",
+    "ig:decision-capture": "node scripts/instagram/capture-decision-reel.mjs",
+    "ig:decision-encode": "node scripts/instagram/encode-reel.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
