@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import json
 import os
+import signal
 import shutil
 import subprocess
 import sys
 import time
+import urllib.error
+import urllib.request
 import wave
 from pathlib import Path
 
@@ -13,12 +16,68 @@ FRAMES_DIR = Path("output/reel-frames")
 AUDIO_DIR = Path("output/reel-audio")
 CONFIG_PATH = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("marketing/instagram/reels/ldk-walkthrough.voice.json")
 VOICE_GENERATOR = Path("/Users/hoshi/AI/音声/reel-voice-generator/generate_reel_voice.py")
+AIVIS_ENGINE = Path("/Applications/AivisSpeech.app/Contents/Resources/AivisSpeech-Engine/run")
+AIVIS_ENGINE_URL = "http://127.0.0.1:10101"
+ENGINE_START_TIMEOUT = 90
 XFADE = 0.4
 
 
 def wav_duration(path: Path) -> float:
     with wave.open(str(path), "rb") as source:
         return source.getnframes() / source.getframerate()
+
+
+def engine_is_ready() -> bool:
+    try:
+        with urllib.request.urlopen(f"{AIVIS_ENGINE_URL}/version", timeout=2) as response:
+            return response.status == 200
+    except (urllib.error.URLError, TimeoutError, OSError):
+        return False
+
+
+def stop_engine(process: subprocess.Popen[object]) -> None:
+    if process.poll() is not None:
+        return
+    os.killpg(process.pid, signal.SIGTERM)
+    try:
+        process.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        os.killpg(process.pid, signal.SIGKILL)
+        process.wait()
+
+
+def ensure_aivis_engine() -> None:
+    if engine_is_ready():
+        return
+    if not AIVIS_ENGINE.is_file():
+        raise RuntimeError(f"AivisSpeech Engine が無い: {AIVIS_ENGINE}")
+
+    AUDIO_DIR.mkdir(parents=True, exist_ok=True)
+    log_path = AUDIO_DIR / "aivis-engine.log"
+    with log_path.open("w", encoding="utf-8") as log:
+        try:
+            process = subprocess.Popen(
+                [str(AIVIS_ENGINE), "--host", "127.0.0.1", "--port", "10101"],
+                stdin=subprocess.DEVNULL,
+                stdout=log,
+                stderr=subprocess.STDOUT,
+                start_new_session=True,
+            )
+        except OSError as error:
+            raise RuntimeError(f"AivisSpeech Engine を起動できない: {AIVIS_ENGINE} ({error})") from error
+
+    print("AivisSpeech Engine を起動しています…")
+    deadline = time.monotonic() + ENGINE_START_TIMEOUT
+    while time.monotonic() < deadline:
+        if engine_is_ready():
+            return
+        if process.poll() is not None:
+            raise RuntimeError(
+                f"AivisSpeech Engine の起動に失敗した（終了コード {process.returncode}）。ログ: {log_path}"
+            )
+        time.sleep(0.5)
+    stop_engine(process)
+    raise RuntimeError(f"AivisSpeech Engine の起動が {ENGINE_START_TIMEOUT} 秒以内に完了しない。ログ: {log_path}")
 
 
 def main() -> None:
@@ -34,6 +93,7 @@ def main() -> None:
         raise RuntimeError(f"{CONFIG_PATH} の台本が不足している。")
     if not VOICE_GENERATOR.exists():
         raise RuntimeError(f"リール音声生成ツールが無い: {VOICE_GENERATOR}")
+    ensure_aivis_engine()
 
     durations = [shot["frames"] / frames["fps"] for shot in shots]
     xfade = max(0, min(XFADE, min(durations) / 2 - 1 / frames["fps"]))
