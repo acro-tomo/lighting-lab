@@ -124,21 +124,20 @@ Buffer MCP の承認が通らない場合に、Buffer の Web UI へ手で入れ
 
 ## 4. リール｜色温度ウォークスルー
 
-> **未入稿**。動画の書き出しがローカル待ちのため、まだ Buffer に登録していない。
-> 手順は下の「入稿までの残り」を参照。
+> **Buffer に登録済み**（下の post ID を参照）。手で入れ直すと二重投稿になる。
 
-- **投稿日時**: 2026-08-02(日) 20:00
-- **形式**: リール（9:16 / 1080×1920 / 17.9秒 / 30fps）
-- **生成物**: `marketing/instagram/out/reel-ldk-walkthrough.mp4`
-- **Buffer post ID**: 未登録
+- **投稿日時**: 2026-07-28(火) 21:00 ※同日20:00の `a-color-temp` と重ならないよう1時間ずらした
+- **形式**: リール（9:16 / 1080×1920 / 16.3秒 / 30fps）
+- **生成物**: `marketing/instagram/out/reel-ldk-walkthrough.mp4`（6.9MB）
+- **Buffer post ID**: `6a6837db0a4862b8acabc120`（登録済み・scheduled）
 
-### 動画URL（コミット後の raw 直リンク）
+### 動画URL
 
 ```
-https://raw.githubusercontent.com/acro-tomo/lighting-lab/<commit>/marketing/instagram/out/reel-ldk-walkthrough.mp4
+https://raw.githubusercontent.com/acro-tomo/lighting-lab/b499f40/marketing/instagram/out/reel-ldk-walkthrough.mp4
 ```
 
-`<commit>` は mp4 をコミットした後の SHA に差し替える。Buffer は動画も直リンクで取り込む。
+尺が構成表の合計（17.9秒）より短いのは、ショット間のクロスフェード0.4秒×4本ぶん詰まるため。
 
 ### 構成（テロップ）
 
@@ -171,29 +170,30 @@ https://raw.githubusercontent.com/acro-tomo/lighting-lab/<commit>/marketing/inst
 #注文住宅 #照明計画 #マイホーム計画中 #家づくり記録 #新築一戸建て #色温度 #電球色 #温白色 #昼白色 #ダウンライト #間接照明 #リビング照明 #インテリア照明 #家づくり #マイホーム #新築 #一戸建て #おうちづくり #マイホーム記録 #家づくりアイデア #住宅設計 #インテリア #照明 #夜のリビング #リール
 ```
 
-### 入稿までの残り
+### 撮り直す場合
 
-1. **ローカル(Mac)で撮影**。コンテナにはGPUが無く、ソフトウェア描画では約46秒/フレーム＝537フレームで約7時間かかるため実行できない。
+動画の書き出しにはGPUが要る。ソフトウェア描画では約46秒/フレーム＝537フレームで
+約7時間かかるので、CI/コンテナではなくローカル(Mac)で実行する。
 
-   ```bash
-   rm -rf output/reel-frames
-   npm run dev                  # 別ターミナル
-   npm run ig:reel-capture
-   npm run ig:reel-encode
-   ```
+```bash
+rm -rf output/reel-frames    # 消さないと前回のフレームが混ざる
+npm run dev                  # 別ターミナル
+npm run ig:reel-capture
+npm run ig:reel-encode
+```
 
-2. mp4 をコミット＆push（raw URL を確定させるため）。
-3. 上の `<commit>` を実際の SHA に差し替え、Buffer に登録する。
+撮り直したら mp4 をコミット＆pushし、上の動画URLのSHAを差し替えて
+既存の post を**編集**する（新規作成しない）。
 
-### create_post に渡す値（登録時の控え）
+### create_post に渡した値
 
 | 項目 | 値 |
 |---|---|
 | channelId | `6a607539e2638b94d7b26c75`（hosh1.921 / instagram business） |
 | mode | `customScheduled` |
-| dueAt | `2026-08-02T20:00:00+09:00` |
+| dueAt | `2026-07-28T21:00:00+09:00` |
 | schedulingType | `notification`（他3件と揃える） |
 | metadata.instagram.type | `reel` |
 | metadata.instagram.shouldShareToFeed | `true` |
-| assets[0].video.url | 上の raw 直リンク |
+| assets[0].video.metadata.thumbnailOffset | `2000`（ms／s1の「同じ部屋です」をカバーに） |
 
