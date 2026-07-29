@@ -19,15 +19,20 @@ import { BRAND } from "./post-designs.mjs";
 
 const execFileAsync = promisify(execFile);
 
-const FRAMES_DIR = "output/reel-frames";
+const CONFIG_PATH = process.env.REEL_CONFIG;
+const reelConfig = CONFIG_PATH ? JSON.parse(await readFile(CONFIG_PATH, "utf8")) : null;
+const FRAMES_DIR = reelConfig?.framesDir ?? "output/reel-frames";
 const OUT_DIR = "marketing/instagram/out";
 const BUILD_DIR = "output/reel-overlays";
 const WIDTH = 1080;
 const HEIGHT = 1920;
 const XFADE = 0.4;
-const OUT_NAME = "reel-ldk-walkthrough.mp4";
+const OUT_NAME = reelConfig?.outName ?? "reel-ldk-walkthrough.mp4";
 const WITH_VOICE = process.env.REEL_WITH_VOICE === "1";
-const AUDIO_MANIFEST = "output/reel-audio/manifest.json";
+const AUDIO_MANIFEST = `${reelConfig?.audioDir ?? "output/reel-audio"}/manifest.json`;
+const VOICE_COMMAND = reelConfig
+  ? `python3 scripts/instagram/generate-reel-voice.py ${CONFIG_PATH}`
+  : "npm run ig:reel-voice";
 
 // 平坦な面（キッチンの天板・壁）は緩いグラデーションなので、8bitに落とすと
 // 帯や粒状のムラが出やすい。gradfun で均してから符号化する。
@@ -37,13 +42,16 @@ const DEBAND = process.env.REEL_DEBAND !== "0";
 const DEBAND_STRENGTH = process.env.REEL_DEBAND_STRENGTH ?? "1.2";
 
 // ショットIDごとのテロップ。capture-reel-shots.mjs の SHOTS と対応させる。
-const TEXTS = {
+const DEFAULT_TEXTS = {
   "s1-establish": { eyebrow: "夜のLDK", headline: ["同じ部屋です"], sub: "間取りも家具も照明の数も変えていません" },
   "s2-color-shift": { eyebrow: "2700K → 6500K", headline: ["色だけ", "動かします"], sub: "明るさは変えていません", accent: "cool" },
   "s3-dining": { eyebrow: "3500K 温白色", headline: ["迷ったらここ"], sub: "LDK全体に使いやすい" },
   "s4-kitchen": { eyebrow: "5000K 昼白色", headline: ["手元が", "よく見える"], sub: "キッチン・洗面・書斎向き", accent: "cool" },
   "s5-outro": { eyebrow: "部屋ごとに変えるのが正解", headline: ["保存して", "打ち合わせへ"], sub: "自分の間取り図で夜のLDKが見えます", outro: true }
 };
+const TEXTS = reelConfig
+  ? Object.fromEntries(reelConfig.shots.map((shot) => [shot.id, shot.text]))
+  : DEFAULT_TEXTS;
 
 const escapeHtml = (value) =>
   String(value).replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[char]);
@@ -118,7 +126,10 @@ function overlayHtml(text) {
 }
 
 if (!existsSync(`${FRAMES_DIR}/shots.json`)) {
-  throw new Error(`${FRAMES_DIR}/shots.json が無い。先に node scripts/instagram/capture-reel-shots.mjs を実行する。`);
+  const captureCommand = reelConfig
+    ? "npm run ig:six-rooms-capture"
+    : "node scripts/instagram/capture-reel-shots.mjs";
+  throw new Error(`${FRAMES_DIR}/shots.json が無い。先に ${captureCommand} を実行する。`);
 }
 if (!existsSync("marketing/instagram/fonts/ZenKakuGothicNew-Black.ttf")) {
   throw new Error("フォントが無い。先に npm run ig:fonts を実行する。");
@@ -128,12 +139,15 @@ const manifest = JSON.parse(await readFile(`${FRAMES_DIR}/shots.json`, "utf8"));
 const fps = manifest.fps;
 const shots = manifest.shots.filter((shot) => TEXTS[shot.id]);
 if (shots.length === 0) throw new Error("shots.json に既知のショットが無い。");
+if (reelConfig && shots.length !== manifest.shots.length) {
+  throw new Error(`${CONFIG_PATH} のテロップが不足している。`);
+}
 const voiceManifest = WITH_VOICE ? JSON.parse(await readFile(AUDIO_MANIFEST, "utf8")) : null;
 if (voiceManifest && voiceManifest.cues.length !== shots.length) {
-  throw new Error(`${AUDIO_MANIFEST} の音声 cue 数が shots.json と一致しない。先に npm run ig:reel-voice を実行する。`);
+  throw new Error(`${AUDIO_MANIFEST} の音声 cue 数が shots.json と一致しない。先に ${VOICE_COMMAND} を実行する。`);
 }
 if (voiceManifest?.cues.some((cue, index) => cue.id !== shots[index].id || !existsSync(cue.path))) {
-  throw new Error(`${AUDIO_MANIFEST} の音声が不足している。先に npm run ig:reel-voice を実行する。`);
+  throw new Error(`${AUDIO_MANIFEST} の音声が不足している。先に ${VOICE_COMMAND} を実行する。`);
 }
 
 await mkdir(BUILD_DIR, { recursive: true });
@@ -216,7 +230,7 @@ if (voiceManifest) {
       Math.abs(voiceManifest.cues[index].maxDuration - cueMaxDurations[index]) > 0.001
     );
   if (timingMismatch) {
-    throw new Error("音声が現在のリール撮影結果と一致しない。先に npm run ig:reel-voice を実行する。");
+    throw new Error(`音声が現在のリール撮影結果と一致しない。先に ${VOICE_COMMAND} を実行する。`);
   }
 }
 

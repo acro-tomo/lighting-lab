@@ -1,0 +1,80 @@
+{
+  "framesDir": "output/reel-six-rooms-frames",
+  "audioDir": "output/reel-six-rooms-audio",
+  "outName": "reel-six-rooms.mp4",
+  "speakerId": 888753760,
+  "speed": 1.08,
+  "intonation": 1.05,
+  "tempoDynamics": 1.15,
+  "volume": 1.0,
+  "shots": [
+    {
+      "id": "s1-machiya",
+      "projectFile": "public/demo/rooms/jp-machiya-toriniwa.json",
+      "seconds": 3.0,
+      "text": {
+        "eyebrow": "6つの間取り",
+        "headline": ["間取りが違えば", "照明も変わる"],
+        "sub": "町家｜低い灯りを点在"
+      },
+      "voice": "間取りで、照明は変わります。"
+    },
+    {
+      "id": "s2-hiraya",
+      "projectFile": "public/demo/rooms/jp-hiraya-engawa.json",
+      "seconds": 3.0,
+      "text": {
+        "eyebrow": "和モダンの平屋",
+        "headline": ["折り上げ天井を", "間接照明で広げる"],
+        "sub": "ダウンライト4灯＋コーブ間接3本"
+      },
+      "voice": "平屋は、間接照明。"
+    },
+    {
+      "id": "s3-skipfloor",
+      "projectFile": "public/demo/rooms/jp-skipfloor-tokyo.json",
+      "seconds": 3.0,
+      "text": {
+        "eyebrow": "狭小3階建て",
+        "headline": ["4.4mの高さを", "長い吊りでつなぐ"],
+        "sub": "ペンダント＋壁向きスポット"
+      },
+      "voice": "吹き抜けに、長いペンダント。"
+    },
+    {
+      "id": "s4-copenhagen",
+      "projectFile": "public/demo/rooms/dk-copenhagen-apartment.json",
+      "seconds": 3.0,
+      "text": {
+        "eyebrow": "コペンハーゲンの住戸",
+        "headline": ["ダウンライト", "0灯"],
+        "sub": "低い吊りとブラケット9灯",
+        "accent": "cool"
+      },
+      "voice": "ダウンライトは、ゼロ。"
+    },
+    {
+      "id": "s5-mediterranean",
+      "projectFile": "public/demo/rooms/es-mediterranean-arch.json",
+      "seconds": 3.0,
+      "text": {
+        "eyebrow": "南欧のアーチ",
+        "headline": ["壁を照らして", "奥行きをつくる"],
+        "sub": "梁・アーチ・ニッチをブラケットで"
+      },
+      "voice": "アーチは、壁を照らす。"
+    },
+    {
+      "id": "s6-loft",
+      "projectFile": "public/demo/rooms/us-brooklyn-loft.json",
+      "seconds": 3.0,
+      "text": {
+        "eyebrow": "ブルックリンのロフト｜4.2m",
+        "headline": ["自分の間取りで", "比べてから決める"],
+        "sub": "配置・明るさ・色温度を比較",
+        "outro": true
+      },
+      "voice": "自分の間取りで、比べる。"
+    }
+  ]
+}

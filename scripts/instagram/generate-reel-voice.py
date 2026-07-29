@@ -12,9 +12,10 @@ import urllib.request
 import wave
 from pathlib import Path
 
-FRAMES_DIR = Path("output/reel-frames")
-AUDIO_DIR = Path("output/reel-audio")
 CONFIG_PATH = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("marketing/instagram/reels/ldk-walkthrough.voice.json")
+CONFIG = json.loads(CONFIG_PATH.read_text())
+FRAMES_DIR = Path(CONFIG.get("framesDir", "output/reel-frames"))
+AUDIO_DIR = Path(CONFIG.get("audioDir", "output/reel-audio"))
 VOICE_GENERATOR = Path("/Users/hoshi/AI/音声/reel-voice-generator/generate_reel_voice.py")
 AIVIS_ENGINE = Path("/Applications/AivisSpeech.app/Contents/Resources/AivisSpeech-Engine/run")
 AIVIS_ENGINE_URL = "http://127.0.0.1:10101"
@@ -82,11 +83,18 @@ def ensure_aivis_engine() -> None:
 
 def main() -> None:
     if not (FRAMES_DIR / "shots.json").exists():
-        raise RuntimeError(f"{FRAMES_DIR}/shots.json が無い。先に npm run ig:reel-capture を実行する。")
+        raise RuntimeError(f"{FRAMES_DIR}/shots.json が無い。対応する撮影コマンドでこのファイルを生成する。")
 
-    config = json.loads(CONFIG_PATH.read_text())
     frames = json.loads((FRAMES_DIR / "shots.json").read_text())
-    shots = [shot for shot in frames["shots"] if shot["id"] in config["shots"]]
+    config_shots = CONFIG["shots"]
+    if isinstance(config_shots, list):
+        voices = {shot["id"]: shot["voice"] for shot in config_shots}
+    else:
+        voices = {
+            shot_id: shot if isinstance(shot, str) else shot["voice"]
+            for shot_id, shot in config_shots.items()
+        }
+    shots = [shot for shot in frames["shots"] if shot["id"] in voices]
     if not shots:
         raise RuntimeError(f"{CONFIG_PATH} に shots.json と一致する台本が無い。")
     if len(shots) != len(frames["shots"]):
@@ -111,18 +119,18 @@ def main() -> None:
         for index, shot in enumerate(shots):
             script = run_dir / f"{shot['id']}.txt"
             path = run_dir / f"{shot['id']}.wav"
-            script.write_text(config["shots"][shot["id"]], encoding="utf-8")
+            script.write_text(voices[shot["id"]], encoding="utf-8")
             try:
                 subprocess.run(
                     [
                         sys.executable,
                         str(VOICE_GENERATOR),
                         str(script),
-                        "--speaker-id", str(config["speakerId"]),
-                        "--speed", str(config["speed"]),
-                        "--intonation", str(config["intonation"]),
-                        "--tempo-dynamics", str(config["tempoDynamics"]),
-                        "--volume", str(config["volume"]),
+                        "--speaker-id", str(CONFIG["speakerId"]),
+                        "--speed", str(CONFIG["speed"]),
+                        "--intonation", str(CONFIG["intonation"]),
+                        "--tempo-dynamics", str(CONFIG["tempoDynamics"]),
+                        "--volume", str(CONFIG["volume"]),
                         "--output", str(path),
                     ],
                     check=True,

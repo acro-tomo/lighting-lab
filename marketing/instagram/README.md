@@ -125,6 +125,19 @@ Instagram 側で表示が崩れる。4:5 はフィードで最も表示面積が
 音声がショットの尺を超える場合は処理を止める。速度を機械的に上げず、台本を短くするか撮影尺を延ばす。
 生成は `/Users/hoshi/AI/音声/reel-voice-generator` に委譲する。自然さは短い文・句読点・話速・話者・イントネーションを聞き比べて調整する。
 
+## 6つの間取りリールを作る
+
+別ターミナルで `npm run dev` を起動し、次を実行する。
+
+```bash
+npm run ig:six-rooms
+```
+
+構成・台本・AivisSpeech設定・入出力先は [`reels/six-rooms.reel.json`](reels/six-rooms.reel.json) で直す。
+撮影だけを短く確認する場合は `REEL_SMOKE=1 npm run ig:six-rooms-capture` を使う。
+完成動画は `marketing/instagram/out/reel-six-rooms.mp4`、中間フレームと音声はそれぞれ
+`output/reel-six-rooms-frames/` と `output/reel-six-rooms-audio/` に出力される。
+
 ## 表記の注意
 
 画像にもキャプションにも、実照度(lux)・IES/LDT配光・照度計算書を保証する表現は
