@@ -86,10 +86,11 @@ function overlayHtml(text, disclaimer) {
           <span class="ruler-bottom">${escapeHtml(text.visual.bottomLabel)}</span>
         </div>`
       : "";
+  // config で全ショット共通の免責を出す場合、outro の note は同じ内容の二重表示になるので出さない。
   const outroBlock = text.outro
     ? `<div class="outro">
         <span class="url">${escapeHtml(BRAND.url)}</span>
-        <span class="note">雰囲気を比較するための視覚シミュレーションです。実際の照度(lux)を保証するものではありません。</span>
+        ${disclaimer ? "" : '<span class="note">雰囲気を比較するための視覚シミュレーションです。実際の照度(lux)を保証するものではありません。</span>'}
       </div>`
     : "";
 

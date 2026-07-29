@@ -190,6 +190,59 @@ REEL_CONFIG=path/to/reel.json REEL_WITH_VOICE=1 npm run ig:decision-encode
 
 企画の根拠・固定条件・排除した案は [`reels/PLAN-3reels.md`](reels/PLAN-3reels.md)。
 
+### Macでの実行手順
+
+撮影にはGPUが要る。ソフトウェア描画では約46秒/フレームかかるので、CI/コンテナではなくMacで実行する。
+音声生成は AivisSpeech（`/Applications/AivisSpeech.app`）と
+`/Users/hoshi/AI/音声/reel-voice-generator` に依存する。
+
+```bash
+npm install
+npm run ig:fonts   # 初回のみ
+npm run dev        # 別ターミナルで起動したままにする
+```
+
+**まず構図確認**（各3フレームだけ撮る）。カメラ経路は設計値なので、必ずここで見る。
+
+```bash
+npm run ig:reel-dining-smoke
+npm run ig:reel-void-smoke
+npm run ig:reel-engawa-smoke
+```
+
+フレームは `output/reel-{dining,void,engawa}-frames/<shotId>/f0000.png`。見るべき点:
+
+| リール | 確認する点 |
+|---|---|
+| dining | 寄り切った位置（`s2`/`s3`の最終フレーム）で丸テーブルが画面に収まっているか |
+| void | チルト上端（`s3`の最終フレーム）で天井と壁の上部が見えているか |
+| engawa | `s1`(16:30)で外が明るく、`s3`の最終フレームで暗くなっているか |
+
+ズレていれば設定ファイルの `move` / `daylight` を直してから本番へ。
+
+```bash
+npm run ig:reel-dining    # 撮影 → 音声 → エンコードまで通す
+npm run ig:reel-void
+npm run ig:reel-engawa
+```
+
+**最後に必ず検証する。** 「生成した」で完成扱いにしない。
+
+```bash
+REEL_CONFIG=marketing/instagram/reels/dining-pendant-vs-downlight.reel.json npm run ig:reel-check
+```
+
+仕様（1080×1920 / 30fps / H.264 / AAC / 音声トラックあり）は自動で判定する。
+`output/reel-check/<name>/` に等間隔のフレームが出るので、テロップの重なり・比較対象が
+見えているか・免責が読めるかは目で確認する。
+
+### 安全領域について（未決）
+
+現在の版面は下端から400px（`.text` は免責ありのとき520px、免責行は420px）を空けている。
+1920pxに対して約21%。一方 Meta の広告向けデザイン指針は下35%（672px）を空けることを勧めている。
+組織投稿のReels UIと広告の安全領域は同じではないため、**どちらに合わせるかは未決**。
+下げる場合は `encode-reel.mjs` の `.text` / `.reel-disclaimer` の `bottom` を上げる。
+
 **比較を成立させるための約束**: 「同じ役割を別の手段で果たす」比較（上2件）は、
 バリアント間で**全灯の合計光束を揃える**（`dimmer` で調整）。片方が明るいだけの絵にしないため。
 「入れるか入れないか」の比較（縁側の建築化照明）は、光束の差そのものが判断対象なので揃えない。

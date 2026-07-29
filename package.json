@@ -24,7 +24,14 @@
     "ig:six-rooms-encode": "REEL_CONFIG=marketing/instagram/reels/six-rooms.reel.json REEL_WITH_VOICE=1 node scripts/instagram/encode-reel.mjs",
     "ig:six-rooms": "npm run ig:six-rooms-capture && npm run ig:six-rooms-voice && npm run ig:six-rooms-encode",
     "ig:decision-capture": "node scripts/instagram/capture-decision-reel.mjs",
-    "ig:decision-encode": "node scripts/instagram/encode-reel.mjs"
+    "ig:decision-encode": "node scripts/instagram/encode-reel.mjs",
+    "ig:reel-dining-smoke": "REEL_CONFIG=marketing/instagram/reels/dining-pendant-vs-downlight.reel.json REEL_SMOKE=1 node scripts/instagram/capture-decision-reel.mjs",
+    "ig:reel-dining": "REEL_CONFIG=marketing/instagram/reels/dining-pendant-vs-downlight.reel.json node scripts/instagram/capture-decision-reel.mjs && python3 scripts/instagram/generate-reel-voice.py marketing/instagram/reels/dining-pendant-vs-downlight.reel.json && REEL_CONFIG=marketing/instagram/reels/dining-pendant-vs-downlight.reel.json REEL_WITH_VOICE=1 node scripts/instagram/encode-reel.mjs",
+    "ig:reel-void-smoke": "REEL_CONFIG=marketing/instagram/reels/void-pendant-vs-spot.reel.json REEL_SMOKE=1 node scripts/instagram/capture-decision-reel.mjs",
+    "ig:reel-void": "REEL_CONFIG=marketing/instagram/reels/void-pendant-vs-spot.reel.json node scripts/instagram/capture-decision-reel.mjs && python3 scripts/instagram/generate-reel-voice.py marketing/instagram/reels/void-pendant-vs-spot.reel.json && REEL_CONFIG=marketing/instagram/reels/void-pendant-vs-spot.reel.json REEL_WITH_VOICE=1 node scripts/instagram/encode-reel.mjs",
+    "ig:reel-engawa-smoke": "REEL_CONFIG=marketing/instagram/reels/engawa-cove-dusk.reel.json REEL_SMOKE=1 node scripts/instagram/capture-decision-reel.mjs",
+    "ig:reel-engawa": "REEL_CONFIG=marketing/instagram/reels/engawa-cove-dusk.reel.json node scripts/instagram/capture-decision-reel.mjs && python3 scripts/instagram/generate-reel-voice.py marketing/instagram/reels/engawa-cove-dusk.reel.json && REEL_CONFIG=marketing/instagram/reels/engawa-cove-dusk.reel.json REEL_WITH_VOICE=1 node scripts/instagram/encode-reel.mjs",
+    "ig:reel-check": "node scripts/instagram/check-reel-output.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
