@@ -1,0 +1,1100 @@
+{
+  "id": "ig-es-mediterranean-arch",
+  "name": "南欧のアーチの家｜壁を照らす夜",
+  "renderCalibrationVersion": 2,
+  "room": {
+    "widthM": 9.6,
+    "depthM": 8.0,
+    "ceilingHeightM": 3.05
+  },
+  "materials": [
+    {
+      "id": "plaster-lime",
+      "name": "手塗りの石灰プラスター",
+      "baseColor": "#ded2c0",
+      "roughness": 0.97,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "terracotta-floor",
+      "name": "テラコッタタイル",
+      "baseColor": "#a9704e",
+      "roughness": 0.88,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "beam-oak-dark",
+      "name": "古材の梁",
+      "baseColor": "#5a4630",
+      "roughness": 0.82,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "linen-oat",
+      "name": "オートミールのリネン",
+      "baseColor": "#cbbda4",
+      "roughness": 0.96,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "olive-wood",
+      "name": "オリーブ材",
+      "baseColor": "#8a7146",
+      "roughness": 0.78,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "tile-azulejo",
+      "name": "アズレージョのタイル",
+      "baseColor": "#5b7f8c",
+      "roughness": 0.5,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "clay-pot",
+      "name": "素焼きの鉢",
+      "baseColor": "#b06a45",
+      "roughness": 0.92,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "rug-kilim",
+      "name": "キリムのラグ",
+      "baseColor": "#8f5a45",
+      "roughness": 0.98,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "stone-travertine",
+      "name": "トラバーチン",
+      "baseColor": "#c9b189",
+      "roughness": 0.85,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "green-olive-tree",
+      "name": "オリーブの木",
+      "baseColor": "#5e6b4a",
+      "roughness": 0.92,
+      "metalness": 0.0,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    },
+    {
+      "id": "iron-black",
+      "name": "黒鉄のディテール",
+      "baseColor": "#33322f",
+      "roughness": 0.5,
+      "metalness": 0.5,
+      "emissiveColor": "#000000",
+      "emissiveIntensity": 0
+    }
+  ],
+  "walls": [
+    {
+      "id": "med-north",
+      "name": "北面の壁",
+      "start": {
+        "x": -4.8,
+        "z": -4.0
+      },
+      "end": {
+        "x": 4.8,
+        "z": -4.0
+      },
+      "thicknessM": 0.34,
+      "heightM": 3.05,
+      "materialId": "plaster-lime"
+    },
+    {
+      "id": "med-east",
+      "name": "東面の壁",
+      "start": {
+        "x": 4.8,
+        "z": -4.0
+      },
+      "end": {
+        "x": 4.8,
+        "z": 4.0
+      },
+      "thicknessM": 0.34,
+      "heightM": 3.05,
+      "materialId": "plaster-lime"
+    },
+    {
+      "id": "med-south",
+      "name": "南面の壁",
+      "start": {
+        "x": 4.8,
+        "z": 4.0
+      },
+      "end": {
+        "x": -4.8,
+        "z": 4.0
+      },
+      "thicknessM": 0.34,
+      "heightM": 3.05,
+      "materialId": "plaster-lime"
+    },
+    {
+      "id": "med-west",
+      "name": "西面の壁",
+      "start": {
+        "x": -4.8,
+        "z": 4.0
+      },
+      "end": {
+        "x": -4.8,
+        "z": -4.0
+      },
+      "thicknessM": 0.34,
+      "heightM": 3.05,
+      "materialId": "plaster-lime"
+    },
+    {
+      "id": "med-kitchen-wall",
+      "name": "キッチンを仕切る塗り壁",
+      "start": {
+        "x": 1.7,
+        "z": -4.0
+      },
+      "end": {
+        "x": 1.7,
+        "z": -0.4
+      },
+      "thicknessM": 0.28,
+      "heightM": 3.05,
+      "materialId": "plaster-lime"
+    }
+  ],
+  "windows": [
+    {
+      "id": "med-arch-kitchen",
+      "name": "キッチンへのアーチ開口",
+      "wallId": "med-kitchen-wall",
+      "centerRatio": 0.66,
+      "widthM": 1.35,
+      "heightM": 2.45,
+      "topHeightM": 2.45,
+      "hasGlass": false,
+      "style": "opening"
+    },
+    {
+      "id": "med-west-1",
+      "name": "西面の窓 北",
+      "wallId": "med-west",
+      "centerRatio": 0.66,
+      "widthM": 1.15,
+      "heightM": 1.5,
+      "topHeightM": 2.4,
+      "hasGlass": true,
+      "style": "window"
+    },
+    {
+      "id": "med-west-2",
+      "name": "西面の窓 南",
+      "wallId": "med-west",
+      "centerRatio": 0.34,
+      "widthM": 1.15,
+      "heightM": 1.5,
+      "topHeightM": 2.4,
+      "hasGlass": true,
+      "style": "window"
+    },
+    {
+      "id": "med-south-door",
+      "name": "中庭への木扉",
+      "wallId": "med-south",
+      "centerRatio": 0.6,
+      "widthM": 1.5,
+      "heightM": 2.45,
+      "topHeightM": 2.45,
+      "hasGlass": false,
+      "style": "door"
+    },
+    {
+      "id": "med-north-small",
+      "name": "北面の小窓",
+      "wallId": "med-north",
+      "centerRatio": 0.24,
+      "widthM": 0.75,
+      "heightM": 0.8,
+      "topHeightM": 2.3,
+      "hasGlass": true,
+      "style": "window"
+    },
+    {
+      "id": "med-east-1",
+      "name": "東面の窓",
+      "wallId": "med-east",
+      "centerRatio": 0.6,
+      "widthM": 1.0,
+      "heightM": 1.4,
+      "topHeightM": 2.35,
+      "hasGlass": true,
+      "style": "window"
+    }
+  ],
+  "voids": [],
+  "furniture": [
+    {
+      "id": "med-beam-1",
+      "name": "現しの梁 1",
+      "type": "box",
+      "position": {
+        "x": 0.0,
+        "y": 2.92,
+        "z": -3.0
+      },
+      "size": {
+        "x": 9.3,
+        "y": 0.26,
+        "z": 0.22
+      },
+      "rotationYDeg": 0,
+      "materialId": "beam-oak-dark",
+      "castsShadow": true,
+      "color": "#5a4630",
+      "roughness": 0.82
+    },
+    {
+      "id": "med-beam-2",
+      "name": "現しの梁 2",
+      "type": "box",
+      "position": {
+        "x": 0.0,
+        "y": 2.92,
+        "z": -1.5
+      },
+      "size": {
+        "x": 9.3,
+        "y": 0.26,
+        "z": 0.22
+      },
+      "rotationYDeg": 0,
+      "materialId": "beam-oak-dark",
+      "castsShadow": true,
+      "color": "#5a4630",
+      "roughness": 0.82
+    },
+    {
+      "id": "med-beam-3",
+      "name": "現しの梁 3",
+      "type": "box",
+      "position": {
+        "x": 0.0,
+        "y": 2.92,
+        "z": 0.0
+      },
+      "size": {
+        "x": 9.3,
+        "y": 0.26,
+        "z": 0.22
+      },
+      "rotationYDeg": 0,
+      "materialId": "beam-oak-dark",
+      "castsShadow": true,
+      "color": "#5a4630",
+      "roughness": 0.82
+    },
+    {
+      "id": "med-beam-4",
+      "name": "現しの梁 4",
+      "type": "box",
+      "position": {
+        "x": 0.0,
+        "y": 2.92,
+        "z": 1.5
+      },
+      "size": {
+        "x": 9.3,
+        "y": 0.26,
+        "z": 0.22
+      },
+      "rotationYDeg": 0,
+      "materialId": "beam-oak-dark",
+      "castsShadow": true,
+      "color": "#5a4630",
+      "roughness": 0.82
+    },
+    {
+      "id": "med-beam-5",
+      "name": "現しの梁 5",
+      "type": "box",
+      "position": {
+        "x": 0.0,
+        "y": 2.92,
+        "z": 3.0
+      },
+      "size": {
+        "x": 9.3,
+        "y": 0.26,
+        "z": 0.22
+      },
+      "rotationYDeg": 0,
+      "materialId": "beam-oak-dark",
+      "castsShadow": true,
+      "color": "#5a4630",
+      "roughness": 0.82
+    },
+    {
+      "id": "med-bench",
+      "name": "造作のプラスターベンチ",
+      "type": "box",
+      "position": {
+        "x": -3.95,
+        "y": 0.23,
+        "z": 0.6
+      },
+      "size": {
+        "x": 0.65,
+        "y": 0.46,
+        "z": 3.2
+      },
+      "rotationYDeg": 0,
+      "materialId": "plaster-lime",
+      "castsShadow": true,
+      "color": "#ded2c0",
+      "roughness": 0.97
+    },
+    {
+      "id": "med-cushion-1",
+      "name": "ベンチのクッション 北",
+      "type": "box",
+      "position": {
+        "x": -3.95,
+        "y": 0.54,
+        "z": -0.3
+      },
+      "size": {
+        "x": 0.62,
+        "y": 0.16,
+        "z": 0.7
+      },
+      "rotationYDeg": 0,
+      "materialId": "linen-oat",
+      "castsShadow": true,
+      "color": "#cbbda4",
+      "roughness": 0.96
+    },
+    {
+      "id": "med-cushion-2",
+      "name": "ベンチのクッション 南",
+      "type": "box",
+      "position": {
+        "x": -3.95,
+        "y": 0.54,
+        "z": 1.5
+      },
+      "size": {
+        "x": 0.62,
+        "y": 0.16,
+        "z": 0.7
+      },
+      "rotationYDeg": 0,
+      "materialId": "linen-oat",
+      "castsShadow": true,
+      "color": "#cbbda4",
+      "roughness": 0.96
+    },
+    {
+      "id": "med-rug",
+      "name": "キリムのラグ",
+      "type": "rug",
+      "position": {
+        "x": -2.1,
+        "y": 0.015,
+        "z": 0.6
+      },
+      "size": {
+        "x": 2.6,
+        "y": 0.03,
+        "z": 2.4
+      },
+      "rotationYDeg": 0,
+      "materialId": "rug-kilim",
+      "castsShadow": false,
+      "color": "#8f5a45",
+      "roughness": 0.98
+    },
+    {
+      "id": "med-sofa",
+      "name": "低いリネンのソファ",
+      "type": "sofa",
+      "position": {
+        "x": -1.35,
+        "y": 0.35,
+        "z": 1.75
+      },
+      "size": {
+        "x": 2.3,
+        "y": 0.7,
+        "z": 0.95
+      },
+      "rotationYDeg": 180,
+      "materialId": "linen-oat",
+      "castsShadow": true,
+      "color": "#cbbda4",
+      "roughness": 0.96
+    },
+    {
+      "id": "med-coffee",
+      "name": "トラバーチンのローテーブル",
+      "type": "roundTable",
+      "position": {
+        "x": -2.2,
+        "y": 0.17,
+        "z": 0.55
+      },
+      "size": {
+        "x": 1.05,
+        "y": 0.34,
+        "z": 1.05
+      },
+      "rotationYDeg": 0,
+      "materialId": "stone-travertine",
+      "castsShadow": true,
+      "color": "#c9b189",
+      "roughness": 0.85
+    },
+    {
+      "id": "med-lounge",
+      "name": "籐のラウンジチェア",
+      "type": "loungeChair",
+      "position": {
+        "x": -0.55,
+        "y": 0.4,
+        "z": -0.35
+      },
+      "size": {
+        "x": 0.88,
+        "y": 0.8,
+        "z": 0.95
+      },
+      "rotationYDeg": -128,
+      "materialId": "olive-wood",
+      "castsShadow": true,
+      "color": "#8a7146",
+      "roughness": 0.78
+    },
+    {
+      "id": "med-dining",
+      "name": "オリーブ材のダイニング",
+      "type": "rectTable",
+      "position": {
+        "x": 2.6,
+        "y": 0.37,
+        "z": 1.85
+      },
+      "size": {
+        "x": 2.05,
+        "y": 0.74,
+        "z": 0.95
+      },
+      "rotationYDeg": 0,
+      "materialId": "olive-wood",
+      "castsShadow": true,
+      "color": "#8a7146",
+      "roughness": 0.78
+    },
+    {
+      "id": "med-bench-dining",
+      "name": "ダイニングのベンチ",
+      "type": "box",
+      "position": {
+        "x": 2.6,
+        "y": 0.22,
+        "z": 2.65
+      },
+      "size": {
+        "x": 1.9,
+        "y": 0.44,
+        "z": 0.38
+      },
+      "rotationYDeg": 0,
+      "materialId": "olive-wood",
+      "castsShadow": true,
+      "color": "#8a7146",
+      "roughness": 0.78
+    },
+    {
+      "id": "med-chair-1",
+      "name": "椅子 北1",
+      "type": "chair",
+      "position": {
+        "x": 2.0,
+        "y": 0.42,
+        "z": 1.0
+      },
+      "size": {
+        "x": 0.46,
+        "y": 0.85,
+        "z": 0.46
+      },
+      "rotationYDeg": 0,
+      "materialId": "iron-black",
+      "castsShadow": true,
+      "color": "#33322f",
+      "roughness": 0.5
+    },
+    {
+      "id": "med-chair-2",
+      "name": "椅子 北2",
+      "type": "chair",
+      "position": {
+        "x": 3.2,
+        "y": 0.42,
+        "z": 1.0
+      },
+      "size": {
+        "x": 0.46,
+        "y": 0.85,
+        "z": 0.46
+      },
+      "rotationYDeg": 0,
+      "materialId": "iron-black",
+      "castsShadow": true,
+      "color": "#33322f",
+      "roughness": 0.5
+    },
+    {
+      "id": "med-kitchen",
+      "name": "アルコーブのキッチン",
+      "type": "kitchen",
+      "position": {
+        "x": 3.05,
+        "y": 0.45,
+        "z": -2.9
+      },
+      "size": {
+        "x": 2.6,
+        "y": 0.9,
+        "z": 0.65
+      },
+      "rotationYDeg": 180,
+      "materialId": "tile-azulejo",
+      "castsShadow": true,
+      "color": "#5b7f8c",
+      "roughness": 0.5
+    },
+    {
+      "id": "med-kitchen-island",
+      "name": "作業台",
+      "type": "counter",
+      "position": {
+        "x": 3.05,
+        "y": 0.46,
+        "z": -1.4
+      },
+      "size": {
+        "x": 1.6,
+        "y": 0.92,
+        "z": 0.7
+      },
+      "rotationYDeg": 0,
+      "materialId": "stone-travertine",
+      "castsShadow": true,
+      "color": "#c9b189",
+      "roughness": 0.85
+    },
+    {
+      "id": "med-fridge",
+      "name": "冷蔵庫",
+      "type": "fridge",
+      "position": {
+        "x": 4.35,
+        "y": 0.9,
+        "z": -3.35
+      },
+      "size": {
+        "x": 0.68,
+        "y": 1.8,
+        "z": 0.66
+      },
+      "rotationYDeg": 0,
+      "materialId": "olive-wood",
+      "castsShadow": true,
+      "color": "#8a7146",
+      "roughness": 0.78
+    },
+    {
+      "id": "med-shelf",
+      "name": "壁の飾り棚(ニッチ)",
+      "type": "shelf",
+      "position": {
+        "x": -4.5,
+        "y": 1.35,
+        "z": -2.6
+      },
+      "size": {
+        "x": 0.32,
+        "y": 1.5,
+        "z": 1.1
+      },
+      "rotationYDeg": 90,
+      "materialId": "plaster-lime",
+      "castsShadow": true,
+      "color": "#ded2c0",
+      "roughness": 0.97
+    },
+    {
+      "id": "med-pot-1",
+      "name": "素焼きの大鉢",
+      "type": "plant",
+      "position": {
+        "x": 0.55,
+        "y": 0.88,
+        "z": 3.15
+      },
+      "size": {
+        "x": 0.9,
+        "y": 1.75,
+        "z": 0.9
+      },
+      "rotationYDeg": 0,
+      "materialId": "green-olive-tree",
+      "castsShadow": true,
+      "color": "#5e6b4a",
+      "roughness": 0.92
+    },
+    {
+      "id": "med-pot-2",
+      "name": "素焼きの中鉢",
+      "type": "plant",
+      "position": {
+        "x": -4.3,
+        "y": 0.55,
+        "z": 2.75
+      },
+      "size": {
+        "x": 0.6,
+        "y": 1.1,
+        "z": 0.6
+      },
+      "rotationYDeg": 0,
+      "materialId": "green-olive-tree",
+      "castsShadow": true,
+      "color": "#5e6b4a",
+      "roughness": 0.92
+    },
+    {
+      "id": "med-pot-3",
+      "name": "テーブルの小鉢",
+      "type": "plant",
+      "position": {
+        "x": 4.2,
+        "y": 0.38,
+        "z": 0.4
+      },
+      "size": {
+        "x": 0.45,
+        "y": 0.75,
+        "z": 0.45
+      },
+      "rotationYDeg": 0,
+      "materialId": "clay-pot",
+      "castsShadow": true,
+      "color": "#b06a45",
+      "roughness": 0.92
+    },
+    {
+      "id": "med-console",
+      "name": "玄関脇のコンソール",
+      "type": "counter",
+      "position": {
+        "x": -1.9,
+        "y": 0.4,
+        "z": 3.6
+      },
+      "size": {
+        "x": 1.4,
+        "y": 0.8,
+        "z": 0.36
+      },
+      "rotationYDeg": 180,
+      "materialId": "olive-wood",
+      "castsShadow": true,
+      "color": "#8a7146",
+      "roughness": 0.78
+    }
+  ],
+  "lights": [
+    {
+      "id": "med-lantern-1",
+      "name": "ランタンペンダント 西",
+      "type": "pendant",
+      "model": "pendant",
+      "lumens": 520,
+      "colorTemperatureK": 2400,
+      "dimmer": 78,
+      "enabled": true,
+      "beamAngleDeg": 90,
+      "penumbra": 0.8,
+      "castsShadow": true,
+      "note": "真鍮とガラスのランタン。影が壁に落ちる",
+      "position": {
+        "x": 2.0,
+        "y": 2.0999999999999996,
+        "z": 1.85
+      },
+      "mountHeightM": 3.05,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 2.0,
+        "y": 0.75,
+        "z": 1.85
+      },
+      "cordLengthM": 0.95
+    },
+    {
+      "id": "med-lantern-2",
+      "name": "ランタンペンダント 東",
+      "type": "pendant",
+      "model": "pendant",
+      "lumens": 520,
+      "colorTemperatureK": 2400,
+      "dimmer": 78,
+      "enabled": true,
+      "beamAngleDeg": 90,
+      "penumbra": 0.8,
+      "castsShadow": true,
+      "note": "真鍮とガラスのランタン。影が壁に落ちる",
+      "position": {
+        "x": 3.2,
+        "y": 2.0999999999999996,
+        "z": 1.85
+      },
+      "mountHeightM": 3.05,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 3.2,
+        "y": 0.75,
+        "z": 1.85
+      },
+      "cordLengthM": 0.95
+    },
+    {
+      "id": "med-lantern-hall",
+      "name": "玄関のランタン",
+      "type": "pendant",
+      "model": "pendant",
+      "lumens": 420,
+      "colorTemperatureK": 2400,
+      "dimmer": 72,
+      "enabled": true,
+      "beamAngleDeg": 90,
+      "penumbra": 0.8,
+      "castsShadow": true,
+      "note": "扉を開けた瞬間の灯り",
+      "position": {
+        "x": -1.9,
+        "y": 1.7999999999999998,
+        "z": 2.85
+      },
+      "mountHeightM": 3.05,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": -1.9,
+        "y": 0.75,
+        "z": 2.85
+      },
+      "cordLengthM": 1.25
+    },
+    {
+      "id": "med-bracket-1",
+      "name": "西壁のブラケット 北",
+      "type": "bracket",
+      "model": "bracket",
+      "lumens": 320,
+      "colorTemperatureK": 2400,
+      "dimmer": 74,
+      "enabled": true,
+      "beamAngleDeg": 120,
+      "penumbra": 0.85,
+      "castsShadow": true,
+      "note": "塗り壁の凹凸を斜めから舐める",
+      "position": {
+        "x": -4.6,
+        "y": 1.95,
+        "z": -1.2
+      },
+      "mountHeightM": 1.95,
+      "rotationDeg": {
+        "x": 0,
+        "y": 90,
+        "z": 0
+      },
+      "target": {
+        "x": -3.4,
+        "y": 1.4,
+        "z": -1.2
+      }
+    },
+    {
+      "id": "med-bracket-2",
+      "name": "西壁のブラケット 南",
+      "type": "bracket",
+      "model": "bracket",
+      "lumens": 320,
+      "colorTemperatureK": 2400,
+      "dimmer": 74,
+      "enabled": true,
+      "beamAngleDeg": 120,
+      "penumbra": 0.85,
+      "castsShadow": true,
+      "note": "塗り壁の凹凸を斜めから舐める",
+      "position": {
+        "x": -4.6,
+        "y": 1.95,
+        "z": 1.9
+      },
+      "mountHeightM": 1.95,
+      "rotationDeg": {
+        "x": 0,
+        "y": 90,
+        "z": 0
+      },
+      "target": {
+        "x": -3.4,
+        "y": 1.4,
+        "z": 1.9
+      }
+    },
+    {
+      "id": "med-bracket-3",
+      "name": "北壁のブラケット",
+      "type": "bracket",
+      "model": "bracket",
+      "lumens": 300,
+      "colorTemperatureK": 2400,
+      "dimmer": 72,
+      "enabled": true,
+      "beamAngleDeg": 120,
+      "penumbra": 0.85,
+      "castsShadow": true,
+      "note": "奥の壁を明るくして奥行きを出す",
+      "position": {
+        "x": -0.9,
+        "y": 1.95,
+        "z": -3.78
+      },
+      "mountHeightM": 1.95,
+      "rotationDeg": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": -0.9,
+        "y": 1.3,
+        "z": -2.7
+      }
+    },
+    {
+      "id": "med-bracket-arch",
+      "name": "アーチ脇のブラケット",
+      "type": "bracket",
+      "model": "bracket",
+      "lumens": 280,
+      "colorTemperatureK": 2400,
+      "dimmer": 70,
+      "enabled": true,
+      "beamAngleDeg": 120,
+      "penumbra": 0.85,
+      "castsShadow": true,
+      "note": "アーチの曲面に影をつける",
+      "position": {
+        "x": 1.55,
+        "y": 1.9,
+        "z": -0.9
+      },
+      "mountHeightM": 1.9,
+      "rotationDeg": {
+        "x": 0,
+        "y": -90,
+        "z": 0
+      },
+      "target": {
+        "x": 0.5,
+        "y": 1.3,
+        "z": -0.9
+      }
+    },
+    {
+      "id": "med-spot-arch",
+      "name": "アーチのウォールウォッシャー",
+      "type": "spotlight",
+      "model": "dl-universal",
+      "lumens": 520,
+      "colorTemperatureK": 2400,
+      "dimmer": 70,
+      "enabled": true,
+      "beamAngleDeg": 40,
+      "penumbra": 0.5,
+      "castsShadow": true,
+      "note": "アーチの縁を上から舐める",
+      "position": {
+        "x": 1.15,
+        "y": 3.01,
+        "z": -0.5
+      },
+      "mountHeightM": 3.05,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 1.62,
+        "y": 1.9,
+        "z": -0.9
+      }
+    },
+    {
+      "id": "med-spot-plant",
+      "name": "オリーブのスポット",
+      "type": "spotlight",
+      "model": "dl-universal",
+      "lumens": 460,
+      "colorTemperatureK": 2400,
+      "dimmer": 68,
+      "enabled": true,
+      "beamAngleDeg": 40,
+      "penumbra": 0.5,
+      "castsShadow": true,
+      "note": "葉の影を天井と壁に伸ばす",
+      "position": {
+        "x": 0.55,
+        "y": 3.01,
+        "z": 2.5
+      },
+      "mountHeightM": 3.05,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 0.55,
+        "y": 1.2,
+        "z": 3.15
+      }
+    },
+    {
+      "id": "med-niche-tape",
+      "name": "ニッチの間接照明",
+      "type": "tape",
+      "model": "tape",
+      "lumens": 280,
+      "colorTemperatureK": 2400,
+      "dimmer": 64,
+      "enabled": true,
+      "beamAngleDeg": 120,
+      "penumbra": 0.9,
+      "castsShadow": false,
+      "note": "ニッチの中を光らせる",
+      "position": {
+        "x": -4.35,
+        "y": 3.01,
+        "z": -2.6
+      },
+      "mountHeightM": 3.05,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": -4.35,
+        "y": 0.0,
+        "z": -2.6
+      },
+      "lengthM": 1.0
+    },
+    {
+      "id": "med-kitchen-dl",
+      "name": "キッチンの手元灯",
+      "type": "downlight",
+      "model": "dl-narrow",
+      "lumens": 520,
+      "colorTemperatureK": 2700,
+      "dimmer": 82,
+      "enabled": true,
+      "beamAngleDeg": 34,
+      "penumbra": 0.4,
+      "castsShadow": true,
+      "note": "アルコーブの中だけ実用の明るさにする",
+      "position": {
+        "x": 3.05,
+        "y": 3.01,
+        "z": -2.6
+      },
+      "mountHeightM": 3.05,
+      "rotationDeg": {
+        "x": -90,
+        "y": 0,
+        "z": 0
+      },
+      "target": {
+        "x": 3.05,
+        "y": 0.0,
+        "z": -2.6
+      }
+    }
+  ],
+  "camera": {
+    "position": {
+      "x": 4.15,
+      "y": 1.62,
+      "z": 3.4
+    },
+    "target": {
+      "x": -1.9,
+      "y": 1.2,
+      "z": -1.0
+    },
+    "fov": 76,
+    "exposure": 0.11,
+    "resolutionWidth": 1600
+  },
+  "daylight": {
+    "enabled": false,
+    "month": 6,
+    "day": 21,
+    "hour": 19.0,
+    "northOffsetDeg": 90,
+    "latitudeDeg": 39.5
+  },
+  "showCeiling": true,
+  "activeFloor": 1
+}

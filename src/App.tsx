@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { HeaderBar } from "./components/HeaderBar";
 import { Inspector } from "./components/Inspector";
 import { Plan2D } from "./components/Plan2D";
@@ -12,8 +12,10 @@ import { DEFAULT_DAYLIGHT } from "./utils/sun";
 import { EditToolbar } from "./components/EditToolbar";
 import { ShortcutGuide } from "./components/ShortcutGuide";
 import { IntroGuide } from "./components/IntroGuide";
+import { DemoPicker } from "./components/DemoPicker";
 import { FeedbackForm } from "./components/FeedbackForm";
 import { isWallLightAddKind } from "./data/fixtureAddKinds";
+import { fetchDemoProject, type DemoRoom } from "./data/demoRooms";
 import { downloadText, formatHour, migrateLoadedProject, projectFileName, readTextFile } from "./app/appUtils";
 import { useProjectPersistence } from "./app/hooks/useProjectPersistence";
 import { useKeyboardShortcuts } from "./app/hooks/useKeyboardShortcuts";
@@ -52,12 +54,26 @@ export const App = () => {
   const [outputOpen, setOutputOpen] = useState(false);
   const [daylightOpen, setDaylightOpen] = useState(false);
   const [showIntro, setShowIntro] = useState(false);
+  const [demoPickerOpen, setDemoPickerOpen] = useState(false);
 
   useEffect(() => {
     setNotice(t("IndexedDBに自動保存します。"));
   }, [language, t]);
 
-  useProjectPersistence(project, setProject, setCompareShots, setNotice);
+  const openDemoPicker = useCallback(() => setDemoPickerOpen(true), []);
+  useProjectPersistence(project, setProject, setCompareShots, setNotice, openDemoPicker);
+
+  const handleSelectDemoRoom = async (room: DemoRoom) => {
+    setDemoPickerOpen(false);
+    try {
+      const parsed = await migrateLoadedProject(await fetchDemoProject(room.file));
+      setProject(parsed);
+      setCompareShots(Array.isArray(parsed.compareShots) ? parsed.compareShots : []);
+      setNotice(t("プロジェクト「{projectName}」を読み込みました。", { projectName: parsed.name }));
+    } catch {
+      setNotice(t("デモデータを読み込めませんでした。通常どおり起動します。"));
+    }
+  };
 
   const {
     mode,
@@ -219,6 +235,7 @@ export const App = () => {
           onImportFloorPlan={handleImportFloorPlan}
           onImportProject={handleImportProject}
           onExportProject={exportProject}
+          onShowSampleRooms={openDemoPicker}
           onShowIntro={() => setShowIntro(true)}
         />
         {/* 操作＋追加ツールバー: 2D/3D 両パネル共通の1インスタンス。 */}
@@ -522,7 +539,16 @@ export const App = () => {
       <div className="notice" role="status">{notice}</div>
       <ShortcutGuide />
       <FeedbackForm />
-      <IntroGuide forceOpen={showIntro} onClose={() => setShowIntro(false)} />
+      <IntroGuide
+        forceOpen={showIntro}
+        onClose={() => setShowIntro(false)}
+        onShowSampleRooms={openDemoPicker}
+      />
+      <DemoPicker
+        open={demoPickerOpen}
+        onSelect={handleSelectDemoRoom}
+        onClose={() => setDemoPickerOpen(false)}
+      />
     </div>
   );
 };
