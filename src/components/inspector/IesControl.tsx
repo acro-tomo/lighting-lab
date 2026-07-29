@@ -141,7 +141,8 @@ export const IesControl = ({
       <input
         ref={inputRef}
         type="file"
-        accept=".ies,text/plain"
+        // accept を付けない: macOSは .ies にUTIを持たず(dyn.*)、ブラウザのファイル選択で
+        // 拒否されて選べなくなる。非対応ファイルは parseIes が理由付きで弾く。
         hidden
         onChange={(event) => {
           const file = event.target.files?.[0];
