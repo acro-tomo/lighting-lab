@@ -16,7 +16,9 @@
     "exploratory-check": "node scripts/exploratory-check.mjs",
     "ig:reel": "node scripts/instagram/make-reel.mjs",
     "ig:reel-capture": "node scripts/instagram/capture-reel-shots.mjs",
-    "ig:reel-encode": "node scripts/instagram/encode-reel.mjs"
+    "ig:reel-encode": "node scripts/instagram/encode-reel.mjs",
+    "ig:reel-voice": "python3 scripts/instagram/generate-reel-voice.py",
+    "ig:reel-with-voice": "npm run ig:reel-voice && REEL_WITH_VOICE=1 node scripts/instagram/encode-reel.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",

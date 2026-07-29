@@ -26,6 +26,8 @@ const WIDTH = 1080;
 const HEIGHT = 1920;
 const XFADE = 0.4;
 const OUT_NAME = "reel-ldk-walkthrough.mp4";
+const WITH_VOICE = process.env.REEL_WITH_VOICE === "1";
+const AUDIO_MANIFEST = "output/reel-audio/manifest.json";
 
 // 平坦な面（キッチンの天板・壁）は緩いグラデーションなので、8bitに落とすと
 // 帯や粒状のムラが出やすい。gradfun で均してから符号化する。
@@ -126,6 +128,13 @@ const manifest = JSON.parse(await readFile(`${FRAMES_DIR}/shots.json`, "utf8"));
 const fps = manifest.fps;
 const shots = manifest.shots.filter((shot) => TEXTS[shot.id]);
 if (shots.length === 0) throw new Error("shots.json に既知のショットが無い。");
+const voiceManifest = WITH_VOICE ? JSON.parse(await readFile(AUDIO_MANIFEST, "utf8")) : null;
+if (voiceManifest && voiceManifest.cues.length !== shots.length) {
+  throw new Error(`${AUDIO_MANIFEST} の音声 cue 数が shots.json と一致しない。先に npm run ig:reel-voice を実行する。`);
+}
+if (voiceManifest?.cues.some((cue, index) => cue.id !== shots[index].id || !existsSync(cue.path))) {
+  throw new Error(`${AUDIO_MANIFEST} の音声が不足している。先に npm run ig:reel-voice を実行する。`);
+}
 
 await mkdir(BUILD_DIR, { recursive: true });
 await mkdir(OUT_DIR, { recursive: true });
@@ -184,23 +193,62 @@ for (let index = 1; index < shots.length; index += 1) {
   elapsed = elapsed - xfade + durations[index];
 }
 const outLabel = shots.length === 1 ? "[v0]" : "[vout]";
+const cueStarts = [];
+let cueTime = 0;
+for (const duration of durations) {
+  cueStarts.push(cueTime);
+  cueTime += duration - xfade;
+}
+const cueMaxDurations = cueStarts.map((start, index) =>
+  index === cueStarts.length - 1 ? elapsed - start : cueStarts[index + 1] - start
+);
+
+if (voiceManifest) {
+  const timingMismatch = !Array.isArray(voiceManifest.shots) ||
+    voiceManifest.fps !== fps ||
+    Math.abs(voiceManifest.duration - elapsed) > 0.001 ||
+    voiceManifest.shots.some((shot, index) =>
+      shot.id !== shots[index].id ||
+      shot.frames !== shots[index].frames ||
+      Math.abs(shot.start - cueStarts[index]) > 0.001 ||
+      Math.abs(shot.maxDuration - cueMaxDurations[index]) > 0.001 ||
+      Math.abs(voiceManifest.cues[index].start - cueStarts[index]) > 0.001 ||
+      Math.abs(voiceManifest.cues[index].maxDuration - cueMaxDurations[index]) > 0.001
+    );
+  if (timingMismatch) {
+    throw new Error("音声が現在のリール撮影結果と一致しない。先に npm run ig:reel-voice を実行する。");
+  }
+}
+
+if (voiceManifest) {
+  voiceManifest.cues.forEach((cue, index) => {
+    const inputIndex = shots.length * 2 + index;
+    parts.push(`[${inputIndex}:a]adelay=${Math.round(cue.start * 1000)}:all=1,aresample=48000[a${index}]`);
+  });
+  const inputs = voiceManifest.cues.map((_, index) => `[a${index}]`).join("");
+  parts.push(`${inputs}amix=inputs=${voiceManifest.cues.length}:duration=longest:normalize=0,loudnorm=I=-16:TP=-1.5:LRA=11,pan=stereo|c0=c0|c1=c0,apad,atrim=duration=${elapsed.toFixed(3)}[aout]`);
+}
 
 const args = [];
 for (const shot of shots) args.push("-framerate", String(fps), "-i", `${FRAMES_DIR}/${shot.id}/f%04d.png`);
 for (const [index, shot] of shots.entries()) {
   args.push("-loop", "1", "-framerate", String(fps), "-t", durations[index].toFixed(3), "-i", `${BUILD_DIR}/${shot.id}.png`);
 }
-// 無音でも音声トラックを1本持たせる。Instagram 側の扱いが安定するため。
-args.push("-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=44100");
+if (voiceManifest) {
+  for (const cue of voiceManifest.cues) args.push("-i", cue.path);
+} else {
+  // 無音でも音声トラックを1本持たせる。Instagram 側の扱いが安定するため。
+  args.push("-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=44100");
+}
 args.push(
   "-filter_complex", parts.join(";"),
   "-map", outLabel,
-  "-map", `${shots.length * 2}:a`,
+  "-map", voiceManifest ? "[aout]" : `${shots.length * 2}:a`,
   // aq-mode 3 は平坦部にビットを回すので、天板や壁のムラが出にくくなる。
   "-c:v", "libx264", "-profile:v", "high", "-pix_fmt", "yuv420p", "-preset", "slow", "-crf", String(CRF),
   "-aq-mode", "3", "-x264-params", "aq-strength=1.1",
   "-r", String(fps), "-g", String(fps * 2),
-  "-c:a", "aac", "-b:a", "128k",
+  "-c:a", "aac", "-b:a", "128k", "-ar", "48000",
   "-t", elapsed.toFixed(3),
   "-movflags", "+faststart",
   "-y", `${OUT_DIR}/${OUT_NAME}`

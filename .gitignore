@@ -5,6 +5,7 @@ node_modules/
 dist/
 output/
 *.tsbuildinfo
+__pycache__/
 
 # tooling scratch
 .playwright-cli/

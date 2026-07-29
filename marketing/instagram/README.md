@@ -113,6 +113,19 @@ Instagram 側で表示が崩れる。4:5 はフィードで最も表示面積が
 現在のプレートはすべて同じ部屋・同じアングル。数投稿ごとに別プロジェクトで
 撮り直さないとフィードが単調になる。
 
+## リールにAI音声を入れる
+
+実際にカメラを動かすリールは、ショットごとに短い音声を作り、映像の切り替わりに合わせて合成する。
+1本の長い読み上げを後から重ねると、台本を直したときに映像との対応が崩れるため使わない。
+
+1. AivisSpeech Engineを起動する。
+2. 台本・話者・話速・イントネーションを [`reels/ldk-walkthrough.voice.json`](reels/ldk-walkthrough.voice.json) で直す。
+3. `npm run ig:reel-capture` の後に `npm run ig:reel-with-voice` を実行する。
+
+`npm run ig:reel-voice` は WAV と cue 情報だけを `output/reel-audio/` に作る。先に聞き直したいときに使う。
+音声がショットの尺を超える場合は処理を止める。速度を機械的に上げず、台本を短くするか撮影尺を延ばす。
+生成は `/Users/hoshi/AI/音声/reel-voice-generator` に委譲する。自然さは短い文・句読点・話速・話者・イントネーションを聞き比べて調整する。
+
 ## 表記の注意
 
 画像にもキャプションにも、実照度(lux)・IES/LDT配光・照度計算書を保証する表現は
