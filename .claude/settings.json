@@ -10,6 +10,8 @@
       "Bash(npx tsc *)",
       "Bash(node scripts/visual-check.mjs *)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:5173/)",
+      "Bash(scripts/instagram/handoff-to-codex.sh*)",
+      "Bash(./scripts/instagram/handoff-to-codex.sh*)",
       "mcp__buffer__get_account",
       "mcp__buffer__list_channels",
       "mcp__buffer__get_channel",
@@ -30,6 +32,7 @@
     "ask": [
       "Bash(git push*)",
       "Bash(npm publish*)",
+      "Bash(codex*)",
       "mcp__buffer__create_post",
       "mcp__buffer__edit_post",
       "mcp__buffer__delete_post",
