@@ -9,7 +9,17 @@
       "Bash(npm run *)",
       "Bash(npx tsc *)",
       "Bash(node scripts/visual-check.mjs *)",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:5173/)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:5173/)",
+      "mcp__buffer__get_account",
+      "mcp__buffer__list_channels",
+      "mcp__buffer__get_channel",
+      "mcp__buffer__list_posts",
+      "mcp__buffer__get_post",
+      "mcp__buffer__get_aggregated_post_metrics",
+      "mcp__buffer__list_idea_groups",
+      "mcp__buffer__list_ideas",
+      "mcp__buffer__introspect_schema",
+      "mcp__buffer__execute_query"
     ],
     "deny": [
       "Bash(rm -rf /*)",
@@ -19,7 +29,12 @@
     ],
     "ask": [
       "Bash(git push*)",
-      "Bash(npm publish*)"
+      "Bash(npm publish*)",
+      "mcp__buffer__create_post",
+      "mcp__buffer__edit_post",
+      "mcp__buffer__delete_post",
+      "mcp__buffer__create_idea",
+      "mcp__buffer__execute_mutation"
     ]
   }
 }
