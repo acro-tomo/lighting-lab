@@ -3,7 +3,7 @@
 第1弾（7/30・8/1・8/2）は [BUFFER-QUEUE-3reels.md](BUFFER-QUEUE-3reels.md)。
 ターゲットと構成の型は [AUDIENCE-AND-FORMAT.md](AUDIENCE-AND-FORMAT.md)。
 
-> **登録状況は下の表を必ず確認してから触ること。** 再登録すると二重投稿になる。
+> **3本とも登録済み。** 再登録すると二重投稿になる。直すときは新規作成ではなく既存postを編集する。
 
 ## 第1弾からの変更点
 
@@ -55,8 +55,8 @@ npx wrangler pages deploy <6本入りのdir> --project-name lighting-lab-social-
 | 日時 | 内容 | post ID |
 |---|---|---|
 | 7/31(金) 12:00 | ④ コペンハーゲン｜ダウンライトの数 | `6a6b5cf847d2f41dce37998f`（登録済み） |
-| 8/3(月) 20:00 | ⑤ ロフト｜吊り下げの高さ | **未登録** |
-| 8/4(火) 20:00 | ⑥ 南欧｜天井に光を回す | **未登録** |
+| 8/3(月) 20:00 | ⑤ ロフト｜吊り下げの高さ | `6a6b5dc55f73b8f6cc132148`（登録済み） |
+| 8/4(火) 20:00 | ⑥ 南欧｜天井に光を回す | `6a6b5dd847d2f41dce37a3ab`（登録済み） |
 
 8/5 以降は在庫なし。未使用の判断軸は [AUDIENCE-AND-FORMAT.md](AUDIENCE-AND-FORMAT.md) の台帳を見る。
 
@@ -99,7 +99,7 @@ npx wrangler pages deploy <6本入りのdir> --project-name lighting-lab-social-
 
 ## 5. ロフト｜高い天井は、そのままだと暗い
 
-- **投稿日時**: 2026-08-03(月) 20:00（未登録）
+- **投稿日時**: 2026-08-03(月) 20:00 ／ **post ID**: `6a6b5dc55f73b8f6cc132148`
 - **動画**: `reel-loft-pendant-height.mp4`
 - **間取り**: `public/demo/rooms/us-brooklyn-loft.json`（13.5×8.6×天井4.2m）
 - **変えた条件**: ダイニングペンダント2灯の吊り高さのみ（y=3.3m ⇔ y=1.7m）
@@ -132,7 +132,7 @@ npx wrangler pages deploy <6本入りのdir> --project-name lighting-lab-social-
 
 ## 6. 南欧｜こだわった天井は、夜に消える
 
-- **投稿日時**: 2026-08-04(火) 20:00（未登録）
+- **投稿日時**: 2026-08-04(火) 20:00 ／ **post ID**: `6a6b5dd847d2f41dce37a3ab`
 - **動画**: `reel-mediterranean-ceiling.mp4`
 - **間取り**: `public/demo/rooms/es-mediterranean-arch.json`（9.6×8.0×天井3.05m・現し梁5本）
 - **変えた条件**: 光を配る先のみ（下に落とす ⇔ 梁の上から天井に返す）。
