@@ -1,4 +1,4 @@
-# Buffer 入稿記録｜判断リール 第2弾（8/3〜8/5）
+# Buffer 入稿記録｜判断リール 第2弾（7/31・8/3・8/4）
 
 第1弾（7/30・8/1・8/2）は [BUFFER-QUEUE-3reels.md](BUFFER-QUEUE-3reels.md)。
 ターゲットと構成の型は [AUDIENCE-AND-FORMAT.md](AUDIENCE-AND-FORMAT.md)。
@@ -25,8 +25,12 @@ https://lighting-lab-social-assets.pages.dev/reels/reel-mediterranean-ceiling.mp
 最新デプロイを指すので、新しい3本だけを上げると 8/1・8/2 の予約投稿が参照している
 URLが404になる。
 
+**`--branch main` を必ず付ける。** 付けないと現在のgitブランチ名でプレビュー扱いになり、
+本番が差し替わらない。しかも本番は index.html を200で返すフォールバックがあるため、
+mp4のURLを叩くと **200が返ってきて成功に見える**（中身はHTML）。md5で照合すること。
+
 ```bash
-npx wrangler pages deploy <6本入りのdir> --project-name lighting-lab-social-assets
+npx wrangler pages deploy <6本入りのdir> --project-name lighting-lab-social-assets --branch main
 ```
 
 ## 共通の登録設定
@@ -43,19 +47,24 @@ npx wrangler pages deploy <6本入りのdir> --project-name lighting-lab-social-
 | metadata.instagram.shouldShareToFeed | `true` |
 | thumbnailOffset | `1500`（ms） |
 
-## 投稿キュー（20:00 JST）
+## 投稿キュー
 
-| 日付 | 内容 | post ID |
+7/31 の20:00 には電球色カルーセル（別件・既存）が入っている。上書きを避けるため、
+コペンハーゲンだけ同日の **12:00** に置いた。同日2本になる。
+
+| 日時 | 内容 | post ID |
 |---|---|---|
-| 8/3(月) | ④ コペンハーゲン｜ダウンライトの数 | （登録後に記入） |
-| 8/4(火) | ⑤ ロフト｜吊り下げの高さ | （登録後に記入） |
-| 8/5(水) | ⑥ 南欧｜天井に光を回す | （登録後に記入） |
+| 7/31(金) 12:00 | ④ コペンハーゲン｜ダウンライトの数 | `6a6b5cf847d2f41dce37998f`（登録済み） |
+| 8/3(月) 20:00 | ⑤ ロフト｜吊り下げの高さ | **未登録** |
+| 8/4(火) 20:00 | ⑥ 南欧｜天井に光を回す | **未登録** |
+
+8/5 以降は在庫なし。未使用の判断軸は [AUDIENCE-AND-FORMAT.md](AUDIENCE-AND-FORMAT.md) の台帳を見る。
 
 ---
 
 ## 4. コペンハーゲン｜ダウンライトを、ゼロにすると
 
-- **投稿日時**: 2026-08-03(月) 20:00
+- **投稿日時**: 2026-07-31(金) 12:00 ／ **post ID**: `6a6b5cf847d2f41dce37998f`
 - **動画**: `reel-copenhagen-downlight-count.mp4`
 - **間取り**: `public/demo/rooms/dk-copenhagen-apartment.json`（8.6×6.4×天井3.25m）
 - **変えた条件**: 灯りの置き方のみ（低い位置に9灯 ⇔ 天井に等間隔ダウンライト8灯）
@@ -90,7 +99,7 @@ npx wrangler pages deploy <6本入りのdir> --project-name lighting-lab-social-
 
 ## 5. ロフト｜高い天井は、そのままだと暗い
 
-- **投稿日時**: 2026-08-04(火) 20:00
+- **投稿日時**: 2026-08-03(月) 20:00（未登録）
 - **動画**: `reel-loft-pendant-height.mp4`
 - **間取り**: `public/demo/rooms/us-brooklyn-loft.json`（13.5×8.6×天井4.2m）
 - **変えた条件**: ダイニングペンダント2灯の吊り高さのみ（y=3.3m ⇔ y=1.7m）
@@ -123,7 +132,7 @@ npx wrangler pages deploy <6本入りのdir> --project-name lighting-lab-social-
 
 ## 6. 南欧｜こだわった天井は、夜に消える
 
-- **投稿日時**: 2026-08-05(水) 20:00
+- **投稿日時**: 2026-08-04(火) 20:00（未登録）
 - **動画**: `reel-mediterranean-ceiling.mp4`
 - **間取り**: `public/demo/rooms/es-mediterranean-arch.json`（9.6×8.0×天井3.05m・現し梁5本）
 - **変えた条件**: 光を配る先のみ（下に落とす ⇔ 梁の上から天井に返す）。
