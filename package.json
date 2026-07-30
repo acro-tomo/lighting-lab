@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
+    "test": "vitest run",
     "ig:fonts": "node scripts/instagram/fetch-fonts.mjs",
     "ig:plates": "node scripts/instagram/capture-plates.mjs",
     "ig:posts": "node scripts/instagram/make-posts.mjs",
@@ -49,8 +50,10 @@
     "@playwright/test": "^1.61.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
+    "fake-indexeddb": "^6.2.5",
     "ffmpeg-static": "^5.3.0",
     "typescript": "^6.0.3",
-    "vite": "^8.0.16"
+    "vite": "^8.0.16",
+    "vitest": "^3.2.7"
   }
 }

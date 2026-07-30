@@ -2,7 +2,7 @@ import type { FurniturePreset } from "../../data/furnitureCatalog";
 import { furnitureCatalog } from "../../data/furnitureCatalog";
 import type { WindowPreset } from "../../data/windowCatalog";
 import { windowPresetFromAddKind } from "../../data/windowCatalog";
-import { fixtureModelFromAddKind } from "../../data/fixtureAddKinds";
+import { fixtureModelFromAddKind, IES_IMPORT_ADD_KIND } from "../../data/fixtureAddKinds";
 
 // --- アイコン SVG ヘルパー ---
 
@@ -351,7 +351,7 @@ function StructureIcon({ kind }: { kind: string }) {
 
 // kind から対応するアイコンを返す
 export function ItemIcon({ kind }: { kind: string }) {
-  if (fixtureModelFromAddKind(kind) || kind === "downlight" || kind === "wallspot" || kind === "pendant" || kind === "linelight") {
+  if (fixtureModelFromAddKind(kind) || kind === IES_IMPORT_ADD_KIND || kind === "downlight" || kind === "wallspot" || kind === "pendant" || kind === "linelight") {
     return <LightIcon kind={kind} />;
   }
   if (kind.startsWith("window:")) {

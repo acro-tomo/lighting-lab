@@ -1,24 +1,8 @@
 import { projectSchema } from "../schema/projectSchema";
 import type { Project } from "../types";
+import { openDatabase, PROJECT_STORE as STORE_NAME } from "./db";
 
-const DB_NAME = "ldk-lighting-lab";
-const STORE_NAME = "projects";
 const CURRENT_PROJECT_KEY = "current-project";
-
-const openDatabase = () =>
-  new Promise<IDBDatabase>((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, 1);
-
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME);
-      }
-    };
-
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
 
 export const saveProjectToIndexedDb = async (project: Project) => {
   const db = await openDatabase();
