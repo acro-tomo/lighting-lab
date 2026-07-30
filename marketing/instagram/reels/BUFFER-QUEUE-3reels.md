@@ -1,58 +1,73 @@
-# Buffer 入稿シート｜判断比較リール3本
+# Buffer 入稿記録｜判断リール3本
 
-企画は [PLAN-3reels.md](PLAN-3reels.md)、制作手順は [HANDOFF-local-codex.md](HANDOFF-local-codex.md)。
-既存4件の入稿記録は [../BUFFER-QUEUE.md](../BUFFER-QUEUE.md)。
+**登録済み。** 2026-07-30 に Buffer へ登録した。再登録すると二重投稿になるので、
+このファイルの post ID を必ず確認してから触ること。
 
-> **未入稿。** 動画の書き出しと検証が終わってから登録する。
-> 登録済みになったら、各節に Buffer post ID を追記して二重投稿を防ぐこと。
+企画の経緯は [PLAN-3reels.md](PLAN-3reels.md)、制作手順は [HANDOFF-local-codex.md](HANDOFF-local-codex.md)。
+既存投稿の記録は [../BUFFER-QUEUE.md](../BUFFER-QUEUE.md)。
 
-## 入稿前に必ず終わっていること
+> **注意: PLAN-3reels.md の企画内容は3本とも作り直している。**
+> 実際の描画を確認した結果、スキップフロアの「吹き抜けの上まで照らす」と
+> 縁側の「窓が鏡になる」は器具の実データと成立しないことが分かったため。
+> 下の台本・キャプションが実物である。
 
-1. 3本とも `npm run ig:reel-check` が PASS
-2. 抽出フレームの目視確認が済んでいる
-3. mp4 をコミットして push 済み（**動画URLに commit SHA を使うため**）
+## 動画の配信元
 
-## 動画URL
-
-Buffer には公開URLを渡す。既存4件と同じく GitHub の raw 直リンクを使う。
-**push 後の commit SHA に差し替えること**（`<SHA>` のままでは動かない）。
+GitHub raw ではなく **Cloudflare Pages** に置いてある。mp4 はリポジトリにコミットしていない。
 
 ```
-https://raw.githubusercontent.com/acro-tomo/lighting-lab/<SHA>/marketing/instagram/out/reel-dining-pendant-vs-downlight.mp4
-https://raw.githubusercontent.com/acro-tomo/lighting-lab/<SHA>/marketing/instagram/out/reel-void-pendant-vs-spot.mp4
-https://raw.githubusercontent.com/acro-tomo/lighting-lab/<SHA>/marketing/instagram/out/reel-engawa-cove-dusk.mp4
+https://lighting-lab-social-assets.pages.dev/reels/reel-dining-pendant-vs-downlight.mp4
+https://lighting-lab-social-assets.pages.dev/reels/reel-skipfloor-wall-wash.mp4
+https://lighting-lab-social-assets.pages.dev/reels/reel-engawa-window-at-night.mp4
 ```
 
-## 共通の create_post 設定
+差し替えるときは `npx wrangler pages deploy <dir> --project-name lighting-lab-social-assets`。
+URLが変わらないので、Buffer側の登録し直しは不要。
+
+## 共通の登録設定
 
 | 項目 | 値 |
 |---|---|
 | channelId | `6a607539e2638b94d7b26c75`（hosh1.921 / instagram business） |
+| organizationId | `6a5504c078bb5f9e641df332` |
 | mode | `customScheduled` |
-| schedulingType | **要確認**。既存4件は `notification`。自動投稿に切り替えたなら合わせる |
+| schedulingType | `automatic`（自動投稿）。チャンネルは `defaultToReminders: false` |
 | metadata.instagram.type | `reel` |
 | metadata.instagram.shouldShareToFeed | `true` |
+| thumbnailOffset | `1500`（ms） |
 
-投稿日時は既存キュー（7/28・7/30・7/31 の 20:00）の後ろに置き、
-プレイブックの火・木・金 20:00 に合わせる。
+## 投稿キュー（20:00 JST）
+
+| 日付 | 内容 | post ID |
+|---|---|---|
+| 7/30(木) | ① ダイニング | `6a6ab0329b11043211d36f65` |
+| 7/31(金) | 電球色カルーセル（既存・別件） | `6a689cea4ca1ad14b9ad78f5` |
+| 8/1(土) | ② スキップフロア | `6a6ab043bf2d4c6e41991379` |
+| 8/2(日) | ③ 縁側 | `6a6ab076bf2d4c6e41991867` |
+
+**8/3以降の在庫は無い。** 毎日投稿を続けるには新しい素材が要る。
+Buffer無料プランの予約上限は10件（現在4件）。
 
 ---
 
-## 1. ダイニングの上、ペンダントかダウンライトか
+## 1. ダイニング｜図面の記号ひとつが、食卓の見え方を決める
 
-- **投稿日時**: 2026-08-04(火) 20:00
-- **動画**: `reel-dining-pendant-vs-downlight.mp4`
-- **thumbnailOffset**: `1500`（ms／s1の見出しをカバーに）
-- **Buffer post ID**: 未登録
+- **投稿日時**: 2026-07-30(木) 20:00 ／ **post ID**: `6a6ab0329b11043211d36f65`
+- **動画**: `reel-dining-pendant-vs-downlight.mp4`（19.40秒）
+- **間取り**: `public/demo/share-demo-project.json`
+- **変えた条件**: 食卓直上の器具のみ（ペンダント1灯 ⇔ 中角DL2灯）。合計光束の差 0.045%
 
 ```
-ダイニングの上、ペンダントかダウンライトか。
+電気図面では、どっちも同じ記号です。
 
-図面ではどちらも記号1つです。でも食卓の見え方は変わります。
-ペンダントは食卓だけが明るくなり、ダウンライトは天井がすっきりする。
+食卓の上をペンダントにするか、ダウンライトにするか。
+図面の上では同じ丸印でも、座ったときの見え方は変わります。
+
+ペンダントは、テーブルだけが明るくなる。
+ダウンライトは、床まで明るくなる。
+部屋も家具も、合計の明るさも同じにして、食卓の上だけを入れ替えました。
+
 どちらが向いているかは、テーブルの大きさと位置で変わります。
-
-部屋も家具も色温度も同じ。合計の明るさも揃えて、食卓の上だけを入れ替えました。
 
 うちの食卓だとどうなるか気になる人は、
 プロフィールのリンクから自分の間取り図で試せます。
@@ -66,49 +81,65 @@ https://raw.githubusercontent.com/acro-tomo/lighting-lab/<SHA>/marketing/instagr
 
 ---
 
-## 2. 吹き抜けの上まで、どう照らしますか
+## 2. スキップフロア｜狭い部屋は、壁を照らすと広く見える
 
-- **投稿日時**: 2026-08-06(木) 20:00
-- **動画**: `reel-void-pendant-vs-spot.mp4`
-- **thumbnailOffset**: `1500`
-- **Buffer post ID**: 未登録
+- **投稿日時**: 2026-08-01(土) 20:00 ／ **post ID**: `6a6ab043bf2d4c6e41991379`
+- **動画**: `reel-skipfloor-wall-wash.mp4`（17.80秒）
+- **間取り**: `public/demo/rooms/jp-skipfloor-tokyo.json`
+- **変えた条件**: 吹き抜けを照らす手段のみ（ロングペンダント ⇔ 壁向きスポット2本）。合計光束の差 0.108%
+
+> 当初の「壁の上まで光が届く」は破棄した。`skip-spot-wall-1/2` は 4.4m の壁に対して
+> y=2.1〜2.2m を狙う設計で、上部は照らさない。デモJSONのnote「テレビ側の壁を洗って
+> 体感の広さを出す」に沿った主張へ変更した。
 
 ```
-吹き抜けの上まで、どう照らしますか。
+この部屋、これ以上は広くできません。
 
-長いペンダントは、灯りが目線の高さに来ます。上部は暗いまま。
-壁向きのスポットは、壁の上まで光が届きます。灯り自体は見えません。
-どちらが効くかは、天井の高さと窓の位置で変わります。
+間取りが決まったあとでも、広く見せる手は残っています。
+光を、壁に当てるかどうかです。
+
+灯りを目線の高さに降ろすと、手元は明るいけれど壁は暗いまま。
+壁を照らすと、壁の面が明るくなって部屋の端まで見えます。
+合計の明るさは揃えて、照らす向きだけを変えました。
 
 高い位置の照明は、後から足場が要ります。決めるのは着工前です。
 
-うちの吹き抜けだとどうなるか気になる人は、
+うちの部屋だとどうなるか気になる人は、
 プロフィールのリンクから自分の間取り図で試せます。
 （登録なし・ブラウザだけで動きます）
 
 ※雰囲気を比較するための視覚シミュレーションです。
 　実際の照度(lux)や仕上がりを保証するものではありません。
 
-#注文住宅 #照明計画 #マイホーム計画中 #家づくり記録 #新築一戸建て #吹き抜け #吹き抜けのある家 #ペンダントライト #スポットライト #高天井 #スキップフロア #リビング照明 #インテリア照明 #家づくり #マイホーム #新築 #狭小住宅 #おうちづくり #住宅設計 #照明
+#注文住宅 #照明計画 #マイホーム計画中 #家づくり記録 #新築一戸建て #狭小住宅 #スキップフロア #吹き抜け #スポットライト #間接照明 #壁面照明 #リビング照明 #インテリア照明 #家づくり #マイホーム #新築 #おうちづくり #住宅設計 #家づくり打ち合わせ #照明
 ```
 
 ---
 
-## 3. 照明は、夜だけの話ではありません
+## 3. 縁側｜大きな窓は、夜になると真っ黒な壁になる
 
-- **投稿日時**: 2026-08-07(金) 20:00
-- **動画**: `reel-engawa-cove-dusk.mp4`
-- **thumbnailOffset**: `1000`（s1の夕方の分割画をカバーに）
-- **Buffer post ID**: 未登録
+- **投稿日時**: 2026-08-02(日) 20:00 ／ **post ID**: `6a6ab076bf2d4c6e41991867`
+- **動画**: `reel-engawa-window-at-night.mp4`（20.30秒）
+- **間取り**: `public/demo/rooms/jp-hiraya-engawa.json`
+- **変えた条件**: 縁側の建築化照明3本の有無のみ。時刻送りは文脈で、変数ではない
+- **合計光束は揃えていない**（「足すか足さないか」が判断そのものなので）
+
+> 当初の「窓が鏡になる」は破棄した。`hiraya-cove-1〜3` は y=2.12 から真下を向く
+> テープライトで、照らすのは窓ぎわの床。ガラスは点灯・消灯どちらも黒のまま。
+> s3は時刻を18:18で固定してあるので「変えたのは3本だけ」が絵として本当になっている。
 
 ```
-照明は、夜だけの話ではありません。
+昼は、大きな窓が気持ちいい。
+でも夜は、真っ黒な壁になります。
 
-夕方4時半。この時間は、まだ差が出ません。
-日が落ちるほど、窓は鏡になっていきます。
-上は縁側の建築化照明あり、下はなし。変えたのはその3本だけです。
+大きな窓は、昼の景色を思い浮かべて決めることが多いと思います。
+日が沈むと外は見えなくなって、同じ窓が黒い面になる。
+この見え方は、図面にも昼の写真にも出てきません。
 
-差が出るのは時間帯によります。窓の向きと、暗くなる時刻次第です。
+窓ぎわの床が明るいか、暗いか。
+変えたのは縁側の照明3本だけで、あとは時刻を動かしただけです。
+
+昼と夜、両方見てから決められます。
 
 うちの窓の向きだとどう見えるか気になる人は、
 プロフィールのリンクから自分の間取り図で試せます。
@@ -118,7 +149,7 @@ https://raw.githubusercontent.com/acro-tomo/lighting-lab/<SHA>/marketing/instagr
 ※雰囲気を比較するための視覚シミュレーションです。
 　実際の照度(lux)や仕上がりを保証するものではありません。
 
-#注文住宅 #照明計画 #マイホーム計画中 #家づくり記録 #新築一戸建て #平屋 #縁側 #間接照明 #建築化照明 #和モダン #窓 #リビング照明 #インテリア照明 #家づくり #マイホーム #新築 #おうちづくり #マイホーム記録 #住宅設計 #照明
+#注文住宅 #照明計画 #マイホーム計画中 #家づくり記録 #新築一戸建て #平屋 #縁側 #大きな窓 #間接照明 #建築化照明 #和モダン #リビング照明 #インテリア照明 #家づくり #マイホーム #新築 #おうちづくり #マイホーム記録 #住宅設計 #照明
 ```
 
 ---
@@ -126,9 +157,7 @@ https://raw.githubusercontent.com/acro-tomo/lighting-lab/<SHA>/marketing/instagr
 ## 投稿とは別に、手でやること
 
 **プロフィールのリンクに `?utm_source=instagram` を付ける。**
-主評価指標をプロフィールアクセスとリンクタップまでに限定した経緯は
-[PLAN-3reels.md](PLAN-3reels.md) の「8-2. 決定事項」。将来 Web Analytics を
-入れたとき、過去の流入と切り分けられるようにしておく。
+将来 Web Analytics を入れたとき、過去の流入と切り分けられるようにしておく。
 
 ```
 https://lighting-lab-46l.pages.dev/?utm_source=instagram
