@@ -108,12 +108,15 @@ function overlayHtml(text, disclaimer) {
     width: ${WIDTH}px; height: ${HEIGHT}px; overflow: hidden; position: relative;
     font-family: "ZenKaku", sans-serif; color: ${BRAND.ink};
   }
+  /* 暗幕は照明の見え方を殺すので最小限にし、可読性は文字側の影で稼ぐ。
+     下端はInstagramのUIが乗る帯なので、そこだけ従来どおり濃くしてよい。 */
   .scrim {
     position: absolute; inset: 0;
     background:
-      linear-gradient(to bottom, rgba(7,7,6,0.62) 0%, rgba(7,7,6,0) 22%),
-      linear-gradient(to top, rgba(7,7,6,0.90) 0%, rgba(7,7,6,0.78) 26%, rgba(7,7,6,0.45) 44%, rgba(7,7,6,0) 60%);
+      linear-gradient(to bottom, rgba(7,7,6,0.42) 0%, rgba(7,7,6,0) 15%),
+      linear-gradient(to top, rgba(7,7,6,0.72) 0%, rgba(7,7,6,0.44) 17%, rgba(7,7,6,0.16) 30%, rgba(7,7,6,0) 42%);
   }
+  .lockup, .text, .reel-disclaimer { text-shadow: 0 2px 10px rgba(7,7,6,0.92), 0 0 26px rgba(7,7,6,0.65); }
   .lockup { position: absolute; top: 96px; left: 100px; display: flex; align-items: center; gap: 20px; }
   .mark { width: 56px; height: 56px; border-radius: 50%; background: ${BRAND.amber}; display: grid; place-items: center; flex: none; }
   .mark i { width: 22px; height: 22px; border-radius: 50%; background: ${BRAND.base}; display: block; }

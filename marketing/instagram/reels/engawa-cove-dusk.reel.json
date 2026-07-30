@@ -23,7 +23,6 @@
         "mode": "fixture-variant-move",
         "variantTimeline": [{ "variant": "cove-on", "until": 1.0 }],
         "daylight": { "fromHour": 14.0, "toHour": 15.5 },
-        "settleMs": 120,
         "move": {
           "from": {
             "position": { "x": -3.6, "y": 2.25, "z": -1.8 },
@@ -50,7 +49,6 @@
         "mode": "fixture-variant-move",
         "variantTimeline": [{ "variant": "cove-on", "until": 1.0 }],
         "daylight": { "fromHour": 15.5, "toHour": 18.3 },
-        "settleMs": 120,
         "move": {
           "from": {
             "position": { "x": -3.5, "y": 2.25, "z": -1.7 },
@@ -81,7 +79,6 @@
           { "variant": "cove-on", "until": 1.0 }
         ],
         "daylight": { "fromHour": 18.3, "toHour": 18.3 },
-        "settleMs": 120,
         "move": {
           "from": {
             "position": { "x": -3.4, "y": 2.24, "z": -1.6 },
@@ -108,7 +105,6 @@
         "mode": "fixture-variant-move",
         "variantTimeline": [{ "variant": "cove-on", "until": 1.0 }],
         "daylight": { "fromHour": 18.3, "toHour": 18.3 },
-        "settleMs": 300,
         "move": {
           "from": {
             "position": { "x": -3.35, "y": 2.24, "z": -1.55 },

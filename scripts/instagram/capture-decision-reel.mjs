@@ -228,7 +228,9 @@ async function captureLightAnimation(page, shot, project, dir, frames) {
  */
 async function captureVariantMove(page, shot, project, dir, frames, variants) {
   await page.setViewportSize(VIEWPORT);
-  const { move, variantTimeline, daylight, settleMs = 60 } = shot.sequence;
+  // 60msだと描画が完成する前に撮れて露出が途中状態のまま焼き付く（実測: 60ms=215.5 /
+  // 400ms以降=68.4で安定）。IES対応と日光の実測光スケール化でシーン確定が遅くなったため。
+  const { move, variantTimeline, daylight, settleMs = 400 } = shot.sequence;
 
   for (let index = 0; index < frames; index += 1) {
     const timeline = frames === 1 ? 0 : index / (frames - 1);
@@ -327,6 +329,11 @@ for (const shot of config.shots) {
   const dir = `${config.framesDir}/${shot.id}`;
   await rm(dir, { recursive: true, force: true });
   await mkdir(dir, { recursive: true });
+
+  // ショット先頭はプロジェクトごと差し替わるぶんシーン確定が遅く、フレーム毎の
+  // settleMs では間に合わずに露出が途中状態のまま焼き付く（実測: 白飛びして平均輝度が
+  // 約200、正しくは約68）。撮影前に一度だけ長めに待って暖機する。
+  await applyProject(page, project, 1200);
 
   const startedAt = Date.now();
   if (shot.sequence.mode === "stacked-light-compare") {
