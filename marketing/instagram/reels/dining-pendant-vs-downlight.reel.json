@@ -11,7 +11,7 @@
   "variants": {
     "pendant": {},
     "downlight": {
-      "disableLightIds": ["light-dining-pendant"],
+      "removeLightIds": ["light-dining-pendant"],
       "addLights": [
         {
           "id": "reel-dining-dl-west",
@@ -54,126 +54,113 @@
   },
   "shots": [
     {
-      "id": "s1-question",
+      "id": "s1-symbol",
       "projectFile": "public/demo/share-demo-project.json",
-      "seconds": 3.5,
-      "sequence": {
-        "mode": "fixture-variant-move",
-        "variantTimeline": [{ "variant": "pendant", "until": 1.0 }]
-      },
-      "text": {
-        "eyebrow": "ダイニングの上",
-        "headline": ["ペンダントか、", "ダウンライトか"],
-        "sub": "図面ではどちらも記号1つです"
-      },
-      "voice": "ダイニングの上、ペンダントか、ダウンライトか。"
-    },
-    {
-      "id": "s2-pendant",
-      "projectFile": "public/demo/share-demo-project.json",
-      "seconds": 5.5,
+      "seconds": 3.6,
       "sequence": {
         "mode": "fixture-variant-move",
         "variantTimeline": [{ "variant": "pendant", "until": 1.0 }],
         "move": {
           "from": {
-            "position": { "x": 1.8, "y": 2.35, "z": 3.05 },
-            "target": { "x": -0.35, "y": 0.72, "z": -0.35 }
+            "position": { "x": 0.98, "y": 2.43, "z": 2.92 },
+            "target": { "x": -1.35, "y": 0.4, "z": 0.95 }
           },
           "to": {
-            "position": { "x": 0.35, "y": 1.85, "z": 2.15 },
-            "target": { "x": -1.35, "y": 0.8, "z": 0.95 }
+            "position": { "x": 0.9, "y": 2.4, "z": 2.85 },
+            "target": { "x": -1.35, "y": 0.4, "z": 0.95 }
           }
         }
       },
       "text": {
-        "eyebrow": "A ペンダント1灯",
-        "headline": ["食卓だけが", "明るい"],
-        "sub": "テーブル面から約90cm上に吊るした場合"
+        "eyebrow": "電気図面の承認前に",
+        "headline": ["図面では、", "どっちも同じ記号"],
+        "sub": "食卓の上の照明"
       },
-      "voice": "ペンダントは、食卓だけが明るくなります。"
+      "voice": "図面では、どっちも同じ記号です。"
     },
     {
-      "id": "s3-downlight",
+      "id": "s2-swap",
       "projectFile": "public/demo/share-demo-project.json",
-      "seconds": 5.5,
-      "sequence": {
-        "mode": "fixture-variant-move",
-        "variantTimeline": [{ "variant": "downlight", "until": 1.0 }],
-        "move": {
-          "from": {
-            "position": { "x": 1.8, "y": 2.35, "z": 3.05 },
-            "target": { "x": -0.35, "y": 0.72, "z": -0.35 }
-          },
-          "to": {
-            "position": { "x": 0.35, "y": 1.85, "z": 2.15 },
-            "target": { "x": -1.35, "y": 0.8, "z": 0.95 }
-          }
-        }
-      },
-      "text": {
-        "eyebrow": "B ダウンライト2灯",
-        "headline": ["天井が", "すっきりする"],
-        "sub": "テーブルを動かしても位置は変わりません"
-      },
-      "voice": "ダウンライトは、天井がすっきりします。"
-    },
-    {
-      "id": "s4-switch",
-      "projectFile": "public/demo/share-demo-project.json",
-      "seconds": 3.5,
+      "seconds": 6.5,
       "sequence": {
         "mode": "fixture-variant-move",
         "variantTimeline": [
-          { "variant": "pendant", "until": 0.25 },
-          { "variant": "downlight", "until": 0.5 },
-          { "variant": "pendant", "until": 0.75 },
+          { "variant": "pendant", "until": 0.5 },
           { "variant": "downlight", "until": 1.0 }
         ],
         "move": {
           "from": {
-            "position": { "x": 0.35, "y": 1.85, "z": 2.15 },
-            "target": { "x": -1.35, "y": 0.8, "z": 0.95 }
+            "position": { "x": 0.9, "y": 2.4, "z": 2.85 },
+            "target": { "x": -1.35, "y": 0.4, "z": 0.95 }
           },
           "to": {
-            "position": { "x": 0.35, "y": 1.85, "z": 2.15 },
-            "target": { "x": -1.35, "y": 0.8, "z": 0.95 }
+            "position": { "x": 0.55, "y": 2.25, "z": 2.6 },
+            "target": { "x": -1.35, "y": 0.35, "z": 0.95 }
           }
         }
       },
       "text": {
-        "eyebrow": "変えたのはここだけ",
-        "headline": ["部屋も家具も", "色温度も同じ"],
-        "sub": "2700K。合計の明るさもほぼ同じに揃えています"
+        "eyebrow": "食卓の上だけを入れ替え",
+        "headline": ["ペンダントか、", "ダウンライトか"],
+        "sub": "部屋も家具も明るさも同じ"
       },
-      "voice": "変えたのは、ここだけです。"
+      "voice": "ペンダントか、ダウンライトか。"
     },
     {
-      "id": "s5-outro",
+      "id": "s3-outside",
       "projectFile": "public/demo/share-demo-project.json",
-      "seconds": 3.5,
+      "seconds": 6.5,
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [
+          { "variant": "downlight", "until": 0.34 },
+          { "variant": "pendant", "until": 0.67 },
+          { "variant": "downlight", "until": 1.0 }
+        ],
+        "move": {
+          "from": {
+            "position": { "x": 0.55, "y": 2.25, "z": 2.6 },
+            "target": { "x": -1.35, "y": 0.35, "z": 0.95 }
+          },
+          "to": {
+            "position": { "x": 0.45, "y": 2.2, "z": 2.5 },
+            "target": { "x": -1.35, "y": 0.34, "z": 0.95 }
+          }
+        }
+      },
+      "text": {
+        "eyebrow": "同じ明るさで比べています",
+        "headline": ["テーブルだけか、", "床まで明るいか"],
+        "sub": "光の広がり方が違います"
+      },
+      "voice": "ペンダントは、テーブルだけ。ダウンライトは、床まで明るい。"
+    },
+    {
+      "id": "s4-outro",
+      "projectFile": "public/demo/share-demo-project.json",
+      "seconds": 4.0,
       "sequence": {
         "mode": "fixture-variant-move",
         "variantTimeline": [{ "variant": "downlight", "until": 1.0 }],
         "move": {
           "from": {
-            "position": { "x": 0.35, "y": 1.85, "z": 2.15 },
-            "target": { "x": -1.35, "y": 0.8, "z": 0.95 }
+            "position": { "x": 0.45, "y": 2.2, "z": 2.5 },
+            "target": { "x": -1.35, "y": 0.34, "z": 0.95 }
           },
           "to": {
-            "position": { "x": 0.35, "y": 1.85, "z": 2.15 },
-            "target": { "x": -1.35, "y": 0.8, "z": 0.95 }
+            "position": { "x": 0.45, "y": 2.2, "z": 2.5 },
+            "target": { "x": -1.35, "y": 0.34, "z": 0.95 }
           }
         }
       },
       "text": {
-        "eyebrow": "決めるのは、うちの食卓",
-        "headline": ["自分の間取りで", "先に見る"],
-        "sub": "間取り図を取り込むと同じ比較ができます",
+        "eyebrow": "うちの食卓なら、どっち",
+        "headline": ["決める前に、", "見ておく"],
+        "sub": "自分の間取り図で試せます",
         "cta": "プロフィールのリンクから",
         "outro": true
       },
-      "voice": "うちの食卓なら、どちらか。先に見てから決められます。"
+      "voice": "決める前に、見ておく。"
     }
   ]
 }

@@ -56,14 +56,19 @@ function requireVariant(variants, name) {
 }
 
 /**
- * 器具の差し替えを「無効化 / 数値の上書き / 追加」の3操作だけで表す。
+ * 器具の差し替えを「撤去 / 無効化 / 数値の上書き / 追加」の4操作だけで表す。
  * 元プロジェクトは触らず、比較のたびに複製へ適用する。
+ *
+ * 撤去(remove)と無効化(disable)は分けてある。消灯しても器具本体は画に残るので、
+ * 「器具そのものを別の種類に置き換える」比較では残った本体が嘘になる。
+ * 光束は消灯時点で0なので、撤去しても合計光束の揃えは変わらない。
  */
 function applyVariant(project, variant) {
   const next = cloneProject(project);
+  const removed = new Set(variant.removeLightIds ?? []);
   const disabled = new Set(variant.disableLightIds ?? []);
   const overrides = variant.lightOverrides ?? {};
-  next.lights = next.lights.map((light) => {
+  next.lights = next.lights.filter((light) => !removed.has(light.id)).map((light) => {
     const merged = overrides[light.id] ? { ...light, ...overrides[light.id] } : light;
     return disabled.has(light.id) ? { ...merged, enabled: false } : merged;
   });
