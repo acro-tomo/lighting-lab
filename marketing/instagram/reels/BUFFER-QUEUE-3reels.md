@@ -45,8 +45,9 @@ URLが変わらないので、Buffer側の登録し直しは不要。
 | 8/1(土) | ② スキップフロア | `6a6ab043bf2d4c6e41991379` |
 | 8/2(日) | ③ 縁側 | `6a6ab076bf2d4c6e41991867` |
 
-**8/3以降の在庫は無い。** 毎日投稿を続けるには新しい素材が要る。
-Buffer無料プランの予約上限は10件（現在4件）。
+8/3以降は第2弾を用意した → [BUFFER-QUEUE-2nd.md](BUFFER-QUEUE-2nd.md)。
+ターゲットと構成の型は [AUDIENCE-AND-FORMAT.md](AUDIENCE-AND-FORMAT.md)。
+Buffer無料プランの予約上限は10件。
 
 ---
 
