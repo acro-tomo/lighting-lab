@@ -114,9 +114,14 @@ function overlayHtml(text, disclaimer) {
     position: absolute; inset: 0;
     background:
       linear-gradient(to bottom, rgba(7,7,6,0.42) 0%, rgba(7,7,6,0) 15%),
-      linear-gradient(to top, rgba(7,7,6,0.72) 0%, rgba(7,7,6,0.44) 17%, rgba(7,7,6,0.16) 30%, rgba(7,7,6,0) 42%);
+      linear-gradient(to top, rgba(7,7,6,0.78) 0%, rgba(7,7,6,0.56) 18%, rgba(7,7,6,0.34) 30%, rgba(7,7,6,0.12) 40%, rgba(7,7,6,0) 50%);
   }
+  /* 見出しは字が太いので影だけで足りるが、eyebrow/sub/cta は細く色も淡いので
+     暗幕を薄くしたぶん影を強めないと明るい壁の上で背景に溶ける。 */
   .lockup, .text, .reel-disclaimer { text-shadow: 0 2px 10px rgba(7,7,6,0.92), 0 0 26px rgba(7,7,6,0.65); }
+  .eyebrow, .sub, .cta, .url, .note, .reel-disclaimer {
+    text-shadow: 0 1px 4px rgba(7,7,6,0.98), 0 2px 12px rgba(7,7,6,0.92), 0 0 24px rgba(7,7,6,0.8);
+  }
   .lockup { position: absolute; top: 96px; left: 100px; display: flex; align-items: center; gap: 20px; }
   .mark { width: 56px; height: 56px; border-radius: 50%; background: ${BRAND.amber}; display: grid; place-items: center; flex: none; }
   .mark i { width: 22px; height: 22px; border-radius: 50%; background: ${BRAND.base}; display: block; }
