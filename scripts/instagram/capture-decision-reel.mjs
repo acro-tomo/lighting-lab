@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { existsSync } from "node:fs";
+import { closeSync, existsSync, fstatSync, openSync, readSync } from "node:fs";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { promisify } from "node:util";
 import { chromium } from "@playwright/test";
@@ -29,8 +29,35 @@ const HIDE_CHROME_CSS = `
   [role="status"] { visibility: hidden !important; }
 `;
 
+const RESUME = process.env.REEL_RESUME === "1";
+
 const lerp = (from, to, amount) => from + (to - from) * amount;
 const eased = (amount) => amount * amount * (3 - 2 * amount);
+
+/**
+ * dir の先頭から連続して「最後まで書けている」PNG が何枚あるかを返す。
+ * 途中で落ちた回の最後の1枚は IEND まで届いていないので、そこで打ち切る。
+ */
+function completeFrames(dir, frames) {
+  for (let index = 0; index < frames; index += 1) {
+    const path = `${dir}/f${String(index).padStart(4, "0")}.png`;
+    if (!existsSync(path)) return index;
+    let file;
+    try {
+      file = openSync(path, "r");
+      const tail = Buffer.alloc(8);
+      const size = fstatSync(file).size;
+      if (size < 8) return index;
+      readSync(file, tail, 0, 8, size - 8);
+      if (tail.toString("latin1", 4, 8) !== "IEND") return index;
+    } catch {
+      return index;
+    } finally {
+      if (file !== undefined) closeSync(file);
+    }
+  }
+  return frames;
+}
 
 function cloneProject(project) {
   return structuredClone(project);
@@ -226,13 +253,13 @@ async function captureLightAnimation(page, shot, project, dir, frames) {
  * 器具のバリアントを切り替えながらカメラを動かす。
  * カメラを止めれば同一フレームでのA/B切替、動かせばドリーやチルトになる。
  */
-async function captureVariantMove(page, shot, project, dir, frames, variants) {
+async function captureVariantMove(page, shot, project, dir, frames, variants, startIndex = 0) {
   await page.setViewportSize(VIEWPORT);
   // 60msだと描画が完成する前に撮れて露出が途中状態のまま焼き付く（実測: 60ms=215.5 /
   // 400ms以降=68.4で安定）。IES対応と日光の実測光スケール化でシーン確定が遅くなったため。
   const { move, variantTimeline, daylight, settleMs = 400 } = shot.sequence;
 
-  for (let index = 0; index < frames; index += 1) {
+  for (let index = startIndex; index < frames; index += 1) {
     const timeline = frames === 1 ? 0 : index / (frames - 1);
     const next = applyVariant(project, requireVariant(variants, variantAt(variantTimeline, timeline)));
     next.camera = movedCamera(next.camera, move, eased(timeline));
@@ -327,8 +354,18 @@ for (const shot of config.shots) {
   const project = applyCameraOverride(sourceProject, shot.cameraOverride);
   const frames = SMOKE ? 3 : Math.max(2, Math.round(shot.seconds * FPS));
   const dir = `${config.framesDir}/${shot.id}`;
-  await rm(dir, { recursive: true, force: true });
+  // 撮影が途中で落ちる環境（コンテナの再起動など）で、撮り直しをゼロからやらないための再開。
+  const startIndex = RESUME ? completeFrames(dir, frames) : 0;
+  if (startIndex === 0) {
+    await rm(dir, { recursive: true, force: true });
+  }
   await mkdir(dir, { recursive: true });
+  if (startIndex >= frames) {
+    console.log(`shot=${shot.id} frames=${frames} (撮影済み・再開でスキップ)`);
+    manifest.push({ id: shot.id, projectFile: shot.projectFile, sequenceMode: shot.sequence.mode, frames, seconds: shot.seconds, fps: FPS });
+    continue;
+  }
+  if (startIndex > 0) console.log(`shot=${shot.id} f${String(startIndex).padStart(4, "0")} から再開`);
 
   // ショット先頭はプロジェクトごと差し替わるぶんシーン確定が遅く、フレーム毎の
   // settleMs では間に合わずに露出が途中状態のまま焼き付く（実測: 白飛びして平均輝度が
@@ -343,14 +380,14 @@ for (const shot of config.shots) {
   } else if (shot.sequence.mode === "light-property-animation") {
     await captureLightAnimation(page, shot, project, dir, frames);
   } else if (shot.sequence.mode === "fixture-variant-move") {
-    await captureVariantMove(page, shot, project, dir, frames, config.variants);
+    await captureVariantMove(page, shot, project, dir, frames, config.variants, startIndex);
   } else if (shot.sequence.mode === "daylight-split-timelapse") {
     await captureDaylightSplit(page, shot, project, dir, frames, config.variants);
   } else {
     throw new Error(`unknown sequence mode: ${shot.sequence.mode}`);
   }
 
-  const msPerFrame = Math.round((Date.now() - startedAt) / frames);
+  const msPerFrame = Math.round((Date.now() - startedAt) / Math.max(1, frames - startIndex));
   console.log(`shot=${shot.id} frames=${frames} ms/frame=${msPerFrame}`);
   manifest.push({
     id: shot.id,
