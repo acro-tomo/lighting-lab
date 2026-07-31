@@ -67,9 +67,9 @@
 | 灯数と高さの分散（天井8灯 / 低い灯り9灯） | copenhagen | 7/31 12:00 登録済み |
 | 吊り下げの高さ | loft | 8/3 20:00 登録済み |
 | 光を配る先（下 / 天井・現し梁） | mediterranean | 8/4 20:00 登録済み |
-| 調光の有無（100% / 25%） | share-demo-project | 8/5 20:00 予定・**Buffer未登録** |
-| 色温度を混ぜるか揃えるか | copenhagen | 8/6 20:00 予定・**Buffer未登録** |
-| スイッチの分け方（1回路 / 分ける） | hiraya | 8/7 20:00 予定・**Buffer未登録** |
+| 調光の有無（100% / 25%） | share-demo-project | 8/8 20:00 予約済（IES適用） |
+| 色温度を混ぜるか揃えるか | copenhagen | 8/9 20:00 予約済（IES適用） |
+| スイッチの分け方（1回路 / 分ける） | hiraya | 8/10 20:00 予約済（IES適用） |
 
 日付は [BUFFER-QUEUE-2nd.md](BUFFER-QUEUE-2nd.md) / [BUFFER-QUEUE-3rd.md](BUFFER-QUEUE-3rd.md) の
 登録実績が正。第3弾の状態は BUFFER-QUEUE-3rd.md を見る。
