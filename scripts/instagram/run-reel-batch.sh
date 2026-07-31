@@ -15,11 +15,14 @@ if [ -z "${DISPLAY:-}" ] && command -v xvfb-run > /dev/null; then
 fi
 
 ensure_dev() {
+  curl -sf -o /dev/null "$DEV_URL" && return 0
+  # 落ちている場合は自分で起こす。再起動したあとに同じコマンドで再開できるようにする。
+  setsid nohup npm run dev > /tmp/ldk-reel-dev.log 2>&1 < /dev/null &
   for _ in $(seq 1 30); do
     if curl -sf -o /dev/null "$DEV_URL"; then return 0; fi
     sleep 2
   done
-  echo "devサーバが $DEV_URL で応答しない。別ターミナルで npm run dev を起動する。" >&2
+  echo "devサーバが $DEV_URL で応答しない。ログ: /tmp/ldk-reel-dev.log" >&2
   return 1
 }
 
