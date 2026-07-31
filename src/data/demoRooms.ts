@@ -3,7 +3,7 @@ import type { CompareShot, Project } from "../types";
 
 // ?demo=<key> で開ける部屋のカタログ。実体は public/demo/rooms/*.json で、
 // バンドルには含めずに読込時 fetch する（部屋を増やしても初期ロードが重くならない）。
-// サムネイルは npm run demo:thumbs で plates から生成する。
+// サムネイルは public/demo/rooms/thumbs/<key>.jpg（480x360）。
 export type DemoRoom = {
   /** URL の ?demo= に渡す値。 */
   key: string;

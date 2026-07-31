@@ -3780,3 +3780,84 @@ h2 {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   }
 }
+
+/* IES配光コントロール（照明インスペクタ「器具・配光」内） */
+.ies-control {
+  display: grid;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(245, 198, 77, 0.16);
+}
+
+.ies-control .field-label {
+  color: #cfc7b8;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ies-status {
+  margin: 0;
+  color: #b8b0a2;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.ies-status.is-on {
+  color: #f5c64d;
+}
+
+.ies-status.is-missing {
+  color: #e8a05a;
+}
+
+.ies-status.is-error {
+  color: #e88a7a;
+}
+
+.ies-values {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+
+.ies-values > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11px;
+}
+
+.ies-values dt {
+  color: #8f8779;
+}
+
+.ies-values dd {
+  margin: 0;
+  color: #f3efe7;
+  font-variant-numeric: tabular-nums;
+}
+
+.ies-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ies-actions button {
+  padding: 6px 12px;
+  border: 1px solid rgba(245, 198, 77, 0.32);
+  border-radius: 7px;
+  background: rgba(245, 198, 77, 0.1);
+  color: #f3efe7;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ies-actions button:hover:not(:disabled) {
+  background: rgba(245, 198, 77, 0.2);
+}
+
+.ies-actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

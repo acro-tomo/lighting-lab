@@ -1,6 +1,6 @@
 # LDK Lighting Lab — CLAUDE.md
 
-MacBook上でローカル実行する個人用の照明シミュレーター。1階LDK・階段・吹き抜けを簡易3D化し、家具と照明の位置・明るさ・色温度を変えて夜の見え方を比較する。**住宅CAD/照度帳票ではなく、雰囲気比較用の視覚シミュレーション**。詳細は [README.md](README.md)。
+MacBook上でローカル実行する個人用の照明シミュレーター。新築・リノベーションを検討する施主が、自分の間取りで照明の配置・明るさ・色温度と部屋の雰囲気を施工前に比較し、照明計画の判断材料にする。**住宅CAD/照度帳票ではなく、実照度・IES/LDT配光・施工後の見え方を保証しない雰囲気比較用の視覚シミュレーション**。詳細は [README.md](README.md)。
 
 ## スタック
 
@@ -83,6 +83,7 @@ Vite + React 19 + TypeScript / Three.js + @react-three/fiber + @react-three/drei
 - **作業単位の完了ごとに必ずセマンティックコミットする**（履歴を残さず放置しない）。複数の不具合修正・機能追加をまとめて行った場合も、論理単位ごとに分けてコミットする。検証（typecheck/build）が通ってからコミットする。
 - **コミット前に必ず `git status` / `git diff` で意図しない変更が混ざっていないか確認**してから `git add` する。
 - **デプロイフローは`main`直行ではない**。作業ブランチ → `staging` にマージ・push（Cloudflare Pages Previewでスマホ含め実機確認）→ 問題なければ `main` にマージ・push（本番）、の順を厳守する。手順・URLの詳細は [docs/deployment.md](docs/deployment.md) を参照。`--force` 系は事前確認。
+- **SNS投稿素材（`marketing/`, `scripts/instagram/`, Buffer入稿シート等）は `staging` / `main` に入れない**。専用ブランチ（`claude/instagram-thumbnail-design-vjvc4o`）にのみ置く。アプリ機能の追従が必要なら都度 `main`/`staging` をそのブランチへマージする（逆方向はしない）。
 - 生成物はコミットしない: `dist/`, `output/`, `.playwright-cli/`。
 
 ## メモリ

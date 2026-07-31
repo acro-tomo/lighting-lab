@@ -6,10 +6,10 @@ marketing-plan.md のコンテンツ型に対応する投稿文の下書き。�
 
 ## 1. X ローンチ投稿（型1: Before/After動画添付）
 
-> 新築の後悔ランキング常連の「照明」、契約前に自分の間取りで夜の見え方を試せる無料ツールを作りました。
+> 新築の後悔ランキング常連の「照明」、施工前に自分の間取りで配置・明るさ・色温度と部屋の雰囲気を比べられる無料ツールを作りました。
 >
 > ・間取り図（PDF/画像）を読み込んで壁と照明を配置
-> ・明るさ/色温度を変えて夜のLDKを比較
+> ・配置/明るさ/色温度を変えて部屋の雰囲気を比較
 > ・ブラウザだけ、ログイン不要、無料
 >
 > ※雰囲気比較用で実照度は保証しません
@@ -23,7 +23,7 @@ marketing-plan.md のコンテンツ型に対応する投稿文の下書き。�
 
 ## 2. X 実況スレッド（型2: スクショ連投）
 
-1/ 家の照明計画、図面の丸印だけ見て決めるの不安すぎたので、夜の見え方をブラウザで確認できるツールを自作しました。使い方を実況します
+1/ 家の照明計画、図面の丸印だけ見て決めるのが不安すぎたので、自分の間取りで照明案と部屋の雰囲気を比べられるツールを自作しました。使い方を実況します
 2/ まず間取り図を読み込む。PDFでも画像でもOK。寸法を1辺なぞって縮尺合わせ（スクショ: 2D平面＋背景）
 3/ 壁・窓・家具を置いて、照明を配置。ダウンライト、ペンダント、間接照明（テープライト）あたりが揃ってます（スクショ: 配置後の2D）
 4/ 3Dに切り替えると夜のLDKに。視点は自由に動かせて、比較したい画は「比較一覧」にストックできます（スクショ: 3D夜景）
@@ -49,7 +49,7 @@ marketing-plan.md のコンテンツ型に対応する投稿文の下書き。�
 ## 5. Instagram / Reels キャプション
 
 > 新築・リノベの照明計画、図面だけで決めて後悔しがち。
-> 自分の間取り図を読み込んで、夜の見え方をシミュレーションできる無料ツールを作りました🏠💡
+> 自分の間取り図を読み込んで、照明の配置・明るさ・色温度と部屋の雰囲気を比べられる無料ツールを作りました🏠💡
 > ブラウザで動くのでアプリ不要。プロフィールのリンクから試せます。
 > ※雰囲気比較用のツールで、実際の照度や施工後の見え方を保証するものではありません
 >
@@ -63,9 +63,9 @@ Title:
 
 First comment:
 
-> I'm planning a house in Japan, and lighting is one of the most common regrets people mention after moving in — but there was no easy way to preview how a lighting plan feels at night.
+> I'm planning a house in Japan, and lighting is one of the most common regrets people mention after moving in — but there was no easy way to compare how different lighting plans would shape the room before construction.
 >
-> So I built a free browser tool: import your floor plan (PDF/image), trace the walls, place lights and furniture, then compare how the room looks at night as you change brightness and color temperature. The "realistic" view path-traces the exact scene you're editing (three-gpu-pathtracer + three-mesh-bvh in a worker), so indirect bounce light off walls and floors is included — what you see is what the final render gives you.
+> So I built a free browser tool: import your floor plan (PDF/image), trace the walls, place lights and furniture, then compare lighting placement, brightness, color temperature, and the resulting room atmosphere. The "realistic" view path-traces the exact scene you're editing (three-gpu-pathtracer + three-mesh-bvh in a worker), so you can compare indirect bounce light off walls and floors while adjusting the plan.
 >
 > It's deliberately NOT a photometric tool: no lux guarantees, no IES/LDT data — it's for comparing mood, and the app says so on screen.
 >

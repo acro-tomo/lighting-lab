@@ -1,0 +1,485 @@
+{
+  "framesDir": "output/reel-copenhagen-count-frames",
+  "audioDir": "output/reel-copenhagen-count-audio",
+  "outName": "reel-copenhagen-downlight-count.mp4",
+  "disclaimer": "雰囲気比較用。実照度・施工後の見え方は保証しません",
+  "speakerId": 888753760,
+  "speed": 1.08,
+  "intonation": 1.05,
+  "tempoDynamics": 1.15,
+  "volume": 1.0,
+  "variants": {
+    "scattered": {},
+    "downlight": {
+      "removeLightIds": [
+        "cph-pendant-dining",
+        "cph-pendant-corner",
+        "cph-pendant-sofa",
+        "cph-pendant-window",
+        "cph-bracket-1",
+        "cph-bracket-2",
+        "cph-bracket-3",
+        "cph-bracket-4",
+        "cph-floorlamp"
+      ],
+      "addLights": [
+        {
+          "id": "reel-cph-dl-1",
+          "name": "比較用ダウンライト 1",
+          "type": "downlight",
+          "model": "dl-diffuse",
+          "position": {
+            "x": -2.58,
+            "y": 3.21,
+            "z": -1.067
+          },
+          "mountHeightM": 3.25,
+          "rotationDeg": {
+            "x": -90,
+            "y": 0,
+            "z": 0
+          },
+          "target": {
+            "x": -2.58,
+            "y": 0,
+            "z": -1.067
+          },
+          "lumens": 671,
+          "colorTemperatureK": 2600,
+          "dimmer": 39,
+          "enabled": true,
+          "beamAngleDeg": 110,
+          "penumbra": 0.95,
+          "castsShadow": true,
+          "note": "比較用: 等間隔DL。9灯側と合計光束を揃えてある"
+        },
+        {
+          "id": "reel-cph-dl-2",
+          "name": "比較用ダウンライト 2",
+          "type": "downlight",
+          "model": "dl-diffuse",
+          "position": {
+            "x": -2.58,
+            "y": 3.21,
+            "z": 1.067
+          },
+          "mountHeightM": 3.25,
+          "rotationDeg": {
+            "x": -90,
+            "y": 0,
+            "z": 0
+          },
+          "target": {
+            "x": -2.58,
+            "y": 0,
+            "z": 1.067
+          },
+          "lumens": 671,
+          "colorTemperatureK": 2600,
+          "dimmer": 39,
+          "enabled": true,
+          "beamAngleDeg": 110,
+          "penumbra": 0.95,
+          "castsShadow": true,
+          "note": "比較用: 等間隔DL。9灯側と合計光束を揃えてある"
+        },
+        {
+          "id": "reel-cph-dl-3",
+          "name": "比較用ダウンライト 3",
+          "type": "downlight",
+          "model": "dl-diffuse",
+          "position": {
+            "x": -0.86,
+            "y": 3.21,
+            "z": -1.067
+          },
+          "mountHeightM": 3.25,
+          "rotationDeg": {
+            "x": -90,
+            "y": 0,
+            "z": 0
+          },
+          "target": {
+            "x": -0.86,
+            "y": 0,
+            "z": -1.067
+          },
+          "lumens": 671,
+          "colorTemperatureK": 2600,
+          "dimmer": 39,
+          "enabled": true,
+          "beamAngleDeg": 110,
+          "penumbra": 0.95,
+          "castsShadow": true,
+          "note": "比較用: 等間隔DL。9灯側と合計光束を揃えてある"
+        },
+        {
+          "id": "reel-cph-dl-4",
+          "name": "比較用ダウンライト 4",
+          "type": "downlight",
+          "model": "dl-diffuse",
+          "position": {
+            "x": -0.86,
+            "y": 3.21,
+            "z": 1.067
+          },
+          "mountHeightM": 3.25,
+          "rotationDeg": {
+            "x": -90,
+            "y": 0,
+            "z": 0
+          },
+          "target": {
+            "x": -0.86,
+            "y": 0,
+            "z": 1.067
+          },
+          "lumens": 671,
+          "colorTemperatureK": 2600,
+          "dimmer": 39,
+          "enabled": true,
+          "beamAngleDeg": 110,
+          "penumbra": 0.95,
+          "castsShadow": true,
+          "note": "比較用: 等間隔DL。9灯側と合計光束を揃えてある"
+        },
+        {
+          "id": "reel-cph-dl-5",
+          "name": "比較用ダウンライト 5",
+          "type": "downlight",
+          "model": "dl-diffuse",
+          "position": {
+            "x": 0.86,
+            "y": 3.21,
+            "z": -1.067
+          },
+          "mountHeightM": 3.25,
+          "rotationDeg": {
+            "x": -90,
+            "y": 0,
+            "z": 0
+          },
+          "target": {
+            "x": 0.86,
+            "y": 0,
+            "z": -1.067
+          },
+          "lumens": 671,
+          "colorTemperatureK": 2600,
+          "dimmer": 39,
+          "enabled": true,
+          "beamAngleDeg": 110,
+          "penumbra": 0.95,
+          "castsShadow": true,
+          "note": "比較用: 等間隔DL。9灯側と合計光束を揃えてある"
+        },
+        {
+          "id": "reel-cph-dl-6",
+          "name": "比較用ダウンライト 6",
+          "type": "downlight",
+          "model": "dl-diffuse",
+          "position": {
+            "x": 0.86,
+            "y": 3.21,
+            "z": 1.067
+          },
+          "mountHeightM": 3.25,
+          "rotationDeg": {
+            "x": -90,
+            "y": 0,
+            "z": 0
+          },
+          "target": {
+            "x": 0.86,
+            "y": 0,
+            "z": 1.067
+          },
+          "lumens": 671,
+          "colorTemperatureK": 2600,
+          "dimmer": 39,
+          "enabled": true,
+          "beamAngleDeg": 110,
+          "penumbra": 0.95,
+          "castsShadow": true,
+          "note": "比較用: 等間隔DL。9灯側と合計光束を揃えてある"
+        },
+        {
+          "id": "reel-cph-dl-7",
+          "name": "比較用ダウンライト 7",
+          "type": "downlight",
+          "model": "dl-diffuse",
+          "position": {
+            "x": 2.58,
+            "y": 3.21,
+            "z": -1.067
+          },
+          "mountHeightM": 3.25,
+          "rotationDeg": {
+            "x": -90,
+            "y": 0,
+            "z": 0
+          },
+          "target": {
+            "x": 2.58,
+            "y": 0,
+            "z": -1.067
+          },
+          "lumens": 671,
+          "colorTemperatureK": 2600,
+          "dimmer": 39,
+          "enabled": true,
+          "beamAngleDeg": 110,
+          "penumbra": 0.95,
+          "castsShadow": true,
+          "note": "比較用: 等間隔DL。9灯側と合計光束を揃えてある"
+        },
+        {
+          "id": "reel-cph-dl-8",
+          "name": "比較用ダウンライト 8",
+          "type": "downlight",
+          "model": "dl-diffuse",
+          "position": {
+            "x": 2.58,
+            "y": 3.21,
+            "z": 1.067
+          },
+          "mountHeightM": 3.25,
+          "rotationDeg": {
+            "x": -90,
+            "y": 0,
+            "z": 0
+          },
+          "target": {
+            "x": 2.58,
+            "y": 0,
+            "z": 1.067
+          },
+          "lumens": 671,
+          "colorTemperatureK": 2600,
+          "dimmer": 39,
+          "enabled": true,
+          "beamAngleDeg": 110,
+          "penumbra": 0.95,
+          "castsShadow": true,
+          "note": "比較用: 等間隔DL。9灯側と合計光束を揃えてある"
+        }
+      ]
+    }
+  },
+  "shots": [
+    {
+      "id": "s1-hook",
+      "projectFile": "public/demo/rooms/dk-copenhagen-apartment.json",
+      "seconds": 3.4,
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [
+          {
+            "variant": "downlight",
+            "until": 0.38
+          },
+          {
+            "variant": "scattered",
+            "until": 1.0
+          }
+        ],
+        "move": {
+          "from": {
+            "position": {
+              "x": 3.35,
+              "y": 1.5,
+              "z": 2.35
+            },
+            "target": {
+              "x": -1.4,
+              "y": 1.2,
+              "z": -1.2
+            }
+          },
+          "to": {
+            "position": {
+              "x": 3.3,
+              "y": 1.5,
+              "z": 2.3
+            },
+            "target": {
+              "x": -1.4,
+              "y": 1.2,
+              "z": -1.2
+            }
+          }
+        }
+      },
+      "text": {
+        "eyebrow": "電気図面のダウンライト",
+        "headline": [
+          "ダウンライトを、",
+          "ゼロにすると"
+        ],
+        "sub": "合計の明るさは変えていません"
+      },
+      "voice": "ダウンライトを、ゼロにすると。"
+    },
+    {
+      "id": "s2-swap",
+      "projectFile": "public/demo/rooms/dk-copenhagen-apartment.json",
+      "seconds": 6.0,
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [
+          {
+            "variant": "scattered",
+            "until": 0.5
+          },
+          {
+            "variant": "downlight",
+            "until": 1.0
+          }
+        ],
+        "move": {
+          "from": {
+            "position": {
+              "x": 3.3,
+              "y": 1.5,
+              "z": 2.3
+            },
+            "target": {
+              "x": -1.4,
+              "y": 1.2,
+              "z": -1.2
+            }
+          },
+          "to": {
+            "position": {
+              "x": 2.9,
+              "y": 1.55,
+              "z": 2.0
+            },
+            "target": {
+              "x": -1.6,
+              "y": 1.35,
+              "z": -1.3
+            }
+          }
+        }
+      },
+      "text": {
+        "eyebrow": "同じ部屋・同じ合計の明るさ",
+        "headline": [
+          "天井にまとめるか、",
+          "低い位置に分けるか"
+        ],
+        "sub": "天井に8灯か、低い灯り9灯か"
+      },
+      "voice": "天井にまとめて並べるか、低い位置に分けて置くか。"
+    },
+    {
+      "id": "s3-compare",
+      "projectFile": "public/demo/rooms/dk-copenhagen-apartment.json",
+      "seconds": 5.0,
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [
+          {
+            "variant": "downlight",
+            "until": 0.34
+          },
+          {
+            "variant": "scattered",
+            "until": 0.67
+          },
+          {
+            "variant": "downlight",
+            "until": 1.0
+          }
+        ],
+        "move": {
+          "from": {
+            "position": {
+              "x": 2.9,
+              "y": 1.55,
+              "z": 2.0
+            },
+            "target": {
+              "x": -1.6,
+              "y": 1.35,
+              "z": -1.3
+            }
+          },
+          "to": {
+            "position": {
+              "x": 2.9,
+              "y": 1.55,
+              "z": 2.0
+            },
+            "target": {
+              "x": -1.6,
+              "y": 1.35,
+              "z": -1.3
+            }
+          }
+        }
+      },
+      "text": {
+        "eyebrow": "変えたのは灯りの置き方だけ",
+        "headline": [
+          "影が出るか、",
+          "のっぺりするか"
+        ],
+        "sub": "天井が明るいと、影は消えます"
+      },
+      "voice": "影が出るか、のっぺりするか。"
+    },
+    {
+      "id": "s4-outro",
+      "projectFile": "public/demo/rooms/dk-copenhagen-apartment.json",
+      "seconds": 3.8,
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [
+          {
+            "variant": "scattered",
+            "until": 1.0
+          }
+        ],
+        "move": {
+          "from": {
+            "position": {
+              "x": 2.9,
+              "y": 1.55,
+              "z": 2.0
+            },
+            "target": {
+              "x": -1.6,
+              "y": 1.35,
+              "z": -1.3
+            }
+          },
+          "to": {
+            "position": {
+              "x": 2.9,
+              "y": 1.55,
+              "z": 2.0
+            },
+            "target": {
+              "x": -1.6,
+              "y": 1.35,
+              "z": -1.3
+            }
+          }
+        }
+      },
+      "text": {
+        "eyebrow": "うちの天井なら、何灯か",
+        "headline": [
+          "決める前に、",
+          "見ておく"
+        ],
+        "sub": "自分の間取り図で試せます",
+        "cta": "プロフィールのリンクから",
+        "outro": true
+      },
+      "voice": "決める前に、見ておく。"
+    }
+  ]
+}

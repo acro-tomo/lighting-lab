@@ -1,7 +1,9 @@
 import type { LightFixture, LightType, Project } from "../../types";
 import { applyFixtureModel, fixtureCatalog, getFixtureModel } from "../../data/fixtureCatalog";
 import { clamp, mToMm, mmToM } from "../../utils/units";
+import { resolveFixtureIes, useIesVersion } from "../../utils/iesAssets";
 import { AdvancedPositionDetails, NumberField, TextField } from "./fields";
+import { IesControl } from "./IesControl";
 import { ColorTempPresets } from "./ColorTempPresets";
 import { AimTargetPresets } from "./AimControls";
 import { PlacementGuide } from "./PlacementGuide";
@@ -26,6 +28,9 @@ export const LightInspector = ({
 }) => {
   const { t } = useI18n();
   const currentModel = getFixtureModel(light);
+  useIesVersion();
+  // IES適用中は光束・ビーム角がIES由来になるので、上書き入力を無効化して混乱を防ぐ。
+  const iesApplied = Boolean(resolveFixtureIes(light));
   return (
     <div className="form-grid light-inspector">
       <header className="light-inspector-heading">
@@ -140,6 +145,7 @@ export const LightInspector = ({
         {light.type === "tape" && (
           <NumberField label={t("長さ")} unit="mm" value={mToMm(light.lengthM ?? 1.2)} min={100} max={10000} onChange={(value) => updateLight(light.id, { lengthM: mmToM(value) })} />
         )}
+        <IesControl light={light} updateLight={updateLight} />
       </section>
       <PlacementGuide
         project={project}
@@ -149,18 +155,24 @@ export const LightInspector = ({
       <AdvancedPositionDetails>
         <TextField label={t("名前")} value={light.name} onChange={(name) => updateLight(light.id, { name })} />
         <NumberField
-          label={t("明るさ（光束）")}
+          label={iesApplied ? `${t("明るさ（光束）")}（${t("IES適用中")}）` : t("明るさ（光束）")}
           unit="lm"
           value={light.lumens}
           min={0}
+          disabled={iesApplied}
           onChange={(lumens) => updateLight(light.id, { lumens })}
         />
         <NumberField
-          label={t("光の広がり（器具プリセットを上書き）")}
+          label={
+            iesApplied
+              ? `${t("光の広がり（器具プリセットを上書き）")}（${t("IES適用中")}）`
+              : t("光の広がり（器具プリセットを上書き）")
+          }
           unit="°"
           value={light.beamAngleDeg}
           min={5}
           max={180}
+          disabled={iesApplied}
           onChange={(beamAngleDeg) => updateLight(light.id, { beamAngleDeg })}
         />
         <label className="field">

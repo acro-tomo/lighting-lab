@@ -1,0 +1,14 @@
+{
+  "speakerId": 888753760,
+  "speed": 1.08,
+  "intonation": 1.05,
+  "tempoDynamics": 1.15,
+  "volume": 1.0,
+  "shots": {
+    "s1-establish": "同じ部屋です。",
+    "s2-color-shift": "色を変えるだけで、夜が変わります。",
+    "s3-dining": "迷ったら、温白色。",
+    "s4-kitchen": "キッチンは、昼白色。",
+    "s5-outro": "部屋ごとに選ぶと、夜が整います。"
+  }
+}

@@ -9,13 +9,33 @@
     "typecheck": "tsc --noEmit",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
+    "test": "vitest run",
     "ig:fonts": "node scripts/instagram/fetch-fonts.mjs",
     "ig:plates": "node scripts/instagram/capture-plates.mjs",
     "ig:rooms": "node scripts/instagram/capture-rooms.mjs",
     "ig:posts": "node scripts/instagram/make-posts.mjs",
     "demo:thumbs": "node scripts/make-room-thumbs.mjs",
     "visual-check": "node scripts/visual-check.mjs",
-    "exploratory-check": "node scripts/exploratory-check.mjs"
+    "exploratory-check": "node scripts/exploratory-check.mjs",
+    "ig:reel": "node scripts/instagram/make-reel.mjs",
+    "ig:reel-capture": "node scripts/instagram/capture-reel-shots.mjs",
+    "ig:reel-encode": "node scripts/instagram/encode-reel.mjs",
+    "ig:reel-voice": "python3 scripts/instagram/generate-reel-voice.py",
+    "ig:reel-with-voice": "npm run ig:reel-voice && REEL_WITH_VOICE=1 node scripts/instagram/encode-reel.mjs",
+    "ig:six-rooms-capture": "REEL_CONFIG=marketing/instagram/reels/six-rooms.reel.json node scripts/instagram/capture-six-rooms-reel.mjs",
+    "ig:six-rooms-voice": "python3 scripts/instagram/generate-reel-voice.py marketing/instagram/reels/six-rooms.reel.json",
+    "ig:six-rooms-encode": "REEL_CONFIG=marketing/instagram/reels/six-rooms.reel.json REEL_WITH_VOICE=1 node scripts/instagram/encode-reel.mjs",
+    "ig:six-rooms": "npm run ig:six-rooms-capture && npm run ig:six-rooms-voice && npm run ig:six-rooms-encode",
+    "ig:decision-capture": "node scripts/instagram/capture-decision-reel.mjs",
+    "ig:decision-encode": "node scripts/instagram/encode-reel.mjs",
+    "ig:reel-dining-smoke": "REEL_CONFIG=marketing/instagram/reels/dining-pendant-vs-downlight.reel.json REEL_SMOKE=1 node scripts/instagram/capture-decision-reel.mjs",
+    "ig:reel-dining": "REEL_CONFIG=marketing/instagram/reels/dining-pendant-vs-downlight.reel.json node scripts/instagram/capture-decision-reel.mjs && python3 scripts/instagram/generate-reel-voice.py marketing/instagram/reels/dining-pendant-vs-downlight.reel.json && REEL_CONFIG=marketing/instagram/reels/dining-pendant-vs-downlight.reel.json REEL_WITH_VOICE=1 node scripts/instagram/encode-reel.mjs",
+    "ig:reel-void-smoke": "REEL_CONFIG=marketing/instagram/reels/void-pendant-vs-spot.reel.json REEL_SMOKE=1 node scripts/instagram/capture-decision-reel.mjs",
+    "ig:reel-void": "REEL_CONFIG=marketing/instagram/reels/void-pendant-vs-spot.reel.json node scripts/instagram/capture-decision-reel.mjs && python3 scripts/instagram/generate-reel-voice.py marketing/instagram/reels/void-pendant-vs-spot.reel.json && REEL_CONFIG=marketing/instagram/reels/void-pendant-vs-spot.reel.json REEL_WITH_VOICE=1 node scripts/instagram/encode-reel.mjs",
+    "ig:reel-engawa-smoke": "REEL_CONFIG=marketing/instagram/reels/engawa-cove-dusk.reel.json REEL_SMOKE=1 node scripts/instagram/capture-decision-reel.mjs",
+    "ig:reel-engawa": "REEL_CONFIG=marketing/instagram/reels/engawa-cove-dusk.reel.json node scripts/instagram/capture-decision-reel.mjs && python3 scripts/instagram/generate-reel-voice.py marketing/instagram/reels/engawa-cove-dusk.reel.json && REEL_CONFIG=marketing/instagram/reels/engawa-cove-dusk.reel.json REEL_WITH_VOICE=1 node scripts/instagram/encode-reel.mjs",
+    "ig:reel-check": "node scripts/instagram/check-reel-output.mjs",
+    "ig:handoff": "scripts/instagram/handoff-to-codex.sh"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
@@ -32,7 +52,10 @@
     "@playwright/test": "^1.61.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
+    "fake-indexeddb": "^6.2.5",
+    "ffmpeg-static": "^5.3.0",
     "typescript": "^6.0.3",
-    "vite": "^8.0.16"
+    "vite": "^8.0.16",
+    "vitest": "^3.2.7"
   }
 }

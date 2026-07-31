@@ -9,3 +9,9 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+// three-gpu-pathtracer の glsl チャンク（型定義なし）。IESサンプリングの
+// 差し替え可否をロード時に判定するために参照する。rendering/iesShaderPatch.ts 参照。
+declare module "three-gpu-pathtracer/src/shader/sampling/light_sampling_functions.glsl.js" {
+  export const light_sampling_functions: string;
+}

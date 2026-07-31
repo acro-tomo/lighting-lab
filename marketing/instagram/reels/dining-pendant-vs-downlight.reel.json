@@ -1,0 +1,166 @@
+{
+  "framesDir": "output/reel-dining-frames",
+  "audioDir": "output/reel-dining-audio",
+  "outName": "reel-dining-pendant-vs-downlight.mp4",
+  "disclaimer": "雰囲気比較用。実照度・施工後の見え方は保証しません",
+  "speakerId": 888753760,
+  "speed": 1.08,
+  "intonation": 1.05,
+  "tempoDynamics": 1.15,
+  "volume": 1.0,
+  "variants": {
+    "pendant": {},
+    "downlight": {
+      "removeLightIds": ["light-dining-pendant"],
+      "addLights": [
+        {
+          "id": "reel-dining-dl-west",
+          "name": "ダイニングダウンライト 西",
+          "type": "downlight",
+          "model": "dl-medium",
+          "position": { "x": -1.95, "y": 2.38, "z": 0.95 },
+          "mountHeightM": 2.42,
+          "rotationDeg": { "x": -90, "y": 0, "z": 0 },
+          "target": { "x": -1.95, "y": 0, "z": 0.95 },
+          "lumens": 520,
+          "colorTemperatureK": 2700,
+          "dimmer": 83,
+          "enabled": true,
+          "beamAngleDeg": 60,
+          "penumbra": 0.5,
+          "castsShadow": true,
+          "note": "比較用: 食卓直上の中角DL(西)。ペンダントと合計光束を揃えてある"
+        },
+        {
+          "id": "reel-dining-dl-east",
+          "name": "ダイニングダウンライト 東",
+          "type": "downlight",
+          "model": "dl-medium",
+          "position": { "x": -0.75, "y": 2.38, "z": 0.95 },
+          "mountHeightM": 2.42,
+          "rotationDeg": { "x": -90, "y": 0, "z": 0 },
+          "target": { "x": -0.75, "y": 0, "z": 0.95 },
+          "lumens": 520,
+          "colorTemperatureK": 2700,
+          "dimmer": 83,
+          "enabled": true,
+          "beamAngleDeg": 60,
+          "penumbra": 0.5,
+          "castsShadow": true,
+          "note": "比較用: 食卓直上の中角DL(東)。ペンダントと合計光束を揃えてある"
+        }
+      ]
+    }
+  },
+  "shots": [
+    {
+      "id": "s1-symbol",
+      "projectFile": "public/demo/share-demo-project.json",
+      "seconds": 3.6,
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [{ "variant": "pendant", "until": 1.0 }],
+        "move": {
+          "from": {
+            "position": { "x": 0.98, "y": 2.43, "z": 2.92 },
+            "target": { "x": -1.35, "y": 0.4, "z": 0.95 }
+          },
+          "to": {
+            "position": { "x": 0.9, "y": 2.4, "z": 2.85 },
+            "target": { "x": -1.35, "y": 0.4, "z": 0.95 }
+          }
+        }
+      },
+      "text": {
+        "eyebrow": "電気図面の承認前に",
+        "headline": ["図面では、", "どっちも同じ記号"],
+        "sub": "食卓の上の照明"
+      },
+      "voice": "図面では、どっちも同じ記号です。"
+    },
+    {
+      "id": "s2-swap",
+      "projectFile": "public/demo/share-demo-project.json",
+      "seconds": 6.5,
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [
+          { "variant": "pendant", "until": 0.5 },
+          { "variant": "downlight", "until": 1.0 }
+        ],
+        "move": {
+          "from": {
+            "position": { "x": 0.9, "y": 2.4, "z": 2.85 },
+            "target": { "x": -1.35, "y": 0.4, "z": 0.95 }
+          },
+          "to": {
+            "position": { "x": 0.55, "y": 2.25, "z": 2.6 },
+            "target": { "x": -1.35, "y": 0.35, "z": 0.95 }
+          }
+        }
+      },
+      "text": {
+        "eyebrow": "食卓の上だけを入れ替え",
+        "headline": ["ペンダントか、", "ダウンライトか"],
+        "sub": "部屋も家具も明るさも同じ"
+      },
+      "voice": "ペンダントか、ダウンライトか。"
+    },
+    {
+      "id": "s3-outside",
+      "projectFile": "public/demo/share-demo-project.json",
+      "seconds": 6.5,
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [
+          { "variant": "downlight", "until": 0.34 },
+          { "variant": "pendant", "until": 0.67 },
+          { "variant": "downlight", "until": 1.0 }
+        ],
+        "move": {
+          "from": {
+            "position": { "x": 0.55, "y": 2.25, "z": 2.6 },
+            "target": { "x": -1.35, "y": 0.35, "z": 0.95 }
+          },
+          "to": {
+            "position": { "x": 0.45, "y": 2.2, "z": 2.5 },
+            "target": { "x": -1.35, "y": 0.34, "z": 0.95 }
+          }
+        }
+      },
+      "text": {
+        "eyebrow": "同じ明るさで比べています",
+        "headline": ["テーブルだけか、", "床まで明るいか"],
+        "sub": "光の広がり方が違います"
+      },
+      "voice": "ペンダントは、テーブルだけ。ダウンライトは、床まで明るい。"
+    },
+    {
+      "id": "s4-outro",
+      "projectFile": "public/demo/share-demo-project.json",
+      "seconds": 4.0,
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [{ "variant": "downlight", "until": 1.0 }],
+        "move": {
+          "from": {
+            "position": { "x": 0.45, "y": 2.2, "z": 2.5 },
+            "target": { "x": -1.35, "y": 0.34, "z": 0.95 }
+          },
+          "to": {
+            "position": { "x": 0.45, "y": 2.2, "z": 2.5 },
+            "target": { "x": -1.35, "y": 0.34, "z": 0.95 }
+          }
+        }
+      },
+      "text": {
+        "eyebrow": "うちの食卓なら、どっち",
+        "headline": ["決める前に、", "見ておく"],
+        "sub": "自分の間取り図で試せます",
+        "cta": "プロフィールのリンクから",
+        "outro": true
+      },
+      "voice": "決める前に、見ておく。"
+    }
+  ]
+}

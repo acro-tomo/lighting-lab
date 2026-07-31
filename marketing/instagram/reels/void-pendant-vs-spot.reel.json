@@ -1,0 +1,137 @@
+{
+  "framesDir": "output/reel-void-frames",
+  "audioDir": "output/reel-void-audio",
+  "outName": "reel-skipfloor-wall-wash.mp4",
+  "disclaimer": "雰囲気比較用。実照度・施工後の見え方は保証しません",
+  "speakerId": 888753760,
+  "speed": 1.08,
+  "intonation": 1.05,
+  "tempoDynamics": 1.15,
+  "volume": 1.0,
+  "variants": {
+    "pendant": {
+      "disableLightIds": ["skip-spot-wall-1", "skip-spot-wall-2"],
+      "lightOverrides": {
+        "skip-pendant-void": { "dimmer": 95 }
+      }
+    },
+    "spot": {
+      "disableLightIds": ["skip-pendant-void"],
+      "lightOverrides": {
+        "skip-spot-wall-1": { "dimmer": 58 },
+        "skip-spot-wall-2": { "dimmer": 58 }
+      }
+    }
+  },
+  "shots": [
+    {
+      "id": "s1-narrow",
+      "projectFile": "public/demo/rooms/jp-skipfloor-tokyo.json",
+      "seconds": 4.0,
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [{ "variant": "pendant", "until": 1.0 }],
+        "move": {
+          "from": {
+            "position": { "x": -1.4, "y": 1.62, "z": 3.95 },
+            "target": { "x": 0.3, "y": 1.05, "z": 0.4 }
+          },
+          "to": {
+            "position": { "x": -1.2, "y": 1.62, "z": 3.9 },
+            "target": { "x": 0.6, "y": 1.1, "z": 0.6 }
+          }
+        }
+      },
+      "text": {
+        "eyebrow": "狭小地・3階建て",
+        "headline": ["これ以上、", "広くはできない"],
+        "sub": "間取りはもう決まっている"
+      },
+      "voice": "この部屋、これ以上は広くできません。"
+    },
+    {
+      "id": "s2-toward-wall",
+      "projectFile": "public/demo/rooms/jp-skipfloor-tokyo.json",
+      "seconds": 6.5,
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [
+          { "variant": "pendant", "until": 0.45 },
+          { "variant": "spot", "until": 1.0 }
+        ],
+        "move": {
+          "from": {
+            "position": { "x": -1.2, "y": 1.62, "z": 3.9 },
+            "target": { "x": 0.6, "y": 1.1, "z": 0.6 }
+          },
+          "to": {
+            "position": { "x": 0.5, "y": 1.6, "z": 3.6 },
+            "target": { "x": 3.5, "y": 2.1, "z": 1.9 }
+          }
+        }
+      },
+      "text": {
+        "eyebrow": "変えたのは照らす向きだけ",
+        "headline": ["でも、", "壁を照らすと"],
+        "sub": "灯りを下に降ろすか、壁にあてるか"
+      },
+      "voice": "でも、壁を照らすと。"
+    },
+    {
+      "id": "s3-depth",
+      "projectFile": "public/demo/rooms/jp-skipfloor-tokyo.json",
+      "seconds": 5.0,
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [
+          { "variant": "spot", "until": 0.34 },
+          { "variant": "pendant", "until": 0.67 },
+          { "variant": "spot", "until": 1.0 }
+        ],
+        "move": {
+          "from": {
+            "position": { "x": 0.5, "y": 1.6, "z": 3.6 },
+            "target": { "x": 3.5, "y": 2.1, "z": 1.9 }
+          },
+          "to": {
+            "position": { "x": 0.5, "y": 1.6, "z": 3.6 },
+            "target": { "x": 3.5, "y": 2.1, "z": 1.9 }
+          }
+        }
+      },
+      "text": {
+        "eyebrow": "合計の明るさは同じ",
+        "headline": ["同じ明るさなのに、", "広く見える"],
+        "sub": "壁が見えると、奥行きが出ます"
+      },
+      "voice": "同じ明るさなのに、広く見える。"
+    },
+    {
+      "id": "s4-outro",
+      "projectFile": "public/demo/rooms/jp-skipfloor-tokyo.json",
+      "seconds": 3.5,
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [{ "variant": "spot", "until": 1.0 }],
+        "move": {
+          "from": {
+            "position": { "x": 0.5, "y": 1.6, "z": 3.6 },
+            "target": { "x": 3.5, "y": 2.1, "z": 1.9 }
+          },
+          "to": {
+            "position": { "x": 0.5, "y": 1.6, "z": 3.6 },
+            "target": { "x": 3.5, "y": 2.1, "z": 1.9 }
+          }
+        }
+      },
+      "text": {
+        "eyebrow": "天井高も窓の位置も家ごとに違う",
+        "headline": ["自分の間取りで、", "試す"],
+        "sub": "保存して電気の打ち合わせへ",
+        "cta": "プロフィールのリンクから",
+        "outro": true
+      },
+      "voice": "自分の間取りで、試せます。"
+    }
+  ]
+}

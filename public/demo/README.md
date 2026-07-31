@@ -5,8 +5,8 @@ These demo assets are original sample materials for LDK Lighting Lab.
 - `dimensioned-ldk-demo-plan.svg`: original fictional dimensioned LDK plan (source of truth for edits).
 - `dimensioned-ldk-demo-plan.png`: 2400x1800 rasterized version of the plan. The project JSON embeds this PNG because an SVG background is re-rasterized by WebKit on every pinch/pan frame, which freezes touch gestures on mobile.
 - `share-demo-project.json`: importable LDK Lighting Lab project using the PNG plan as the calibrated 2D background.
-- `rooms/*.json`: room variations opened with `?demo=<key>`, or picked from the `?demo` screen. See [rooms/README.md](rooms/README.md) for the concepts and the key list.
-- `rooms/thumbs/*.jpg`: 480x360 thumbnails for the picker, generated from the Instagram plates with `npm run demo:thumbs`.
+- `rooms/*.json`: sample rooms opened from the picker (`?demo`, or the header "サンプルの部屋" button) or directly with `?demo=<key>`. See [rooms/README.md](rooms/README.md) for the concepts and the key list.
+- `rooms/thumbs/*.jpg`: 480x360 thumbnails shown in the picker.
 
 ## `?demo=` query
 
