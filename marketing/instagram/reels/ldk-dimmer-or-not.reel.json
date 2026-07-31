@@ -222,7 +222,7 @@
     {
       "id": "s3-compare",
       "projectFile": "public/demo/share-demo-project.json",
-      "seconds": 5,
+      "seconds": 5.4,
       "sequence": {
         "mode": "fixture-variant-move",
         "variantTimeline": [
