@@ -2,6 +2,18 @@
   "framesDir": "output/reel-ldk-dimmer-frames",
   "audioDir": "output/reel-ldk-dimmer-audio",
   "outName": "reel-ldk-dimmer-or-not.mp4",
+  "ies": {
+    "file": "/Users/hoshi/.claude/uploads/a816c726-6427-47f6-924f-5beaad13ea25/f7263659-LGD1000L_LB1_LED2700_70_420.ies",
+    "fileName": "LGD1000L_LB1_LED2700_70_420.ies",
+    "fixtureIds": [
+      "light-tv-wall-1",
+      "light-tv-wall-2",
+      "light-tv-wall-3",
+      "light-kitchen-1",
+      "light-kitchen-2",
+      "light-kitchen-3"
+    ]
+  },
   "disclaimer": "雰囲気比較用。実照度・施工後の見え方は保証しません",
   "speakerId": 888753760,
   "speed": 1.08,

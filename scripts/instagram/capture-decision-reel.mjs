@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { createHash } from "node:crypto";
 import { closeSync, existsSync, fstatSync, openSync, readSync } from "node:fs";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { promisify } from "node:util";
@@ -61,6 +62,76 @@ function completeFrames(dir, frames) {
 
 function cloneProject(project) {
   return structuredClone(project);
+}
+
+// --- IES ------------------------------------------------------------------
+// Playwright は毎回まっさらなプロファイルで起動するので IndexedDB が空になり、
+// ies 参照を持つプロジェクトを流し込んでも resolveFixtureIes が undefined を返して
+// 無言でビーム角近似に落ちる。原本をアプリと同じ形で IndexedDB へ先に書き、
+// アプリ自身の復帰経路(useIesHydration)に拾わせる。
+// assetId は原本バイト列の SHA-256（src/utils/iesAssets.ts と同じ規約）。
+const IES_OFF = process.env.REEL_IES_OFF === "1";
+
+async function loadIesAsset(iesConfig) {
+  if (!iesConfig || IES_OFF) return null;
+  const bytes = await readFile(iesConfig.file);
+  const assetId = createHash("sha256").update(bytes).digest("hex");
+  return {
+    assetId,
+    fileName: iesConfig.fileName ?? iesConfig.file.split("/").pop(),
+    source: bytes.toString("utf8"),
+    fixtureIds: new Set(iesConfig.fixtureIds ?? [])
+  };
+}
+
+async function seedIesAsset(page, ies) {
+  if (!ies) return;
+  await page.evaluate(
+    (record) =>
+      new Promise((resolve, reject) => {
+        const open = indexedDB.open("ldk-lighting-lab", 2);
+        open.onupgradeneeded = () => {
+          const db = open.result;
+          if (!db.objectStoreNames.contains("projects")) db.createObjectStore("projects");
+          if (!db.objectStoreNames.contains("iesAssets")) {
+            db.createObjectStore("iesAssets", { keyPath: "id" });
+          }
+        };
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const db = open.result;
+          const tx = db.transaction("iesAssets", "readwrite");
+          tx.objectStore("iesAssets").put(record);
+          tx.oncomplete = () => {
+            db.close();
+            resolve();
+          };
+          tx.onerror = () => reject(tx.error);
+        };
+      }),
+    {
+      id: ies.assetId,
+      fileName: ies.fileName,
+      source: ies.source,
+      importedAt: new Date().toISOString()
+    }
+  );
+}
+
+/** 条件A/Bの分岐より前に付けるので、両方の variant へ同一のIESが必ず載る。 */
+function applyIesRefs(project, ies) {
+  if (!ies) return project;
+  const next = cloneProject(project);
+  next.lights = next.lights.map((light) =>
+    ies.fixtureIds.has(light.id)
+      ? { ...light, ies: { assetId: ies.assetId, fileName: ies.fileName } }
+      : light
+  );
+  const applied = next.lights.filter((light) => light.ies).length;
+  if (applied !== ies.fixtureIds.size) {
+    throw new Error(`IES適用対象が一致しない: 期待 ${ies.fixtureIds.size} / 実際 ${applied}`);
+  }
+  return next;
 }
 
 function applyCameraOverride(project, cameraOverride) {
@@ -341,7 +412,17 @@ const page = await browser.newPage({ viewport: VIEWPORT, deviceScaleFactor: 1, l
 await page.addInitScript(() => window.localStorage.setItem("ldk-intro-seen", "1"));
 page.on("pageerror", (error) => console.log(`pageerror: ${error.message}`));
 
+const ies = await loadIesAsset(config.ies);
+if (config.ies) {
+  console.log(
+    ies
+      ? `ies=${ies.fileName} assetId=${ies.assetId} 対象=${[...ies.fixtureIds].join(",")}`
+      : "ies=OFF (REEL_IES_OFF=1 / ビーム角近似で撮影)"
+  );
+}
+
 await page.goto(url, { waitUntil: "domcontentloaded" });
+await seedIesAsset(page, ies);
 await page.locator("canvas").first().waitFor({ state: "attached", timeout: 60_000 });
 await page.waitForTimeout(4000);
 await page.locator('.focus-toggle[aria-label="3Dを最大化"]').dispatchEvent("click");
@@ -351,7 +432,7 @@ await page.waitForTimeout(3000);
 const manifest = [];
 for (const shot of config.shots) {
   const sourceProject = JSON.parse(await readFile(shot.projectFile, "utf8"));
-  const project = applyCameraOverride(sourceProject, shot.cameraOverride);
+  const project = applyIesRefs(applyCameraOverride(sourceProject, shot.cameraOverride), ies);
   const frames = SMOKE ? 3 : Math.max(2, Math.round(shot.seconds * FPS));
   const dir = `${config.framesDir}/${shot.id}`;
   // 撮影が途中で落ちる環境（コンテナの再起動など）で、撮り直しをゼロからやらないための再開。

@@ -2,6 +2,16 @@
   "framesDir": "output/reel-hiraya-switch-frames",
   "audioDir": "output/reel-hiraya-switch-audio",
   "outName": "reel-hiraya-switch-grouping.mp4",
+  "ies": {
+    "file": "/Users/hoshi/.claude/uploads/a816c726-6427-47f6-924f-5beaad13ea25/f7263659-LGD1000L_LB1_LED2700_70_420.ies",
+    "fileName": "LGD1000L_LB1_LED2700_70_420.ies",
+    "fixtureIds": [
+      "hiraya-dl-1",
+      "hiraya-dl-2",
+      "hiraya-dl-3",
+      "hiraya-dl-4"
+    ]
+  },
   "disclaimer": "雰囲気比較用。実照度・施工後の見え方は保証しません",
   "speakerId": 888753760,
   "speed": 1.08,
