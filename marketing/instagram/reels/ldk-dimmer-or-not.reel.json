@@ -1,0 +1,347 @@
+{
+  "framesDir": "output/reel-ldk-dimmer-frames",
+  "audioDir": "output/reel-ldk-dimmer-audio",
+  "outName": "reel-ldk-dimmer-or-not.mp4",
+  "disclaimer": "雰囲気比較用。実照度・施工後の見え方は保証しません",
+  "speakerId": 888753760,
+  "speed": 1.08,
+  "intonation": 1.05,
+  "tempoDynamics": 1.15,
+  "volume": 1,
+  "variants": {
+    "full": {
+      "lightOverrides": {
+        "light-tv-wall-1": {
+          "dimmer": 100
+        },
+        "light-tv-wall-2": {
+          "dimmer": 100
+        },
+        "light-tv-wall-3": {
+          "dimmer": 100
+        },
+        "light-kitchen-1": {
+          "dimmer": 100
+        },
+        "light-kitchen-2": {
+          "dimmer": 100
+        },
+        "light-kitchen-3": {
+          "dimmer": 100
+        },
+        "light-dining-pendant": {
+          "dimmer": 100
+        },
+        "light-stair-bracket": {
+          "dimmer": 100
+        },
+        "light-tv-tape": {
+          "dimmer": 100
+        }
+      }
+    },
+    "dimmed": {
+      "lightOverrides": {
+        "light-tv-wall-1": {
+          "dimmer": 25
+        },
+        "light-tv-wall-2": {
+          "dimmer": 25
+        },
+        "light-tv-wall-3": {
+          "dimmer": 25
+        },
+        "light-kitchen-1": {
+          "dimmer": 25
+        },
+        "light-kitchen-2": {
+          "dimmer": 25
+        },
+        "light-kitchen-3": {
+          "dimmer": 25
+        },
+        "light-dining-pendant": {
+          "dimmer": 25
+        },
+        "light-stair-bracket": {
+          "dimmer": 25
+        },
+        "light-tv-tape": {
+          "dimmer": 25
+        }
+      }
+    }
+  },
+  "shots": [
+    {
+      "id": "s1-hook",
+      "projectFile": "public/demo/share-demo-project.json",
+      "seconds": 3.4,
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [
+          {
+            "variant": "full",
+            "until": 0.3
+          },
+          {
+            "variant": "dimmed",
+            "until": 1
+          }
+        ],
+        "move": {
+          "from": {
+            "position": {
+              "x": 2.8,
+              "y": 2.3,
+              "z": 2.6
+            },
+            "target": {
+              "x": -2.2,
+              "y": 0,
+              "z": -1.4
+            }
+          },
+          "to": {
+            "position": {
+              "x": 2.8,
+              "y": 2.3,
+              "z": 2.6
+            },
+            "target": {
+              "x": -2.2,
+              "y": 0,
+              "z": -1.4
+            }
+          }
+        }
+      },
+      "cameraOverride": {
+        "position": {
+          "x": 2.8,
+          "y": 2.3,
+          "z": 2.6
+        },
+        "target": {
+          "x": -2.2,
+          "y": 0,
+          "z": -1.4
+        },
+        "fov": 84,
+        "exposure": 0.19
+      },
+      "text": {
+        "eyebrow": "電気図面の調光",
+        "headline": [
+          "調光、うちにも",
+          "要りますか"
+        ],
+        "sub": "同じ器具のまま、明るさだけ動かします"
+      },
+      "voice": "調光、うちにも要りますか。"
+    },
+    {
+      "id": "s2-swap",
+      "projectFile": "public/demo/share-demo-project.json",
+      "seconds": 6,
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [
+          {
+            "variant": "dimmed",
+            "until": 0.45
+          },
+          {
+            "variant": "full",
+            "until": 1
+          }
+        ],
+        "move": {
+          "from": {
+            "position": {
+              "x": 2.8,
+              "y": 2.3,
+              "z": 2.6
+            },
+            "target": {
+              "x": -2.2,
+              "y": 0,
+              "z": -1.4
+            }
+          },
+          "to": {
+            "position": {
+              "x": 2.35,
+              "y": 2.28,
+              "z": 2.3
+            },
+            "target": {
+              "x": -2.35,
+              "y": 0,
+              "z": -1.45
+            }
+          }
+        }
+      },
+      "cameraOverride": {
+        "position": {
+          "x": 2.8,
+          "y": 2.3,
+          "z": 2.6
+        },
+        "target": {
+          "x": -2.2,
+          "y": 0,
+          "z": -1.4
+        },
+        "fov": 84,
+        "exposure": 0.19
+      },
+      "text": {
+        "eyebrow": "変えたのは明るさだけ",
+        "headline": [
+          "器具も位置も",
+          "色もそのまま"
+        ],
+        "sub": "全開のときと、絞ったときを入れ替えました"
+      },
+      "voice": "器具も位置も色もそのままで、明るさだけを入れ替えました。"
+    },
+    {
+      "id": "s3-compare",
+      "projectFile": "public/demo/share-demo-project.json",
+      "seconds": 5,
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [
+          {
+            "variant": "full",
+            "until": 0.34
+          },
+          {
+            "variant": "dimmed",
+            "until": 0.67
+          },
+          {
+            "variant": "full",
+            "until": 1
+          }
+        ],
+        "move": {
+          "from": {
+            "position": {
+              "x": 2.35,
+              "y": 2.28,
+              "z": 2.3
+            },
+            "target": {
+              "x": -2.35,
+              "y": 0,
+              "z": -1.45
+            }
+          },
+          "to": {
+            "position": {
+              "x": 2.35,
+              "y": 2.28,
+              "z": 2.3
+            },
+            "target": {
+              "x": -2.35,
+              "y": 0,
+              "z": -1.45
+            }
+          }
+        }
+      },
+      "cameraOverride": {
+        "position": {
+          "x": 2.35,
+          "y": 2.28,
+          "z": 2.3
+        },
+        "target": {
+          "x": -2.35,
+          "y": 0,
+          "z": -1.45
+        },
+        "fov": 84,
+        "exposure": 0.19
+      },
+      "text": {
+        "eyebrow": "同じ部屋・同じ器具",
+        "headline": [
+          "全開だと、",
+          "どこも同じ明るさ"
+        ],
+        "sub": "絞ると、灯りの置き場所が見えます"
+      },
+      "voice": "全開だと平らに見えます。絞ると灯りの位置が出ます。"
+    },
+    {
+      "id": "s4-outro",
+      "projectFile": "public/demo/share-demo-project.json",
+      "seconds": 3.8,
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [
+          {
+            "variant": "dimmed",
+            "until": 1
+          }
+        ],
+        "move": {
+          "from": {
+            "position": {
+              "x": 2.35,
+              "y": 2.28,
+              "z": 2.3
+            },
+            "target": {
+              "x": -2.35,
+              "y": 0,
+              "z": -1.45
+            }
+          },
+          "to": {
+            "position": {
+              "x": 2.35,
+              "y": 2.28,
+              "z": 2.3
+            },
+            "target": {
+              "x": -2.35,
+              "y": 0,
+              "z": -1.45
+            }
+          }
+        }
+      },
+      "cameraOverride": {
+        "position": {
+          "x": 2.35,
+          "y": 2.28,
+          "z": 2.3
+        },
+        "target": {
+          "x": -2.35,
+          "y": 0,
+          "z": -1.45
+        },
+        "fov": 84,
+        "exposure": 0.19
+      },
+      "text": {
+        "eyebrow": "うちの部屋なら、どこまで絞るか",
+        "headline": [
+          "絞ったときも、",
+          "見てから決める"
+        ],
+        "sub": "自分の間取り図で試せます",
+        "cta": "プロフィールのリンクから",
+        "outro": true
+      },
+      "voice": "絞ったときも、見てから決める。"
+    }
+  ]
+}

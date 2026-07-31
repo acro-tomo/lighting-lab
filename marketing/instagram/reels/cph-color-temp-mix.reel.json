@@ -1,0 +1,347 @@
+{
+  "framesDir": "output/reel-cph-colortemp-frames",
+  "audioDir": "output/reel-cph-colortemp-audio",
+  "outName": "reel-cph-color-temp-mix.mp4",
+  "disclaimer": "雰囲気比較用。実照度・施工後の見え方は保証しません",
+  "speakerId": 888753760,
+  "speed": 1.08,
+  "intonation": 1.05,
+  "tempoDynamics": 1.15,
+  "volume": 1,
+  "variants": {
+    "unified": {
+      "lightOverrides": {
+        "cph-pendant-dining": {
+          "colorTemperatureK": 2700
+        },
+        "cph-pendant-corner": {
+          "colorTemperatureK": 2700
+        },
+        "cph-pendant-sofa": {
+          "colorTemperatureK": 2700
+        },
+        "cph-pendant-window": {
+          "colorTemperatureK": 2700
+        },
+        "cph-bracket-1": {
+          "colorTemperatureK": 2700
+        },
+        "cph-bracket-2": {
+          "colorTemperatureK": 2700
+        },
+        "cph-bracket-3": {
+          "colorTemperatureK": 2700
+        },
+        "cph-bracket-4": {
+          "colorTemperatureK": 2700
+        },
+        "cph-floorlamp": {
+          "colorTemperatureK": 2700
+        }
+      }
+    },
+    "mixed": {
+      "lightOverrides": {
+        "cph-pendant-dining": {
+          "colorTemperatureK": 5000
+        },
+        "cph-pendant-corner": {
+          "colorTemperatureK": 5000
+        },
+        "cph-pendant-sofa": {
+          "colorTemperatureK": 5000
+        },
+        "cph-pendant-window": {
+          "colorTemperatureK": 5000
+        },
+        "cph-bracket-1": {
+          "colorTemperatureK": 2700
+        },
+        "cph-bracket-2": {
+          "colorTemperatureK": 2700
+        },
+        "cph-bracket-3": {
+          "colorTemperatureK": 2700
+        },
+        "cph-bracket-4": {
+          "colorTemperatureK": 2700
+        },
+        "cph-floorlamp": {
+          "colorTemperatureK": 5000
+        }
+      }
+    }
+  },
+  "shots": [
+    {
+      "id": "s1-hook",
+      "projectFile": "public/demo/rooms/dk-copenhagen-apartment.json",
+      "seconds": 3.4,
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [
+          {
+            "variant": "unified",
+            "until": 0.3
+          },
+          {
+            "variant": "mixed",
+            "until": 1
+          }
+        ],
+        "move": {
+          "from": {
+            "position": {
+              "x": -3.1,
+              "y": 2.3,
+              "z": 2.8
+            },
+            "target": {
+              "x": 2,
+              "y": 0.8,
+              "z": -1.9
+            }
+          },
+          "to": {
+            "position": {
+              "x": -3.1,
+              "y": 2.3,
+              "z": 2.8
+            },
+            "target": {
+              "x": 2,
+              "y": 0.8,
+              "z": -1.9
+            }
+          }
+        }
+      },
+      "cameraOverride": {
+        "position": {
+          "x": -3.1,
+          "y": 2.3,
+          "z": 2.8
+        },
+        "target": {
+          "x": 2,
+          "y": 0.8,
+          "z": -1.9
+        },
+        "fov": 82,
+        "exposure": 0.1
+      },
+      "text": {
+        "eyebrow": "同じ部屋・同じ明るさ",
+        "headline": [
+          "1つの部屋に、",
+          "2つの色"
+        ],
+        "sub": "合計の明るさは変えていません"
+      },
+      "voice": "1つの部屋に、2つの色。"
+    },
+    {
+      "id": "s2-swap",
+      "projectFile": "public/demo/rooms/dk-copenhagen-apartment.json",
+      "seconds": 6,
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [
+          {
+            "variant": "mixed",
+            "until": 0.45
+          },
+          {
+            "variant": "unified",
+            "until": 1
+          }
+        ],
+        "move": {
+          "from": {
+            "position": {
+              "x": -3.1,
+              "y": 2.3,
+              "z": 2.8
+            },
+            "target": {
+              "x": 2,
+              "y": 0.8,
+              "z": -1.9
+            }
+          },
+          "to": {
+            "position": {
+              "x": -2.7,
+              "y": 2.24,
+              "z": 2.5
+            },
+            "target": {
+              "x": 2.1,
+              "y": 0.8,
+              "z": -1.95
+            }
+          }
+        }
+      },
+      "cameraOverride": {
+        "position": {
+          "x": -3.1,
+          "y": 2.3,
+          "z": 2.8
+        },
+        "target": {
+          "x": 2,
+          "y": 0.8,
+          "z": -1.9
+        },
+        "fov": 82,
+        "exposure": 0.1
+      },
+      "text": {
+        "eyebrow": "変えたのは色温度だけ",
+        "headline": [
+          "食卓だけ白く、",
+          "壁の灯りは電球色"
+        ],
+        "sub": "揃えるか、混ぜるか"
+      },
+      "voice": "食卓の灯りだけ白くして、壁の灯りは電球色のままにしました。"
+    },
+    {
+      "id": "s3-compare",
+      "projectFile": "public/demo/rooms/dk-copenhagen-apartment.json",
+      "seconds": 5,
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [
+          {
+            "variant": "unified",
+            "until": 0.34
+          },
+          {
+            "variant": "mixed",
+            "until": 0.67
+          },
+          {
+            "variant": "unified",
+            "until": 1
+          }
+        ],
+        "move": {
+          "from": {
+            "position": {
+              "x": -2.7,
+              "y": 2.24,
+              "z": 2.5
+            },
+            "target": {
+              "x": 2.1,
+              "y": 0.8,
+              "z": -1.95
+            }
+          },
+          "to": {
+            "position": {
+              "x": -2.7,
+              "y": 2.24,
+              "z": 2.5
+            },
+            "target": {
+              "x": 2.1,
+              "y": 0.8,
+              "z": -1.95
+            }
+          }
+        }
+      },
+      "cameraOverride": {
+        "position": {
+          "x": -2.7,
+          "y": 2.24,
+          "z": 2.5
+        },
+        "target": {
+          "x": 2.1,
+          "y": 0.8,
+          "z": -1.95
+        },
+        "fov": 82,
+        "exposure": 0.1
+      },
+      "text": {
+        "eyebrow": "揃える ⇔ 混ぜる",
+        "headline": [
+          "揃えると一続き、",
+          "混ぜると分かれる"
+        ],
+        "sub": "どちらが向くかは、その部屋で何をするかで変わります"
+      },
+      "voice": "揃えると一続きに、混ぜると場所が分かれて見えます。"
+    },
+    {
+      "id": "s4-outro",
+      "projectFile": "public/demo/rooms/dk-copenhagen-apartment.json",
+      "seconds": 3.8,
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [
+          {
+            "variant": "unified",
+            "until": 1
+          }
+        ],
+        "move": {
+          "from": {
+            "position": {
+              "x": -2.7,
+              "y": 2.24,
+              "z": 2.5
+            },
+            "target": {
+              "x": 2.1,
+              "y": 0.8,
+              "z": -1.95
+            }
+          },
+          "to": {
+            "position": {
+              "x": -2.7,
+              "y": 2.24,
+              "z": 2.5
+            },
+            "target": {
+              "x": 2.1,
+              "y": 0.8,
+              "z": -1.95
+            }
+          }
+        }
+      },
+      "cameraOverride": {
+        "position": {
+          "x": -2.7,
+          "y": 2.24,
+          "z": 2.5
+        },
+        "target": {
+          "x": 2.1,
+          "y": 0.8,
+          "z": -1.95
+        },
+        "fov": 82,
+        "exposure": 0.1
+      },
+      "text": {
+        "eyebrow": "うちのLDKなら、揃えるか",
+        "headline": [
+          "打ち合わせで、",
+          "決める話です"
+        ],
+        "sub": "自分の間取り図で試せます",
+        "cta": "プロフィールのリンクから",
+        "outro": true
+      },
+      "voice": "打ち合わせで決める話です。"
+    }
+  ]
+}
