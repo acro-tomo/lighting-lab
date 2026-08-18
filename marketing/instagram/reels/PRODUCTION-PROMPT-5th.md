@@ -236,10 +236,26 @@ rasterBounceIntensity）は光束と床面積だけの関数で、マテリア�
 現行の撮影スクリプト（capture-plates.mjs / capture-decision-reel.mjs）は
 すべてラスター表示のスクリーンショットで、パストレ表示を撮る経路が存在しない。
 
+## 検証の前に必ず直すこと（放置すると確実に偽陰性が出る）
+6部屋では床のマテリアルがどこからも参照されていない。
+ラスターは src/components/scene3d/sceneRoot.tsx:85 が
+materialMap.get("floor-oak") ?? project.materials[0]、
+パストレは src/rendering/pathTracer/sceneBuilder.ts:130 が
+materials.get("cal-floor-oak") ?? materials.get("floor-oak")、無ければ固定色 #9d754a。
+id floor-oak を持つのは share-demo-project.json だけで、6部屋の materials[0] はすべて壁材
+（wall-shikkui / wall-lime-white / plaster-lime / plaster-jurakukabe / wall-plaster-gray /
+brick-red）。床は壁の材質で描かれ、最終レンダーでは固定色になる。
+各部屋が持つ floor-oak-nara, floor-herringbone は未使用。
+
+このまま測ると床の色を変えても画素が1つも変わらず、成立しうる案を捨てることになる。
+リール用のメモリ上プロジェクトに id floor-oak のマテリアルを足してから測る
+（ラスターとパストレの両方がこの id を拾う）。アプリ本体は直さない（別件）。
+
 ## 検証手順
-1. デモ部屋を1つ開き、ヘッダーの「レンダリング開始」で床が明るいオークのPNGを1枚書き出す。
-2. 床のマテリアルの baseColor だけを濃い色へ変え、同じカメラでもう1枚書き出す。
-3. **目視で判定しない。** 1080相当へ縮小してRGB差を取り、|Δ|>12 の画素の割合を測って
+1. デモ部屋を1つ開き、上のとおり id floor-oak のマテリアルを足す。
+2. ヘッダーの「レンダリング開始」で床が明るいオークのPNGを1枚書き出す。
+3. その floor-oak の baseColor だけを濃い色へ変え、同じカメラでもう1枚書き出す。
+4. **目視で判定しない。** 1080相当へ縮小してRGB差を取り、|Δ|>12 の画素の割合を測って
    数値を報告する。
 
 判定は **40%以上で成立**。記録されている水準は、数灯の色温度変更が0.1〜2%（絵にならない）、
@@ -253,8 +269,9 @@ rasterBounceIntensity）は光束と床面積だけの関数で、マテリア�
 テロップのレイアウトが重ならないか確認する。
 
 ## 確認すること
-- 床が単一の materialId に紐づいているか。複数に分かれていると1色変えても効かない。
 - 壁の色を変える3枚目・4枚目も、同じカメラ・同じ照明で書き出せているか。
+- 床と同じ問題が壁にもあるか。壁は wall.materialId で個別に引いている
+  （src/components/scene3d/roomShell.tsx:129）ので効くはずだが、実際に測って確認する。
 
 ## 出力
 - outName: reel-d-floor-color.mp4

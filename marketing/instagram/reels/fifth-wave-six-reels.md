@@ -289,9 +289,28 @@ ffmpeg でクロスフェードして連番フレームにし、既存の `encod
 追加実装ゼロ。最終レンダーPNGには右下に透かしが入る（`src/app/appUtils.ts:17-27`）ので、
 テロップと重ならないか確認する。
 
+**測る前に必ず直すこと（放置すると確実に偽陰性が出る）**
+
+6部屋では、そもそも床のマテリアルがどこからも参照されていない。
+
+- ラスター: `src/components/scene3d/sceneRoot.tsx:85` が
+  `materialMap.get("floor-oak") ?? project.materials[0]`
+- パストレ: `src/rendering/pathTracer/sceneBuilder.ts:130` が
+  `materials.get("cal-floor-oak") ?? materials.get("floor-oak")`、無ければ固定色 `#9d754a`
+
+id `floor-oak` を持つのは `share-demo-project.json` だけ。6部屋はすべてフォールバックし、
+`materials[0]` は6部屋とも壁材（`wall-shikkui` / `wall-lime-white` / `plaster-lime` /
+`plaster-jurakukabe` / `wall-plaster-gray` / `brick-red`）。つまり**床は壁の材質で描かれ、
+最終レンダーでは固定色になる**。各部屋が持つ `floor-oak-nara`, `floor-herringbone` は未使用。
+
+**このまま上のゲートを測ると、床の色を変えても画素が1つも変わらず、成立しうる案が捨てられる。**
+リール用のメモリ上プロジェクトに **id `floor-oak` のマテリアルを足してから**測ること
+（ラスターとパストレの両方がこの id を拾う）。アプリ本体を直すかどうかは別件。
+
 **要確認**
-- 床が単一の `materialId` に紐づいているか。複数に分かれていると1色変えても効かない
 - 壁の色を変える3枚目・4枚目も、同じカメラ・同じ照明で書き出せているか
+- 床と同じ問題が壁にもあるか。壁は `wall.materialId` で個別に引いている
+  （`src/components/scene3d/roomShell.tsx:129`）ので効くはずだが、実際に測って確認する
 
 ---
 
