@@ -1,0 +1,391 @@
+{
+  "framesDir": "output/reel-mediterranean-ceiling-frames",
+  "audioDir": "output/reel-mediterranean-ceiling-audio",
+  "outName": "reel-mediterranean-ceiling.mp4",
+  "disclaimer": "雰囲気比較用。実照度・施工後の見え方は保証しません",
+  "speakerId": 888753760,
+  "speed": 1.08,
+  "intonation": 1.05,
+  "tempoDynamics": 1.15,
+  "volume": 1.0,
+  "variants": {
+    "down": {},
+    "ceiling": {
+      "lightOverrides": {
+        "med-lantern-1": {
+          "dimmer": 40
+        },
+        "med-lantern-2": {
+          "dimmer": 40
+        },
+        "med-lantern-hall": {
+          "dimmer": 40
+        }
+      },
+      "addLights": [
+        {
+          "id": "reel-med-beam-up-1",
+          "name": "比較用 梁上の間接照明 1",
+          "type": "tape",
+          "model": "tape",
+          "position": {
+            "x": 0.0,
+            "y": 2.75,
+            "z": -1.5
+          },
+          "mountHeightM": 3.05,
+          "rotationDeg": {
+            "x": 90,
+            "y": 0,
+            "z": 0
+          },
+          "target": {
+            "x": 0.0,
+            "y": 3.05,
+            "z": -1.5
+          },
+          "lumens": 600,
+          "colorTemperatureK": 2400,
+          "dimmer": 29.42,
+          "enabled": true,
+          "beamAngleDeg": 120,
+          "penumbra": 0.9,
+          "castsShadow": true,
+          "note": "比較用: 梁の上から天井を照らす。ランタン側を絞って合計光束を揃えてある"
+        },
+        {
+          "id": "reel-med-beam-up-2",
+          "name": "比較用 梁上の間接照明 2",
+          "type": "tape",
+          "model": "tape",
+          "position": {
+            "x": 0.0,
+            "y": 2.75,
+            "z": 0.0
+          },
+          "mountHeightM": 3.05,
+          "rotationDeg": {
+            "x": 90,
+            "y": 0,
+            "z": 0
+          },
+          "target": {
+            "x": 0.0,
+            "y": 3.05,
+            "z": 0.0
+          },
+          "lumens": 600,
+          "colorTemperatureK": 2400,
+          "dimmer": 29.42,
+          "enabled": true,
+          "beamAngleDeg": 120,
+          "penumbra": 0.9,
+          "castsShadow": true,
+          "note": "比較用: 梁の上から天井を照らす。ランタン側を絞って合計光束を揃えてある"
+        },
+        {
+          "id": "reel-med-beam-up-3",
+          "name": "比較用 梁上の間接照明 3",
+          "type": "tape",
+          "model": "tape",
+          "position": {
+            "x": 0.0,
+            "y": 2.75,
+            "z": 1.5
+          },
+          "mountHeightM": 3.05,
+          "rotationDeg": {
+            "x": 90,
+            "y": 0,
+            "z": 0
+          },
+          "target": {
+            "x": 0.0,
+            "y": 3.05,
+            "z": 1.5
+          },
+          "lumens": 600,
+          "colorTemperatureK": 2400,
+          "dimmer": 29.42,
+          "enabled": true,
+          "beamAngleDeg": 120,
+          "penumbra": 0.9,
+          "castsShadow": true,
+          "note": "比較用: 梁の上から天井を照らす。ランタン側を絞って合計光束を揃えてある"
+        }
+      ]
+    }
+  },
+  "shots": [
+    {
+      "id": "s1-hook",
+      "projectFile": "public/demo/rooms/es-mediterranean-arch.json",
+      "seconds": 3.4,
+      "cameraOverride": {
+        "position": {
+          "x": 3.9,
+          "y": 2.0,
+          "z": 3.7
+        },
+        "target": {
+          "x": -2.4,
+          "y": 1.5,
+          "z": -1.2
+        },
+        "fov": 76,
+        "exposure": 0.11
+      },
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [
+          {
+            "variant": "down",
+            "until": 0.4
+          },
+          {
+            "variant": "ceiling",
+            "until": 1.0
+          }
+        ],
+        "move": {
+          "from": {
+            "position": {
+              "x": 3.9,
+              "y": 2.0,
+              "z": 3.7
+            },
+            "target": {
+              "x": -2.4,
+              "y": 1.5,
+              "z": -1.2
+            }
+          },
+          "to": {
+            "position": {
+              "x": 3.8,
+              "y": 2.0,
+              "z": 3.6
+            },
+            "target": {
+              "x": -2.4,
+              "y": 1.5,
+              "z": -1.2
+            }
+          }
+        }
+      },
+      "text": {
+        "eyebrow": "現し梁のある天井",
+        "headline": [
+          "こだわった天井は、",
+          "夜に消える"
+        ],
+        "sub": "照らさなければ、見えません"
+      },
+      "voice": "こだわった天井は、夜に消える。"
+    },
+    {
+      "id": "s2-swap",
+      "projectFile": "public/demo/rooms/es-mediterranean-arch.json",
+      "seconds": 6.0,
+      "cameraOverride": {
+        "position": {
+          "x": 3.8,
+          "y": 2.0,
+          "z": 3.6
+        },
+        "target": {
+          "x": -2.4,
+          "y": 1.5,
+          "z": -1.2
+        },
+        "fov": 76,
+        "exposure": 0.11
+      },
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [
+          {
+            "variant": "down",
+            "until": 0.5
+          },
+          {
+            "variant": "ceiling",
+            "until": 1.0
+          }
+        ],
+        "move": {
+          "from": {
+            "position": {
+              "x": 3.8,
+              "y": 2.0,
+              "z": 3.6
+            },
+            "target": {
+              "x": -2.4,
+              "y": 1.5,
+              "z": -1.2
+            }
+          },
+          "to": {
+            "position": {
+              "x": 3.2,
+              "y": 1.95,
+              "z": 3.1
+            },
+            "target": {
+              "x": -2.8,
+              "y": 1.55,
+              "z": -0.9
+            }
+          }
+        }
+      },
+      "text": {
+        "eyebrow": "合計の明るさは同じ",
+        "headline": [
+          "同じ光を、",
+          "天井に回すだけ"
+        ],
+        "sub": "下に落とすか、上に返すか"
+      },
+      "voice": "同じ光を、天井に回すだけです。"
+    },
+    {
+      "id": "s3-compare",
+      "projectFile": "public/demo/rooms/es-mediterranean-arch.json",
+      "seconds": 5.0,
+      "cameraOverride": {
+        "position": {
+          "x": 3.2,
+          "y": 1.95,
+          "z": 3.1
+        },
+        "target": {
+          "x": -2.8,
+          "y": 1.55,
+          "z": -0.9
+        },
+        "fov": 76,
+        "exposure": 0.11
+      },
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [
+          {
+            "variant": "down",
+            "until": 0.34
+          },
+          {
+            "variant": "ceiling",
+            "until": 0.67
+          },
+          {
+            "variant": "down",
+            "until": 1.0
+          }
+        ],
+        "move": {
+          "from": {
+            "position": {
+              "x": 3.2,
+              "y": 1.95,
+              "z": 3.1
+            },
+            "target": {
+              "x": -2.8,
+              "y": 1.55,
+              "z": -0.9
+            }
+          },
+          "to": {
+            "position": {
+              "x": 3.2,
+              "y": 1.95,
+              "z": 3.1
+            },
+            "target": {
+              "x": -2.8,
+              "y": 1.55,
+              "z": -0.9
+            }
+          }
+        }
+      },
+      "text": {
+        "eyebrow": "変えたのは光を配る先だけ",
+        "headline": [
+          "梁が見えると、",
+          "天井が高く見える"
+        ],
+        "sub": "明るさを足したわけではありません"
+      },
+      "voice": "梁が見えると、天井が高く見える。"
+    },
+    {
+      "id": "s4-outro",
+      "projectFile": "public/demo/rooms/es-mediterranean-arch.json",
+      "seconds": 3.8,
+      "cameraOverride": {
+        "position": {
+          "x": 3.2,
+          "y": 1.95,
+          "z": 3.1
+        },
+        "target": {
+          "x": -2.8,
+          "y": 1.55,
+          "z": -0.9
+        },
+        "fov": 76,
+        "exposure": 0.11
+      },
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [
+          {
+            "variant": "ceiling",
+            "until": 1.0
+          }
+        ],
+        "move": {
+          "from": {
+            "position": {
+              "x": 3.2,
+              "y": 1.95,
+              "z": 3.1
+            },
+            "target": {
+              "x": -2.8,
+              "y": 1.55,
+              "z": -0.9
+            }
+          },
+          "to": {
+            "position": {
+              "x": 3.2,
+              "y": 1.95,
+              "z": 3.1
+            },
+            "target": {
+              "x": -2.8,
+              "y": 1.55,
+              "z": -0.9
+            }
+          }
+        }
+      },
+      "text": {
+        "eyebrow": "勾配天井・板張り・梁現し",
+        "headline": [
+          "夜の見え方も、",
+          "先に見る"
+        ],
+        "sub": "自分の間取り図で試せます",
+        "cta": "プロフィールのリンクから",
+        "outro": true
+      },
+      "voice": "夜の見え方も、先に見ておく。"
+    }
+  ]
+}

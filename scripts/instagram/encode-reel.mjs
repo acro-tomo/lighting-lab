@@ -86,10 +86,11 @@ function overlayHtml(text, disclaimer) {
           <span class="ruler-bottom">${escapeHtml(text.visual.bottomLabel)}</span>
         </div>`
       : "";
+  // config で全ショット共通の免責を出す場合、outro の note は同じ内容の二重表示になるので出さない。
   const outroBlock = text.outro
     ? `<div class="outro">
         <span class="url">${escapeHtml(BRAND.url)}</span>
-        <span class="note">雰囲気を比較するための視覚シミュレーションです。実際の照度(lux)を保証するものではありません。</span>
+        ${disclaimer ? "" : '<span class="note">雰囲気を比較するための視覚シミュレーションです。実際の照度(lux)を保証するものではありません。</span>'}
       </div>`
     : "";
 
@@ -107,11 +108,19 @@ function overlayHtml(text, disclaimer) {
     width: ${WIDTH}px; height: ${HEIGHT}px; overflow: hidden; position: relative;
     font-family: "ZenKaku", sans-serif; color: ${BRAND.ink};
   }
+  /* 暗幕は照明の見え方を殺すので最小限にし、可読性は文字側の影で稼ぐ。
+     下端はInstagramのUIが乗る帯なので、そこだけ従来どおり濃くしてよい。 */
   .scrim {
     position: absolute; inset: 0;
     background:
-      linear-gradient(to bottom, rgba(7,7,6,0.62) 0%, rgba(7,7,6,0) 22%),
-      linear-gradient(to top, rgba(7,7,6,0.90) 0%, rgba(7,7,6,0.78) 26%, rgba(7,7,6,0.45) 44%, rgba(7,7,6,0) 60%);
+      linear-gradient(to bottom, rgba(7,7,6,0.42) 0%, rgba(7,7,6,0) 15%),
+      linear-gradient(to top, rgba(7,7,6,0.78) 0%, rgba(7,7,6,0.56) 18%, rgba(7,7,6,0.34) 30%, rgba(7,7,6,0.12) 40%, rgba(7,7,6,0) 50%);
+  }
+  /* 見出しは字が太いので影だけで足りるが、eyebrow/sub/cta は細く色も淡いので
+     暗幕を薄くしたぶん影を強めないと明るい壁の上で背景に溶ける。 */
+  .lockup, .text, .reel-disclaimer { text-shadow: 0 2px 10px rgba(7,7,6,0.92), 0 0 26px rgba(7,7,6,0.65); }
+  .eyebrow, .sub, .cta, .url, .note, .reel-disclaimer {
+    text-shadow: 0 1px 4px rgba(7,7,6,0.98), 0 2px 12px rgba(7,7,6,0.92), 0 0 24px rgba(7,7,6,0.8);
   }
   .lockup { position: absolute; top: 96px; left: 100px; display: flex; align-items: center; gap: 20px; }
   .mark { width: 56px; height: 56px; border-radius: 50%; background: ${BRAND.amber}; display: grid; place-items: center; flex: none; }
@@ -130,7 +139,7 @@ function overlayHtml(text, disclaimer) {
   .cta { margin-top: 24px; font-size: 32px; font-weight: 700; line-height: 1.45; color: ${BRAND.amber}; }
   .reel-disclaimer {
     position: absolute; left: 100px; right: 100px; bottom: 420px;
-    font-size: 22px; font-weight: 500; line-height: 1.45; color: rgba(242,237,225,0.74);
+    font-size: 26px; font-weight: 500; line-height: 1.45; color: rgba(242,237,225,0.82);
   }
   .split-rule { position: absolute; top: 959px; left: 64px; right: 64px; height: 2px; background: rgba(242,237,225,0.72); }
   .compare-label {

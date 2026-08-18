@@ -2,6 +2,7 @@ import { ContactShadows, OrbitControls, Sky } from "@react-three/drei";
 import { useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
+import { DAYTIME_EXPOSURE_SCALE } from "../../rendering/daylightCalibration";
 import type { FloorTag, Project } from "../../types";
 import { colorTemperatureToLinearColor } from "../../utils/lighting";
 import { DEFAULT_DAYLIGHT, sunVector } from "../../utils/sun";
@@ -181,6 +182,7 @@ export const SceneRoot = ({
       <CameraViewSync
         view={project.camera}
         controlsRef={controlsRef}
+        exposureScale={sunUp ? DAYTIME_EXPOSURE_SCALE : 1}
       />
       {prefersTouchControls && <TouchLook controlsRef={controlsRef} />}
       <TouchPinchDolly controlsRef={controlsRef} />

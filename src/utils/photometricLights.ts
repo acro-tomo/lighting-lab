@@ -6,6 +6,7 @@ import {
 import type { Vec3 } from "../../photometric/src/core/types";
 import { vec3 } from "../../photometric/src/core/vec3";
 import type { LightFixture } from "../types";
+import { fixtureDimScale, iesAzimuthReference, resolveFixtureIes } from "./iesAssets";
 import {
   bracketRoomwardOffset,
   lumensToPhysicalPower,
@@ -57,8 +58,11 @@ export const projectLightsToPhotometric = (
 ): PhotometricLight[] => {
   const result: PhotometricLight[] = [];
   for (const fixture of lights) {
+    // IES適用時は光束がIES由来になるので、fixture.lumens ではなく調光率だけで消灯判定する。
+    const ies = resolveFixtureIes(fixture);
+    const dim = fixtureDimScale(fixture);
     const power = lumensToPhysicalPower(fixture);
-    if (power <= 0) continue;
+    if (ies ? dim <= 0 : power <= 0) continue;
     const base = vec3(
       fixture.position.x,
       fixture.position.y + floorLevelM,
@@ -101,6 +105,31 @@ export const projectLightsToPhotometric = (
         axis: DOWN,
         distribution: isotropicDistribution(power),
         dimming: 1
+      });
+      continue;
+    }
+
+    if (ies) {
+      // IESが解決できた器具は θ/φ の完全な2次元配光をそのまま使う（描画側の
+      // 軸対称近似とは違い、ここは水平角方向も落とさない）。光度は絶対値[cd]なので
+      // 調光率は dimming で1回だけ掛ける（二重適用しない）。
+      const drop =
+        fixture.type === "pendant"
+          ? PENDANT_DROP_M
+          : fixture.type === "spotlight"
+            ? SPOTLIGHT_DROP_M
+            : DOWNLIGHT_DROP_M;
+      const position = vec3(base.x, base.y - drop, base.z);
+      const axis = aimAxis(position, target);
+      // 非対称配光の向きを描画と一致させる。基準ベクトルはパストレーサが使うものと
+      // 同じ式（lookAt の x 軸）で作り、器具のY回転ぶんだけ光軸まわりに回す。
+      const reference = iesAzimuthReference(position, target, axis, fixture.rotationDeg.y);
+      result.push({
+        position,
+        axis,
+        reference: vec3(reference.x, reference.y, reference.z),
+        distribution: ies.distribution,
+        dimming: dim
       });
       continue;
     }

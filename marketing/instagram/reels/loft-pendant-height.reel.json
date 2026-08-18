@@ -1,0 +1,306 @@
+{
+  "framesDir": "output/reel-loft-height-frames",
+  "audioDir": "output/reel-loft-height-audio",
+  "outName": "reel-loft-pendant-height.mp4",
+  "disclaimer": "雰囲気比較用。実照度・施工後の見え方は保証しません",
+  "speakerId": 888753760,
+  "speed": 1.08,
+  "intonation": 1.05,
+  "tempoDynamics": 1.15,
+  "volume": 1.0,
+  "variants": {
+    "high": {
+      "lightOverrides": {
+        "loft-pendant-dining-1": {
+          "position": {
+            "x": 2.9,
+            "y": 3.3,
+            "z": 2.2
+          },
+          "cordLengthM": 0.9
+        },
+        "loft-pendant-dining-2": {
+          "position": {
+            "x": 4.4,
+            "y": 3.3,
+            "z": 2.2
+          },
+          "cordLengthM": 0.9
+        }
+      }
+    },
+    "low": {}
+  },
+  "shots": [
+    {
+      "id": "s1-hook",
+      "projectFile": "public/demo/rooms/us-brooklyn-loft.json",
+      "seconds": 3.4,
+      "cameraOverride": {
+        "position": {
+          "x": -2.5,
+          "y": 3.0,
+          "z": 3.6
+        },
+        "target": {
+          "x": 3.6,
+          "y": 0.32,
+          "z": 2.2
+        },
+        "fov": 72,
+        "exposure": 0.13
+      },
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [
+          {
+            "variant": "high",
+            "until": 0.4
+          },
+          {
+            "variant": "low",
+            "until": 1.0
+          }
+        ],
+        "move": {
+          "from": {
+            "position": {
+              "x": -2.5,
+              "y": 3.0,
+              "z": 3.6
+            },
+            "target": {
+              "x": 3.6,
+              "y": 0.32,
+              "z": 2.2
+            }
+          },
+          "to": {
+            "position": {
+              "x": -2.35,
+              "y": 2.98,
+              "z": 3.55
+            },
+            "target": {
+              "x": 3.6,
+              "y": 0.32,
+              "z": 2.2
+            }
+          }
+        }
+      },
+      "text": {
+        "eyebrow": "天井高4.2mのリビング",
+        "headline": [
+          "高い天井は、",
+          "そのままだと暗い"
+        ],
+        "sub": "同じ器具・同じ明るさです"
+      },
+      "voice": "高い天井は、そのままだと暗い。"
+    },
+    {
+      "id": "s2-swap",
+      "projectFile": "public/demo/rooms/us-brooklyn-loft.json",
+      "seconds": 5.8,
+      "cameraOverride": {
+        "position": {
+          "x": -2.35,
+          "y": 2.98,
+          "z": 3.55
+        },
+        "target": {
+          "x": 3.6,
+          "y": 0.32,
+          "z": 2.2
+        },
+        "fov": 72,
+        "exposure": 0.13
+      },
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [
+          {
+            "variant": "high",
+            "until": 0.5
+          },
+          {
+            "variant": "low",
+            "until": 1.0
+          }
+        ],
+        "move": {
+          "from": {
+            "position": {
+              "x": -2.35,
+              "y": 2.98,
+              "z": 3.55
+            },
+            "target": {
+              "x": 3.6,
+              "y": 0.32,
+              "z": 2.2
+            }
+          },
+          "to": {
+            "position": {
+              "x": -1.1,
+              "y": 2.9,
+              "z": 3.5
+            },
+            "target": {
+              "x": 3.7,
+              "y": 0.28,
+              "z": 2.2
+            }
+          }
+        }
+      },
+      "text": {
+        "eyebrow": "変えたのは吊り下げの高さだけ",
+        "headline": [
+          "器具を下ろすと、",
+          "食卓が明るくなる"
+        ],
+        "sub": "明るさも色温度も変えていません"
+      },
+      "voice": "器具を下ろすと、食卓が明るくなる。"
+    },
+    {
+      "id": "s3-compare",
+      "projectFile": "public/demo/rooms/us-brooklyn-loft.json",
+      "seconds": 5.0,
+      "cameraOverride": {
+        "position": {
+          "x": -1.1,
+          "y": 2.9,
+          "z": 3.5
+        },
+        "target": {
+          "x": 3.7,
+          "y": 0.28,
+          "z": 2.2
+        },
+        "fov": 72,
+        "exposure": 0.13
+      },
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [
+          {
+            "variant": "high",
+            "until": 0.34
+          },
+          {
+            "variant": "low",
+            "until": 0.67
+          },
+          {
+            "variant": "high",
+            "until": 1.0
+          }
+        ],
+        "move": {
+          "from": {
+            "position": {
+              "x": -1.1,
+              "y": 2.9,
+              "z": 3.5
+            },
+            "target": {
+              "x": 3.7,
+              "y": 0.28,
+              "z": 2.2
+            }
+          },
+          "to": {
+            "position": {
+              "x": -1.1,
+              "y": 2.9,
+              "z": 3.5
+            },
+            "target": {
+              "x": 3.7,
+              "y": 0.28,
+              "z": 2.2
+            }
+          }
+        }
+      },
+      "text": {
+        "eyebrow": "高さで、光の届く範囲が変わる",
+        "headline": [
+          "天井の近くか、",
+          "テーブルの上か"
+        ],
+        "sub": "同じ器具でも別の部屋に見えます"
+      },
+      "voice": "天井の近くか、テーブルの上か。"
+    },
+    {
+      "id": "s4-outro",
+      "projectFile": "public/demo/rooms/us-brooklyn-loft.json",
+      "seconds": 3.8,
+      "cameraOverride": {
+        "position": {
+          "x": -1.1,
+          "y": 2.9,
+          "z": 3.5
+        },
+        "target": {
+          "x": 3.7,
+          "y": 0.28,
+          "z": 2.2
+        },
+        "fov": 72,
+        "exposure": 0.13
+      },
+      "sequence": {
+        "mode": "fixture-variant-move",
+        "variantTimeline": [
+          {
+            "variant": "low",
+            "until": 1.0
+          }
+        ],
+        "move": {
+          "from": {
+            "position": {
+              "x": -1.1,
+              "y": 2.9,
+              "z": 3.5
+            },
+            "target": {
+              "x": 3.7,
+              "y": 0.28,
+              "z": 2.2
+            }
+          },
+          "to": {
+            "position": {
+              "x": -1.1,
+              "y": 2.9,
+              "z": 3.5
+            },
+            "target": {
+              "x": 3.7,
+              "y": 0.28,
+              "z": 2.2
+            }
+          }
+        }
+      },
+      "text": {
+        "eyebrow": "吊り位置は着工前に決まります",
+        "headline": [
+          "図面のうちに、",
+          "確かめる"
+        ],
+        "sub": "自分の間取り図で試せます",
+        "cta": "プロフィールのリンクから",
+        "outro": true
+      },
+      "voice": "図面のうちに、確かめる。"
+    }
+  ]
+}

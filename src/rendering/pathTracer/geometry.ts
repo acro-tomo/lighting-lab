@@ -138,6 +138,10 @@ export const addBox = (
 
 export const disposeScene = (scene: THREE.Scene) => {
   scene.traverse((object) => {
+    // このシーンが所有する iesMap（PNGレンダー用に作った DataTexture）を解放する。
+    // 編集シーン側は自前の別インスタンスを持つので影響しない。
+    (object as { iesMap?: THREE.Texture | null }).iesMap?.dispose();
+
     const mesh = object as THREE.Mesh;
     if (mesh.geometry) {
       mesh.geometry.dispose();

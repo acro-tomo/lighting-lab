@@ -184,6 +184,16 @@ export type LightType =
   | "bracket"
   | "tape";
 
+/**
+ * 使用者が取り込んだIESファイルへの参照。原本はこの端末のIndexedDBにだけあり、
+ * プロジェクトJSONにはこの参照（ハッシュとファイル名）しか書き出さない。
+ */
+export type IesReference = {
+  /** IES原本バイト列の SHA-256（16進）。 */
+  assetId: string;
+  fileName: string;
+};
+
 export type LightFixture = {
   id: string;
   name: string;
@@ -204,6 +214,8 @@ export type LightFixture = {
   note: string;
   lengthM?: number;
   cordLengthM?: number;
+  /** 適用中のIES配光への参照。undefined = ビーム角近似（従来どおり）。 */
+  ies?: IesReference;
   /** 所属階。undefined = 1階。 */
   floor?: FloorTag;
 };

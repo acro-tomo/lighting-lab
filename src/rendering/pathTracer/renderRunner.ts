@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { WebGLPathTracer } from "three-gpu-pathtracer";
 import { GenerateMeshBVHWorker } from "three-mesh-bvh/src/workers/index.js";
+import { patchPathTracerIes } from "../iesShaderPatch";
 import { disposeScene } from "./geometry";
 import { bouncesByMode, renderScaleByMode, sampleCountByMode, transmissiveBouncesByMode } from "./qualityPresets";
 import { buildPathTraceScene } from "./sceneBuilder";
@@ -176,6 +177,8 @@ export const renderPathTracedImage = async ({
 
   const { scene, skyEnv } = buildPathTraceScene(renderer, project, debugMode);
   const pathTracer = new WebGLPathTracer(renderer);
+  // 常駐パストレと同じくIESを θ/φ 二次元で引く（PNG書き出しも非対称配光に対応）。
+  patchPathTracerIes(pathTracer);
   const bvhWorker = new GenerateMeshBVHWorker();
   pathTracer.renderToCanvas = false;
   pathTracer.renderDelay = 0;

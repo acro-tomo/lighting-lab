@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
-import { existsSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { closeSync, existsSync, fstatSync, openSync, readSync } from "node:fs";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { promisify } from "node:util";
 import { chromium } from "@playwright/test";
@@ -29,11 +30,108 @@ const HIDE_CHROME_CSS = `
   [role="status"] { visibility: hidden !important; }
 `;
 
+const RESUME = process.env.REEL_RESUME === "1";
+
 const lerp = (from, to, amount) => from + (to - from) * amount;
 const eased = (amount) => amount * amount * (3 - 2 * amount);
 
+/**
+ * dir の先頭から連続して「最後まで書けている」PNG が何枚あるかを返す。
+ * 途中で落ちた回の最後の1枚は IEND まで届いていないので、そこで打ち切る。
+ */
+function completeFrames(dir, frames) {
+  for (let index = 0; index < frames; index += 1) {
+    const path = `${dir}/f${String(index).padStart(4, "0")}.png`;
+    if (!existsSync(path)) return index;
+    let file;
+    try {
+      file = openSync(path, "r");
+      const tail = Buffer.alloc(8);
+      const size = fstatSync(file).size;
+      if (size < 8) return index;
+      readSync(file, tail, 0, 8, size - 8);
+      if (tail.toString("latin1", 4, 8) !== "IEND") return index;
+    } catch {
+      return index;
+    } finally {
+      if (file !== undefined) closeSync(file);
+    }
+  }
+  return frames;
+}
+
 function cloneProject(project) {
   return structuredClone(project);
+}
+
+// --- IES ------------------------------------------------------------------
+// Playwright は毎回まっさらなプロファイルで起動するので IndexedDB が空になり、
+// ies 参照を持つプロジェクトを流し込んでも resolveFixtureIes が undefined を返して
+// 無言でビーム角近似に落ちる。原本をアプリと同じ形で IndexedDB へ先に書き、
+// アプリ自身の復帰経路(useIesHydration)に拾わせる。
+// assetId は原本バイト列の SHA-256（src/utils/iesAssets.ts と同じ規約）。
+const IES_OFF = process.env.REEL_IES_OFF === "1";
+
+async function loadIesAsset(iesConfig) {
+  if (!iesConfig || IES_OFF) return null;
+  const bytes = await readFile(iesConfig.file);
+  const assetId = createHash("sha256").update(bytes).digest("hex");
+  return {
+    assetId,
+    fileName: iesConfig.fileName ?? iesConfig.file.split("/").pop(),
+    source: bytes.toString("utf8"),
+    fixtureIds: new Set(iesConfig.fixtureIds ?? [])
+  };
+}
+
+async function seedIesAsset(page, ies) {
+  if (!ies) return;
+  await page.evaluate(
+    (record) =>
+      new Promise((resolve, reject) => {
+        const open = indexedDB.open("ldk-lighting-lab", 2);
+        open.onupgradeneeded = () => {
+          const db = open.result;
+          if (!db.objectStoreNames.contains("projects")) db.createObjectStore("projects");
+          if (!db.objectStoreNames.contains("iesAssets")) {
+            db.createObjectStore("iesAssets", { keyPath: "id" });
+          }
+        };
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const db = open.result;
+          const tx = db.transaction("iesAssets", "readwrite");
+          tx.objectStore("iesAssets").put(record);
+          tx.oncomplete = () => {
+            db.close();
+            resolve();
+          };
+          tx.onerror = () => reject(tx.error);
+        };
+      }),
+    {
+      id: ies.assetId,
+      fileName: ies.fileName,
+      source: ies.source,
+      importedAt: new Date().toISOString()
+    }
+  );
+}
+
+/** 条件A/Bの分岐より前に付けるので、両方の variant へ同一のIESが必ず載る。 */
+function applyIesRefs(project, ies) {
+  if (!ies) return project;
+  const next = cloneProject(project);
+  next.lights = next.lights.map((light) =>
+    ies.fixtureIds.has(light.id)
+      ? { ...light, ies: { assetId: ies.assetId, fileName: ies.fileName } }
+      : light
+  );
+  const applied = next.lights.filter((light) => light.ies).length;
+  if (applied !== ies.fixtureIds.size) {
+    throw new Error(`IES適用対象が一致しない: 期待 ${ies.fixtureIds.size} / 実際 ${applied}`);
+  }
+  return next;
 }
 
 function applyCameraOverride(project, cameraOverride) {
@@ -46,6 +144,56 @@ function applyCameraOverride(project, cameraOverride) {
       position: cameraOverride.position ?? project.camera.position,
       target: cameraOverride.target ?? project.camera.target
     }
+  };
+}
+
+function requireVariant(variants, name) {
+  const variant = variants?.[name];
+  if (!variant) throw new Error(`variant が config に無い: ${name}`);
+  return variant;
+}
+
+/**
+ * 器具の差し替えを「撤去 / 無効化 / 数値の上書き / 追加」の4操作だけで表す。
+ * 元プロジェクトは触らず、比較のたびに複製へ適用する。
+ *
+ * 撤去(remove)と無効化(disable)は分けてある。消灯しても器具本体は画に残るので、
+ * 「器具そのものを別の種類に置き換える」比較では残った本体が嘘になる。
+ * 光束は消灯時点で0なので、撤去しても合計光束の揃えは変わらない。
+ */
+function applyVariant(project, variant) {
+  const next = cloneProject(project);
+  const removed = new Set(variant.removeLightIds ?? []);
+  const disabled = new Set(variant.disableLightIds ?? []);
+  const overrides = variant.lightOverrides ?? {};
+  next.lights = next.lights.filter((light) => !removed.has(light.id)).map((light) => {
+    const merged = overrides[light.id] ? { ...light, ...overrides[light.id] } : light;
+    return disabled.has(light.id) ? { ...merged, enabled: false } : merged;
+  });
+  if (variant.addLights) next.lights = [...next.lights, ...variant.addLights];
+  return next;
+}
+
+function variantAt(timelineSteps, timeline) {
+  const step = timelineSteps.find((candidate) => timeline <= candidate.until);
+  return (step ?? timelineSteps[timelineSteps.length - 1]).variant;
+}
+
+function movedCamera(camera, move, amount) {
+  if (!move) return camera;
+  const lerpPoint = (from, to) => ({
+    x: lerp(from.x, to.x, amount),
+    y: lerp(from.y, to.y, amount),
+    z: lerp(from.z, to.z, amount)
+  });
+  return {
+    ...camera,
+    position: move.from?.position && move.to?.position
+      ? lerpPoint(move.from.position, move.to.position)
+      : camera.position,
+    target: move.from?.target && move.to?.target
+      ? lerpPoint(move.from.target, move.to.target)
+      : camera.target
   };
 }
 
@@ -172,6 +320,81 @@ async function captureLightAnimation(page, shot, project, dir, frames) {
   }
 }
 
+/**
+ * 器具のバリアントを切り替えながらカメラを動かす。
+ * カメラを止めれば同一フレームでのA/B切替、動かせばドリーやチルトになる。
+ */
+async function captureVariantMove(page, shot, project, dir, frames, variants, startIndex = 0) {
+  await page.setViewportSize(VIEWPORT);
+  // 60msだと描画が完成する前に撮れて露出が途中状態のまま焼き付く（実測: 60ms=215.5 /
+  // 400ms以降=68.4で安定）。IES対応と日光の実測光スケール化でシーン確定が遅くなったため。
+  const { move, variantTimeline, daylight, settleMs = 400 } = shot.sequence;
+
+  for (let index = startIndex; index < frames; index += 1) {
+    const timeline = frames === 1 ? 0 : index / (frames - 1);
+    const next = applyVariant(project, requireVariant(variants, variantAt(variantTimeline, timeline)));
+    next.camera = movedCamera(next.camera, move, eased(timeline));
+    if (daylight) {
+      next.daylight = {
+        ...next.daylight,
+        enabled: true,
+        hour: lerp(daylight.fromHour, daylight.toHour, timeline)
+      };
+    }
+    await applyProject(page, next, settleMs);
+    await page.screenshot({
+      path: `${dir}/f${String(index).padStart(4, "0")}.png`,
+      clip: await canvasBox(page, shot.id),
+      timeout: 180_000
+    });
+  }
+}
+
+/**
+ * 上下2分割で同じ時刻を同時に進める。変数は上下のバリアント差だけで、
+ * 日光の送り方は両方に同一のカーブで与える。
+ * 上下それぞれを通しで撮ってから vstack する（バリアント切替の回数を最小にするため）。
+ */
+async function captureDaylightSplit(page, shot, project, dir, frames, variants) {
+  await page.setViewportSize(COMPARE_VIEWPORT);
+  await page.waitForTimeout(500);
+  const { topVariant, bottomVariant, daylight, settleMs = 500 } = shot.sequence;
+
+  for (const [slot, variantName] of [["top", topVariant], ["bottom", bottomVariant]]) {
+    await mkdir(`${dir}/${slot}`, { recursive: true });
+    const variant = requireVariant(variants, variantName);
+    for (let index = 0; index < frames; index += 1) {
+      const timeline = frames === 1 ? 0 : index / (frames - 1);
+      const next = applyVariant(project, variant);
+      // 時刻は演出で歪めない。イージングを掛けず線形に送る。
+      next.daylight = {
+        ...next.daylight,
+        enabled: true,
+        hour: lerp(daylight.fromHour, daylight.toHour, timeline)
+      };
+      await applyProject(page, next, settleMs);
+      await page.screenshot({
+        path: `${dir}/${slot}/f${String(index).padStart(4, "0")}.png`,
+        clip: await canvasBox(page, shot.id),
+        timeout: 180_000
+      });
+    }
+  }
+
+  await execFileAsync(
+    ffmpegPath,
+    [
+      "-framerate", String(FPS), "-start_number", "0", "-i", `${dir}/top/f%04d.png`,
+      "-framerate", String(FPS), "-start_number", "0", "-i", `${dir}/bottom/f%04d.png`,
+      "-filter_complex", "[0:v][1:v]vstack=inputs=2[out]",
+      "-map", "[out]", "-frames:v", String(frames), "-start_number", "0", "-y", `${dir}/f%04d.png`
+    ],
+    { maxBuffer: 16 * 1024 * 1024 }
+  );
+  await rm(`${dir}/top`, { recursive: true, force: true });
+  await rm(`${dir}/bottom`, { recursive: true, force: true });
+}
+
 await mkdir(config.framesDir, { recursive: true });
 await rm(`${config.framesDir}/shots.json`, { force: true });
 
@@ -189,7 +412,17 @@ const page = await browser.newPage({ viewport: VIEWPORT, deviceScaleFactor: 1, l
 await page.addInitScript(() => window.localStorage.setItem("ldk-intro-seen", "1"));
 page.on("pageerror", (error) => console.log(`pageerror: ${error.message}`));
 
+const ies = await loadIesAsset(config.ies);
+if (config.ies) {
+  console.log(
+    ies
+      ? `ies=${ies.fileName} assetId=${ies.assetId} 対象=${[...ies.fixtureIds].join(",")}`
+      : "ies=OFF (REEL_IES_OFF=1 / ビーム角近似で撮影)"
+  );
+}
+
 await page.goto(url, { waitUntil: "domcontentloaded" });
+await seedIesAsset(page, ies);
 await page.locator("canvas").first().waitFor({ state: "attached", timeout: 60_000 });
 await page.waitForTimeout(4000);
 await page.locator('.focus-toggle[aria-label="3Dを最大化"]').dispatchEvent("click");
@@ -199,11 +432,26 @@ await page.waitForTimeout(3000);
 const manifest = [];
 for (const shot of config.shots) {
   const sourceProject = JSON.parse(await readFile(shot.projectFile, "utf8"));
-  const project = applyCameraOverride(sourceProject, shot.cameraOverride);
+  const project = applyIesRefs(applyCameraOverride(sourceProject, shot.cameraOverride), ies);
   const frames = SMOKE ? 3 : Math.max(2, Math.round(shot.seconds * FPS));
   const dir = `${config.framesDir}/${shot.id}`;
-  await rm(dir, { recursive: true, force: true });
+  // 撮影が途中で落ちる環境（コンテナの再起動など）で、撮り直しをゼロからやらないための再開。
+  const startIndex = RESUME ? completeFrames(dir, frames) : 0;
+  if (startIndex === 0) {
+    await rm(dir, { recursive: true, force: true });
+  }
   await mkdir(dir, { recursive: true });
+  if (startIndex >= frames) {
+    console.log(`shot=${shot.id} frames=${frames} (撮影済み・再開でスキップ)`);
+    manifest.push({ id: shot.id, projectFile: shot.projectFile, sequenceMode: shot.sequence.mode, frames, seconds: shot.seconds, fps: FPS });
+    continue;
+  }
+  if (startIndex > 0) console.log(`shot=${shot.id} f${String(startIndex).padStart(4, "0")} から再開`);
+
+  // ショット先頭はプロジェクトごと差し替わるぶんシーン確定が遅く、フレーム毎の
+  // settleMs では間に合わずに露出が途中状態のまま焼き付く（実測: 白飛びして平均輝度が
+  // 約200、正しくは約68）。撮影前に一度だけ長めに待って暖機する。
+  await applyProject(page, project, 1200);
 
   const startedAt = Date.now();
   if (shot.sequence.mode === "stacked-light-compare") {
@@ -212,11 +460,15 @@ for (const shot of config.shots) {
     await captureToggleSlide(page, shot, project, dir, frames);
   } else if (shot.sequence.mode === "light-property-animation") {
     await captureLightAnimation(page, shot, project, dir, frames);
+  } else if (shot.sequence.mode === "fixture-variant-move") {
+    await captureVariantMove(page, shot, project, dir, frames, config.variants, startIndex);
+  } else if (shot.sequence.mode === "daylight-split-timelapse") {
+    await captureDaylightSplit(page, shot, project, dir, frames, config.variants);
   } else {
     throw new Error(`unknown sequence mode: ${shot.sequence.mode}`);
   }
 
-  const msPerFrame = Math.round((Date.now() - startedAt) / frames);
+  const msPerFrame = Math.round((Date.now() - startedAt) / Math.max(1, frames - startIndex));
   console.log(`shot=${shot.id} frames=${frames} ms/frame=${msPerFrame}`);
   manifest.push({
     id: shot.id,
