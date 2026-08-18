@@ -1,5 +1,13 @@
 # 次に作るリール4本（2026-08-14 時点の設計）
 
+> **2026-08-18 追記: 「冒頭2.0秒は無文字」は撤回した。**根拠が無く（「他に触る変数が
+> 無いから」導入された）、再生維持率を31本分いちども測っておらず、そもそも
+> `encode-reel.mjs:196` の `filter((shot) => TEXTS[shot.id])` はテロップの無い
+> ショットを無音にせず**丸ごと落とす**ため実装もされていない。
+> 差し替えた規約は [AUDIENCE-AND-FORMAT.md](AUDIENCE-AND-FORMAT.md)「冒頭3秒の規約」が正。
+> この文書は第4弾（投稿済み）の記録として、当時のまま残す。
+
+
 @hosh1.921 のリール21本＋カルーセル数本の実績を読み直して組み直した構想。
 運用の前提は [docs/instagram-playbook.md](../../../docs/instagram-playbook.md)、
 制作パイプラインは [marketing/instagram/README.md](../README.md)、
