@@ -156,6 +156,9 @@ REEL_CONFIG=path/to/reel.json REEL_WITH_VOICE=1 npm run ig:decision-encode
 
 撮影時は各shotの開始時に元のデモJSONを読み直し、比較条件はメモリ上だけに適用する。ディスク上のデモJSONは書き換えない。
 
+次に作るリールの企画・台本・撮影条件は [`reels/plan-dots.prompt.md`](reels/plan-dots.prompt.md) にある。
+そのまま Claude Code に貼れる形にしてある。
+
 ## 表記の注意
 
 画像にもキャプションにも、実照度(lux)・IES/LDT配光・照度計算書を保証する表現は
