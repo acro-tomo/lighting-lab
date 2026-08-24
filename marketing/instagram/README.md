@@ -159,6 +159,36 @@ REEL_CONFIG=path/to/reel.json REEL_WITH_VOICE=1 npm run ig:decision-encode
 次に作るリールの企画・台本・撮影条件は [`reels/plan-dots.prompt.md`](reels/plan-dots.prompt.md) にある。
 そのまま Claude Code に貼れる形にしてある。
 
+### sequence.mode
+
+| mode | 動き | 主なキー |
+|---|---|---|
+| `plan-2d` | 2D平面図。照明を順に出す／選択を順に移す／途中で配灯を差し替える | `revealUntil` / `selectIds` / `comparison` + `swapAt` / `liftPx` |
+| `stacked-light-compare` | 3Dを上下2分割。上=実際の配灯、下=`comparison` の等間隔グリッド | `comparison` |
+| `light-toggle-slide` | 3D。カメラを横に振りながら指定の照明を途中で点ける | `lightIds` / `switchAt` / `lowerByM` / `slideM` |
+| `light-property-animation` | 3D。1灯の吊り長さ・高さを動かす | `lightId` / `from` / `to` / `holdSeconds` |
+
+`plan-2d` は3Dを画角外の最小サイズにし、影の再生成も止めて撮る。2Dの絵は変わらず1フレームが数倍速くなる。
+`liftPx` はテロップと重ならないように平面図を上へ寄せる量（既定320px。文字数が多いショットは大きくする）。
+
+撮影は書き出しと同じ 1080×1920 で行う。エンコード側で拡大縮小が入らないぶん、線と文字が残る。
+
+## 配灯図リール（plan-dots）を作る
+
+企画・台本は [`reels/plan-dots.prompt.md`](reels/plan-dots.prompt.md)、撮影条件は
+[`reels/plan-dots.reel.json`](reels/plan-dots.reel.json)。別ターミナルで `npm run dev` を起動してから、
+
+```bash
+REEL_CONFIG=marketing/instagram/reels/plan-dots.reel.json REEL_SMOKE=1 npm run ig:decision-capture
+REEL_CONFIG=marketing/instagram/reels/plan-dots.reel.json npm run ig:decision-capture
+python3 scripts/instagram/generate-reel-voice.py marketing/instagram/reels/plan-dots.reel.json
+REEL_CONFIG=marketing/instagram/reels/plan-dots.reel.json REEL_WITH_VOICE=1 npm run ig:decision-encode
+```
+
+完成動画は `marketing/instagram/out/reel-plan-dots.mp4`。音声生成は macOS の AivisSpeech を使うため、
+Mac でしか通らない。音声なしで先に絵を確認する場合は `REEL_WITH_VOICE` を付けずにエンコードする。
+
+
 ## 表記の注意
 
 画像にもキャプションにも、実照度(lux)・IES/LDT配光・照度計算書を保証する表現は

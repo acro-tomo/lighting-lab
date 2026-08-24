@@ -1,0 +1,194 @@
+{
+  "framesDir": "output/reel-plan-dots-frames",
+  "audioDir": "output/reel-plan-dots-audio",
+  "outName": "reel-plan-dots.mp4",
+  "speakerId": 888753760,
+  "speed": 1.08,
+  "intonation": 1.05,
+  "tempoDynamics": 1.15,
+  "volume": 1.0,
+  "shots": [
+    {
+      "id": "s1-marks",
+      "projectFile": "public/demo/rooms/jp-hiraya-engawa.json",
+      "seconds": 3.2,
+      "sequence": {
+        "mode": "plan-2d",
+        "revealUntil": 0.72
+      },
+      "text": {
+        "eyebrow": "電気打ち合わせ",
+        "headline": [
+          "照明は",
+          "この丸だけで",
+          "決まる"
+        ],
+        "sub": "図面の●1つが照明1灯"
+      },
+      "voice": "照明は、この丸だけで決まります。"
+    },
+    {
+      "id": "s2-choice",
+      "projectFile": "public/demo/rooms/jp-hiraya-engawa.json",
+      "seconds": 3.8,
+      "sequence": {
+        "mode": "plan-2d",
+        "selectIds": [
+          "hiraya-dl-3",
+          "hiraya-dl-1",
+          "hiraya-dl-2",
+          "hiraya-dl-4"
+        ]
+      },
+      "text": {
+        "eyebrow": "ダウンライトは何灯？",
+        "headline": [
+          "4灯か",
+          "8灯か"
+        ],
+        "sub": "図面のままでは決められない"
+      },
+      "voice": "四灯か、八灯か。図面では決められません。"
+    },
+    {
+      "id": "s3-compare",
+      "projectFile": "public/demo/rooms/jp-hiraya-engawa.json",
+      "seconds": 6.2,
+      "sequence": {
+        "mode": "stacked-light-compare",
+        "comparison": {
+          "xs": [
+            -4.5,
+            -1.5,
+            1.5,
+            4.5
+          ],
+          "zs": [
+            -1.8,
+            1.8
+          ],
+          "model": "dl-medium",
+          "positionY": 2.36,
+          "mountHeightM": 2.4,
+          "targetY": 0,
+          "lumens": 620,
+          "colorTemperatureK": 2700,
+          "dimmer": 100,
+          "beamAngleDeg": 60,
+          "penumbra": 0.6
+        }
+      },
+      "text": {
+        "eyebrow": "同じ間取り・同じ家具",
+        "headline": [
+          "変えたのは",
+          "照明だけ"
+        ],
+        "sub": "同じ夜・同じアングル",
+        "visual": {
+          "kind": "split",
+          "topLabel": "4灯＋間接",
+          "bottomLabel": "等間隔8灯"
+        }
+      },
+      "voice": "変えたのは、照明だけです。",
+      "cameraOverride": {
+        "fov": 55,
+        "exposure": 0.09,
+        "position": {
+          "x": -4.35,
+          "y": 1.48,
+          "z": -2.5
+        },
+        "target": {
+          "x": 2.0,
+          "y": 0.9,
+          "z": 1.6
+        }
+      }
+    },
+    {
+      "id": "s4-indirect",
+      "projectFile": "public/demo/rooms/jp-hiraya-engawa.json",
+      "seconds": 3.0,
+      "sequence": {
+        "mode": "light-toggle-slide",
+        "lightIds": [
+          "hiraya-cove-1",
+          "hiraya-cove-2",
+          "hiraya-cove-3"
+        ],
+        "switchAt": 0.45,
+        "lowerByM": 0.1,
+        "slideM": 0.9
+      },
+      "text": {
+        "eyebrow": "間接照明 3本",
+        "headline": [
+          "足すだけで",
+          "天井が",
+          "変わる"
+        ],
+        "sub": "ダウンライトの数は同じまま"
+      },
+      "voice": "間接を三本足すと、天井が変わります。",
+      "cameraOverride": {
+        "fov": 55,
+        "exposure": 0.09,
+        "position": {
+          "x": -4.35,
+          "y": 1.48,
+          "z": -2.5
+        },
+        "target": {
+          "x": 2.0,
+          "y": 0.9,
+          "z": 1.6
+        }
+      }
+    },
+    {
+      "id": "s5-outro",
+      "projectFile": "public/demo/rooms/jp-hiraya-engawa.json",
+      "seconds": 5.8,
+      "sequence": {
+        "mode": "plan-2d",
+        "swapAt": 0.42,
+        "comparison": {
+          "xs": [
+            -4.5,
+            -1.5,
+            1.5,
+            4.5
+          ],
+          "zs": [
+            -1.8,
+            1.8
+          ],
+          "model": "dl-medium",
+          "positionY": 2.36,
+          "mountHeightM": 2.4,
+          "targetY": 0,
+          "lumens": 620,
+          "colorTemperatureK": 2700,
+          "dimmer": 100,
+          "beamAngleDeg": 60,
+          "penumbra": 0.6
+        },
+        "liftPx": 500
+      },
+      "text": {
+        "eyebrow": "自分の間取りで",
+        "headline": [
+          "丸の数ではなく",
+          "夜の見え方で",
+          "決める"
+        ],
+        "sub": "配置・明るさ・色温度を比べられます",
+        "cta": "保存して打ち合わせへ",
+        "outro": true
+      },
+      "voice": "丸の数ではなく、夜の見え方で決める。"
+    }
+  ]
+}
