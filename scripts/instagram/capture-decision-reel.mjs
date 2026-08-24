@@ -12,8 +12,9 @@ if (!CONFIG_PATH) throw new Error("REEL_CONFIG に対象の reel config を指�
 const config = JSON.parse(await readFile(CONFIG_PATH, "utf8"));
 const FPS = Number(process.env.REEL_FPS ?? 30);
 const SMOKE = process.env.REEL_SMOKE === "1";
-const VIEWPORT = { width: 1280, height: 2276 };
-const COMPARE_VIEWPORT = { width: 1280, height: 1138 };
+// 書き出しサイズ(1080x1920)そのままで撮る。エンコード側の拡大縮小が入らないぶん輪郭が残る。
+const VIEWPORT = { width: 1080, height: 1920 };
+const COMPARE_VIEWPORT = { width: 1080, height: 960 };
 
 const urlArg = process.argv.slice(2).find((arg) => /^https?:\/\//.test(arg));
 const url = urlArg ?? "http://127.0.0.1:5173/";
@@ -26,6 +27,8 @@ const HIDE_CHROME_CSS = `
   .disclaimer-badge, .mobile-bottom-bar, .feedback-widget,
   .plan-meta, .shortcut-guide { display: none !important; }
   button[aria-label="縮小"], button[aria-label="拡大"] { display: none !important; }
+  /* .top-chrome を消すと workspace が grid の auto 行に入って縦が縮む。単一行にして全高を使う。 */
+  .app-shell { grid-template-rows: minmax(0, 1fr) !important; }
   [role="status"] { visibility: hidden !important; }
 `;
 
