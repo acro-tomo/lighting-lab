@@ -27,6 +27,7 @@ const HIDE_CHROME_CSS = `
   .disclaimer-badge, .mobile-bottom-bar, .feedback-widget,
   .plan-meta, .shortcut-guide { display: none !important; }
   button[aria-label="縮小"], button[aria-label="拡大"] { display: none !important; }
+  .plan-panel > .panel-heading, .plan-compass, .tool-help { display: none !important; }
   /* .top-chrome を消すと workspace が grid の auto 行に入って縦が縮む。単一行にして全高を使う。 */
   .app-shell { grid-template-rows: minmax(0, 1fr) !important; }
   [role="status"] { visibility: hidden !important; }
@@ -118,6 +119,86 @@ async function captureStackedCompare(page, shot, project, dir, frames) {
   await rm(comparisonPath, { force: true });
 }
 
+// 2Dショット中だけ当てるCSS。3Dは画角外なので最小サイズにして描画コストを落とし、
+// 器具名ラベルとカメラ位置マーカーは配灯図の読み取りを邪魔するので隠す。
+const PLAN_SHOT_CSS = `
+  .workspace.is-focus-2d .viewport-panel {
+    display: block !important;
+    position: fixed !important;
+    left: -40px; top: -40px;
+    width: 4px !important; height: 4px !important;
+    overflow: hidden !important;
+  }
+  .scene-stage { width: 4px !important; height: 4px !important; }
+  .plan-label, .plan-camera { display: none !important; }
+`;
+
+// liftPx はテロップと重ならないよう平面図を上へ寄せる量。整数pxの平行移動だけにして
+// 拡大は入れない（SVGを再ラスタライズさせない）。
+async function setPlanShotMode(page, enabled, liftPx = 320) {
+  await page.evaluate(({ enabled, css, liftPx }) => {
+    const id = "reel-plan-shot-style";
+    const current = document.getElementById(id);
+    if (!enabled) {
+      current?.remove();
+      return;
+    }
+    // 3Dの縮小を維持したいので、要素は消さずに中身だけ差し替える。
+    const style = current ?? document.createElement("style");
+    style.id = id;
+    style.textContent = `${css}
+      .workspace.is-focus-2d .plan-canvas { transform: translateY(${-Math.round(liftPx)}px); }`;
+    if (!style.isConnected) document.head.appendChild(style);
+  }, { enabled, css: PLAN_SHOT_CSS, liftPx });
+  // 3Dキャンバスのリサイズが落ち着くまで待つ。
+  await page.waitForTimeout(1500);
+}
+
+// 2D/3Dの集中表示を切り替える。集中表示中のパネル自身のボタンはラベルが
+// 「通常表示に戻す」に変わるので、そのときは押さない（すでに目的の状態）。
+async function setFocus(page, panel) {
+  const label = panel === "plan" ? "2Dを最大化" : "3Dを最大化";
+  const toggle = page.locator(`.focus-toggle[aria-label="${label}"]`);
+  if (await toggle.count()) {
+    await toggle.dispatchEvent("click");
+    await page.waitForTimeout(600);
+  }
+}
+
+// 2D平面図のショット。照明を順に出す(reveal)、選択を順に移す(selectIds)、
+// 途中で配灯を差し替える(comparison + swapAt)の3つを組み合わせて使う。
+async function capturePlan2D(page, shot, project, dir, frames) {
+  await page.setViewportSize(VIEWPORT);
+  const { revealUntil, selectIds, comparison, swapAt = 0.5 } = shot.sequence;
+  const clip = { x: 0, y: 0, width: VIEWPORT.width, height: VIEWPORT.height };
+
+  for (let index = 0; index < frames; index += 1) {
+    const timeline = frames === 1 ? 1 : index / (frames - 1);
+    const nextProject = comparison && timeline < swapAt
+      ? replaceLights(project, comparison)
+      : cloneProject(project);
+    if (revealUntil) {
+      const shown = Math.round(eased(Math.min(1, timeline / revealUntil)) * nextProject.lights.length);
+      nextProject.lights = nextProject.lights.slice(0, shown);
+    }
+    // 3Dは画角外なので影の作り直しを止める。2Dの見た目は変わらず、1フレームの撮影が速くなる。
+    nextProject.lights = nextProject.lights.map((light) => ({ ...light, castsShadow: false }));
+    await applyProject(page, nextProject);
+    if (selectIds?.length) {
+      // setProject が選択を消すので、フレームごとに選び直す。
+      const selectedId = selectIds[Math.min(selectIds.length - 1, Math.floor(timeline * selectIds.length))];
+      await page.evaluate((id) => {
+        window.useProjectStore.getState().select({ kind: "light", id });
+      }, selectedId);
+    }
+    await page.screenshot({
+      path: `${dir}/f${String(index).padStart(4, "0")}.png`,
+      clip,
+      timeout: 180_000
+    });
+  }
+}
+
 async function captureToggleSlide(page, shot, project, dir, frames) {
   await page.setViewportSize(VIEWPORT);
   const { lightIds, switchAt, lowerByM, slideM } = shot.sequence;
@@ -195,7 +276,7 @@ page.on("pageerror", (error) => console.log(`pageerror: ${error.message}`));
 await page.goto(url, { waitUntil: "domcontentloaded" });
 await page.locator("canvas").first().waitFor({ state: "attached", timeout: 60_000 });
 await page.waitForTimeout(4000);
-await page.locator('.focus-toggle[aria-label="3Dを最大化"]').dispatchEvent("click");
+await setFocus(page, "scene");
 await page.addStyleTag({ content: HIDE_CHROME_CSS });
 await page.waitForTimeout(3000);
 
@@ -209,7 +290,13 @@ for (const shot of config.shots) {
   await mkdir(dir, { recursive: true });
 
   const startedAt = Date.now();
-  if (shot.sequence.mode === "stacked-light-compare") {
+  const isPlanShot = shot.sequence.mode === "plan-2d";
+  await setFocus(page, isPlanShot ? "plan" : "scene");
+  await setPlanShotMode(page, isPlanShot, shot.sequence.liftPx);
+
+  if (isPlanShot) {
+    await capturePlan2D(page, shot, project, dir, frames);
+  } else if (shot.sequence.mode === "stacked-light-compare") {
     await captureStackedCompare(page, shot, project, dir, frames);
   } else if (shot.sequence.mode === "light-toggle-slide") {
     await captureToggleSlide(page, shot, project, dir, frames);
