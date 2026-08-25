@@ -159,10 +159,19 @@ LDK Lighting Lab の Instagram リールを1本作る。企画は決まってい
 - ブックエンド（1カット目と最終カットを同じ2D平面図にする）でループ再生時の接続が滑らかになり、
   視聴維持が伸びる。
 
-## 実装で引っかかる点
+## 実装メモ（この構成で実際に作ったときの記録）
 
-- 2D平面図を撮るモードは現状のスクリプトに無い。3ショットがこれに依存するので、着手は
-  scripts/instagram/capture-decision-reel.mjs の拡張から。
-- 等間隔8灯グリッドは既存の stacked-light-compare（`replaceLights` の xs / zs）で作れる。
-  平屋デモ（12.0×7.2m）なら xs 4点 × zs 2点で8灯になる。
-- 平屋デモは日光OFF・夜の状態で保存済みなので、読み込んだ直後の画がそのまま使える。
+- 2D平面図を撮る `plan-2d` モードを [capture-decision-reel.mjs](../../../scripts/instagram/capture-decision-reel.mjs)
+  に追加済み。`revealUntil`（照明を順に出す）/ `selectIds`（選択を順に移す）/ `comparison` + `swapAt`
+  （途中で配灯を差し替える）/ `liftPx`（テロップと重ならないよう平面図を上へ寄せる量）で組む。
+- 撮影サイズは書き出しと同じ 1080×1920。以前は `.top-chrome` を隠した拍子に workspace が
+  grid の auto 行へ落ちてキャンバスが 1280×1113 しか無く、エンコード時に 626px幅の帯を
+  1080まで引き伸ばしていた。`.app-shell` を単一行に固定して直してある。
+- 2Dショットの間は3Dを画角外の4×4に畳み、影の再生成も止める。絵は変わらず1フレームが数倍速くなる。
+- 等間隔8灯グリッドは `stacked-light-compare` の `comparison`（`xs` 4点 × `zs` 2点）で作る。
+  平屋デモ（12.0×7.2m）は `xs: [-4.5, -1.5, 1.5, 4.5]` / `zs: [-1.8, 1.8]`。
+- 3Dショットは縦持ちだと天井が画面の半分を占めるので、`cameraOverride` で `fov` を 55 まで絞り、
+  `target` を下げる。平屋デモは日光OFF・夜で保存済みなので読み込んだ直後の画がそのまま使える。
+- 音声生成（AivisSpeech）は macOS 前提。Linux/コンテナでは音声なしでエンコードし、Mac で
+  `python3 scripts/instagram/generate-reel-voice.py <config>` → `REEL_WITH_VOICE=1` で入れ直す。
+- GPUの無い環境では3Dが SwiftShader 描画になり1フレーム約30秒かかる。3Dショットの尺は短く持つ。
