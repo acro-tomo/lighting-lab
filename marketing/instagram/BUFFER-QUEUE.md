@@ -203,10 +203,9 @@ npm run ig:reel-encode
 
 - **postId**: `plan-dots`
 - **形式**: リール（1080×1920 / 20.4秒 / 30fps）
-- **動画**: https://raw.githubusercontent.com/acro-tomo/lighting-lab/11aa0e5/marketing/instagram/out/reel-plan-dots.mp4
+- **動画**: https://raw.githubusercontent.com/acro-tomo/lighting-lab/88a5900/marketing/instagram/out/reel-plan-dots.mp4
 - **Buffer post ID**: 未登録
-- **音声**: 未収録。手順は [`reels/plan-dots-voice.prompt.md`](reels/plan-dots-voice.prompt.md)
-  （Mac で撮影 → AivisSpeech → `REEL_WITH_VOICE=1` で再エンコード）。現在の mp4 は無音
+- **音声**: AivisSpeech収録済み（5ショット・ショット単位）。
 - **カバー**: `thumbnailOffset` は 2500ms 付近（s1の「照明はこの丸だけで決まる」）を想定
 
 ### キャプション
