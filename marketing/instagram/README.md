@@ -188,6 +188,9 @@ REEL_CONFIG=marketing/instagram/reels/plan-dots.reel.json REEL_WITH_VOICE=1 npm 
 完成動画は `marketing/instagram/out/reel-plan-dots.mp4`。音声生成は macOS の AivisSpeech を使うため、
 Mac でしか通らない。音声なしで先に絵を確認する場合は `REEL_WITH_VOICE` を付けずにエンコードする。
 
+音声を入れるときの手順・台本・各ショットの許容尺は
+[`reels/plan-dots-voice.prompt.md`](reels/plan-dots-voice.prompt.md) にある。
+
 
 ## 表記の注意
 
