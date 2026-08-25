@@ -197,3 +197,41 @@ npm run ig:reel-encode
 | metadata.instagram.shouldShareToFeed | `true` |
 | assets[0].video.metadata.thumbnailOffset | `2000`（ms／s1の「同じ部屋です」をカバーに） |
 
+---
+
+## 4. 配灯図リール（未登録・下書き）
+
+- **postId**: `plan-dots`
+- **形式**: リール（1080×1920 / 20.4秒 / 30fps）
+- **動画**: https://raw.githubusercontent.com/acro-tomo/lighting-lab/9597f57/marketing/instagram/out/reel-plan-dots.mp4
+- **Buffer post ID**: 未登録
+- **音声**: 未収録。Mac で `python3 scripts/instagram/generate-reel-voice.py marketing/instagram/reels/plan-dots.reel.json`
+  → `REEL_WITH_VOICE=1` で再エンコードしてから入稿する（現在の mp4 は無音）
+- **カバー**: `thumbnailOffset` は 2500ms 付近（s1の「照明はこの丸だけで決まる」）を想定
+
+### キャプション
+
+```
+ダウンライトの数は、図面の●だけでは決められません。
+
+電気打ち合わせで渡される配灯図に並ぶ●は、1つが照明1灯。
+でも「4灯で足りるのか、8灯必要なのか」は、その紙のままでは判断できません。
+同じ間取り・同じ家具のまま、灯り方だけを変えて並べたのがこの動画です。
+間接照明を3本足すだけでも、部屋の奥の見え方は変わります。
+
+うちの間取りだとどうなるか気になる人は、
+プロフィールのリンクから自分の間取り図で試せます。
+（登録なし・ブラウザだけで動きます）
+
+※雰囲気を比較するための視覚シミュレーションです。
+　実際の照度(lux)や仕上がりを保証するものではありません。
+
+#注文住宅 #照明計画 #マイホーム計画中 #家づくり記録 #新築一戸建て #ダウンライト #間接照明 #リビング照明 #インテリア照明 #家づくり #配灯図 #電気打ち合わせ #マイホーム #新築 #おうちづくり #家づくりアイデア #住宅設計 #照明 #夜のリビング #リール
+```
+
+### 撮り直す場合
+
+構成は [`reels/plan-dots.prompt.md`](reels/plan-dots.prompt.md)、撮影条件は
+[`reels/plan-dots.reel.json`](reels/plan-dots.reel.json)。手順は README の
+「配灯図リール（plan-dots）を作る」を参照。3Dショット（s4）はGPUの無い環境だと
+1フレーム約40秒かかるので、Macで撮る。
