@@ -17,6 +17,17 @@ LDK Lighting Lab の配灯図リール（plan-dots）に AI 音声を入れて�
 - 撮影フレーム（output/ 配下）はリポジトリに入っていないので、Mac で撮り直しから始める
 - 企画の背景は marketing/instagram/reels/plan-dots.prompt.md
 
+## 最初にやること
+
+作業ブランチ claude/reel-video-prompt-ofhogr を最新にする。台本・撮影条件・企画メモ・無音版の
+mp4 はすべてこのブランチにあり、main / staging には入っていない。
+
+    git fetch origin claude/reel-video-prompt-ofhogr
+    git checkout claude/reel-video-prompt-ofhogr
+    git pull origin claude/reel-video-prompt-ofhogr
+
+コミット 9f0bac8 以降を含んでいること。含んでいなければ pull が失敗しているので、そこで止める。
+
 ## 必要なもの（無ければそこで止めて報告する）
 
 - /Applications/AivisSpeech.app（AivisSpeech Engine。スクリプトが自動で起動する）
@@ -27,6 +38,8 @@ LDK Lighting Lab の配灯図リール（plan-dots）に AI 音声を入れて�
 
 別ターミナルで npm run dev を起動してから、次の順に実行する。
 
+    npm ci
+    npm run ig:fonts
     rm -rf output/reel-plan-dots-frames
     REEL_CONFIG=marketing/instagram/reels/plan-dots.reel.json REEL_SMOKE=1 npm run ig:decision-capture
     REEL_CONFIG=marketing/instagram/reels/plan-dots.reel.json npm run ig:decision-capture
