@@ -40,3 +40,9 @@ yarn-error.log*
 .DS_Store
 .idea/
 *.swp
+
+# 再現元のフリー素材（ライセンス上コミットしない。ローカルにだけ置く）
+marketing/instagram/refs/*.jpg
+marketing/instagram/refs/*.jpeg
+marketing/instagram/refs/*.png
+marketing/instagram/refs/*.webp
