@@ -3,8 +3,42 @@
 [room-photo-recreation.md](room-photo-recreation.md) のリールを実際に作るための指示文。
 3フェーズに分けてある。**1本にまとめて投げない** — 再現の出来を見てから撮影に進む必要がある。
 
-前提: ブランチ `claude/room-photo-recreation-reel-3xvzcg` を取得し、
-採用写真を `marketing/instagram/refs/pexels-15580493.jpg` に置いてから始める。
+前提: ブランチ `claude/room-photo-recreation-reel-3xvzcg` を取得していること。
+採用写真の配置はフェーズ0でやる。
+
+---
+
+## フェーズ0｜採用写真を配置する
+
+画像ホストに到達できる環境で実行する。Claude Code on the web の既定の
+egressポリシーは `images.pexels.com` を403で拒否するので、そこでは通らない。
+
+```
+LDK Lighting Lab のリール素材として、Pexelsの写真を1枚リポジトリに配置する。
+
+対象: Cozy Living Room / 撮影 Curtis Adams
+ページ: https://www.pexels.com/photo/cozy-living-room-15580493/
+
+手順:
+1. ブランチ claude/room-photo-recreation-reel-3xvzcg を最新にする。
+2. 上のページから原寸（Original）をダウンロードする。
+   直リンクは https://images.pexels.com/photos/15580493/pexels-photo-15580493.jpeg
+   の形式と思われるが未検証。通らなければページのダウンロードボタンの遷移先を使う。
+3. marketing/instagram/refs/pexels-15580493.jpg として保存する。
+   .jpeg で落ちてきたら .jpg にリネームする。
+4. 検証する:
+   - ファイルが存在し、1MB以上ある
+   - 画像として開ける。幅1920px以上（リールは1280×2276で撮るので原寸が要る）
+   - 実際に開いて中身を見る。グレーの壁・L字のグレーのソファ・シーリングファン・
+     幾何柄のラグ・木製TVボードが写った、昼間のリビングであること。
+     違う写真が落ちていたら止めて報告する。
+
+制約:
+- この画像はコミットしない。marketing/instagram/refs/*.jpg は .gitignore 済みで、
+  フリー素材の再配布を避けるため意図的に除外している。git add -f で強制追加しない。
+- 画像以外のファイルは変更しない。
+- 画像ホストに到達できない場合は、別経路を探さずその旨を報告して止まる。
+```
 
 ---
 
