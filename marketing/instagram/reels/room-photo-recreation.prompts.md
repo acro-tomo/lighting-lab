@@ -105,14 +105,25 @@ speakerId / speed / intonation / tempoDynamics は six-rooms.reel.json と同じ
 - s1→s2 の xfade だけ 0.6s。他は既存のまま
 - 画面内に「Photo: Curtis Adams / Pexels」を小さく出す（プレイブック6-5の例外条件）
 
+テロップは reel.json の shots[].text（eyebrow / headline / sub）に書く。
+encode-reel.mjs は REEL_CONFIG があればそこから読む（ファイル冒頭のSHOT_TEXTはフォールバック）。
+出力名は config の outName に reel-room-photo-recreation.mp4 と書く。
+
 手順:
 1. REEL_SMOKE=1 REEL_CONFIG=... npm run ig:decision-capture で構図確認
 2. 本撮影
 3. python3 scripts/instagram/generate-reel-voice.py で音声
-4. REEL_WITH_VOICE=1 でエンコード
+4. REEL_CONFIG=... REEL_WITH_VOICE=1 npm run ig:decision-encode
 
-音声がショット尺を超えたら止めて報告する。話速を上げて詰めない（台本を短くするか尺を延ばす）。
-完成したら marketing/instagram/out/reel-room-photo-recreation.mp4 に置く。
+検証:
+- ffprobe で 1080×1920 / 尺 22.0秒 ±0.5 / 音声トラックあり を確認する
+- 0.5s・3.0s・6.0s・10.0s・14.0s のフレームを抜き出して目視する。
+  順に 写真 / 昼の再現 / 夜 / 色温度スイープ / 灯数比較 になっていること
+- 音声がショット尺を超えたら止めて報告する。話速を上げて詰めない
+  （台本を短くするか撮影尺を延ばす）
+
+完成物は marketing/instagram/out/reel-room-photo-recreation.mp4。
+中間フレームと音声は output/ 配下に出るので、これはコミットしない。
 ```
 
 ## 投稿時の注意
