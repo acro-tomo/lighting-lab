@@ -20,7 +20,12 @@ marketing/instagram/refs/pexels-15580493.jpg を見て、この部屋を LDK Lig
    public/demo/rooms/ には入れない（「サンプルの部屋」の選択画面に出さない）。
 3. camera.fov / position / target を写真に合わせる。npm run dev で開き、写真と3Dを並べて
    消失点とアイレベルが合うまで追い込む。写真は広角で撮られていることが多いので fov 70〜80 から始める。
-4. 日光はOFF・夜の状態で保存する。露出は 0.10〜0.13 の範囲で調整する。
+4. 写真は昼のカットなので、まず日光ONの昼の状態で写真に合わせる。
+   合ったら日光OFFの夜の状態も作り、同じJSONに保存できる形にする（s3-night で昼→夜に落とすため）。
+   露出は 0.10〜0.13 の範囲で調整する。
+
+読み取り済みの寸法・開口・家具・カメラの推定は
+marketing/instagram/reels/room-photo-recreation.source.md にある。そこから始める。
 
 制約: 専用の3Dモデルは足さない。アプリ標準の壁・窓・開口・扉と、家具/器具カタログの
 既製オブジェクトだけで作る。写真そっくりを狙わず、間取りと灯りの構成が写し取れていればよい。
@@ -42,6 +47,9 @@ scripts/instagram/capture-decision-reel.mjs に still-image ショットモー�
 - scripts/instagram/encode-reel.mjs の xfade はいま全クリップ一律なので、
   shot ごとに長さを指定できるようにする。未指定なら現在の挙動のまま。
 
+あわせて sequence.mode: "daylight-fade" も足す。daylight の強度を補間して昼から夜へ落とす。
+既存の light-property-animation と同じ作りで、動かす対象が日光になるだけ。
+
 制約: 既存3モード（stacked-light-compare / light-toggle-slide / light-property-animation）の
 挙動は変えない。
 
@@ -59,6 +67,7 @@ speakerId / speed / intonation / tempoDynamics は six-rooms.reel.json と同じ
 
 - s1-photo: still-image モード、imagePath は marketing/instagram/refs/pexels-15580493.jpg
 - s2-recreate 以降: projectFile は marketing/instagram/reels/room-photo-recreation.project.json
+- s3-night: daylight-fade モードで昼から夜へ落とす
 - s1→s2 の xfade だけ 0.6s。他は既存のまま
 - 画面内に「Photo: Curtis Adams / Pexels」を小さく出す（プレイブック6-5の例外条件）
 
