@@ -13,6 +13,14 @@
 したがって下表の「所見」は**タイトルとタグからの推測**で、実物を見た評価ではない。
 本当の判定はリンクを開いた人間がやる。
 
+## 選定基準の優先順位（初回の選定で修正した）
+
+最初の候補出しは「照明が主題か」を最上位に置いてしまい、器具のクローズアップを
+上位に並べていた。これは誤り。**第一条件は部屋の全景が写っていること**。
+器具のアップを再現しても、映るのは照明器具のモデリングであって間取りではなく、
+`s2-recreate` で見せたい「部屋がそのまま立ち上がる」画にならない。
+器具が主題かどうかは、全景であることを満たしたあとの二次条件。
+
 ## 候補
 
 「夜」＝日光ではなく照明が主役か。「主題」＝どの器具が画の中心か。
@@ -22,7 +30,7 @@
 
 | 適合 | 写真 | 撮影者 | 所見（推測） |
 |---|---|---|---|
-| ◎ | [Recessed ceiling lights illuminate a dark room](https://unsplash.com/photos/recessed-ceiling-lights-illuminate-a-dark-room-v4iXungques) | Tsuyoshi Kozu | **ダウンライトが主題**。灯数比較（`s4-count`）に直結する。ただしタグが architecture / pattern 寄りで、部屋の全景でなく天井の見上げの可能性がある。最初に開いて確認する1枚 |
+| ✕ | [Recessed ceiling lights illuminate a dark room](https://unsplash.com/photos/recessed-ceiling-lights-illuminate-a-dark-room-v4iXungques) | Tsuyoshi Kozu | 器具の見え方が主題で、部屋の全景ではない。天井の見上げは再現の題材にならない |
 | ○ | [A dark room with a couch and a lamp](https://unsplash.com/photos/a-dark-room-with-a-couch-and-a-lamp-pTkAf4EHIcE) | Priscilla Du Preez | タグに night / home。夜条件は満たしていそう。ソファとランプだけなら再現は軽い |
 | ○ | [A couch in a dark room with a lamp on](https://unsplash.com/photos/a-couch-in-a-dark-room-with-a-lamp-on-TG1_xtcMB1o) | Rafael Garcin | フランス・ラロシェル。dark room / shadows。影が主題なら差し替えの見せ場は作りやすい。灯数が1灯だけだと `s4` が弱くなる |
 | ○ | [Modern living room with fireplace and pendant light](https://unsplash.com/photos/modern-living-room-with-fireplace-and-pendant-light-1i33LW920zc) | — | ペンダントは再現しやすい。**暖炉がカタログに無い**ので、そこだけ絵が寄らないリスク |
@@ -36,8 +44,8 @@
 
 | 適合 | 写真 | 撮影者 | 所見（推測） |
 |---|---|---|---|
-| ◎ | [Brown Pendant Lamps](https://www.pexels.com/photo/brown-pendant-lamps-986735/) | — | 「暗い部屋を暖色で照らすスパイラルのペンダント」。夜条件◎・器具が主題◎。造作が少なければ本命 |
-| ○ | [Cozy Living Room](https://www.pexels.com/photo/cozy-living-room-15580493/) | Curtis Adams | 不動産系の広角室内を多く出している撮影者。**1点透視の全景**である見込みが高く、カメラ合わせが早い |
+| ✕ | [Brown Pendant Lamps](https://www.pexels.com/photo/brown-pendant-lamps-986735/) | — | 器具のクローズアップ。部屋が写っていないので同上 |
+| ◎ | [Cozy Living Room](https://www.pexels.com/photo/cozy-living-room-15580493/) | Curtis Adams | **採用**。不動産系の広角室内。部屋の全景が写っていてカメラ合わせが早い |
 | ○ | [Modern Interior with Stylish Table Lamp](https://www.pexels.com/photo/modern-interior-with-stylish-table-lamp-34237532/) | — | 暖色の室内＋テーブルランプ。ただし「interior」止まりで部屋全景かは不明 |
 | ○ | [Photo of a Dining Table](https://www.pexels.com/photo/photo-of-a-dining-table-12127444/) | — | ダイニング＋ペンダント。食卓が写っていると生活感が出て刺さりやすい |
 | △ | [Interior of cozy living room](https://www.pexels.com/photo/interior-of-cozy-living-room-4468806/) | Keegan Checks | 夜かどうか不明 |
@@ -72,8 +80,10 @@
 
 ## 採用
 
-<!-- 決まったらここに書く
 | ショット | 写真 | 撮影者 | URL |
 |---|---|---|---|
-| s1-photo | | | |
--->
+| `s1-photo` | Cozy Living Room | Curtis Adams | https://www.pexels.com/photo/cozy-living-room-15580493/ |
+
+ローカルでの置き場所は `marketing/instagram/refs/pexels-15580493.jpg`。
+構図の実測（画角・アイレベル・消失点の位置）はまだ取れていない。
+このセッションからは画像を取得できないため、Mac側で見てから詰める。
